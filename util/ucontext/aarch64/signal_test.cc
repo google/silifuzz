@@ -187,7 +187,6 @@ TEST(SignalTest, UnmappedRead) {
   // Check the fault is coming from the expected location.
   GRegSet gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  // One instruction of setup before the fault.
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(UnmappedRead));
 }
@@ -226,9 +225,150 @@ TEST(SignalTest, UnmappedWrite) {
   // Check the fault is coming from the expected location.
   GRegSet gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  // One instruction of setup before the fault.
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(UnmappedWrite));
+}
+
+TEST(SignalTest, UnmappedExecute) {
+  const uint64_t kBadAddr = 32;
+  siginfo_t siginfo;
+  ucontext_t uc;
+  ExtraSignalRegs extra;
+  {
+    FatalSignalHandler handler(SIGSEGV);
+    ASSERT_TRUE(handler.CaptureSignal(reinterpret_cast<TestFunc>(kBadAddr), 0,
+                                      &siginfo, &uc, &extra));
+  }
+
+  EXPECT_EQ(siginfo.si_signo, SIGSEGV);
+  EXPECT_EQ(siginfo.si_code, SEGV_MAPERR);
+  EXPECT_EQ(siginfo.si_addr, (void*)kBadAddr);
+  EXPECT_EQ(siginfo.si_addr, (void*)uc.uc_mcontext.fault_address);
+
+  SignalRegSet sigregs;
+  ConvertSignalRegsFromLibC(uc, &sigregs);
+
+  // Instruction Abort from a lower Exception level.
+  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x20);
+
+  // 32-bit instruction, this isn't THUMB.
+  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+
+  // Fault address register is valid.
+  EXPECT_EQ((sigregs.esr >> 10) & 0x1, 0x0);
+
+  // Check the fault is coming from the expected location.
+  GRegSet gregs;
+  ConvertGRegsFromLibC(uc, extra, &gregs);
+  EXPECT_EQ(GetInstructionPointer(gregs), reinterpret_cast<uint64_t>(kBadAddr));
+}
+
+TEST(SignalTest, UnalignedExecute) {
+  TestFunc unaligned_func =
+      reinterpret_cast<TestFunc>(reinterpret_cast<uint64_t>(UnmappedWrite) + 1);
+  siginfo_t siginfo;
+  ucontext_t uc;
+  ExtraSignalRegs extra;
+  {
+    FatalSignalHandler handler(SIGBUS);
+    ASSERT_TRUE(
+        handler.CaptureSignal(unaligned_func, 0, &siginfo, &uc, &extra));
+  }
+
+  EXPECT_EQ(siginfo.si_signo, SIGBUS);
+  EXPECT_EQ(siginfo.si_code, BUS_ADRALN);
+  EXPECT_EQ(siginfo.si_addr, (void*)unaligned_func);
+  EXPECT_EQ(uc.uc_mcontext.fault_address, 0);
+
+  SignalRegSet sigregs;
+  ConvertSignalRegsFromLibC(uc, &sigregs);
+
+  // PC alignment fault exception.
+  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x22);
+
+  // 32-bit instruction, this isn't THUMB.
+  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+
+  // Check the fault is coming from the expected location.
+  GRegSet gregs;
+  ConvertGRegsFromLibC(uc, extra, &gregs);
+  EXPECT_EQ(GetInstructionPointer(gregs),
+            reinterpret_cast<uint64_t>(unaligned_func));
+}
+
+TEST(SignalTest, Unexecutable) {
+  // A return instruction, so if this somehow executes the test continues
+  // without throwing a signal.
+  uint32_t ret_inst = 0xd65f03c0;
+  TestFunc unexecutable_func = reinterpret_cast<TestFunc>(&ret_inst);
+
+  siginfo_t siginfo;
+  ucontext_t uc;
+  ExtraSignalRegs extra;
+  {
+    FatalSignalHandler handler(SIGSEGV);
+    ASSERT_TRUE(
+        handler.CaptureSignal(unexecutable_func, 0, &siginfo, &uc, &extra));
+  }
+
+  EXPECT_EQ(siginfo.si_signo, SIGSEGV);
+  EXPECT_EQ(siginfo.si_code, SEGV_ACCERR);
+  EXPECT_EQ(siginfo.si_addr, (void*)unexecutable_func);
+  EXPECT_EQ(siginfo.si_addr, (void*)uc.uc_mcontext.fault_address);
+
+  SignalRegSet sigregs;
+  ConvertSignalRegsFromLibC(uc, &sigregs);
+
+  // Instruction Abort from a lower Exception level.
+  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x20);
+
+  // 32-bit instruction, this isn't THUMB.
+  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+
+  // Fault address register is valid.
+  EXPECT_EQ((sigregs.esr >> 10) & 0x1, 0x0);
+
+  // Check the fault is coming from the expected location.
+  GRegSet gregs;
+  ConvertGRegsFromLibC(uc, extra, &gregs);
+  EXPECT_EQ(GetInstructionPointer(gregs),
+            reinterpret_cast<uint64_t>(unexecutable_func));
+}
+
+// Intentionally misaligns the stack.
+extern "C" void UnalignedStack(uint64_t arg);
+
+TEST(SignalTest, UnalignedStack) {
+  siginfo_t siginfo;
+  ucontext_t uc;
+  ExtraSignalRegs extra;
+  {
+    FatalSignalHandler handler(SIGBUS);
+    ASSERT_TRUE(
+        handler.CaptureSignal(UnalignedStack, 1, &siginfo, &uc, &extra));
+  }
+
+  EXPECT_EQ(siginfo.si_signo, SIGBUS);
+  EXPECT_EQ(siginfo.si_code, BUS_ADRALN);
+  EXPECT_EQ(siginfo.si_addr, (void*)uc.uc_mcontext.sp);
+  EXPECT_EQ(uc.uc_mcontext.fault_address, 0);
+
+  SignalRegSet sigregs;
+  ConvertSignalRegsFromLibC(uc, &sigregs);
+
+  // SP alignment fault exception.
+  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x26);
+
+  // 32-bit instruction, this isn't THUMB.
+  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+
+  // Check the fault is coming from the expected location.
+  GRegSet gregs;
+  ConvertGRegsFromLibC(uc, extra, &gregs);
+  // One instruction of setup before the fault.
+  // Stack alignment issues are detected on use.
+  EXPECT_EQ(GetInstructionPointer(gregs),
+            reinterpret_cast<uint64_t>(UnalignedStack) + 4);
 }
 
 // Executes an illegal instruction.

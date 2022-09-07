@@ -24,6 +24,8 @@
 
 namespace silifuzz {
 
+typedef void (*TestFunc)(uint64_t);
+
 // This class sets up a signal handler and then captures the result of the
 // signal handler after invoking a test function.
 // This class cleans up the signal handler when it is destroyed.
@@ -35,7 +37,7 @@ class FatalSignalHandler {
   explicit FatalSignalHandler(int signal);
   ~FatalSignalHandler();
 
-  bool CaptureSignal(void (*f)(uint64_t), uint64_t arg, siginfo_t* siginfo,
+  bool CaptureSignal(TestFunc f, uint64_t arg, siginfo_t* siginfo,
                      ucontext_t* uc, ExtraSignalRegs* extra);
 
  private:

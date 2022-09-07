@@ -53,3 +53,12 @@ DebugInstruction:
   brk #7
   ret
   .size   DebugInstruction, .-DebugInstruction
+
+  .p2align 2
+  .globl  UnalignedStack
+  .type   UnalignedStack, @function
+UnalignedStack:
+  str x0, [sp, #-8]!
+  ldr x0, [sp], #8
+  ret
+  .size   UnalignedStack, .-UnalignedStack
