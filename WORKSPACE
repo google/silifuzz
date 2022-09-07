@@ -89,7 +89,7 @@ lss_ver = "32a80cda3c885e0db9bcd4c67d1c4b479057d943"
 
 new_git_repository(
     name = "lss",
-    build_file = "@//:third_party/BUILD.lss",
+    build_file = "@silifuzz//:third_party/BUILD.lss",
     commit = lss_ver,
     remote = "https://chromium.googlesource.com/linux-syscall-support",
     shallow_since = "1657142711 +0000",
@@ -97,7 +97,7 @@ new_git_repository(
 
 new_git_repository(
     name = "cityhash",
-    build_file = "@//:third_party/BUILD.cityhash",
+    build_file = "@silifuzz//:third_party/BUILD.cityhash",
     commit = "8af9b8c2b889d80c22d6bc26ba0df1afb79a30db",
     patch_cmds = [
         # Running "configure" creates the config.h file needed for this library.
@@ -112,7 +112,7 @@ new_git_repository(
 
 new_git_repository(
     name = "mbuild",
-    build_file = "@//:third_party/BUILD.mbuild",
+    build_file = "@silifuzz//:third_party/BUILD.mbuild",
     commit = "1cb4f44e9b249626392a275e6f59c00ea16a47ed",
     patch_cmds = [
         "rm -f setup.py",
@@ -124,7 +124,7 @@ new_git_repository(
 
 new_git_repository(
     name = "libxed",
-    build_file = "@//:third_party/BUILD.libxed",
+    build_file = "@silifuzz//:third_party/BUILD.libxed",
     commit = "801b876fe6a6d321b1f4027b6bb4adaee7ecd0a7",
     patch_cmds = [
         "sed -i -e 's|xed/xed-interface.h|xed-interface.h|' examples/xed-tester.c",
@@ -141,7 +141,7 @@ git_repository(
 
 http_archive(
     name = "liblzma",
-    build_file = "//:third_party/BUILD.liblzma",
+    build_file = "@silifuzz//:third_party/BUILD.liblzma",
     sha256 = "f6f4910fd033078738bd82bfba4f49219d03b17eb0794eb91efbae419f4aba10",
     strip_prefix = "xz-5.2.5",
     urls = [
@@ -161,11 +161,11 @@ http_archive(
 # Unicorn for the proxies
 new_git_repository(
     name = "unicorn",
-    build_file = "@//:third_party/BUILD.unicorn",
+    build_file = "@silifuzz//:third_party/BUILD.unicorn",
     commit = "63a445cbba18bf1313ac3699b5d25462b5d529f4",
-    remote = "https://github.com/unicorn-engine/unicorn",
     patch_cmds = [
         "sed -i -e 's|ARM64_REGS_STORAGE_SIZE|DEFAULT_VISIBILITY ARM64_REGS_STORAGE_SIZE|' qemu/target-arm/unicorn.h",
     ],
+    remote = "https://github.com/unicorn-engine/unicorn",
     shallow_since = "1639356032 +0800",
 )

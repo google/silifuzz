@@ -137,14 +137,29 @@ An (electrical) defect is an invalid CPU behavior that happens only on one or se
 
 ```shell
 git checkout https://github.com/google/silifuzz.git && cd silifuzz
+SILIFUZZ_SRC_DIR=`pwd`
 ./install_build_dependencies.sh  # Currently, works for the latest Debian and Ubuntu only
 bazel build @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id} @silifuzz//runner:reading_runner_main_nolibc @silifuzz//orchestrator:silifuzz_orchestrator_main
 SILIFUZZ_BIN_DIR=`pwd`/bazel-bin/
 cd "${SILIFUZZ_BIN_DIR}"
 ```
 
-### Prework (fetching and fuzzing Unicorn target)
+### Prework (fuzzing Unicorn target)
 
+```shell
+cd "${SILIFUZZ_SRC_DIR}"
+bazel build -c opt @silifuzz//proxies:unicorn_x86_64_sancov
+bazel build -c opt @centipede//:centipede
+mkdir -p /tmp/wd
+
+# Fuzz unicorn proxies under centipede with parallelism of 30.
+"${SILIFUZZ_BIN_DIR}/external/centipede/centipede" \
+  --binary "${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64_sancov" \
+  --workdir /tmp/wd
+  -j 30
+```
+
+### Prework (collect corpus from fuzzing result)
 TODO: Coming soon
 
 ## Tools

@@ -96,6 +96,21 @@
 // initiate a graceful process shutdown. Reaching hard cap on RLIMIT_CPU will
 // trigger SIGKILL.
 
+// linux_syscall_support.h does not have an implementation of sys_sigaction on
+// aarch64.
+// TODO: fix this upstream.
+#if defined(__aarch64__)
+LSS_INLINE int LSS_NAME(sigaction)(int signum,
+                                   const struct kernel_sigaction* act,
+                                   struct kernel_sigaction* oldact) {
+  // Note that this implementation does not call sigreturn if the handler
+  // returns normally, which would likely result in the stack pointer
+  // being corrupted. Fortunately our signal handler never returns normally, so
+  // this isn't an issue and we can stick with a simple implementation for now.
+  return LSS_NAME(rt_sigaction)(signum, act, oldact, (KERNEL_NSIG + 7) / 8);
+}
+#endif
+
 namespace silifuzz {
 
 namespace {
