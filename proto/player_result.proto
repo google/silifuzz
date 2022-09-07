@@ -1,0 +1,57 @@
+// Copyright 2022 The SiliFuzz Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Proto messages for representing Player::Result.
+syntax = "proto2";
+
+package silifuzz.proto;
+
+import "google/protobuf/duration.proto";            // for Duration
+import "proto/snapshot.proto"; // for Endstate
+
+// The proto defintion matches the class definition of Player::Result.
+// Please refer to Player::Result for details.
+message PlayerResult {
+  // Snapshot playback outcome code.
+  enum Outcome {
+    AS_EXPECTED = 0;
+    PLATFORM_MISMATCH = 1;
+    MEMORY_MISMATCH = 2;
+    REGISTER_STATE_MISMATCH = 3;
+    ENDPOINT_MISMATCH = 4;
+    EXECUTION_RUNAWAY = 5;
+    EXECUTION_MISBEHAVE = 6;
+  }
+
+  optional Outcome outcome = 1;  // semantically required
+
+  // Index of the (partially) matched element of
+  // Snapshot::expected_end_states(). Maybe missing depending on outcome.
+  optional int32 end_state_index = 2;
+
+  // Actual end-state reached. This may be missing depending on outcome, please
+  // refer to Player::Result for gory details. Inside the player, we may not
+  // store the actual endstate if a snapshot ends as expected because we
+  // can use an index to one of the expected endstates.  Outside the player,
+  // we may store the full endstate regardless because we do not have access to
+  // the expected endstates.
+  optional EndState actual_end_state = 3;
+
+  // CPU time used in playing the snapshot.  This is an overestimate with
+  // unavoidable overheads in the player.
+  optional google.protobuf.Duration cpu_usage = 4;
+
+  // CPU number where the snapshot ran.
+  optional int64 cpu_id = 5;
+}

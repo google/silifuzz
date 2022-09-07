@@ -1,0 +1,78 @@
+// Copyright 2022 The SiliFuzz Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package silifuzz.proto.logging;
+
+import "google/protobuf/duration.proto";
+import "proto/corpus_metadata.proto";
+
+message ResourceUsage {
+  // User CPU time used according to getrusage(2).
+  google.protobuf.Duration user_time = 1;
+
+  // System CPU time used according to getrusage(2).
+  google.protobuf.Duration system_time = 2;
+
+  // Maximum resident set size of a single _largest_ runner process as reported
+  // by getrusage(RUSAGE_CHILDREN).
+  uint64 max_rss_kb = 3;
+}
+
+message MachineInfo {
+  // Num cores available according to sched_getaffinity(2).
+  // NOTE that this does not necessarily represent the full number of cores on
+  // the machine, only the part that was made available to SiliFuzz.
+  uint64 num_cores = 1;
+
+  // Host name.
+  string hostname = 2;
+}
+
+message PlaybackSummary {
+  // Number of snapshots that failed.
+  uint64 num_failed_snapshots = 1;
+
+  // How many times a runner binary was executed.
+  uint64 play_count = 2;
+
+  // Number of runaways detected.
+  uint64 num_runaway_snapshots = 3;
+}
+
+message OrchestratorBinaryInfo {
+  // Opaque string representing Orchestrator version.
+  string version = 1;
+}
+
+// Summary of a single session (orchestartor invocation).
+message SessionSummary {
+  // Corpus metadata.
+  silifuzz.proto.CorpusMetadata corpus_metadata = 1;
+
+  // Machine information.
+  MachineInfo machine_info = 2;
+
+  PlaybackSummary playback_summary = 3;
+
+  // Duration of the session (wall time).
+  google.protobuf.Duration duration = 4;
+
+  // Resource usage.
+  ResourceUsage resource_usage = 5;
+
+  // Orchestrator version, etc
+  OrchestratorBinaryInfo orchestrator_info = 6;
+}

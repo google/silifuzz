@@ -1,0 +1,300 @@
+// Copyright 2022 The SiliFuzz Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Proto messages for representing snapshots:
+// Snapshot is the main message; all others are to help define it.
+//
+// IMPORTANT: All C++ code except for converters in
+// silifuzz/common/snapshot_proto.h should deal with Snapshot classes
+// defined in silifuzz/common/snapshot.h, NOT with the protos here.
+
+syntax = "proto2";
+
+package silifuzz.proto;
+
+// Describes a single contiguous page-aligned memory mapping.
+message MemoryMapping {
+  // Bits for the possible permissions on memory to be binary-or-ed.
+  enum PermissionBits {
+    READABLE = 1;
+    WRITABLE = 2;
+    EXECUTABLE = 4;
+  }
+
+  // Start address and size of this mapping that define
+  // the [start_address, start_address + num_bytes) address range.
+  // Both values must be multiples of the page size.
+  optional uint64 start_address = 1;  // semantically required
+  optional uint64 num_bytes = 2;      // semantically required
+
+  // Permissions to be set on the address range: an | of PermissionBits.
+  optional int32 permissions = 3;  // semantically required
+}
+
+// Describes a single contiguous range of byte values in memory.
+message MemoryBytes {
+  // Where `byte_values` start.
+  optional uint64 start_address = 1;  // semantically required
+
+  // The memory byte values to exist at start_address.
+  // This may represent data or instructions.
+  optional bytes byte_values = 2;  // semantically required
+}
+
+// Describes the state of CPU registers.
+// This is available from silifuzz/util/ucontext/ucontext.h and
+// silifuzz/util/ucontext/conver.h or via PTRACE_GETREGS, PTRACE_GETFPREGS,
+// PTRACE_GETREGSET as <sys/user.h> structs.
+message RegisterState {
+  // Bytes of the user_regs_struct from <sys/user.h>.
+  optional bytes gregs = 1;  // semantically required
+
+  // Bytes of the user_fpregs_struct from <sys/user.h>.
+  // TBD: Might need to exclude the padding field at the end.
+  //      Also might need to allow for fp_regs to be absent
+  //      -- see user.u_fpvalid in <sys/user.h>.
+  optional bytes fpregs = 2;  // semantically required
+}
+
+// Describes an execution endpoint of a snapshot.
+message Endpoint {
+  // Supported signals that could be an endpoint.
+  // Note that all these singlas fill-in siginfo_t::si_addr.
+  enum SigNum {
+    UNDEFINED_SIG_NUM = 0;
+    SIG_SEGV = 1;  // SIGSEGV
+    SIG_TRAP = 2;  // SIGTRAP
+    SIG_FPE = 3;   // SIGFPE
+    SIG_ILL = 4;   // SIGILL
+    SIG_BUS = 5;   // SIGBUS
+  }
+
+  // A more specific cause of the signal.
+  enum SigCause {
+    UNDEFINED_SIG_CAUSE = 0;
+    GENERIC_SIG_CAUSE = 1;        // for SIG_TRAP, SIG_FPE, SIG_ILL, or SIG_BUS
+    SEGV_CANT_EXEC = 2;           // for SIG_SEGV
+    SEGV_CANT_WRITE = 3;          // for SIG_SEGV
+    SEGV_CANT_READ = 4;           // for SIG_SEGV
+    SEGV_OVERFLOW = 5;            // for SIG_SEGV
+    SEGV_GENERAL_PROTECTION = 6;  // for SIG_SEGV
+  }
+
+  // Describes a signal that snapshot's execution causes.
+  message Signal {
+    // The signal.
+    optional SigNum sig_num = 1;  // semantically required
+
+    // Cause of sig_num.
+    optional SigCause sig_cause = 2;  // semantically required
+
+    // The siginfo_t::si_addr value: the address that causes the signal.
+    // Might need to become semantically optional if add support for signals
+    // that do not fill si_addr.
+    optional uint64 sig_address = 3;  // semantically required
+
+    // Value of the instruction address aka pointer when the signal occured.
+    // Might be the same as sig_address or not.
+    optional uint64 sig_instruction_address = 4;  // semantically required
+  }
+
+  // Endpoint is the first occurence of the given event.
+  oneof event {
+    // Event is reaching this instruction address.
+    uint64 instruction_address = 1;
+
+    // Event is occurrence of a signal matching this description.
+    Signal signal = 2;
+  }
+}
+
+// Identifiers for all possible platform microarchitectures we run snapshots on.
+// Grow or subdivide further if there are new machine types we can run on
+// or if there are further differences in CPU's behavior.
+enum PlatformId {
+  UNDEFINED_PLATFORM_ID = 0;
+  INTEL_SKYLAKE = 1;
+  INTEL_HASWELL = 2;
+  INTEL_BROADWELL = 3;
+  INTEL_IVYBRIDGE = 4;
+  INTEL_CASCADELAKE = 5;
+  AMD_ROME = 6;
+  INTEL_ICELAKE = 7;
+  AMD_MILAN = 8;
+  INTEL_SAPPHIRERAPIDS = 9;
+  AMD_GENOA = 10;
+}
+
+// Describes a specific endstate of executing a snapshot.
+message EndState {
+  // Expected execution endpoint that defines this EndState.
+  optional Endpoint endpoint = 1;  // semantically required
+
+  // The expected state of the registers to exist at `endpoint`.
+  optional RegisterState registers = 2;  // semantically required
+
+  // The expected memory state to exist at `endpoint`.
+  // Only differences from the starting state need to be mentioned here.
+  // Same constraints as for Snapshot.memory_bytes below wrt Snapshot.mappings.
+  repeated MemoryBytes memory_bytes = 3;  // can be missing
+
+  // Set of platforms for which we've observed this EndState to occur
+  // for this snapshot. Empty set means that this EndState is provisional
+  // and can be removed once a real one is observed.
+  //
+  // The representation is a bit vector where PlatformId enum values are the
+  // bit indexes -- more compact than `repeated PlatformId` as the number
+  // of PlatformId values grows and assuming most end-states are the same
+  // for all platforms, so normally this will have all bits set.
+  // Make it repeated if we run out of bits in one int64.
+  optional int64 platforms = 4;  // can be missing
+}
+
+// Metadata about a Snapshot.
+//
+// We use an "enum selector plus appropriately optional detail fields" format
+// instead of a hierarchy of one_of-s because this proto is not for human
+// or wide code consumption and for many snapshot origin types there are
+// no extra details, so the one_of messages would be empty.
+//
+// NEXT ID: 8
+message SnapshotMetadata {
+  // The time when the snapshot was created or last modified (in a minor way
+  // that does not merit to be called a transformation with a separate
+  // snapshot id, e.g. recording end-state is such a minor transformation).
+  // Seconds of UTC time since Unix epoch.
+  // Same as the `seconds` part of google/protobuf/timestamp.proto.
+  optional int64 timestamp_seconds = 1;  // semantically required
+
+  // Unstructured human-readable (maybe human-supplied) comments about the
+  // snapshot.
+  repeated string comment = 7;  // can be missing
+
+  // How snapshot originated.
+  // There are two classes of origin:
+  // * creation from nothing -- all the enum values with _ORIGIN suffix
+  // * transfromation from one (or in the future several) snapshots
+  //   -- all the enum values with _TRANSFORM suffix.
+  // Next ID: 12
+  enum Origin {
+    // When origin is unknown or unimportant,
+    // e.g. snapshot was made by some test-generation logic.
+    UNDEFINED_ORIGIN = 0;
+
+    // Snapshot was made by ifuzz.
+    IFUZZ_ORIGIN = 2;
+
+    // Snapshot was made by fuzzing {Unicorn,Bochs,etc} with libFuzzer.
+    // TODO(ksteuck): [impl] It might be possible to capture the facts when
+    // a specific snapshot was made by fuzzing a specific another snapshot.
+    UNICORN_FUZZING_ORIGIN = 3;
+    BOCHS_FUZZING_ORIGIN = 5;
+    XED_FUZZING_ORIGIN = 6;
+    GEM5_FUZZING_ORIGIN = 7;
+    IACA_FUZZING_ORIGIN = 8;
+    LLVM_MCA_FUZZING_ORIGIN = 9;
+    EMULATOR1_FUZZING_ORIGIN = 11;
+
+    // Unicorn fuzzer with a custom input sequence generator.
+    // TODO(ksteuck): [cleanup] This is not a very scalable way of defining
+    // origin metadata. If we see more dimensions to origin we will need
+    // to capture such metadata separately from the origin.
+    UNICORNCUSTOM_FUZZING_ORIGIN = 10;
+
+    reserved 1, 4;
+  }
+  optional Origin origin = 2;  // semantically required
+
+  reserved 3 to 6;
+}
+
+// Proto representation of a snapshot: instructions and the necessary data
+// for execution of some relatively short snippet of binary code (single
+// threaded user-space code) with a well-defined end state.
+//
+// IMPORTANT: In C++ code work with the Snapshot class from
+// silifuzz/common/snapshot.h, not with this proto.
+//
+// We envision adding more fields to describe useful information about the
+// snapshot to help analyze and mutate it (such as disassembly).
+// TBD: Do it via additional fields here or via new message(s) that include
+// this one -- it may be renamed to SnapshotToPlay.
+//
+// NEXT ID: 9
+message Snapshot {
+  // Supported srchitectures of snapshots.
+  enum Architecture {
+    UNDEFINED_ARCH = 0;
+    LINUX_X86_64 = 1;
+  }
+
+  // Snapshot identifier. The identifier is a printable string e.g. hex of an
+  // MD5 hash that identifies a snapshot instance and is globally unique.
+  // Possible ways to produce an id include MD5(Snapshot), NewGlobalID or UUID.
+  // A special value "has_not_been_set" has been designated for snapshots
+  // that have not had any ID assigned.
+  optional string id = 6;  // semantically required.
+
+  // Architecture this snapshot is meant for, i.e. its target architecture.
+  optional Architecture architecture = 1;  // semantically required
+
+  // Metadata about this snapshot.
+  // Not necessary for playing or transforming the snapshot, so could be
+  // stripped and/or stored separately as needed.
+  optional SnapshotMetadata metadata = 8;  // can be missing
+
+  // All the memory mappings that exist at the start of the snapshot.
+  // Must be disjoint.
+  repeated MemoryMapping memory_mappings = 2;  // >=1 is semantically required
+
+  // All the memory mapping permissions that must not exist during playback
+  // of the snapshot. I.e. the specified address ranges must not have the
+  // specified permissions (but can have other permissions) if mapped at all.
+  // These are necessary to guarantee reproduction of a SIGSEGV Endpoint.
+  // Must be disjoint and not conflict with memory_mappings.
+  repeated MemoryMapping negative_memory_mappings = 7;  // can be missing
+
+  // All the memory state that exists at the start of the snapshot.
+  // Must be disjoint. Each entry must be inside the union of the
+  // memory_mappings, but any of the memory_mappings elements does not need
+  // to be fully written by the union of memory_bytes,
+  // but the following must hold:
+  // IMPORTANT: memory_bytes must cover all the areas that the snapshot will
+  // a) write into or b) read-from and then depend on for its outcome.
+  // Note that snapshot parsing code can't check for these conditions.
+  // Having such regions in memory_mappings with appropriate permissions
+  // is insufficient. This is because without a memory_bytes specification,
+  // the values of those bytes at the start of snapshot's execution can be
+  // arbitraty. So for case b) this can lead to the snapshot arriving at
+  // a different end-state. While for case a) it's possible that those bytes
+  // will already have the values that snapshot is going to write in a given
+  // execution of the snapshot. Hence if we were recording what snapshot did
+  // based on that run, we'd incorrectly not notice those writes, while on a
+  // later run they would manifest as unexpected changes.
+  // An easy way to satisfy these conditions is to make memory_bytes cover
+  // all of memory_mappings with r or w permissions.
+  repeated MemoryBytes memory_bytes = 3;  // >=1 is semantically required
+
+  // The state of the registers at the start of the snapshot.
+  optional RegisterState registers = 4;  // semantically required
+
+  // The possible expected end-states of executing the snapshot.
+  repeated EndState expected_end_states = 5;  // >=1 is semantically required
+}
+
+// A convenience wrapper for Snapshot.id useful for data processing pipelines.
+message SnapshotId {
+  // Same as Snapshot.id
+  optional string value = 1;  // semantically required
+}

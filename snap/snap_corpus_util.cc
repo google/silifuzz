@@ -1,0 +1,63 @@
+// Copyright 2022 The SiliFuzz Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "./snap/snap_corpus_util.h"
+
+#include <fcntl.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <memory>
+#include <utility>
+
+#include "./snap/snap_relocator.h"
+#include "./util/checks.h"
+#include "./util/itoa.h"
+#include "./util/misc_util.h"
+
+namespace silifuzz {
+
+MmappedMemoryPtr<const Snap::Array<const Snap*>> LoadCorpusFromFile(
+    const char* filename, bool preload) {
+  // MAP_POPULATE interferes with memory sharing. Using it causes read
+  // only portion of a corpus to be copied in each runner.
+  constexpr char kProcPrefix[] = "/proc/";
+  constexpr char kDevShmPrefix[] = "/dev/shm/";
+  if (strncmp(filename, kProcPrefix, strlen(kProcPrefix)) == 0 ||
+      strncmp(filename, kDevShmPrefix, strlen(kDevShmPrefix)) == 0) {
+    preload = false;
+  }
+
+  VLOG_INFO(1, "Loading corpus from ", filename);
+  struct stat st = {};
+  CHECK_EQ(stat(filename, &st), 0);
+  VLOG_INFO(1, "Corpus size (bytes) ", IntStr(st.st_size));
+  int fd = open(filename, O_RDONLY);
+  CHECK_NE(fd, -1);
+  void* relocatable = mmap(nullptr, st.st_size, PROT_READ | PROT_WRITE,
+                           MAP_PRIVATE | (preload ? MAP_POPULATE : 0), fd, 0);
+  CHECK_NE(relocatable, MAP_FAILED);
+  VLOG_INFO(1, "Mapped corpus at ", HexStr(AsInt(relocatable)));
+  auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
+                                           st.st_size);
+  CHECK_EQ(close(fd), 0);
+  MmappedMemoryPtr<const Snap::Array<const Snap*>> corpus =
+      SnapRelocator::RelocateCorpus(std::move(mapped));
+  VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->size));
+  return corpus;
+}
+
+}  // namespace silifuzz

@@ -1,0 +1,16 @@
+build --client_env=CC=clang
+
+build --cxxopt=-std=c++17 --cxxopt=-fno-stack-protector --copt=-Wno-narrowing --copt=-fno-exceptions --cxxopt=-Wno-unused-private-field --cxxopt=-Wno-defaulted-function-deleted
+
+# SiliFuzz build is "selfhosted" (i.e. uses its own stack for some of the build tools).
+# Use the same configuration as the target above
+build --host_cxxopt=-std=c++17 --host_cxxopt=-fno-stack-protector --host_copt=-Wno-narrowing --host_copt=-fno-exceptions --host_cxxopt=-Wno-unused-private-field --host_cxxopt=-Wno-defaulted-function-deleted
+
+# Remove security hardening as it clashes with nolibc
+build --copt -U_FORTIFY_SOURCE
+
+# We already have absl in the build, define absl=1 to tell googletest to use absl for backtrace.
+build --define absl=1
+
+build --copt=-fPIC
+build --linkopt -fuse-ld=lld

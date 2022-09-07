@@ -1,0 +1,25 @@
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+cc_library(
+  name = "cityhash",
+  srcs = ["src/city.cc"],
+  hdrs = [
+      "src/city.h",
+      "src/citycrc.h",
+      "src/config.h",
+  ],
+  include_prefix = "third_party/cityhash",
+  strip_include_prefix = "src",
+  includes = ["."],
+  copts = [
+      "-O3",
+  ] +
+  select({
+    "@platforms//cpu:x86_64": ["-msse4.2"],
+    "//conditions:default": [],
+  })
+)

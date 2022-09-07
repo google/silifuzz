@@ -1,0 +1,17 @@
+# mbuild is the build system used by Intel XED.
+package(default_visibility = ["//visibility:public"])
+
+licenses(["notice"])
+
+exports_files(["LICENSE"])
+
+py_library(
+    name = "mbuild",
+    srcs = glob(["*.py"]),
+)
+
+py_test(
+    name = "1",
+    srcs = ["tests/1.py"],
+    deps = [":mbuild"],
+)
