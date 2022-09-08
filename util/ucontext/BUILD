@@ -221,6 +221,14 @@ cc_test(
 )
 
 cc_library_plus_nolibc(
+    name = "aarch64_esr",
+    hdrs = ["aarch64/esr.h"],
+    deps = [
+        "@silifuzz//util:checks",
+    ],
+)
+
+cc_library_plus_nolibc(
     name = "signal",
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -265,7 +273,7 @@ cc_test(
         ":ucontext",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:aarch64": [":aarch64_esr"],
         "@silifuzz//build_defs/platform:x86_64": ["@silifuzz//util:x86_traps"],
     }),
 )

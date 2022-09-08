@@ -17,6 +17,7 @@
 #include <signal.h>
 
 #include "gtest/gtest.h"
+#include "./util/ucontext/aarch64/esr.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -174,15 +175,20 @@ TEST(SignalTest, UnmappedRead) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // Data Abort from a lower Exception level.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x24);
+  EXPECT_TRUE(esr.IsDataAbort());
+  EXPECT_EQ(esr.ExceptionClass(), ExceptionClass::kDataAbortLowerLevel);
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
+
+  DataAbortISS iss = esr.GetDataAbortISS();
+  EXPECT_FALSE(iss.FARNotValid());
 
   // This is not a write.
-  EXPECT_EQ((sigregs.esr >> 6) & 0x1, 0x0);
+  EXPECT_FALSE(iss.WriteNotRead());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -212,15 +218,20 @@ TEST(SignalTest, UnmappedWrite) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // Data Abort from a lower Exception level.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x24);
+  EXPECT_TRUE(esr.IsDataAbort());
+  EXPECT_EQ(esr.ExceptionClass(), ExceptionClass::kDataAbortLowerLevel);
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
+
+  DataAbortISS iss = esr.GetDataAbortISS();
+  EXPECT_FALSE(iss.FARNotValid());
 
   // This is a write.
-  EXPECT_EQ((sigregs.esr >> 6) & 0x1, 0x1);
+  EXPECT_TRUE(iss.WriteNotRead());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -247,15 +258,17 @@ TEST(SignalTest, UnmappedExecute) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // Instruction Abort from a lower Exception level.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x20);
+  EXPECT_TRUE(esr.IsInstructionAbort());
+  EXPECT_EQ(esr.ExceptionClass(), ExceptionClass::kInstructionAbortLowerLevel);
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
 
-  // Fault address register is valid.
-  EXPECT_EQ((sigregs.esr >> 10) & 0x1, 0x0);
+  InstructionAbortISS iss = esr.GetInstructionAbortISS();
+  EXPECT_FALSE(iss.FARNotValid());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -282,12 +295,13 @@ TEST(SignalTest, UnalignedExecute) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // PC alignment fault exception.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x22);
+  EXPECT_TRUE(esr.IsPCAlignmentFault());
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -318,15 +332,17 @@ TEST(SignalTest, Unexecutable) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // Instruction Abort from a lower Exception level.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x20);
+  EXPECT_TRUE(esr.IsInstructionAbort());
+  EXPECT_EQ(esr.ExceptionClass(), ExceptionClass::kInstructionAbortLowerLevel);
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
 
-  // Fault address register is valid.
-  EXPECT_EQ((sigregs.esr >> 10) & 0x1, 0x0);
+  InstructionAbortISS iss = esr.GetInstructionAbortISS();
+  EXPECT_FALSE(iss.FARNotValid());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -355,12 +371,13 @@ TEST(SignalTest, UnalignedStack) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // SP alignment fault exception.
-  EXPECT_EQ((sigregs.esr >> 26) & 0x3f, 0x26);
+  EXPECT_TRUE(esr.IsSPAlignmentFault());
 
   // 32-bit instruction, this isn't THUMB.
-  EXPECT_EQ((sigregs.esr >> 25) & 0x1, 0x1);
+  EXPECT_TRUE(esr.InstructionLength());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -391,9 +408,10 @@ TEST(SignalTest, IllegalInstruction) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // No ESR for illegal instruction.
-  EXPECT_EQ(sigregs.esr, 0);
+  EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -423,9 +441,10 @@ TEST(SignalTest, PrivilegedInstruction) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // No ESR for illegal instruction.
-  EXPECT_EQ(sigregs.esr, 0);
+  EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
@@ -455,9 +474,10 @@ TEST(SignalTest, DebugInstruction) {
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
+  ESR esr = {sigregs.esr};
 
   // No ESR for debug instruction.
-  EXPECT_EQ(sigregs.esr, 0);
+  EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
   GRegSet gregs;
