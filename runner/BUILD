@@ -115,7 +115,14 @@ cc_library_plus_nolibc(
     name = "runner_util",
     srcs = [
         "runner_util.cc",
-    ],
+    ] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/runner_util.cc",
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/runner_util.cc",
+        ],
+    }),
     hdrs = [
         "runner_util.h",
     ],
@@ -131,6 +138,7 @@ cc_library_plus_nolibc(
         "@silifuzz//util:proc_maps_parser",
         "@silifuzz//util:x86_traps",
         "@silifuzz//util/ucontext",
+        "@silifuzz//util/ucontext:aarch64_esr",
     ],
 )
 
