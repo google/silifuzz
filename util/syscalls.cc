@@ -22,7 +22,6 @@
 #include <stdarg.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
-#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -31,15 +30,6 @@
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 
-namespace {
-
-// Helper to convert kernel_stat time into a timespec.
-struct timespec build_timespec(uint64_t sec, uint64_t nsec) {
-  return {.tv_sec = static_cast<time_t>(sec),
-          .tv_nsec = static_cast<long>(nsec)};
-}
-
-}  // namespace
 extern "C" {
 
 int close(int fd) { return sys_close(fd); }
@@ -116,33 +106,6 @@ pid_t setsid() { return sys_setsid(); }
 
 int sigaltstack(const stack_t *ss, stack_t *old_ss) {
   return sys_sigaltstack(ss, old_ss);
-}
-
-int stat(const char *pathname, struct stat *statbuf) {
-  kernel_stat ks;
-  int result = sys_stat(pathname, &ks);
-
-  // Linux kernel uses a different stat buffer struct than lib C.
-  // We need to convert the result form kernel.
-  *statbuf = {};  // clear padding and any unknown fields.
-
-  // The following fields of stat struct are documented in the Linux man page of
-  // stat(). However, these fields are not guaranteed to be in the same order on
-  // all platforms. We may not assume any particular layout.
-  statbuf->st_dev = ks.st_dev;
-  statbuf->st_ino = ks.st_ino;
-  statbuf->st_nlink = ks.st_nlink;
-  statbuf->st_mode = ks.st_mode;
-  statbuf->st_uid = ks.st_uid;
-  statbuf->st_gid = ks.st_gid;
-  statbuf->st_rdev = ks.st_rdev;
-  statbuf->st_size = ks.st_size;
-  statbuf->st_blksize = ks.st_blksize;
-  statbuf->st_blocks = ks.st_blocks;
-  statbuf->st_atim = build_timespec(ks.st_atime_, ks.st_atime_nsec_);
-  statbuf->st_mtim = build_timespec(ks.st_mtime_, ks.st_mtime_nsec_);
-  statbuf->st_ctim = build_timespec(ks.st_ctime_, ks.st_ctime_nsec_);
-  return result;
 }
 
 ssize_t write(int fd, const void *buf, size_t count) {

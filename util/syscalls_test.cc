@@ -19,7 +19,6 @@
 #include <strings.h>
 #include <sys/mman.h>
 #include <sys/prctl.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -330,41 +329,6 @@ TEST(Syscalls, sigaltstack) {
   CHECK_EQ(munmap(alt_stack_ptr, alt_stack_size), 0);
 }
 
-TEST(Syscalls, stat) {
-  TempFilePath temp("stat");
-  int fd = sys_open(temp.path(), kDefaultOpenFlags, kDefaultCreationMode);
-  CHECK_NE(fd, -1);
-  constexpr char kTestData[] = "Hello world.";
-  constexpr size_t kTestDataSize = sizeof(kTestData);
-  CHECK_EQ(sys_write(fd, kTestData, kTestDataSize), kTestDataSize);
-  CHECK_EQ(close(fd), 0);
-
-  // verify we get the same result from sys_stat.
-  kernel_stat ks{};
-  CHECK_EQ(sys_stat(temp.path(), &ks), 0);
-
-  struct stat st {};
-  CHECK_EQ(stat(temp.path(), &st), 0);
-
-  CHECK_EQ(st.st_dev, ks.st_dev);
-  CHECK_EQ(st.st_ino, ks.st_ino);
-  CHECK_EQ(st.st_mode, ks.st_mode);
-  CHECK_EQ(st.st_nlink, ks.st_nlink);
-  CHECK_EQ(st.st_uid, ks.st_uid);
-  CHECK_EQ(st.st_gid, ks.st_gid);
-  CHECK_EQ(st.st_rdev, ks.st_rdev);
-  CHECK_EQ(st.st_size, kTestDataSize);
-  CHECK_GE(st.st_blksize * st.st_blocks, kTestDataSize);
-  CHECK_EQ(st.st_atim.tv_sec, ks.st_atime_);
-  CHECK_EQ(st.st_atim.tv_nsec, st.st_atim.tv_nsec);
-  CHECK_EQ(st.st_mtim.tv_sec, ks.st_mtime_);
-  CHECK_EQ(st.st_mtim.tv_nsec, st.st_mtim.tv_nsec);
-  CHECK_EQ(st.st_ctim.tv_sec, ks.st_ctime_);
-  CHECK_EQ(st.st_ctim.tv_nsec, st.st_ctim.tv_nsec);
-
-  CHECK_EQ(sys_unlink(temp.path()), 0);
-}
-
 TEST(Syscalls, write) {
   TempFilePath temp("write");
   int fd = sys_open(temp.path(), kDefaultOpenFlags, kDefaultCreationMode);
@@ -404,7 +368,6 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(Syscalls, open);
   RUN_TEST(Syscalls, prctl);
   RUN_TEST(Syscalls, read);
-  RUN_TEST(Syscalls, sigaltstack)
-  RUN_TEST(Syscalls, stat);
+  RUN_TEST(Syscalls, sigaltstack);
   RUN_TEST(Syscalls, write);
 })

@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include <memory>
@@ -42,17 +41,19 @@ MmappedMemoryPtr<const Snap::Array<const Snap*>> LoadCorpusFromFile(
   }
 
   VLOG_INFO(1, "Loading corpus from ", filename);
-  struct stat st = {};
-  CHECK_EQ(stat(filename, &st), 0);
-  VLOG_INFO(1, "Corpus size (bytes) ", IntStr(st.st_size));
   int fd = open(filename, O_RDONLY);
   CHECK_NE(fd, -1);
-  void* relocatable = mmap(nullptr, st.st_size, PROT_READ | PROT_WRITE,
+  // Use lseek() instead of stat() to find file size as stat() is not
+  // present in nolibc.
+  off_t file_size = lseek(fd, 0, SEEK_END);
+  CHECK_NE(file_size, -1);
+  VLOG_INFO(1, "Corpus size (bytes) ", IntStr(file_size));
+  void* relocatable = mmap(nullptr, file_size, PROT_READ | PROT_WRITE,
                            MAP_PRIVATE | (preload ? MAP_POPULATE : 0), fd, 0);
   CHECK_NE(relocatable, MAP_FAILED);
   VLOG_INFO(1, "Mapped corpus at ", HexStr(AsInt(relocatable)));
   auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
-                                           st.st_size);
+                                           file_size);
   CHECK_EQ(close(fd), 0);
   MmappedMemoryPtr<const Snap::Array<const Snap*>> corpus =
       SnapRelocator::RelocateCorpus(std::move(mapped));
