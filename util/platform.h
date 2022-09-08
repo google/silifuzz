@@ -23,12 +23,6 @@ namespace silifuzz {
 
 // Corresponds to proto::PlatformId including the storage-stable enum values.
 // silifuzz/common/snapshot_proto.cc checks this.
-//
-// We add this instead of just using base::CPUType from //base/cpuid/cpuid.h
-// because we need stable int values for usage in proto.Snapshot. This can
-// also come-in handy when open-sourcing Silifuzz. There's also the chance that
-// we'll discover visible microarchitectural behavior differences beyond
-// the granularity of base::CPUType.
 enum class PlatformId {
   kUndefined = 0,
   kIntelSkylake = 1,
@@ -41,10 +35,12 @@ enum class PlatformId {
   kAmdMilan = 8,
   kIntelSapphireRapids = 9,
   kAmdGenoa = 10,
+  kIntelCoffeelake = 11,
+  kIntelAlderlake = 12,
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 11,          // any platform for platform selectors
-  kNonExistent = 12,  // for tests only
+  kAny = 13,          // any platform for platform selectors
+  kNonExistent = 14,  // for tests only
 };
 
 DECLARE_ENUM_FLAG(PlatformId);

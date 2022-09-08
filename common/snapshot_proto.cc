@@ -89,6 +89,10 @@ static_assert(ToInt(PlatformId::kIntelSapphireRapids) ==
               ToInt(proto::PlatformId::INTEL_SAPPHIRERAPIDS));
 static_assert(ToInt(PlatformId::kAmdGenoa) ==
               ToInt(proto::PlatformId::AMD_GENOA));
+static_assert(ToInt(PlatformId::kIntelCoffeelake) ==
+              ToInt(proto::PlatformId::INTEL_COFFEELAKE));
+static_assert(ToInt(PlatformId::kIntelAlderlake) ==
+              ToInt(proto::PlatformId::INTEL_ALDERLAKE));
 
 // ========================================================================= //
 

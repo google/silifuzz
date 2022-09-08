@@ -42,6 +42,8 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) + 1] =
         "amd-milan",
         "intel-sapphirerapids",
         "amd-genoa",
+        "intel-coffeelake",
+        "intel-alderlake",
         "ANY-PLATFORM",
         "NON-EXISTENT-PLATFORM",
 };
@@ -49,8 +51,9 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) + 1] =
 DEFINE_ENUM_FLAG(PlatformId);
 
 ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
-    "UNDEF", "skylk", "haswl",    "broadwl", "ivybrdg", "cascdlk", "rome",
-    "icelk", "milan", "sapprpds", "genoa",   "ANY",     "NEXST",
+    "UNDEF",   "skylk",    "haswl",   "broadwl", "ivybrdg",
+    "cascdlk", "rome",     "icelk",   "milan",   "sapprpds",
+    "genoa",   "coffeelk", "alderlk", "ANY",     "NEXST",
 };
 
 const char* ShortPlatformName(PlatformId platform) {
@@ -99,13 +102,23 @@ static PlatformId IntelPlatformId() {
   if (family == 6) {
     // Mostly we can just map a model into a platform.
     static const absl::flat_hash_map<uint32_t, PlatformId> platform_id_map{
-        {60, PlatformId::kIntelHaswell},  // Haswell Server
+        {60, PlatformId::kIntelHaswell},  // Haswell Client
         {62, PlatformId::kIntelIvybridge},
-        {63, PlatformId::kIntelHaswell},    // Haswell Client
+        {63, PlatformId::kIntelHaswell},    // Haswell Server
         {79, PlatformId::kIntelBroadwell},  // Broadwell
         {86, PlatformId::kIntelBroadwell},  // Broadwell DE
         {106, PlatformId::kIntelIcelake},
+        {125, PlatformId::kIntelIcelake},  // Icelake Client
+        {126, PlatformId::kIntelIcelake},  // Icelake Client
+        // Coffeelake and Kabylake share the same CPU model but have
+        // different stepping (Kabylake stepping <= 9) similar to
+        // Skylake/Cascadelake. It's not clear if there's a difference between
+        // the two cores from our standpoint.
+        {142, PlatformId::kIntelCoffeelake},  // Also Kabylake
         {143, PlatformId::kIntelSapphireRapids},
+        {151, PlatformId::kIntelAlderlake},
+        {154, PlatformId::kIntelAlderlake},
+        {158, PlatformId::kIntelCoffeelake},  // Also Kabylake
     };
 
     auto it = platform_id_map.find(model);

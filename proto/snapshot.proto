@@ -134,6 +134,8 @@ enum PlatformId {
   AMD_MILAN = 8;
   INTEL_SAPPHIRERAPIDS = 9;
   AMD_GENOA = 10;
+  INTEL_COFFEELAKE = 11;
+  INTEL_ALDERLAKE = 12;
 }
 
 // Describes a specific endstate of executing a snapshot.
