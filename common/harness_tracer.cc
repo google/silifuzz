@@ -29,7 +29,7 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ptrace_util.h"
-#include "./util/x86_traps.h"
+#include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
 

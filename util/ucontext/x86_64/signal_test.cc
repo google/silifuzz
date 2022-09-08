@@ -17,7 +17,7 @@
 #include "gtest/gtest.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
-#include "./util/x86_traps.h"
+#include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
 namespace {

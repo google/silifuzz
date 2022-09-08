@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_UTIL_X86_TRAPS_H_
-#define THIRD_PARTY_SILIFUZZ_UTIL_X86_TRAPS_H_
+#ifndef THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_X86_64_TRAPS_H_
+#define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_X86_64_TRAPS_H_
 
 #include <cstdint>
 
@@ -69,4 +69,4 @@ constexpr inline uint64_t kX86TrapFlag = 0x100;
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_UTIL_X86_TRAPS_H_
+#endif  // THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_X86_64_TRAPS_H_

@@ -78,10 +78,10 @@ cc_library_plus_nolibc(
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",
-        "@silifuzz//util:x86_traps",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:ucontext_types",
+        "@silifuzz//util/ucontext:x86_traps",
     ],
 )
 
@@ -136,9 +136,9 @@ cc_library_plus_nolibc(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:proc_maps_parser",
-        "@silifuzz//util:x86_traps",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:aarch64_esr",
+        "@silifuzz//util/ucontext:x86_traps",
     ],
 )
 

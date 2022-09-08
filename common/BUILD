@@ -309,7 +309,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:ptrace_util",
-        "@silifuzz//util:x86_traps",
+        "@silifuzz//util/ucontext:x86_traps",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
     ],

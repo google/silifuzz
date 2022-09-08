@@ -229,6 +229,11 @@ cc_library_plus_nolibc(
 )
 
 cc_library_plus_nolibc(
+    name = "x86_traps",
+    hdrs = ["x86_64/traps.h"],
+)
+
+cc_library_plus_nolibc(
     name = "signal",
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -274,7 +279,7 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [":aarch64_esr"],
-        "@silifuzz//build_defs/platform:x86_64": ["@silifuzz//util:x86_traps"],
+        "@silifuzz//build_defs/platform:x86_64": [":x86_traps"],
     }),
 )
 

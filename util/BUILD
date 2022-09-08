@@ -556,11 +556,6 @@ cc_test_plus_nolibc(
     ],
 )
 
-cc_library_plus_nolibc(
-    name = "x86_traps",
-    hdrs = ["x86_traps.h"],
-)
-
 cc_library(
     name = "platform",
     srcs = ["platform.cc"],
