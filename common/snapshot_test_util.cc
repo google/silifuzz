@@ -19,7 +19,6 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/internal/endian.h"
-#include "absl/strings/str_cat.h"
 #include "./common/snapshot_printer.h"
 #include "./common/snapshot_proto.h"
 #include "./common/snapshot_util.h"
@@ -72,39 +71,6 @@ ABSL_CONST_INIT const char*
 };
 
 // static
-std::vector<TestSnapshots::Type> TestSnapshots::AllTypes() {
-  return {
-      kEmpty,
-      kEndsAsExpected,
-      kHasPlatformMismatch,
-      kEndsUnexpectedly,
-      kRegsMismatch,
-      kMemoryMismatch,
-      kRegsAndMemoryMismatch,
-      kRegsMismatchRandom,
-      kMemoryMismatchRandom,
-      kRegsAndMemoryMismatchRandom,
-      kICEBP,
-      kINT3,
-      kINT3_CD03,
-      kSigIll,
-      kSigSegvWrite,
-      kSigSegvRead,
-      kSigSegvExec,
-      kSyscall,
-      kGeneralProtectionFault,
-      kChangesSegmentReg,
-      kIn,
-      kRunaway,
-  };
-}
-
-// static
-bool TestSnapshots::PlaysOkAsIs(Type type) {
-  return PlayerOutcome(type) == snapshot_types::PlaybackOutcome::kAsExpected;
-}
-
-// static
 bool TestSnapshots::HasNormalEndState(Type type) {
   switch (type) {
     case kEndsAsExpected:
@@ -120,95 +86,6 @@ bool TestSnapshots::HasNormalEndState(Type type) {
       return true;
     default:
       return false;
-  }
-}
-
-// static
-bool TestSnapshots::AccessesOutside(Type type) {
-  switch (type) {
-    case kSigSegvWrite:
-    case kSigSegvRead:
-    case kSigSegvExec:
-      return true;
-    default:
-      return false;
-  }
-}
-// static
-Snapshot::Endpoint::SigCause TestSnapshots::SigCause(Type type) {
-  switch (type) {
-    case kSigSegvWrite:
-      return Endpoint::kSegvCantWrite;
-    case kSigSegvRead:
-      return Endpoint::kSegvCantRead;
-    case kSigSegvExec:
-      return Endpoint::kSegvCantExec;
-    case kGeneralProtectionFault:
-      return Endpoint::kSegvGeneralProtection;
-    default:
-      LOG_FATAL("Must be one of sigsegv-causing snapshots");
-  }
-}
-
-// static
-bool TestSnapshots::NonSegvSignal(Type type) {
-  switch (type) {
-    case kEndsUnexpectedly:  // also does int3
-    case kICEBP:
-    case kINT3:
-    case kINT3_CD03:
-    case kSigIll:
-      return true;
-    default:
-      return false;
-  }
-}
-
-// static
-bool TestSnapshots::Deterministic(Type type) {
-  switch (type) {
-    case kRegsMismatchRandom:
-    case kMemoryMismatchRandom:
-    case kRegsAndMemoryMismatchRandom:
-      return false;
-    default:
-      return true;
-  }
-}
-
-// static
-snapshot_types::PlaybackOutcome TestSnapshots::PlayerOutcome(Type type) {
-  switch (type) {
-    case kEmpty:
-    case kEndsAsExpected:
-      return snapshot_types::PlaybackOutcome::kAsExpected;
-    case kHasPlatformMismatch:
-      return snapshot_types::PlaybackOutcome::kPlatformMismatch;
-    case kEndsUnexpectedly:
-    case kGeneralProtectionFault:
-    case kIn:
-      return snapshot_types::PlaybackOutcome::kEndpointMismatch;
-    case kRegsMismatch:
-    case kRegsAndMemoryMismatch:
-    case kRegsMismatchRandom:
-    case kRegsAndMemoryMismatchRandom:
-    case kChangesSegmentReg:
-    case kSyscall:
-      return snapshot_types::PlaybackOutcome::kRegisterStateMismatch;
-    case kMemoryMismatch:
-    case kMemoryMismatchRandom:
-      return snapshot_types::PlaybackOutcome::kMemoryMismatch;
-    case kICEBP:
-    case kINT3:
-    case kINT3_CD03:
-    case kSigIll:
-      return snapshot_types::PlaybackOutcome::kEndpointMismatch;
-    case kSigSegvRead:
-    case kSigSegvWrite:
-    case kSigSegvExec:
-      return snapshot_types::PlaybackOutcome::kExecutionMisbehave;
-    case kRunaway:
-      return snapshot_types::PlaybackOutcome::kExecutionRunaway;
   }
 }
 

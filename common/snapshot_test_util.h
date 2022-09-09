@@ -21,7 +21,6 @@
 
 #include "absl/time/time.h"
 #include "./common/snapshot.h"
-#include "./common/snapshot_enums.h"
 #include "./common/snapshot_types.h"
 #include "./proto/snapshot.pb.h"
 
@@ -117,13 +116,6 @@ class TestSnapshots : private SnapshotTypeNames {
     kRunaway,
   };
 
-  // All Type-s.
-  static std::vector<Type> AllTypes();
-
-  // If snapshot will play successfully (PlaybackOutcome::kAsExpected) as is
-  // without EndStateRecorder::Record() applied to it.
-  static bool PlaysOkAsIs(Type type);
-
   // If snapshot has a Snapshot::kNormalState or Snapshot::kUndefinedEndState.
   // We only add the former to snapshots that test the
   // PlaybackOutcome::kMemoryMismatch or PlaybackOutcome::kRegisterStateMismatch
@@ -131,34 +123,6 @@ class TestSnapshots : private SnapshotTypeNames {
   // snapshot can get a Snapshot::kNormalState by going through
   // EndStateRecorder::Record().
   static bool HasNormalEndState(Type type);
-
-  // If snapshot accesses memory outside of its declared mappings.
-  static bool AccessesOutside(Type type);
-
-  // Returns the expected sigcause for the given snapshot type.
-  // REQUIRES: AccessesOutside(type)
-  static Snapshot::Endpoint::SigCause SigCause(Type type);
-
-  // If snapshot causes a signal other than SIGSEGV,
-  // unlike AccesesOutside() types that cause a SIGSEGV.
-  static bool NonSegvSignal(Type type);
-
-  // If snapshot execution is deterministic.
-  static bool Deterministic(Type type);
-
-  // Expected outcome of playing Create(type).
-  // We have a snapshot `type` value for producing every possible
-  // PlaybackOutcome.
-  static snapshot_types::PlaybackOutcome PlayerOutcome(Type type);
-
-  // Expected outcome of playing Create(type) after EndStateRecorder
-  // is applied to it: non-deterministic snapshots continue to generate
-  // the same kind of register or/and memory mismatch, while other snapshots
-  // now play as expected.
-  static snapshot_types::PlaybackOutcome PlayAfterRecordOutcome(Type type) {
-    return Deterministic(type) ? snapshot_types::PlaybackOutcome::kAsExpected
-                               : PlayerOutcome(type);
-  }
 
   // ----------------------------------------------------------------------- //
 
