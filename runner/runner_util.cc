@@ -29,12 +29,10 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "./common/snapshot_enums.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/proc_maps_parser.h"
-#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 namespace {
