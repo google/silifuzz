@@ -104,14 +104,18 @@ We are actively working on `AArch64` support.
 A non-exhaustive list of bugs and defects SiliFuzz has found.
 
 ### Bugs
-A logic bug is an invalid CPU behavior inherent to a particular CPU microarchitecture or stepping. SiliFuzz has identified the following bugs:
+
+A logic bug is an invalid CPU behavior inherent to a particular CPU
+microarchitecture or stepping. SiliFuzz has identified the following bugs:
 
 *   [CVE-2021-26339](https://www.amd.com/en/corporate/product-security/bulletin/amd-sb-1028)
 *   [Erratum #1386](https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf)
 
 ### Defects
 
-An (electrical) defect is an invalid CPU behavior that happens only on one or several chips. SiliFuzz has found the following defects we described in the paper
+An (electrical) defect is an invalid CPU behavior that happens only on one or
+several chips. SiliFuzz has found the following defects we described in the
+paper
 
 *   F2XM1 Defect.
     [Paper](https://github.com/google/silifuzz/blob/master/paper/silifuzz.pdf) /
@@ -136,13 +140,18 @@ An (electrical) defect is an invalid CPU behavior that happens only on one or se
 ### Prework (for Bazel)
 
 ```shell
-git checkout https://github.com/google/silifuzz.git && cd silifuzz
+git clone https://github.com/google/silifuzz.git && cd silifuzz
 SILIFUZZ_SRC_DIR=`pwd`
 ./install_build_dependencies.sh  # Currently, works for the latest Debian and Ubuntu only
 bazel build @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id} @silifuzz//runner:reading_runner_main_nolibc @silifuzz//orchestrator:silifuzz_orchestrator_main
 SILIFUZZ_BIN_DIR=`pwd`/bazel-bin/
 cd "${SILIFUZZ_BIN_DIR}"
 ```
+
+NOTE: You can use a Docker container to avoid polluting the host system: `docker
+run -it --tty --security-opt seccomp=unconfined --mount
+type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian /bin/bash -c "cd /app &&
+./install_build_dependencies.sh && bazel build ... && bazel test ..."`
 
 ### Prework (fuzzing Unicorn target)
 
@@ -160,6 +169,7 @@ mkdir -p /tmp/wd
 ```
 
 ### Prework (collect corpus from fuzzing result)
+
 TODO: Coming soon
 
 ## Tools
