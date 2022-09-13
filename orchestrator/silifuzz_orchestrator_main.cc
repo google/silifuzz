@@ -137,13 +137,15 @@ std::vector<int> AvailableCpus() {
 ExecutionContext *OrchestratorInit(
     absl::Duration timeout, int num_threads,
     const ExecutionContext::ResultCallback &result_cb) {
-  struct sigaction sigact = {};
   static ExecutionContext ctx(absl::Now() + timeout, num_threads, result_cb);
+
+  struct sigaction sigact = {};
   sigact.sa_handler = [](int) {
-    ABSL_RAW_LOG(INFO, "SIGINT caught; shutting down worker threads\n");
+    ABSL_RAW_LOG(INFO, "SIGINT/SIGALRM caught; shutting down worker threads\n");
     ctx.Stop();
   };
   sigaction(SIGINT, &sigact, nullptr);
+  sigaction(SIGALRM, &sigact, nullptr);
   return &ctx;
 }
 

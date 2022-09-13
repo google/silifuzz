@@ -344,7 +344,6 @@ cc_library_nolibc(
         ":runner_flags",
         "@silifuzz//snap",
         "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
     ],
 )
 

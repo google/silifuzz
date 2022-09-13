@@ -33,7 +33,6 @@
 #include "./runner/runner.h"
 #include "./runner/runner_flags.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -80,15 +79,6 @@ int Main(int argc, char* argv[]) {
   options.batch_size = FLAGS_batch_size;
   options.schedule_size = FLAGS_schedule_size;
   options.sequential_mode = FLAGS_sequential_mode;
-
-  // Create a new session so that this process does not receive any signals
-  // designated to its parent (e.g. SIGINT).
-  if (setsid() == -1 && errno != EPERM) {
-    // Failing with EPERM is ok -- means this process is already a session
-    // group leader (i.e. being run directly from shell and not subprocessed
-    // by the orchestrator).
-    LOG_FATAL("setsid errno: ", IntStr(errno));
-  }
 
   // These cannot be set together.
   if (FLAGS_make && FLAGS_sequential_mode) {

@@ -30,8 +30,6 @@
 #include <utility>
 #include <vector>
 
-// NOTE: text_format.h and other protobuf dependencies can be rewritten to
-// their corresponding public counterparts by copybara.
 #include "google/protobuf/text_format.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -147,6 +145,11 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     absl::string_view snapshot_id) const {
   if (WIFSIGNALED(exit_status)) {
     int sig_num = WTERMSIG(exit_status);
+    if (sig_num == SIGINT) {
+      // Assume this was sent from the controlling terminal and just pretend
+      // everything is fine.
+      return RunResult::Successful();
+    }
     if (sig_num == SIGSYS) {
       // The process died with SIGSYS because an unexpected syscall was made.
       return absl::InternalError("Snapshot made a syscall");
