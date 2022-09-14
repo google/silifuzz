@@ -171,12 +171,6 @@ void SetupMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
 
 }  // namespace
 
-// FIXME(dougkwan) b/210717665. This works around a toolchain bug. Without
-// this we will get a relocation out of range error by the linker in fast
-// build even when the binary is quite small. We should be able to reference
-// snap_exit_context directly without using a pointer variable.
-UContext* snap_exit_context_address = &snap_exit_context;
-
 void InstallSigHandler() {
   struct kernel_sigaction action = {};  // zero-initialized.
   action.sa_sigaction_ = SigAction;
@@ -366,8 +360,6 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
     return RunSnapOutcome::kExecutionMisbehave;
   }
   // Verify register state.
-  // See definition of snap_exit_context_address for reason why we need an
-  // indirection to snap_exit_context.
   if (!MemEq(&end_spot.gregs, &snap.end_state_registers.gregs,
              sizeof(GRegSet)) ||
       !MemEq(&end_spot.fpregs, &snap.end_state_registers.fpregs,
