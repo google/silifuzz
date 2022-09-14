@@ -169,3 +169,10 @@ new_git_repository(
     remote = "https://github.com/unicorn-engine/unicorn",
     shallow_since = "1639356032 +0800",
 )
+
+http_archive(
+    name = "absl_py",
+    sha256 = "b9130d6f49a21dc44f56da89d5e8409807e93d28c194c23e27777f3c8cceef81",
+    strip_prefix = "abseil-py-1.2.0",
+    urls = ["https://github.com/abseil/abseil-py/archive/refs/tags/v1.2.0.tar.gz"],
+)

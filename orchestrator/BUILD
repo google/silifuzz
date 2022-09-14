@@ -178,6 +178,20 @@ cc_binary(
     srcs = ["test_runner.cc"],
 )
 
+py_test(
+    name = "orchestrator_test",
+    size = "medium",
+    srcs = ["orchestrator_test.py"],
+    data = [
+        ":silifuzz_orchestrator_main",
+        ":test_runner",
+    ],
+    deps = [
+        "@absl_py//absl/logging",
+        "@absl_py//absl/testing:absltest",
+    ],
+)
+
 cc_library(
     name = "binary_log_channel",
     srcs = ["binary_log_channel.cc"],

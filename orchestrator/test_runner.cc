@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Test runner binary that works together with orchestrator-test.sh.
+// Test runner binary that works together with orchestrator_test.py.
 // Keep this runner super-simple, so that it stays close to actual runners.
 // Don't add any dependencies.
 
