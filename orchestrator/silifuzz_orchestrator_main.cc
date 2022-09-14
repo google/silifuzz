@@ -64,6 +64,8 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/functional/bind_front.h"
+#include "absl/log/flags.h"
+#include "absl/log/initialize.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -76,7 +78,6 @@
 #include "./runner/driver/runner_driver.h"
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
-#include "./util/cpu_id.h"
 #include "./util/itoa.h"
 #include "./util/proto_util.h"
 
@@ -279,6 +280,7 @@ int main(int argc, char **argv) {
   }
   std::vector<char *> remaining_args =
       absl::ParseCommandLine(adjusted_argc, argv);
+  absl::InitializeLog();
   // Collect arguments.
   std::vector<std::string> corpora;
   for (size_t i = 1; i < remaining_args.size(); ++i) {
