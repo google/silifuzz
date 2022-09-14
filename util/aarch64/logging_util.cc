@@ -14,6 +14,7 @@
 
 #include "./util/logging_util.h"
 
+#include "absl/base/macros.h"
 #include "./util/itoa.h"
 #include "./util/strcat.h"
 
@@ -39,7 +40,7 @@ namespace silifuzz {
 
 void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
               const GRegSet* base, bool log_diff) {
-  for (int i = 0; i < 31; ++i) {
+  for (int i = 0; i < ABSL_ARRAYSIZE(regs.x); ++i) {
     LOG_INDEXED_REG(x, i);
   }
   if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
@@ -53,7 +54,7 @@ void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
 void LogFPRegs(const FPRegSet& regs, bool log_fp_data, RegsLogger logger,
                void* logger_arg, const FPRegSet* base, bool log_diff) {
   if (log_fp_data) {
-    for (int i = 0; i < 32; ++i) {
+    for (int i = 0; i < ABSL_ARRAYSIZE(regs.v); ++i) {
       LOG_INDEXED_REG(v, i);
     }
     if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");

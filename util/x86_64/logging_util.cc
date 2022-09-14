@@ -14,6 +14,7 @@
 
 #include "./util/logging_util.h"
 
+#include "absl/base/macros.h"
 #include "./util/itoa.h"
 #include "./util/strcat.h"
 
@@ -85,11 +86,11 @@ void LogFPRegs(const FPRegSet& regs, bool log_fp_data, RegsLogger logger,
   if (log_fp_data) {
     if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
 
-    for (int i = 0; i < 8; ++i) {
+    for (int i = 0; i < ABSL_ARRAYSIZE(regs.st); ++i) {
       LOG_INDEXED_REG(st, i);
     }
 
-    for (int i = 0; i < 16; ++i) {
+    for (int i = 0; i < ABSL_ARRAYSIZE(regs.xmm); ++i) {
       LOG_INDEXED_REG(xmm, i);
     }
   }
