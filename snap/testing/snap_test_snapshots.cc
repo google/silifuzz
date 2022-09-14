@@ -59,18 +59,17 @@ Snapshot MakeBasicTestSnapshot() {
   gregs.rbx = data_page_address;
   memset(&fpregs, 0, sizeof(fpregs));
 
-  fpregs.cwd = 0x37f;
+  fpregs.fcw = 0x37f;
   fpregs.mxcsr = 0x1f8;
 
   // Exercise x87 and SSE generation code path, using partially filled arrays.
   for (int i = 0; i < 4; ++i) {
-    fpregs._st[i].exponent = 0x8000;
-    fpregs._st[i].significand[0] = 0x8000;
+    // Exponent 0x8000, significand 0x8000
+    fpregs.st[i] = ((__uint128_t)0x8000ULL) << 64 | 0x8000ULL;
   }
 
   for (int i = 0; i < 6; ++i) {
-    fpregs._xmm[i].element[0] = ~0;
-    fpregs._xmm[i].element[1] = 42;
+    fpregs.xmm[i] = ((__uint128_t)0x2a) << 64 | ~0ULL;
   }
 
   snapshot.set_registers(ConvertRegsToSnapshot(gregs, fpregs));

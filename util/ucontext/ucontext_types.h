@@ -16,10 +16,8 @@
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_UCONTEXT_TYPES_H_
 
 #include <string.h>    // for memcmp()
-#include <ucontext.h>  // for gregset_t and fpregset_t
 
 #include <cstdint>
-#include <type_traits>  // for std::remove_pointer
 
 namespace silifuzz {
 
@@ -87,18 +85,34 @@ inline bool operator!=(const GRegSet& x, const GRegSet& y) { return !(x == y); }
 // ========================================================================= //
 
 #if defined(__x86_64__)
-// Values for all floating point CPU registers.
-// The struct to which a fpregset_t points to is not public in ucontext.h,
-// but we can get to it with <type_traits>.
-// Note: Linux's fpregset_t is not aligned correctly to be used with fxsave, so
-// we're forcing it using __aligned__. alignas cannot be used in all the places
-// that __aligned__ can be, so we're using a slightly non-standard approach.
-static_assert(alignof(std::remove_pointer<fpregset_t>::type) <= 16,
-              "Underlying data type has larger alignment than expected.");
-static_assert(sizeof(std::remove_pointer<fpregset_t>::type) % 16 == 0,
-              "Underlying data type size is unexpected.");
-using FPRegSet __attribute__((__aligned__(16))) =
-    std::remove_pointer<fpregset_t>::type;
+// This structure follows the format of fxsave64 / fxrstor64.
+// See:
+// https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf
+// Table 3-46
+// But we use AMD names where they differ. See:
+// https://www.amd.com/system/files/TechDocs/24592.pdf
+// Must be 16-byte aligned so it can be used with these instructions.
+struct FPRegSet {
+  uint16_t fcw;       // x87 FPU control word.
+  uint16_t fsw;       // x87 FPU status word.
+  uint8_t ftw;        // Abridged x87 FPU tag word.
+  uint8_t reserved0;  // The libc struct makes this part of ftw.
+  uint16_t fop;       // x87 FPU opcode.
+  uint64_t rip;       // x87 FPU instruction pointer offset.
+  uint64_t rdp;       // x87 FPU data pointer offset.
+  uint32_t mxcsr;     // SSE control and status information.
+  uint32_t mxcsr_mask;
+
+  // x87 FPU (80-bit) or MMX (64-bit) registers padded to 128 bits.
+  __uint128_t st[8];
+
+  // SSE registers.
+  __uint128_t xmm[16];
+
+  // Not yet defined by spec.
+  uint8_t padding[96];
+};
+static_assert(sizeof(FPRegSet) == 512, "FPRegSet has unexpected size.");
 static_assert(alignof(FPRegSet) == 16, "FPRegSet has unexpected alignment.");
 #elif defined(__aarch64__)
 // Note: libc stores fpsr and fpcr as 32-bit values. This structure stores them

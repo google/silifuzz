@@ -213,11 +213,11 @@ class SnapGenerator {
 #ifdef __x86_64__
   // Generates a C++ expression for a __libc_fxreg array containing contents of
   // '_st'.
-  void GenerateX87Stack(const struct _libc_fpxreg _st[8]);
+  void GenerateX87Stack(const __uint128_t st[8]);
 
   // Generates a C++ expression for a __libc_xmmreg array containing contents of
   // '_xmm'.
-  void GenerateXMMRegs(const struct _libc_xmmreg _xmm[16]);
+  void GenerateXMMRegs(const __uint128_t xmm[16]);
 #endif
 
   // Generates a FPRegSet expression correspoding to the 'fpregs_byte_data',

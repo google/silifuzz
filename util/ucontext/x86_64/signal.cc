@@ -39,11 +39,12 @@ void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
 // state of FP regs, we might need to do that ourselves here.
 void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext, FPRegSet* fpregs) {
   auto& mcontext = libc_ucontext.uc_mcontext;
-  static_assert(
-      std::is_same<decltype(*mcontext.fpregs), decltype(*fpregs)>::value,
-      "FP regs type mismatch");
+
+  static_assert(sizeof(*mcontext.fpregs) == sizeof(*fpregs),
+                "FP regs type mismatch");
+
   if (mcontext.fpregs != nullptr) {
-    *fpregs = *mcontext.fpregs;
+    memcpy(fpregs, mcontext.fpregs, sizeof(*fpregs));
     ZeroOutFPRegsPadding(fpregs);
   } else {
     ASS_LOG_FATAL("ucontext_t does not have fpregs");

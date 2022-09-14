@@ -50,6 +50,11 @@ std::string AddressString(Snapshot::Address address) {
   return absl::StrFormat("0x%llxULL", address);
 }
 
+// Returns 'value' as a uint8_t literal in C++ source code.
+std::string UInt8String(uint8_t value) {
+  return absl::StrFormat("0x%xU", value);
+}
+
 // Returns 'value' as a uint16_t literal in C++ source code.
 std::string UInt16String(uint16_t value) {
   return absl::StrFormat("0x%xU", value);
@@ -63,6 +68,19 @@ std::string UInt32String(uint32_t value) {
 // Returns 'value' as a uint64_t literal in C++ source code.
 std::string UInt64String(uint64_t value) {
   return absl::StrFormat("0x%llxULL", value);
+}
+
+std::string UInt128String(__uint128_t value) {
+  // There's no such thing as an 128-bit literal, so we need to synthesize it
+  // out of two 64-bit literals.
+  uint64_t upper = value >> 64;
+  uint64_t lower = value;
+  if (upper) {
+    return absl::StrFormat("(((__uint128_t)0x%llxULL) << 64 | 0x%llxULL)",
+                           upper, lower);
+  } else {
+    return UInt64String(lower);
+  }
 }
 
 //  Returns string containing C++ code for initilizer of an Snap::Array of given
@@ -410,6 +428,14 @@ SnapGenerator::VarName SnapGenerator::LocalVarName(absl::string_view prefix) {
 }
 
 template <>
+void SnapGenerator::GenerateNonZeroValue<uint8_t>(absl::string_view name,
+                                                  const uint8_t &value) {
+  if (value != 0) {
+    Print(".", name, " = ", UInt8String(value), ",");
+  }
+}
+
+template <>
 void SnapGenerator::GenerateNonZeroValue<uint16_t>(absl::string_view name,
                                                    const uint16_t &value) {
   if (value != 0) {
@@ -597,54 +623,32 @@ void SnapGenerator::GenerateGRegs(const Snapshot::ByteData &gregs_byte_data) {
 // TODO(dougkwan): [test] These helpers need testing. Either refactor
 // them into a separate library for easier testing or change to use
 // generator specific tests in snap_generator_test_lib.
-void SnapGenerator::GenerateX87Stack(const struct _libc_fpxreg _st[8]) {
+void SnapGenerator::GenerateX87Stack(const __uint128_t st[8]) {
   Print("{");
-
-  auto is_all_zero = [](const struct _libc_fpxreg &entry) {
-    return entry.significand[0] == 0 && entry.significand[1] == 0 &&
-           entry.significand[2] == 0 && entry.significand[3] == 0 &&
-           entry.exponent == 0;
-  };
 
   // Find the last non-zero x87 stack entry
   size_t print_size = 8;
-  while (print_size > 0 && is_all_zero(_st[print_size - 1])) {
+  while (print_size > 0 && st[print_size - 1] == 0) {
     print_size--;
   }
 
   for (size_t i = 0; i < print_size; ++i) {
-    Print("{ .significand = {");
-    for (size_t j = 0; j < 4; j++) {
-      Print(UInt16String(_st[i].significand[j]), ",");
-    }
-    Print("},");
-    GenerateNonZeroValue("exponent", _st[i].exponent);
-    PrintLn("},");
+    Print(UInt128String(st[i]), ",");
   }
   Print("}");
 }
 
-void SnapGenerator::GenerateXMMRegs(const struct _libc_xmmreg _xmm[16]) {
+void SnapGenerator::GenerateXMMRegs(const __uint128_t xmm[16]) {
   Print("{");
-
-  auto is_all_zero = [](const struct _libc_xmmreg &xmmreg) {
-    return xmmreg.element[0] == 0 && xmmreg.element[1] == 0 &&
-           xmmreg.element[2] == 0 && xmmreg.element[3] == 0;
-  };
 
   // Find the last non-zero XMM reg
   size_t print_size = 16;
-  while (print_size > 0 && is_all_zero(_xmm[print_size - 1])) {
+  while (print_size > 0 && xmm[print_size - 1] == 0) {
     print_size--;
   }
 
   for (size_t i = 0; i < print_size; ++i) {
-    const auto &xmm_reg = _xmm[i];
-    Print("{");
-    for (size_t j = 0; j < 4; ++j) {
-      Print(UInt32String(xmm_reg.element[j]), ",");
-    }
-    Print("},");
+    Print(UInt128String(xmm[i]), ",");
   }
   Print("}");
 }
@@ -665,23 +669,23 @@ void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 
   Print("{");
 
-  GEN_FPREG(cwd);
-  GEN_FPREG(swd);
+  GEN_FPREG(fcw);
+  GEN_FPREG(fsw);
   GEN_FPREG(ftw);
   GEN_FPREG(fop);
   GEN_FPREG(rip);
   GEN_FPREG(rdp);
   GEN_FPREG(mxcsr);
-  GEN_FPREG(mxcr_mask);
+  GEN_FPREG(mxcsr_mask);
 
   // x87 FP stack
-  Print("._st = ");
-  GenerateX87Stack(fpregs._st);
+  Print(".st = ");
+  GenerateX87Stack(fpregs.st);
   PrintLn(",");
 
   // XMM register.
-  Print("._xmm = ");
-  GenerateXMMRegs(fpregs._xmm);
+  Print(".xmm = ");
+  GenerateXMMRegs(fpregs.xmm);
   Print(",");
 
   Print("}");

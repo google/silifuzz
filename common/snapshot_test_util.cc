@@ -110,8 +110,8 @@ DECLARE_SNAPSHOT(kIn);
 static void InitTestSnapshotRegs(UContext& ucontext) {
   SaveUContext(&ucontext);
   ZeroOutRegsPadding(&ucontext);
-  memset(ucontext.fpregs._st, 0, sizeof(ucontext.fpregs._st));
-  memset(ucontext.fpregs._xmm, 0, sizeof(ucontext.fpregs._xmm));
+  memset(ucontext.fpregs.st, 0, sizeof(ucontext.fpregs.st));
+  memset(ucontext.fpregs.xmm, 0, sizeof(ucontext.fpregs.xmm));
 
   constexpr uint64_t kCanary = 0xBBBBBBBBBBBBBBBB;
   ucontext.gregs.r8 = kCanary;

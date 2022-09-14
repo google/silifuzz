@@ -42,7 +42,7 @@ GRegSet MakeDiff(const GRegSet& regs) {
 FPRegSet MakeDiff(const FPRegSet& regs) {
   FPRegSet base = regs;
 #if defined(__x86_64__)
-  memset(&base._xmm[2], 0, sizeof(base._xmm[2]));
+  base.xmm[2] = 0;
 #elif defined(__aarch64__)
   base.v[2] = 0;
 #else

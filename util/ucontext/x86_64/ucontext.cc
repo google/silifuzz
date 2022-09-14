@@ -38,19 +38,8 @@ void ZeroOutGRegsPadding(GRegSet* gregs) {
 }
 
 void ZeroOutFPRegsPadding(FPRegSet* fpregs) {
-  // This many bytes from the start of a FPRegSet have useful non-padding data.
-  static constexpr size_t kFPRegSetSizeLessPadding =
-      // The name of the padding field in _libc_fpstate that comes after the
-      // _xmm field differs from one libc version to another, so we do some
-      // math:
-      offsetof(FPRegSet, _xmm) + sizeof(static_cast<FPRegSet*>(nullptr)->_xmm);
-
-  // These parts of FPRegSet are not yet saved/restored by SaveUContext()
-  // and and RestoreUContext():
-  char* padding = reinterpret_cast<char*>(fpregs) + kFPRegSetSizeLessPadding;
-  constexpr size_t padding_size = sizeof(*fpregs) - kFPRegSetSizeLessPadding;
-  memset(padding, 0, padding_size);
-
+  fpregs->reserved0 = 0;
+  memset(fpregs->padding, 0, sizeof(fpregs->padding));
   FixUpFPRegsPadding(fpregs);
 
 #if defined(MEMORY_SANITIZER)
@@ -77,19 +66,19 @@ void FixUpGRegsPadding(GRegSet* gregs) {
 
 void FixUpFPRegsPadding(FPRegSet* fpregs) {
   // According to docs only 16 lower bits of mxcsr have been defined as of SSE3
-  // (and hence only that many bits of mxcr_mask are meaningful)
+  // (and hence only that many bits of mxcsr_mask are meaningful)
   // -- see page 10-4 in
   // https://www.intel.la/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-1-manual.pdf
-  // But for some reason the 18th bit of mxcr_mask *sometimes* gets set.
+  // But for some reason the 18th bit of mxcsr_mask *sometimes* gets set.
   // This might have to do with the fact that memory is not 0-ed before doing
   // the fxsave64 instruction. We can implement the clearing in
   // ./save_ucontext.S, but then there's similar logic inside Linux kernel
   // when it populates ucontext_t for a signal handler and that logic would be
   // non-trivial to change.
   // As an immediate fix we simply always clear the offending bit to achive
-  // consistent mxcr_mask values for FPRegSet comparisons:
-  // TODO(ksteuck): [as-needed] Clear more/all of top two bytes of mxcr_mask.
-  fpregs->mxcr_mask &= ~0x20000;
+  // consistent mxcsr_mask values for FPRegSet comparisons:
+  // TODO(ksteuck): [as-needed] Clear more/all of top two bytes of mxcsr_mask.
+  fpregs->mxcsr_mask &= ~0x20000;
 }
 
 // Restoring CS and SS is tricky, so RestoreUContext does not do it.

@@ -411,9 +411,11 @@ void TestUContextVarious() {
   // -- the latter only saves these:
   if (DEBUG_MODE) {
     LOG_INFO("libc_ucontext FP registers vs ucontext:");
-    LogFPRegs(*libc_ucontext.uc_mcontext.fpregs, false, &ucontext.fpregs, true);
+    // Layout should be the same since they are both based on fxstore64.
+    LogFPRegs(*reinterpret_cast<FPRegSet*>(libc_ucontext.uc_mcontext.fpregs),
+              false, &ucontext.fpregs, true);
   }
-  EXPECT_EQ(ucontext.fpregs.cwd, libc_ucontext.uc_mcontext.fpregs->cwd);
+  EXPECT_EQ(ucontext.fpregs.fcw, libc_ucontext.uc_mcontext.fpregs->cwd);
   if (0) {
     // These are saved by both getcontext() and SaveUContext(),
     // but for some reason fxsave and fnstenv instructions result in
@@ -421,7 +423,7 @@ void TestUContextVarious() {
     // fxrstor also barfs if we were to apply fnstenv over the result of fxsave.
     // If necessary we could allocate a separate space in UContext to
     // also save/restore with fnstenv and fldenv.
-    EXPECT_EQ(ucontext.fpregs.swd, libc_ucontext.uc_mcontext.fpregs->swd);
+    EXPECT_EQ(ucontext.fpregs.fsw, libc_ucontext.uc_mcontext.fpregs->swd);
     EXPECT_EQ(ucontext.fpregs.ftw, libc_ucontext.uc_mcontext.fpregs->ftw);
     EXPECT_EQ(ucontext.fpregs.fop, libc_ucontext.uc_mcontext.fpregs->fop);
     EXPECT_EQ(ucontext.fpregs.rip, libc_ucontext.uc_mcontext.fpregs->rip);

@@ -96,10 +96,10 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot(absl::string_view code,
   current.gregs.gs_base = 0;
 
   memset(&current.fpregs, 0, sizeof(current.fpregs));
-  // Initialize CWD and MXCSR to sensible defaults that mask as many exceptions
+  // Initialize FCW and MXCSR to sensible defaults that mask as many exceptions
   // as possible with the idea to allow generated snapshots execute more code.
   current.fpregs.mxcsr = 0x1f80;
-  current.fpregs.cwd = 0x37f;
+  current.fpregs.fcw = 0x37f;
 
   snapshot.set_registers(ConvertRegsToSnapshot(current.gregs, current.fpregs));
 

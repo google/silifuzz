@@ -33,7 +33,7 @@ void pattern_init(void* data, size_t size, size_t seed) {
 // up to the point where they diverge (the ss field).
 // This will lets use byte-copy or cast between them if only using these
 // shared fields.
-TEST(SignalTest, Offsets) {
+TEST(SignalTest, GRegOffsets) {
 #define REG_OFFSET(REG)                                 \
   (offsetof(ucontext_t, uc_mcontext.gregs[REG_##REG]) - \
    offsetof(ucontext_t, uc_mcontext.gregs))
@@ -64,6 +64,21 @@ TEST(SignalTest, Offsets) {
                                        sizeof(GRegSet::gs) +
                                        sizeof(GRegSet::fs));
 #undef REG_OFFSET
+}
+
+TEST(SignalTest, FPRegOffsets) {
+  using signal_fpregset = std::remove_pointer<fpregset_t>::type;
+  EXPECT_EQ(offsetof(FPRegSet, fcw), offsetof(signal_fpregset, cwd));
+  EXPECT_EQ(offsetof(FPRegSet, fsw), offsetof(signal_fpregset, swd));
+  EXPECT_EQ(offsetof(FPRegSet, ftw), offsetof(signal_fpregset, ftw));
+  EXPECT_EQ(offsetof(FPRegSet, fop), offsetof(signal_fpregset, fop));
+  EXPECT_EQ(offsetof(FPRegSet, rip), offsetof(signal_fpregset, rip));
+  EXPECT_EQ(offsetof(FPRegSet, rdp), offsetof(signal_fpregset, rdp));
+  EXPECT_EQ(offsetof(FPRegSet, mxcsr), offsetof(signal_fpregset, mxcsr));
+  EXPECT_EQ(offsetof(FPRegSet, mxcsr_mask),
+            offsetof(signal_fpregset, mxcr_mask));
+  EXPECT_EQ(offsetof(FPRegSet, st), offsetof(signal_fpregset, _st));
+  EXPECT_EQ(offsetof(FPRegSet, xmm), offsetof(signal_fpregset, _xmm));
 }
 
 TEST(SignalTest, ExtraSignalRegs) {
