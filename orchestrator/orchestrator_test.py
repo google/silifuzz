@@ -157,8 +157,7 @@ class OrchestratorTest(absltest.TestCase):
 
   def test_snap_failure(self):
     (err_log, returncode) = self.run_orchestrator(
-        ['snap_fail'],
-        extra_args=['--sequential_mode', '--enable_v1_compat_logging'])
+        ['snap_fail'], extra_args=['--enable_v1_compat_logging'])
     self.assertEqual(returncode, 1)
     self.assertStrSeqContainsAll(err_log, [
         'snap_fail: my_snap', 'exit_status: snap_fail',
