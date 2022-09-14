@@ -1042,7 +1042,6 @@ bool Snapshot::EndState::empty_platforms() const {
 }
 
 void Snapshot::EndState::add_platform(PlatformId platform) {
-  CHECK(platform != PlatformId::kUndefined);
   platforms_[ToInt(platform)] = true;
 }
 
@@ -1060,7 +1059,6 @@ void Snapshot::EndState::set_platforms(
     const std::vector<PlatformId>& platforms) {
   platforms_ = std::vector<bool>(ToInt(kMaxPlatformId) + 1, false);
   for (auto p : platforms) {
-    CHECK(p != PlatformId::kUndefined);
     int i = ToInt(p);
     CHECK_LT(i, ToInt(kMaxPlatformId));
     platforms_[i] = true;

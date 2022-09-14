@@ -96,11 +96,13 @@ TEST(Snapshot, IsComplete) {
 TEST(Snapshot, EndStatePlatform) {
   Snapshot s = TestSnapshots::Create(TestSnapshots::kEndsAsExpected);
   Snapshot::EndState es = s.expected_end_states()[0];
+  ASSERT_FALSE(s.expected_end_states().empty());
   EXPECT_THAT(es.platforms(), UnorderedElementsAre(CurrentPlatformId()));
   es.add_platform(PlatformId::kIntelIcelake);
   es.add_platform(PlatformId::kIntelSapphireRapids);
   EXPECT_TRUE(es.has_platform(PlatformId::kIntelIcelake));
   EXPECT_TRUE(es.has_platform(PlatformId::kIntelSapphireRapids));
+  EXPECT_FALSE(es.has_platform(PlatformId::kUndefined));
   EXPECT_FALSE(es.has_platform(PlatformId::kNonExistent));
   EXPECT_THAT(es.platforms(), IsSupersetOf({PlatformId::kIntelIcelake,
                                             PlatformId::kIntelSapphireRapids}));
@@ -108,6 +110,14 @@ TEST(Snapshot, EndStatePlatform) {
   EXPECT_THAT(s.expected_end_states()[0].platforms(),
               IsSupersetOf({PlatformId::kIntelIcelake,
                             PlatformId::kIntelSapphireRapids}));
+}
+
+TEST(Snapshot, UndefinedPlatformAllowed) {
+  Snapshot s = TestSnapshots::Create(TestSnapshots::kEndsAsExpected);
+  ASSERT_FALSE(s.expected_end_states().empty());
+  Snapshot::EndState es = s.expected_end_states()[0];
+  es.add_platform(PlatformId::kUndefined);
+  EXPECT_TRUE(es.has_platform(PlatformId::kUndefined));
 }
 
 TEST(Snapshot, NormalizeMemoryMappings) {

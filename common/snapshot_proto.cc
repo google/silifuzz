@@ -192,10 +192,6 @@ absl::StatusOr<Snapshot::EndState> SnapshotProto::FromProto(
     for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
          ++p) {
       if (proto.platforms() & (1 << p)) {
-        if (p == ToInt(PlatformId::kUndefined)) {
-          return absl::InvalidArgumentError(
-              "UNDEFINED_PLATFORM_ID can't be set");
-        }
         snap.add_platform(static_cast<PlatformId>(p));
       }
     }
