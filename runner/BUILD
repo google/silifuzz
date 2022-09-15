@@ -87,6 +87,7 @@ cc_library_plus_nolibc(
 
 cc_test_nolibc(
     name = "snap_runner_util_test",
+    timeout = "short",
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [
             "aarch64/snap_runner_util_test.cc",
@@ -180,6 +181,7 @@ cc_library_nolibc(
 
 cc_test_nolibc(
     name = "runner_test",
+    timeout = "short",
     srcs = ["runner_test.cc"],
     linkopts = [
         "-Xlinker",
@@ -361,6 +363,7 @@ cc_binary_nolibc(
 
 sh_test(
     name = "global_static_initializers_test",
+    timeout = "short",
     srcs = ["global_static_initializers_test.sh"],
     data = [":reading_runner_main_nolibc"],
 )
