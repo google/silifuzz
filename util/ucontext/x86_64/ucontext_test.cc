@@ -94,9 +94,9 @@ TEST(UContextTest, Padding) {
   UContext uc3;  // 0-init, sigemptyset(), SaveUContext(), FixUpRegsPadding()
   UContext uc4;  // SaveUContext(), zero-out
 
-  memset(&uc1, 0xAB, sizeof(UContext));
-  memset(&uc2, 0xCD, sizeof(UContext));
-  memset(&uc3, 0, sizeof(UContext));
+  memset(&uc1, 0xAB, sizeof(uc1));
+  memset(&uc2, 0xCD, sizeof(uc2));
+  memset(&uc3, 0, sizeof(uc3));
 
   ZeroOutRegsPadding(&uc1);
   UContext* ucs[] = {&uc1, &uc2, &uc3, &uc4};

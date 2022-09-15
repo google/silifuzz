@@ -37,12 +37,12 @@ TEST(SignalTest, ExtraSignalRegs) {
   // same.
 
   UContext uc;
-  memset(&uc, 0xa5, sizeof(UContext));
+  memset(&uc, 0xa5, sizeof(uc));
   SaveUContext(&uc);
   ZeroOutRegsPadding(&uc);
 
   ExtraSignalRegs eg;
-  memset(&eg, 0x5a, sizeof(ExtraSignalRegs));
+  memset(&eg, 0x5a, sizeof(eg));
   SaveExtraSignalRegs(&eg);
 
   EXPECT_EQ(uc.gregs.tpidr, eg.tpidr);
@@ -55,12 +55,12 @@ TEST(SignalTest, ExtraSignalRegsNoSyscalls) {
   // same.
 
   UContext uc;
-  memset(&uc, 0xa5, sizeof(UContext));
+  memset(&uc, 0xa5, sizeof(uc));
   SaveUContextNoSyscalls(&uc);
   ZeroOutRegsPadding(&uc);
 
   ExtraSignalRegs eg;
-  memset(&eg, 0x5a, sizeof(ExtraSignalRegs));
+  memset(&eg, 0x5a, sizeof(eg));
   SaveExtraSignalRegsNoSyscalls(&eg);
 
   EXPECT_EQ(uc.gregs.tpidr, eg.tpidr);
@@ -145,7 +145,7 @@ TEST(SignalTest, HandlerWorksAsExpected) {
 
   // Capture the current context.
   UContext uc;
-  memset(&uc, 0xf0, sizeof(UContext));
+  memset(&uc, 0xf0, sizeof(uc));
   SaveUContext(&uc);
   ZeroOutRegsPadding(&uc);
 

@@ -361,9 +361,9 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
   }
   // Verify register state.
   if (!MemEq(&end_spot.gregs, &snap.end_state_registers.gregs,
-             sizeof(GRegSet)) ||
+             sizeof(end_spot.gregs)) ||
       !MemEq(&end_spot.fpregs, &snap.end_state_registers.fpregs,
-             sizeof(FPRegSet))) {
+             sizeof(end_spot.fpregs))) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
 

@@ -59,15 +59,15 @@ ssize_t SerializeGRegs(const GRegSet& gregs, void* data, size_t data_size) {
   current += sizeof(header);
 
   // Is there enough space for the data?
-  if (end - current < sizeof(GRegSet)) {
+  if (end - current < sizeof(gregs)) {
     LOG_ERROR("Buffer too small to contain GRegSet data: ",
               IntStr(end - current));
     return -1;
   }
 
   // Serialize data
-  memcpy(current, &gregs, sizeof(GRegSet));
-  current += sizeof(GRegSet);
+  memcpy(current, &gregs, sizeof(gregs));
+  current += sizeof(gregs);
 
   return current - begin;
 }
@@ -99,14 +99,14 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size, GRegSet* gregs) {
   }
 
   // Is there enough space for the payload?
-  if (end - current < sizeof(GRegSet)) {
+  if (end - current < sizeof(*gregs)) {
     LOG_ERROR("Too little data: ", IntStr(end - current));
     return -1;
   }
 
   // Deserialize the payload.
-  memcpy(gregs, current, sizeof(GRegSet));
-  current += sizeof(GRegSet);
+  memcpy(gregs, current, sizeof(*gregs));
+  current += sizeof(*gregs);
 
   return current - begin;
 }
@@ -130,15 +130,15 @@ ssize_t SerializeFPRegs(const FPRegSet& fpregs, void* data, size_t data_size) {
   current += sizeof(header);
 
   // Is there enough space for the data?
-  if (end - current < sizeof(FPRegSet)) {
+  if (end - current < sizeof(fpregs)) {
     LOG_ERROR("Buffer too small to contain FPRegSet data: ",
               IntStr(end - current));
     return -1;
   }
 
   // Serialize data
-  memcpy(current, &fpregs, sizeof(FPRegSet));
-  current += sizeof(FPRegSet);
+  memcpy(current, &fpregs, sizeof(fpregs));
+  current += sizeof(fpregs);
 
   return current - begin;
 }
@@ -171,14 +171,14 @@ ssize_t DeserializeFPRegs(const void* data, size_t data_size,
   }
 
   // Is there enough space for the payload?
-  if (end - current < sizeof(FPRegSet)) {
+  if (end - current < sizeof(*fpregs)) {
     LOG_ERROR("Too little data: ", IntStr(end - current));
     return -1;
   }
 
   // Deserialize the payload.
-  memcpy(fpregs, current, sizeof(FPRegSet));
-  current += sizeof(FPRegSet);
+  memcpy(fpregs, current, sizeof(*fpregs));
+  current += sizeof(*fpregs);
 
   return current - begin;
 }
