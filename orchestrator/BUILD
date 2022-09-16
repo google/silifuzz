@@ -81,7 +81,6 @@ cc_library(
     hdrs = ["result_collector.h"],
     deps = [
         ":binary_log_channel",
-        ":env",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//player:player_result_proto",
         "@silifuzz//proto:binary_log_entry_cc_proto",
@@ -90,6 +89,7 @@ cc_library(
         "@silifuzz//proto:snapshot_execution_result_cc_proto",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util:checks",
+        "@silifuzz//util:hostname",
         "@silifuzz//util:itoa",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
@@ -114,26 +114,6 @@ cc_test(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "env",
-    srcs = ["env.cc"],
-    hdrs = ["env.h"],
-    deps = [
-        "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_test(
-    name = "env_test",
-    srcs = ["env_test.cc"],
-    deps = [
-        ":env",
         "@com_google_googletest//:gtest_main",
     ],
 )

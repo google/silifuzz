@@ -35,7 +35,6 @@
 #include "absl/time/time.h"
 #include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"
-#include "./orchestrator/env.h"
 #include "./player/player_result_proto.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/corpus_metadata.pb.h"
@@ -43,6 +42,7 @@
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/checks.h"
+#include "./util/hostname.h"
 #include "./util/itoa.h"
 
 ABSL_FLAG(bool, enable_v1_compat_logging, false, "Enable V1-style logging");

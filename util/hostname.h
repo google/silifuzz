@@ -12,21 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./orchestrator/env.h"
+#ifndef THIRD_PARTY_SILIFUZZ_UTIL_HOSTNAME_H_
+#define THIRD_PARTY_SILIFUZZ_UTIL_HOSTNAME_H_
 
-#include "gtest/gtest.h"
-
+#include "absl/strings/string_view.h"
 namespace silifuzz {
-namespace {
-TEST(Env, Hostname) {
-  ASSERT_NE(Hostname(), "");
-  ASSERT_TRUE(Hostname().data() == Hostname().data());
-}
 
-TEST(Env, ShortHostname) {
-  auto short_hostname = ShortHostname();
-  ASSERT_NE(short_hostname, "");
-  ASSERT_EQ(short_hostname.find('.'), short_hostname.npos);
-}
-}  // namespace
+// Returns the system hostname, as returned by `gethostname`.
+absl::string_view Hostname();
+
+// Same as Hostname() above but always returns just the first part of the
+// hostname (before the first dot).
+absl::string_view ShortHostname();
+
 }  // namespace silifuzz
+#endif  // THIRD_PARTY_SILIFUZZ_UTIL_HOSTNAME_H_

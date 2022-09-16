@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./orchestrator/env.h"
+#include "./util/hostname.h"
 
 #include <unistd.h>
 

@@ -176,6 +176,26 @@ cc_library(
     hdrs = ["libc_util.h"],
 )
 
+cc_library(
+    name = "hostname",
+    srcs = ["hostname.cc"],
+    hdrs = ["hostname.h"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "hostname_test",
+    srcs = ["hostname_test.cc"],
+    deps = [
+        ":hostname",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library_plus_nolibc(
     name = "itoa",
     srcs = ["itoa.cc"],
