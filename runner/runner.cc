@@ -289,7 +289,7 @@ void ApplyProcMapsFixups(ProcMapsEntry proc_maps_entries[],
 // stack, heap and VDSO), it can crash the runner. Therefore, it performs
 // range checks before adding memory mappings into the runners address
 // space and dies if a conflict is detected.
-void MapCorpus(const Snap::Array<const Snap*>& corpus) {
+void MapCorpus(const Snap::Corpus& corpus) {
   // On x86_64, we should only need 8 entries to describe all memory ranges when
   // running a fully static runner. 20 is more than enough to avoid overflow.
   constexpr size_t kMaxProcMapsEntries = 20;
@@ -505,7 +505,7 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
   LogToStdout(snapshot_execution_result.c_str());
 }
 
-const Snap::Array<const Snap*>* CommonMain(const RunnerMainOptions& options) {
+const Snap::Corpus* CommonMain(const RunnerMainOptions& options) {
   // Pin CPU if pinning is requested.
   if (options.cpu != kAnyCPUId) {
     const int error = SetCPUId(options.cpu);
@@ -518,8 +518,8 @@ const Snap::Array<const Snap*>* CommonMain(const RunnerMainOptions& options) {
 
   InitSnapExit(&SnapExitImpl);
 
-  auto corpus = [&options]() -> const Snap::Array<const Snap*>* {
-    static Snap::Array<const Snap*> one_snap_corpus = {};
+  auto corpus = [&options]() -> const Snap::Corpus* {
+    static Snap::Corpus one_snap_corpus = {};
     if (options.snap_id == nullptr) {
       return options.corpus;
     }
@@ -553,7 +553,7 @@ RunSnapResult RunSnapWithOpts(const Snap& snap,
 }
 
 int MakerMain(const RunnerMainOptions& options) {
-  const Snap::Array<const Snap*>* corpus = CommonMain(options);
+  const Snap::Corpus* corpus = CommonMain(options);
 
   EnterSeccompStrictMode(options.enable_tracer);
 
@@ -570,7 +570,7 @@ int MakerMain(const RunnerMainOptions& options) {
 
 int RunnerMain(const RunnerMainOptions& options) {
   CHECK(!options.sequential_mode);
-  const Snap::Array<const Snap*>* corpus = CommonMain(options);
+  const Snap::Corpus* corpus = CommonMain(options);
 
   EnterSeccompStrictMode(options.enable_tracer);
 
@@ -616,7 +616,7 @@ int RunnerMain(const RunnerMainOptions& options) {
 
 int RunnerMainSequential(const RunnerMainOptions& options) {
   CHECK(options.sequential_mode);
-  const Snap::Array<const Snap*>* corpus = CommonMain(options);
+  const Snap::Corpus* corpus = CommonMain(options);
 
   EnterSeccompStrictMode(options.enable_tracer);
   VLOG_INFO(1, "Running in sequential mode");

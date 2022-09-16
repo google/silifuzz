@@ -18,7 +18,7 @@
 
 namespace silifuzz {
 
-const Snap::Array<const Snap*>* LoadCorpus(const char* filename) {
+const Snap::Corpus* LoadCorpus(const char* filename) {
   if (filename == nullptr) {
     return nullptr;
   }

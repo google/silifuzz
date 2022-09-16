@@ -118,7 +118,7 @@ class SnapGenerator {
   absl::Status GenerateSnap(const VarName &name, const Snapshot &snapshot,
                             const Options &opts = Options::Default());
 
-  // Generate C++ source code to define a Snap::Array<const Snap*> variable
+  // Generate C++ source code to define a Snap::Corpus variable
   // called 'name' using a VarNameList containing variable names of previously
   // generated Snaps.
   void GenerateSnapArray(const VarName &name,

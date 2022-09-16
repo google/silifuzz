@@ -60,6 +60,8 @@ struct Snap {
   // Special initializer to make UContext linker initailizable.
   using ConstexprRegisterState = UContext::ConstexprInit;
 
+  using Corpus = Array<const Snap*>;
+
   // Describes a single contiguous range of byte values in memory.
   // This is a linker-initialized equivalent of Snapshot::MemoryBytes
   struct MemoryBytes {

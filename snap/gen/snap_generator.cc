@@ -270,7 +270,7 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
   PrintLn("};");
 
   PrintLn(
-      absl::StrFormat("extern const Snap::Array<const Snap*> %s = { .size = "
+      absl::StrFormat("extern const Snap::Corpus %s = { .size = "
                       "%zd, .elements = %s };",
                       name, snap_var_name_list.size(), elements_var_name));
 }

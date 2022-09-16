@@ -21,7 +21,7 @@ namespace silifuzz {
 // Returns a pointer to the Snap array.
 // The `filename` is the first non-flag command line argument passed to the
 // binary or nullptr if there wasn't any.
-const Snap::Array<const Snap*>* LoadCorpus(const char* filename);
+const Snap::Corpus* LoadCorpus(const char* filename);
 
 }  // namespace silifuzz
 

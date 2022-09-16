@@ -29,8 +29,8 @@
 
 namespace silifuzz {
 
-MmappedMemoryPtr<const Snap::Array<const Snap*>> LoadCorpusFromFile(
-    const char* filename, bool preload) {
+MmappedMemoryPtr<const Snap::Corpus> LoadCorpusFromFile(const char* filename,
+                                                        bool preload) {
   // MAP_POPULATE interferes with memory sharing. Using it causes read
   // only portion of a corpus to be copied in each runner.
   constexpr char kProcPrefix[] = "/proc/";
@@ -55,7 +55,7 @@ MmappedMemoryPtr<const Snap::Array<const Snap*>> LoadCorpusFromFile(
   auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
                                            file_size);
   CHECK_EQ(close(fd), 0);
-  MmappedMemoryPtr<const Snap::Array<const Snap*>> corpus =
+  MmappedMemoryPtr<const Snap::Corpus> corpus =
       SnapRelocator::RelocateCorpus(std::move(mapped));
   VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->size));
   return corpus;

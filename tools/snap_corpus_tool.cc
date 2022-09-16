@@ -64,7 +64,7 @@ absl::string_view ConsumeArg(std::vector<char*>& args) {
   return rv;
 }
 
-absl::StatusOr<const Snap*> FindSnap(const Snap::Array<const Snap*>* corpus,
+absl::StatusOr<const Snap*> FindSnap(const Snap::Corpus* corpus,
                                      absl::string_view snap_id) {
   for (const Snap* snap : *corpus) {
     if (snap->id == snap_id) {
@@ -74,8 +74,8 @@ absl::StatusOr<const Snap*> FindSnap(const Snap::Array<const Snap*>* corpus,
   return absl::NotFoundError(absl::StrCat("Snap ", snap_id, " not found"));
 }
 
-absl::StatusOr<const Snap*> FindSnapByCodeAddress(
-    const Snap::Array<const Snap*>* corpus, uint64_t address) {
+absl::StatusOr<const Snap*> FindSnapByCodeAddress(const Snap::Corpus* corpus,
+                                                  uint64_t address) {
   for (const Snap* snap : *corpus) {
     for (const auto& mapping : snap->memory_mappings) {
       if (address >= mapping.start_address &&
@@ -93,7 +93,7 @@ absl::Status ToolMain(std::vector<char*>& args) {
   ConsumeArg(args);  // consume argv[0]
   std::string command = std::string(ConsumeArg(args));
   absl::string_view corpus_file = ConsumeArg(args);
-  MmappedMemoryPtr<const Snap::Array<const Snap*>> corpus =
+  MmappedMemoryPtr<const Snap::Corpus> corpus =
       LoadCorpusFromFile(corpus_file.data(), /* preload = */ false);
 
   if (command == "extract") {

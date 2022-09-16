@@ -32,7 +32,7 @@ class SnapRelocator {
   // mprotect the memory to be read-only. Dies if there is any error.
   //
   // RETURNS: A mmapped memory pointer to the relocated corpus.
-  static MmappedMemoryPtr<const Snap::Array<const Snap*>> RelocateCorpus(
+  static MmappedMemoryPtr<const Snap::Corpus> RelocateCorpus(
       MmappedMemoryPtr<char> relocatable);
 
  private:

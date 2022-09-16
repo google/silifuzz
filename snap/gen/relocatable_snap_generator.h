@@ -63,9 +63,8 @@ namespace silifuzz {
 //
 // 1. Corpus Snap::Array struct.
 // This is located at the beginning of the whole relocatable Snap corpus.
-// It consist of a single Snap::Array<const Snap*> structure. It contains
-// the number of Snaps in the corpus as well as a pointer to the snap pointer
-// array after it.
+// It consist of a single Snap::Corpus structure. It contains the number of
+// Snaps in the corpus as well as a pointer to the snap pointer array after it.
 //
 // 2. Snap pointer array.
 // There is one pointer in this array for each Snap in the Snap array that

@@ -54,7 +54,7 @@ void SnapRelocator::RelocateMemoryBytesArray(
 }
 
 void SnapRelocator::RelocateCorpus() {
-  // Snap corpus has type Snap::Array<const Snap*>. Here we pretend that
+  // Snap corpus has type Snap::Corpus. Here we pretend that
   // it has type Snap::Array<Snap*> for convenience.
   using CorpusType = Snap::Array<Snap*>;
   CHECK_EQ(start_address_ % alignof(CorpusType), 0);
@@ -76,7 +76,7 @@ void SnapRelocator::RelocateCorpus() {
 }
 
 // static
-MmappedMemoryPtr<const Snap::Array<const Snap*>> SnapRelocator::RelocateCorpus(
+MmappedMemoryPtr<const Snap::Corpus> SnapRelocator::RelocateCorpus(
     MmappedMemoryPtr<char> relocatable) {
   const size_t byte_size = MmappedMemorySize(relocatable);
   uintptr_t start_address = reinterpret_cast<uintptr_t>(relocatable.get());
@@ -89,8 +89,7 @@ MmappedMemoryPtr<const Snap::Array<const Snap*>> SnapRelocator::RelocateCorpus(
                     PROT_READ),
            0);
 
-  auto corpus =
-      reinterpret_cast<const Snap::Array<const Snap*>*>(relocatable.release());
+  auto corpus = reinterpret_cast<const Snap::Corpus*>(relocatable.release());
 
   return MakeMmappedMemoryPtr(corpus, byte_size);
 }

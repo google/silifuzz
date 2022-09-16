@@ -19,12 +19,12 @@ namespace silifuzz {
 
 // This is the corpus we use in baked-in mode.
 // The corpus can come from different sources. In the typical usage, a tool
-// generates a Snap::Array<const Snap*> of the same name. The array is then
-// linked into the snap runner binary.
+// generates a Snap::Corpus of the same name. The array is then linked into the
+// snap runner binary.
 // See snap_examples.cc for an example usage.
-extern const Snap::Array<const Snap*> kDefaultSnapCorpus;
+extern const Snap::Corpus kDefaultSnapCorpus;
 
-const Snap::Array<const Snap*>* LoadCorpus(const char* filename) {
+const Snap::Corpus* LoadCorpus(const char* filename) {
   return &kDefaultSnapCorpus;
 }
 

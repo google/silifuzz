@@ -349,10 +349,10 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   // Snap::Array<const Snap*>.  We can get rid of the redirection when we
   // change the runner to take Snap::Array<Snap> later.
 
-  // Allocate Snap::Array<const Snap*>
-  using SnapArrayType = Snap::Array<const Snap*>;
+  // Allocate Snap::Corpus
+  using SnapArrayType = Snap::Corpus;
   RelocatableDataBlock::Ref snap_array_ref =
-      snap_block_.AllocateObjectsOfType<Snap::Array<const Snap*>>(1);
+      snap_block_.AllocateObjectsOfType<Snap::Corpus>(1);
 
   // Allocate space for element.
   RelocatableDataBlock::Ref snap_array_elements_ref =
