@@ -208,18 +208,17 @@ class OrchestratorTest(absltest.TestCase):
         extra_args=['--sequential_mode'])
     # start_new_session ensures that the orchestrator process is in its own
     # process group so that we can killpg() it later.
-    proc = subprocess.Popen(start_new_session=True, **popen_args)
-    time.sleep(5)
-    # Send SIGINT to the orchestator's process group. This similates ^C
-    # behavior.
-    os.killpg(proc.pid, 2)
-    # NOTE: the communicate() interface used in all other tests takes care of
-    # buffering the stdout/stderr in memory. This test relies on the fact
-    # that the child process output will fit into the default kernel buffer.
-    proc_err = proc.stderr.read(4096)
-    proc.wait(5)
+    with subprocess.Popen(start_new_session=True, **popen_args) as proc:
+      time.sleep(5)
+      # Send SIGINT to the orchestator's process group. This similates ^C
+      # behavior.
+      os.killpg(proc.pid, 2)
+      # NOTE: the communicate() interface used in all other tests takes care of
+      # buffering the stdout/stderr in memory. This test relies on the fact
+      # that the child process output will fit into the default kernel buffer.
+      proc_err = proc.stderr.read(4096)
+      self.assertIn('SIGINT/SIGALRM caught', proc_err.decode('utf-8'))
     self.assertEqual(proc.returncode, 0)
-    self.assertIn('SIGINT/SIGALRM caught', proc_err.decode('utf-8'))
 
   def test_aslr_off(self):
     (err_log, returncode) = self.run_orchestrator(['print_main_address'])
