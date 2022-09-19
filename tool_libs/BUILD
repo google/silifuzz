@@ -25,6 +25,24 @@ licenses(["notice"])
 # =========================================================================== #
 
 cc_library(
+    name = "fix_tool_common",
+    srcs = ["fix_tool_common.cc"],
+    hdrs = ["fix_tool_common.h"],
+    deps = [
+        "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_enums",
+        "@silifuzz//common:snapshot_util",
+        "@silifuzz//runner:runner_provider",
+        "@silifuzz//runner:snap_maker",
+        "@silifuzz//util:hostname",
+        "@silifuzz//util:platform",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
     name = "snap_group",
     srcs = ["snap_group.cc"],
     hdrs = ["snap_group.h"],
