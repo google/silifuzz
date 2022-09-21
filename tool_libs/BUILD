@@ -25,6 +25,31 @@ licenses(["notice"])
 # =========================================================================== #
 
 cc_library(
+    name = "corpus_partitioner_lib",
+    srcs = ["corpus_partitioner_lib.cc"],
+    hdrs = ["corpus_partitioner_lib.h"],
+    deps = [
+        ":snap_group",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/algorithm:container",
+    ],
+)
+
+cc_test(
+    name = "corpus_partitioner_lib_test",
+    srcs = ["corpus_partitioner_lib_test.cc"],
+    deps = [
+        ":corpus_partitioner_lib",
+        ":snap_group",
+        "@silifuzz//common:memory_mapping",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//util:checks",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "fix_tool_common",
     srcs = ["fix_tool_common.cc"],
     hdrs = ["fix_tool_common.h"],
