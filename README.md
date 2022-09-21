@@ -171,7 +171,7 @@ mkdir -p /tmp/wd
 ### Prework (collect corpus from fuzzing result)
 
 ```shell
-# Fuzz unicorn proxies under centipede with parallelism of 30.
+# Collect fuzzing results from /tmp/wd and generate corpus named "/tmp/wd/collected.corpus"
 python "${SILIFUZZ_SRC_DIR}/tools/transform_centipede_fuzz_results_to_silifuzz_corpus.py" \
   --bin_dir "${SILIFUZZ_BIN_DIR}" \
   --fuzzing_results "/tmp/wd/corpus.*" \
