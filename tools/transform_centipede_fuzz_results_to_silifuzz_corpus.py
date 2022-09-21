@@ -64,16 +64,16 @@ if __name__ == "__main__":
     print(f'Transforming fuzz results {files}...')
     if len(files) == 0:
         panic(f'{fuzzing_results} does not contain any results')
-    for f in files:
-        with open(f, 'rb') as f:
+    for file in files:
+        print(f'Transforming {file}...')
+        with open(file, 'rb') as f:
             data = f.read()
 
-        # Hold results from each transformation
-        results = []
-        
         # Run a pool to parse transform fuzz result to snapshot
         with ProcessPoolExecutor() as e:
-
+            # Hold results from each transformation
+            results = []
+        
             # Now parse every fuzz result from the file
             # Each entry in the file contains this format:
             # - PACK_BEGIN_MAGIC (12 bytes)
@@ -102,15 +102,20 @@ if __name__ == "__main__":
 
                 end = data[index:index+len(PACK_END_MAGIC)]
                 if end != PACK_END_MAGIC:
-                    panic(f'{end} != {PACK_END_MAGIC}')
-                index += len(PACK_END_MAGIC)
+                    # Sometimes the end is missing, past the end of file
+                    if index > len(data):
+                        print(f'Warning: end bytes [{end}] != {PACK_END_MAGIC} for {file}. Terminating loop early...')
+                        break
+                    else:
+                        panic(f'{end} != {PACK_END_MAGIC}')
 
-            if index != len(data) and False:
-                panic(f'Expected index to match length of data {index} {len(data)}')
+                index += len(PACK_END_MAGIC)
                 
-        # Make sure every transformation is finished
-        for r in results:
-            r.result()
+            # Make sure every transformation is finished
+            for r in results:
+                r.result()
+
+        print(f'Finished transforming {file}...')
 
     # Gather all the snapshots
     files = ' '.join([str(f) for f in temp_dir.iterdir() if '.pb' in str(f)])
