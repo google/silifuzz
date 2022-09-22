@@ -14,8 +14,6 @@
 
 #include "./orchestrator/silifuzz_orchestrator.h"
 
-#include <time.h>
-
 #include <cstdint>
 #include <functional>
 #include <random>
@@ -139,15 +137,15 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
       args.corpora, args.runner_options.sequential_mode(), args.thread_idx);
 
   while (!ctx->ShouldStop()) {
-    auto time_bugdet = ctx->deadline() - absl::Now();
-    if (time_bugdet <= absl::ZeroDuration()) {
+    absl::Time start_time = absl::Now();
+    absl::Duration time_budget = ctx->deadline() - start_time;
+    if (time_budget <= absl::ZeroDuration()) {
       break;
     }
     RunnerOptions runner_options = args.runner_options;
-    runner_options.set_wall_time_bugdet(time_bugdet);
+    runner_options.set_wall_time_bugdet(time_budget);
     VLOG_INFO(1, "T", args.thread_idx, " time budget ",
-              absl::FormatDuration(time_bugdet));
-    time_t start_time = time(nullptr);
+              absl::FormatDuration(time_budget));
     std::string corpus_name = next_corpus_generator();
     if (corpus_name.empty()) {
       VLOG_INFO(0, "T", args.thread_idx,
@@ -158,8 +156,7 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
     absl::StatusOr<RunnerDriver::RunResult> run_result_or =
         driver.Run(runner_options);
 
-    time_t stop_time = time(nullptr);
-    int64_t elapsed_time = stop_time - start_time;
+    int64_t elapsed_time = absl::ToInt64Seconds(absl::Now() - start_time);
 
     std::string exit_status = RunResultToDebugString(run_result_or);
     VLOG_INFO(0, "T", args.thread_idx, " corpus: ", Basename(corpus_name),
