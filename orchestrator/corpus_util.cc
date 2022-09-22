@@ -41,6 +41,7 @@
 #include "./util/checks.h"
 #include "./util/owned_file_descriptor.h"
 #include "./util/path_util.h"
+#include "./util/span_util.h"
 
 namespace silifuzz {
 
@@ -193,23 +194,12 @@ absl::StatusOr<LoadCorporaResult> LoadCorpora(
 
   // Distribute corpus paths evenly over corpus loader threads.
   std::vector<std::thread> loader_threads;
+  auto corpus_path_spans = PartitionEvenly(corpus_paths, num_threads);
+  auto owned_fd_spans = PartitionEvenly(owned_fds, num_threads);
   loader_threads.reserve(num_threads);
   for (size_t i = 0; i < num_threads; ++i) {
-    // Helper to split corpus_paths and owned_fds into num_threads
-    // non-overlapping spans covering the original vectors. Note that
-    // span_start(0) == 0 and span_start(num_threads) ==
-    // corpus_paths.size().
-    auto span_start = [&](size_t i) -> size_t {
-      return i * corpus_paths.size() / num_threads;
-    };
-
-    const size_t start = span_start(i);
-    const size_t limit = span_start(i + 1);
-    loader_threads.emplace_back(
-        load_corpus_span,
-        absl::MakeSpan(corpus_paths.data() + start,
-                       corpus_paths.data() + limit),
-        absl::MakeSpan(owned_fds.data() + start, owned_fds.data() + limit));
+    loader_threads.emplace_back(load_corpus_span, corpus_path_spans[i],
+                                owned_fd_spans[i]);
   }
 
   for (auto& thread : loader_threads) {

@@ -127,6 +127,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:owned_file_descriptor",
         "@silifuzz//util:path_util",
+        "@silifuzz//util:span_util",
         "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
