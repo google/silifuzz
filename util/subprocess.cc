@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/personality.h>
+#include <sys/prctl.h>  // prctl(), PR_SET_PDEATHSIG
 #include <sys/resource.h>
 #include <sys/wait.h>
 
@@ -79,6 +80,9 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
       if (personality(current_persona | ADDR_NO_RANDOMIZE) == -1) {
         ASS_LOG_FATAL("personality errno =  ", ErrnoStr(errno));
       }
+    }
+    if (options_.parent_death_signal_ > 0) {
+      CHECK_EQ(prctl(PR_SET_PDEATHSIG, options_.parent_death_signal_), 0);
     }
     dup2(stdout_pipe[1], STDOUT_FILENO);
     if (options_.map_stderr_to_stdout_) {

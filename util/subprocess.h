@@ -68,6 +68,11 @@ class Subprocess {
       return *this;
     }
 
+    Options& SetParentDeathSignal(int signal) {
+      parent_death_signal_ = signal;
+      return *this;
+    }
+
    private:
     friend class Subprocess;  // for rlimit_tuples_ and itimer_vals_ access.
 
@@ -78,6 +83,10 @@ class Subprocess {
 
     // Disable ASLR.
     bool disable_aslr_ = false;
+
+    // If greater than 0, send this signal to the child process if the parent
+    // process dies.
+    int parent_death_signal_ = 0;
 
     // Represents setrlimit(2) args.
     struct RLimitTuple {

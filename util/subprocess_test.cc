@@ -17,9 +17,11 @@
 #include <sys/resource.h>
 
 #include <cstdlib>
+#include <thread>  // NOLINT
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
@@ -85,6 +87,25 @@ TEST(Subprocess, DisableAslr) {
   std::string stdout2;
   ASSERT_EQ(sp.Communicate(&stdout2), 0);
   ASSERT_EQ(stdout1, stdout2);
+}
+
+TEST(Subprocess, ParentDeath) {
+  Subprocess::Options opts = Subprocess::Options::Default();
+  opts.SetParentDeathSignal(SIGKILL);
+  Subprocess sp(opts);
+  std::thread t([&] {
+    // Start the process in a separate thread. The death signal is delivered
+    // when the parent thread exits.
+    LOG(INFO) << "Starting sleep";
+    if (!sp.Start({"/bin/sleep", "3600"}).ok()) {
+      abort();
+    }
+    absl::SleepFor(absl::Seconds(1));
+  });
+  t.join();
+  std::string stdout;
+  int status = sp.Communicate(&stdout);
+  ASSERT_EQ(WTERMSIG(status), SIGKILL);
 }
 
 TEST(Subprocess, SetRLimit) {

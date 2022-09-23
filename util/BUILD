@@ -718,10 +718,12 @@ cc_library(
 cc_test(
     name = "subprocess_test",
     size = "medium",
+    timeout = "short",
     srcs = ["subprocess_test.cc"],
     deps = [
         ":subprocess",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )
