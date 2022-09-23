@@ -172,6 +172,15 @@ class OrchestratorTest(absltest.TestCase):
         'Runner killed by signal 14',
     ])
 
+  def test_watchdog(self):
+    (err_log, returncode) = self.run_orchestrator(
+        ['ignore_alarm', 'sleep100'],
+        extra_args=['--watchdog_allowed_overrun=1s'])
+    self.assertEqual(returncode, 0)
+    self.assertStrSeqContainsAll(err_log, [
+        'Terminated by watchdog',
+    ])
+
   def test_binary_logging(self):
     (read_fd, write_fd) = os.pipe()
     (err_log, returncode) = self.run_orchestrator(

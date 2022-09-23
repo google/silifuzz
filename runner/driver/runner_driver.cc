@@ -90,7 +90,8 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
     std::optional<HarnessTracer::Callback> trace_cb) const {
   std::vector<std::string> argv = {binary_path_};
   Subprocess::Options options = Subprocess::Options::Default();
-  options.DisableAslr(runner_options.disable_aslr());
+  options.DisableAslr(runner_options.disable_aslr())
+      .SetParentDeathSignal(SIGKILL);
   if (auto cpu_time_budget = runner_options.cpu_time_budget();
       cpu_time_budget != absl::InfiniteDuration()) {
     // Soft-cap at the runner_options.cpu_time_budget, hard-cap +1 second

@@ -23,6 +23,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <string>
 
 // Some divisions in a loop. Make sure compiler doesn't remove them.
@@ -102,6 +103,10 @@ int main(int argc, char** argv) {
       print_first_line = true;
     } else if (cmd == "--sequential_mode") {
       LogHumanReadable("TEST RUNNER sequential_mode");
+    } else if (cmd == "ignore_alarm") {
+      struct sigaction sigact = {};
+      sigact.sa_handler = SIG_IGN;
+      sigaction(SIGALRM, &sigact, nullptr);
     } else if (cmd == "sleep100") {
       sleep(100);
     } else {

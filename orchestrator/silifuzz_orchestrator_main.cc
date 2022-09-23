@@ -96,6 +96,9 @@ ABSL_FLAG(double, log_session_summary_probability, 0,
           "--binary_log_fd is set)");
 ABSL_FLAG(std::string, orchestrator_version, "",
           "Version of this binary to be used for logging.");
+ABSL_FLAG(absl::Duration, watchdog_allowed_overrun, absl::ZeroDuration(),
+          "When > 0, a watchdog thread will terminate this process after "
+          "exceeding duration+overrun");
 
 namespace silifuzz {
 
@@ -135,6 +138,17 @@ ExecutionContext *OrchestratorInit(
   };
   sigaction(SIGINT, &sigact, nullptr);
   sigaction(SIGALRM, &sigact, nullptr);
+
+  if (auto overrun = absl::GetFlag(FLAGS_watchdog_allowed_overrun);
+      overrun > absl::ZeroDuration()) {
+    std::thread watchdog([watchdog_deadline = timeout + overrun]() {
+      absl::SleepFor(watchdog_deadline);
+      ABSL_RAW_LOG(ERROR, "Terminated by watchdog");
+      _exit(EXIT_SUCCESS);
+    });
+    watchdog.detach();
+  }
+
   return &ctx;
 }
 
