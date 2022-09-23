@@ -20,20 +20,13 @@
 //        ./corpus1 [./corpus2 ...] [-- --runner_flag=value ...]
 //
 // The runner is required to support the following flags:
-//   * --run_time_budget_ms=N: run for approximately N milliseconds.
+//   * --num_iterations=N: run this many snapshots.
 //   * --cpu=N: pin itself to the core N.
 //
 // Orchestrator runs one or more runner binaries, in several threads.
 // Runners have a limited time budget, so they are restarted periodically.
 // Outputs and exit status from the runners are collected and
 // handled.
-//
-// TODO(ksteuck): [impl] Maximum CPU time is enforced in the runners via
-// RLIMIT_CPU.
-// Since the runner cannot make any blocking syscalls, we expect that
-// RLIMIT_CPU is sufficient to guard against any possible timeout situations.
-// If we find that this is insufficient, we may additionally implement
-// timeout enforcement in the Orchestrator.
 //
 // ASLR is disabled for the runners via personality(ADDR_NO_RANDOMIZE)
 // from the Orchestrator.
@@ -44,11 +37,6 @@
 // so we redirect stdout to an actual file.
 //
 // Assumption: Runner closes stdin.
-//
-// It remains to be seen whether the "orchestrator => runner" couple is enough,
-// or whether we will need an "orchestrator => wrapper => runner" tuple,
-// where wrapper is a separate process that enforces various limits and
-// execs (or forks/execs) the runner.
 
 #include <errno.h>
 #include <sched.h>
