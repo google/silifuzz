@@ -22,32 +22,8 @@
 
 namespace silifuzz {
 
-void ZeroOutGRegsPadding(GRegSet* gregs) {
-  // This padding is to size GRegSet as a multiple of int64_t.
-  gregs->padding = 0;
-  FixUpGRegsPadding(gregs);
-#if defined(MEMORY_SANITIZER)
-  // Since MSAN does not understand what the assembly in SaveUContext() does,
-  // it does not know what is no longer uninitialized in UContext after
-  // SaveUContext() runs. Thus we help MSAN here.
-  // Note that if SaveUContext() is not called toghether with
-  // ZeroOutRegsPadding() the following can hide some uninitialized usage
-  // from MSAN.
-  __msan_unpoison(gregs, sizeof(*gregs));
-#endif
-}
-
-void ZeroOutFPRegsPadding(FPRegSet* fpregs) {
-  fpregs->reserved0 = 0;
-  memset(fpregs->padding, 0, sizeof(fpregs->padding));
-  FixUpFPRegsPadding(fpregs);
-
-#if defined(MEMORY_SANITIZER)
-  __msan_unpoison(fpregs, sizeof(*fpregs));
-#endif
-}
-
-void FixUpGRegsPadding(GRegSet* gregs) {
+template <>
+void FixUpGRegsPadding(GRegSet<X86_64>* gregs) {
   // TODO(ksteuck): [as-needed] Bits 1, 3, 5, 15, and [22..31] (0-based) of
   // gregs->eflags are documented as reserved and "do not use or depend on"
   // -- see section 3.4.3 in
@@ -64,7 +40,8 @@ void FixUpGRegsPadding(GRegSet* gregs) {
 #endif
 }
 
-void FixUpFPRegsPadding(FPRegSet* fpregs) {
+template <>
+void FixUpFPRegsPadding(FPRegSet<X86_64>* fpregs) {
   // According to docs only 16 lower bits of mxcsr have been defined as of SSE3
   // (and hence only that many bits of mxcsr_mask are meaningful)
   // -- see page 10-4 in
@@ -81,16 +58,47 @@ void FixUpFPRegsPadding(FPRegSet* fpregs) {
   fpregs->mxcsr_mask &= ~0x20000;
 }
 
+template <>
+void ZeroOutGRegsPadding(GRegSet<X86_64>* gregs) {
+  // This padding is to size GRegSet as a multiple of int64_t.
+  gregs->padding = 0;
+  FixUpGRegsPadding(gregs);
+#if defined(MEMORY_SANITIZER)
+  // Since MSAN does not understand what the assembly in SaveUContext() does,
+  // it does not know what is no longer uninitialized in UContext after
+  // SaveUContext() runs. Thus we help MSAN here.
+  // Note that if SaveUContext() is not called toghether with
+  // ZeroOutRegsPadding() the following can hide some uninitialized usage
+  // from MSAN.
+  __msan_unpoison(gregs, sizeof(*gregs));
+#endif
+}
+
+template <>
+void ZeroOutFPRegsPadding(FPRegSet<X86_64>* fpregs) {
+  fpregs->reserved0 = 0;
+  memset(fpregs->padding, 0, sizeof(fpregs->padding));
+  FixUpFPRegsPadding(fpregs);
+
+#if defined(MEMORY_SANITIZER)
+  __msan_unpoison(fpregs, sizeof(*fpregs));
+#endif
+}
+
 // Restoring CS and SS is tricky, so RestoreUContext does not do it.
 // If they have been modified, then jumping back into C code is unsafe.
 // For the nolibc use case, fs_base and gs_base will get zeroed when restoring
 // the context, but they are also not used by nolibc C code so they are not
 // critical.
-bool CriticalUnrestoredRegistersAreSame(const GRegSet& actual,
-                                        const GRegSet& expected) {
+template <>
+bool CriticalUnrestoredRegistersAreSame(const GRegSet<X86_64>& actual,
+                                        const GRegSet<X86_64>& expected) {
   return actual.cs == expected.cs && actual.ss == expected.ss;
 }
 
-uint64_t GetInstructionPointer(const GRegSet& gregs) { return gregs.rip; }
+template <>
+uint64_t GetInstructionPointer(const GRegSet<X86_64>& gregs) {
+  return gregs.rip;
+}
 
 }  // namespace silifuzz

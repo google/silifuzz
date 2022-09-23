@@ -26,15 +26,17 @@ namespace silifuzz {
 // LOG_INFO()-s all general register values from a GRegSet.
 // Log lines will be prefixed with two spaces.
 // For `base` and `log_diff` see LogGRegs() overload below.
-void LogGRegs(const GRegSet& gregs, const GRegSet* base = nullptr,
+template <typename Arch>
+void LogGRegs(const GRegSet<Arch>& gregs, const GRegSet<Arch>* base = nullptr,
               bool log_diff = false);
 
 // LOG_INFO()-s all general register values from a FPRegSet.
 // log_fp_data tells if the fp data regs should be logged or not.
 // Log lines will be prefixed with two spaces.
 // For `base` and `log_diff` see LogFPRegs() overload below.
-void LogFPRegs(const FPRegSet& fpregs, bool log_fp_data = true,
-               const FPRegSet* base = nullptr, bool log_diff = false);
+template <typename Arch>
+void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data = true,
+               const FPRegSet<Arch>* base = nullptr, bool log_diff = false);
 
 // LOG_INFO()-s all register values from a SignalRegSet.
 // Log lines will be prefixed with two spaces.
@@ -55,11 +57,14 @@ void LogSignalRegs(const SignalRegSet& sigregs,
 using RegsLogger = void (*)(void* logger_arg, const char* str1,
                             const char* str2, const char* str3,
                             const char* str4);
-void LogGRegs(const GRegSet& gregs, RegsLogger logger, void* logger_arg,
-              const GRegSet* base = nullptr, bool log_diff = false);
-void LogFPRegs(const FPRegSet& fpregs, bool log_fp_data, RegsLogger logger,
-               void* logger_arg, const FPRegSet* base = nullptr,
-               bool log_diff = false);
+
+template <typename Arch>
+void LogGRegs(const GRegSet<Arch>& gregs, RegsLogger logger, void* logger_arg,
+              const GRegSet<Arch>* base = nullptr, bool log_diff = false);
+template <typename Arch>
+void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data,
+               RegsLogger logger, void* logger_arg,
+               const FPRegSet<Arch>* base = nullptr, bool log_diff = false);
 void LogSignalRegs(const SignalRegSet& gregs, RegsLogger logger,
                    void* logger_arg, const SignalRegSet* base = nullptr,
                    bool log_diff = false);

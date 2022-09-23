@@ -55,10 +55,10 @@ struct Snap {
   // Describe register state of a Snapshot. This is stored in UContext/
   // and can be used directly as the context for running a Snap without any
   // conversion or copying.
-  using RegisterState = UContext;
+  using RegisterState = UContext<Host>;
 
   // Special initializer to make UContext linker initailizable.
-  using ConstexprRegisterState = UContext::ConstexprInit;
+  using ConstexprRegisterState = UContext<Host>::ConstexprInit;
 
   using Corpus = Array<const Snap*>;
 

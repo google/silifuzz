@@ -21,12 +21,35 @@
 
 namespace silifuzz {
 
+struct X86_64 {};
+struct AArch64 {};
+
+#if defined(__x86_64__)
+using Host = X86_64;
+#elif defined(__aarch64__)
+using Host = AArch64;
+#else
+#error "Unsupported architecture"
+#endif
+
 // Values for all general-purpose CPU registers.
+template <typename = Host>
+struct GRegSet;
+// Required to satisfy -Wctad-maybe-unsupported
+// The build is configured to warn/error if class template argument deduction
+// (CTAD) occurs without a type expicitly "opting in" by declaring a deduction
+// guide. For UContext-related types, we add deduction guides that say if we try
+// to construct these types without specifying the exact type parameter, assume
+// the parameter is "Host" (whatever arch we are building for.)
+// We could do without CTAD and explicitly parameterize all the types, but for
+// now this keeps refactoring diffs smaller.
+GRegSet(...)->GRegSet<Host>;
+
 // This has the same layout as gregset_t from ucontext_t up to the ss field
 // (our test verifies that), but overall this has the exact structure
 // of (and only) the register state that can be saved - see SaveUContext().
-#if defined(__x86_64__)
-struct GRegSet {
+template <>
+struct GRegSet<X86_64> {
   uint64_t r8;
   uint64_t r9;
   uint64_t r10;
@@ -63,8 +86,9 @@ struct GRegSet {
   uint64_t fs_base;
   uint64_t gs_base;
 };
-#elif defined(__aarch64__)
-struct GRegSet {
+
+template <>
+struct GRegSet<AArch64> {
   uint64_t x[31];
   uint64_t sp;
   uint64_t pc;
@@ -72,19 +96,24 @@ struct GRegSet {
   uint64_t tpidr;
   uint64_t tpidrro;
 };
-#else
-#error "Unsupported architecture"
-#endif
 
 // Convenience equality on GRegSet (all bytes are compared).
-inline bool operator==(const GRegSet& x, const GRegSet& y) {
-  return 0 == memcmp(&x, &y, sizeof(GRegSet));
+template <typename Arch>
+inline bool operator==(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
+  return 0 == memcmp(&x, &y, sizeof(x));
 }
-inline bool operator!=(const GRegSet& x, const GRegSet& y) { return !(x == y); }
+template <typename Arch>
+inline bool operator!=(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
+  return !(x == y);
+}
 
 // ========================================================================= //
 
-#if defined(__x86_64__)
+template <typename = Host>
+struct FPRegSet;
+// Required to satisfy -Wctad-maybe-unsupported
+FPRegSet(...)->FPRegSet<Host>;
+
 // This structure follows the format of fxsave64 / fxrstor64.
 // See:
 // https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf
@@ -92,7 +121,8 @@ inline bool operator!=(const GRegSet& x, const GRegSet& y) { return !(x == y); }
 // But we use AMD names where they differ. See:
 // https://www.amd.com/system/files/TechDocs/24592.pdf
 // Must be 16-byte aligned so it can be used with these instructions.
-struct FPRegSet {
+template <>
+struct FPRegSet<X86_64> {
   uint16_t fcw;       // x87 FPU control word.
   uint16_t fsw;       // x87 FPU status word.
   uint8_t ftw;        // Abridged x87 FPU tag word.
@@ -112,27 +142,29 @@ struct FPRegSet {
   // Not yet defined by spec.
   uint8_t padding[96];
 };
-static_assert(sizeof(FPRegSet) == 512, "FPRegSet has unexpected size.");
-static_assert(alignof(FPRegSet) == 16, "FPRegSet has unexpected alignment.");
-#elif defined(__aarch64__)
+static_assert(sizeof(FPRegSet<X86_64>) == 512, "FPRegSet has unexpected size.");
+static_assert(alignof(FPRegSet<X86_64>) == 16,
+              "FPRegSet has unexpected alignment.");
+
 // Note: libc stores fpsr and fpcr as 32-bit values. This structure stores them
 // as 64-bit values because that is they way they are specified. Currently the
 // upper 32-bits are zero, but that could technically change.
-struct FPRegSet {
+template <>
+struct FPRegSet<AArch64> {
   __uint128_t v[32];
   uint64_t fpsr;
   uint64_t fpcr;
 };
-static_assert(alignof(FPRegSet) == 16, "FPRegSet has unexpected alignment.");
-#else
-#error "Unsupported architecture"
-#endif
+static_assert(alignof(FPRegSet<AArch64>) == 16,
+              "FPRegSet has unexpected alignment.");
 
 // Convenience equality on FPRegSet (all bytes are compared).
-inline bool operator==(const FPRegSet& x, const FPRegSet& y) {
-  return 0 == memcmp(&x, &y, sizeof(FPRegSet));
+template <typename Arch>
+inline bool operator==(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
+  return 0 == memcmp(&x, &y, sizeof(x));
 }
-inline bool operator!=(const FPRegSet& x, const FPRegSet& y) {
+template <typename Arch>
+inline bool operator!=(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
   return !(x == y);
 }
 
@@ -148,16 +180,17 @@ inline bool operator!=(const FPRegSet& x, const FPRegSet& y) {
 // * We guarantee alignment of 16 for FPRegSet field, so that
 //   our context saving/restoring implementations can easily use the fxsave and
 //   fxrstor instructions that require this alignment.
+template <typename Arch = Host>
 struct UContext {
-  FPRegSet fpregs;
-  GRegSet gregs;
+  FPRegSet<Arch> fpregs;
+  GRegSet<Arch> gregs;
 
   UContext();
 
   // Helper struct for constexpr initialization.
   struct ConstexprInit {
-    FPRegSet fpregs;
-    GRegSet gregs;
+    FPRegSet<Arch> fpregs;
+    GRegSet<Arch> gregs;
   };
 
   // This is used in generated code for Snap. A ConstexprInit is implicitly
@@ -175,9 +208,13 @@ struct UContext {
   }
 };
 
-static_assert(sizeof(UContext) == sizeof(FPRegSet) + sizeof(GRegSet),
+// Required to satisfy -Wctad-maybe-unsupported
+UContext()->UContext<Host>;
+
+static_assert(sizeof(UContext<Host>) ==
+                  sizeof(FPRegSet<Host>) + sizeof(GRegSet<Host>),
               "UContext should not have internal padding.");
-static_assert(alignof(UContext) >= alignof(FPRegSet),
+static_assert(alignof(UContext<Host>) >= alignof(FPRegSet<Host>),
               "Aligning fpregs should have aligned UContext.");
 
 }  // namespace silifuzz

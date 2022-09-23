@@ -47,7 +47,7 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE static inline void SaveExtraSignalRegs(
 // sanitizers that may have been smashed by a snap but not restored by the
 // signal handler. For the most part, this is restoring the TLS register.
 ABSL_ATTRIBUTE_ALWAYS_INLINE static inline void RestoreStateInSignalHandler(
-    UContext* uc);
+    UContext<Host>* uc);
 
 #if defined(__x86_64__)
 struct SignalRegSet {
@@ -87,7 +87,7 @@ void SaveExtraSignalRegs(ExtraSignalRegs* extra_gregs) {
   asm("movw %%es, %0" : "=r"(extra_gregs->es) :);
 }
 
-void RestoreStateInSignalHandler(UContext* uc) {
+void RestoreStateInSignalHandler(UContext<X86_64>* uc) {
   SetFSBase(uc->gregs.fs_base);
   SetGSBase(uc->gregs.gs_base);
 }
@@ -128,11 +128,13 @@ void SaveExtraSignalRegs(ExtraSignalRegs* extra_gregs) {
 // to ConvertGRegsFromLibC(). If not, we'll be creating a snapshot with a
 // register state that does not correspond to any thread in the current process.
 void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
-                          const ExtraSignalRegs& extra_gregs, GRegSet* gregs);
+                          const ExtraSignalRegs& extra_gregs,
+                          GRegSet<Host>* gregs);
 
 // Convert the FP registers from libc's ucontext_t to the type in UContext.
 // Is async-signal-safe.
-void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext, FPRegSet* fpregs);
+void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext,
+                           FPRegSet<Host>* fpregs);
 
 // Convert the registers that accompany a signal from libc's ucontext_t to an
 // internal data structure.

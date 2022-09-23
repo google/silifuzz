@@ -29,10 +29,11 @@
 #define RESTORE_UCONTEXT RestoreUContext
 #endif
 
-extern "C" void NCZVSaveUContext(silifuzz::UContext* uc, uint32_t a,
-                                 uint32_t b);
-extern "C" uint64_t SaveUContextTwice(silifuzz::UContext* uc1,
-                                      silifuzz::UContext* uc2);
+extern "C" void NCZVSaveUContext(silifuzz::UContext<silifuzz::AArch64>* uc,
+                                 uint32_t a, uint32_t b);
+extern "C" uint64_t SaveUContextTwice(
+    silifuzz::UContext<silifuzz::AArch64>* uc1,
+    silifuzz::UContext<silifuzz::AArch64>* uc2);
 
 namespace silifuzz {
 namespace {
@@ -251,7 +252,8 @@ TEST(UContextTest, Underflow) {
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, C | V);
 }
 
-extern "C" void SaveThenRestore(UContext* save, UContext* restore);
+extern "C" void SaveThenRestore(UContext<AArch64>* save,
+                                UContext<AArch64>* restore);
 
 TEST(UContextTest, SetJmpLongJmp) {
   // Use SaveUContext/RestoreUContext similar to setjmp/longjmp.

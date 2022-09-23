@@ -39,13 +39,13 @@ using snapshot_types::EndSpot;
 // matter as both UContext objects below over written at runtime. However,
 // we still want to suppress static initializer generation here to ensure that
 // the runner binary does not contain any.
-UContext snap_exit_context = UContext::ConstexprInit({});
+UContext<Host> snap_exit_context = UContext<Host>::ConstexprInit({});
 
 namespace {
 
 // Before entering a Snap, the runner's context is saved here. After a Snap
 // finishes normally, control flow continues after this saved context.
-UContext runner_return_context = UContext::ConstexprInit({});
+UContext<Host> runner_return_context = UContext<Host>::ConstexprInit({});
 
 // Bool indicating if we are about to enter a Snap's context. This is used by
 // RunSnap() below to distinguish whether we have just saved the runner's
@@ -158,7 +158,7 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
   __builtin_unreachable();
 }
 
-EndSpot RunSnap(const UContext& context) {
+EndSpot RunSnap(const UContext<Host>& context) {
   snap_signal_context.signal_occurred = false;
   enter_snap_context = true;
 

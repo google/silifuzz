@@ -78,12 +78,12 @@ void EndSpot::Log() const {
   LogSignalRegs(sigregs, &base);
   if (VLOG_IS_ON(0)) {
     LOG_INFO("CPU registers (non-0 only):");
-    GRegSet base = {};
+    decltype(gregs) base = {};
     LogGRegs(gregs, &base);
   }
   if (VLOG_IS_ON(1)) {
     LOG_INFO("FP registers (non-0 only):");
-    FPRegSet base = {};
+    decltype(fpregs) base = {};
     LogFPRegs(fpregs, true, &base);
   }
 }

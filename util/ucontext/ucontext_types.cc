@@ -22,6 +22,12 @@ namespace silifuzz {
 // Verify that alignas(16) is respected (it matters -- see class definition in
 // ucontext_types.h).
 // Use std::aligned_storage<> to fix if this check fails.
-UContext::UContext() { DCHECK_EQ(AsInt(this) % alignof(UContext), 0); }
+template <typename Arch>
+UContext<Arch>::UContext() {
+  DCHECK_EQ(AsInt(this) % alignof(UContext<Arch>), 0);
+}
+
+template UContext<X86_64>::UContext();
+template UContext<AArch64>::UContext();
 
 }  // namespace silifuzz

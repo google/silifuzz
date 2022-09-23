@@ -23,7 +23,8 @@
 namespace silifuzz {
 
 void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
-                          const ExtraSignalRegs& extra_gregs, GRegSet* gregs) {
+                          const ExtraSignalRegs& extra_gregs,
+                          GRegSet<AArch64>* gregs) {
   const mcontext_t& mcontext = libc_ucontext.uc_mcontext;
 
   static_assert(ABSL_ARRAYSIZE(gregs->x) == ABSL_ARRAYSIZE(mcontext.regs),
@@ -80,7 +81,8 @@ static const void* FindContext(const ucontext_t& libc_ucontext,
   return ctx;
 }
 
-void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext, FPRegSet* fpregs) {
+void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext,
+                           FPRegSet<AArch64>* fpregs) {
   const fpsimd_context* fpc = reinterpret_cast<const fpsimd_context*>(
       FindContext(libc_ucontext, FPSIMD_MAGIC));
 

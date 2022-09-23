@@ -14,40 +14,9 @@
 
 #include "./util/ucontext/ucontext.h"
 
-#ifdef MEMORY_SANITIZER
-#include <sanitizer/msan_interface.h>
-#endif
-
 #include "absl/base/attributes.h"
 
 namespace silifuzz {
-
-void ZeroOutRegsPadding(UContext* ucontext) {
-  ZeroOutGRegsPadding(&ucontext->gregs);
-  ZeroOutFPRegsPadding(&ucontext->fpregs);
-}
-
-void FixUpRegsPadding(UContext* ucontext) {
-  FixUpGRegsPadding(&ucontext->gregs);
-  FixUpFPRegsPadding(&ucontext->fpregs);
-}
-
-bool HasZeroRegsPadding(const UContext& ucontext) {
-  return HasZeroGRegsPadding(ucontext.gregs) &&
-         HasZeroFPRegsPadding(ucontext.fpregs);
-}
-
-bool HasZeroGRegsPadding(const GRegSet& gregs) {
-  GRegSet copy = gregs;
-  ZeroOutGRegsPadding(&copy);
-  return copy == gregs;
-}
-
-bool HasZeroFPRegsPadding(const FPRegSet& fpregs) {
-  FPRegSet copy = fpregs;
-  ZeroOutFPRegsPadding(&copy);
-  return copy == fpregs;
-}
 
 ABSL_ATTRIBUTE_NOINLINE int64_t CurrentInstructionPointer() {
   return reinterpret_cast<int64_t>(__builtin_return_address(0));

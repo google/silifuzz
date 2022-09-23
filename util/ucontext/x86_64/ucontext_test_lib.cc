@@ -51,14 +51,15 @@
 
 namespace silifuzz {
 
-bool HasSameSegmentRegisters(const GRegSet& actual, const GRegSet& expected) {
+bool HasSameSegmentRegisters(const GRegSet<X86_64>& actual,
+                             const GRegSet<X86_64>& expected) {
   return actual.cs == expected.cs && actual.gs == expected.gs &&
          actual.fs == expected.fs && actual.ss == expected.ss &&
          actual.ds == expected.ds && actual.es == expected.es;
 }
 
-bool HasCurrentSegmentRegisters(const UContext& ucontext) {
-  UContext current;
+bool HasCurrentSegmentRegisters(const UContext<X86_64>& ucontext) {
+  UContext<X86_64> current;
   SAVE_UCONTEXT(&current);
   ZeroOutGRegsPadding(&current.gregs);  // to make MSAN happy about `cr`
   return HasSameSegmentRegisters(current.gregs, ucontext.gregs);
@@ -81,7 +82,7 @@ int64_t different_test_reg_value;
 int64_t saved_reg_value;
 
 // The context we'll save/restore.
-UContext ucontext;
+UContext<X86_64> ucontext;
 
 // This lets us tell apart when we exit from SaveUContext()
 // whether it's because we called just SaveUContext() or RestoreUContext()
@@ -412,8 +413,9 @@ void TestUContextVarious() {
   if (DEBUG_MODE) {
     LOG_INFO("libc_ucontext FP registers vs ucontext:");
     // Layout should be the same since they are both based on fxstore64.
-    LogFPRegs(*reinterpret_cast<FPRegSet*>(libc_ucontext.uc_mcontext.fpregs),
-              false, &ucontext.fpregs, true);
+    LogFPRegs(
+        *reinterpret_cast<FPRegSet<X86_64>*>(libc_ucontext.uc_mcontext.fpregs),
+        false, &ucontext.fpregs, true);
   }
   EXPECT_EQ(ucontext.fpregs.fcw, libc_ucontext.uc_mcontext.fpregs->cwd);
   if (0) {

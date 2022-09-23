@@ -21,13 +21,14 @@ namespace silifuzz {
 
 // Returns true iff all segment registers in `actual` have the same values as
 // the corresponding registers in `expected`.
-bool HasSameSegmentRegisters(const GRegSet& actual, const GRegSet& expected);
+bool HasSameSegmentRegisters(const GRegSet<X86_64>& actual,
+                             const GRegSet<X86_64>& expected);
 
 // Returns true iff `ucontext` has the same CS and SS segment register values
 // as the current cpu state and thus RestoreUContext() not restoring the two
 // segment register values is fine.
 // Has simple, not most-efficient impl: meant for (D)CHECK-s.
-bool HasCurrentSegmentRegisters(const UContext& ucontext);
+bool HasCurrentSegmentRegisters(const UContext<X86_64>& ucontext);
 
 // The test value for the register for the TestOneRegister_<reg>() functions.
 extern int64_t test_reg_value;

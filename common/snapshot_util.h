@@ -36,15 +36,15 @@ Snapshot ReadSnapshotFromFileOrDie(absl::string_view filename);
 
 // Register data conversion helper.
 // Returned RegisterState will be for Snapshot::CurrentArchitecture().
-Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet& gregs,
-                                              const FPRegSet& fpregs);
+Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Host>& gregs,
+                                              const FPRegSet<Host>& fpregs);
 
 // Register data conversion helper.
 // REQUIRES: register_state is in Snapshot::CurrentArchitecture().
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet* gregs);
+                             GRegSet<Host>* gregs);
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet* gregs, FPRegSet* fpregs);
+                             GRegSet<Host>* gregs, FPRegSet<Host>* fpregs);
 
 }  // namespace silifuzz
 

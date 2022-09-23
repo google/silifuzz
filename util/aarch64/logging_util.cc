@@ -38,8 +38,9 @@ namespace silifuzz {
         (log_diff && base != nullptr) ? HexStr(base->reg_name[index]) : ""); \
   }
 
-void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
-              const GRegSet* base, bool log_diff) {
+template <>
+void LogGRegs(const GRegSet<AArch64>& regs, RegsLogger logger, void* logger_arg,
+              const GRegSet<AArch64>* base, bool log_diff) {
   for (int i = 0; i < ABSL_ARRAYSIZE(regs.x); ++i) {
     LOG_INDEXED_REG(x, i);
   }
@@ -51,8 +52,10 @@ void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
   LOG_ONE_REG(tpidrro);
 }
 
-void LogFPRegs(const FPRegSet& regs, bool log_fp_data, RegsLogger logger,
-               void* logger_arg, const FPRegSet* base, bool log_diff) {
+template <>
+void LogFPRegs(const FPRegSet<AArch64>& regs, bool log_fp_data,
+               RegsLogger logger, void* logger_arg,
+               const FPRegSet<AArch64>* base, bool log_diff) {
   if (log_fp_data) {
     for (int i = 0; i < ABSL_ARRAYSIZE(regs.v); ++i) {
       LOG_INDEXED_REG(v, i);

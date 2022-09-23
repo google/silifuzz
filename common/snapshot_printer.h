@@ -146,9 +146,9 @@ class SnapshotPrinter : private SnapshotTypeNames {
   // of the registers that have the same value in it. `comment` provides an
   // optional note about how registers are printed.
   // When `log_diff` is true logs both the actual and the expected values.
-  void PrintGRegs(const GRegSet gregs, const GRegSet* base,
+  void PrintGRegs(const GRegSet<Host>& gregs, const GRegSet<Host>* base,
                   absl::string_view comment, bool log_diff);
-  void PrintFPRegs(const FPRegSet fpregs, const FPRegSet* base,
+  void PrintFPRegs(const FPRegSet<Host>& fpregs, const FPRegSet<Host>* base,
                    absl::string_view comment, bool log_diff);
 
   // Prints register_state from `snapshot` relative to base_register_state,

@@ -44,12 +44,13 @@
 // If you need that guarantee for certain portions of UContext,
 // either 0-initialize UContext or call ZeroOutRegsPadding() after calling
 // SaveUContext().
-extern "C" void SaveUContext(silifuzz::UContext* ucontext)
+extern "C" void SaveUContext(silifuzz::UContext<silifuzz::Host>* ucontext)
     __attribute__((__returns_twice__));
 
 // Similar to above but does not make any syscalls. On x86_64, FS_BASE, GS_BASE
 // are not saved.
-extern "C" void SaveUContextNoSyscalls(silifuzz::UContext* ucontext)
+extern "C" void SaveUContextNoSyscalls(
+    silifuzz::UContext<silifuzz::Host>* ucontext)
     __attribute__((__returns_twice__));
 
 // Restores CPU register state from *ucontext.
@@ -72,7 +73,8 @@ extern "C" void SaveUContextNoSyscalls(silifuzz::UContext* ucontext)
 // end-state with the effects of those 16 bytes written present (note that
 // snapshot execution itself may overwrite those bytes - they are in the free
 // portion of its stack).
-extern "C" void RestoreUContext(const silifuzz::UContext* ucontext)
+extern "C" void RestoreUContext(
+    const silifuzz::UContext<silifuzz::Host>* ucontext)
     __attribute__((__noreturn__));
 
 // Similar to above but does not make any syscalls. On x86_64, FS_BASE, GS_BASE
@@ -82,7 +84,8 @@ extern "C" void RestoreUContext(const silifuzz::UContext* ucontext)
 // allowed values are the null selectors, which cause the segement bases to
 // be reset. If the callee depends on either FS or GS, e.g. TLS pointer in
 // FS base, callee needs to set the segment bases separately.
-extern "C" void RestoreUContextNoSyscalls(const silifuzz::UContext* ucontext)
+extern "C" void RestoreUContextNoSyscalls(
+    const silifuzz::UContext<silifuzz::Host>* ucontext)
     __attribute__((__noreturn__));
 
 // ========================================================================= //
@@ -93,24 +96,50 @@ namespace silifuzz {
 // (ucontext->gregs and ucontext->fpregs) w.r.t. SaveUContext() -- the latter
 // does not write those areas.
 // Each is async-signal-safe.
-void ZeroOutRegsPadding(UContext* ucontext);
-void ZeroOutGRegsPadding(GRegSet* gregs);
-void ZeroOutFPRegsPadding(FPRegSet* fpregs);
+template <typename Arch>
+void ZeroOutGRegsPadding(GRegSet<Arch>* gregs);
+template <typename Arch>
+void ZeroOutFPRegsPadding(FPRegSet<Arch>* fpregs);
+template <typename Arch>
+void ZeroOutRegsPadding(UContext<Arch>* ucontext) {
+  ZeroOutGRegsPadding(&ucontext->gregs);
+  ZeroOutFPRegsPadding(&ucontext->fpregs);
+}
 
 // Part of ZeroOutFPRegsPadding() that needs to happen after SaveUContext()
 // or ConvertFPRegsFromLibC() from ./convert.h (of course ZeroOutFPRegsPadding()
 // or ZeroOutRegsPadding() themselves can be done after SaveUContext() instead).
 // It fixes up a part of what SaveUContext() and ucontext_t-creation code
 // in the kernel actually write.
-void FixUpRegsPadding(UContext* ucontext);
-void FixUpGRegsPadding(GRegSet* gregs);
-void FixUpFPRegsPadding(FPRegSet* fpregs);
+template <typename Arch>
+void FixUpGRegsPadding(GRegSet<Arch>* gregs);
+template <typename Arch>
+void FixUpFPRegsPadding(FPRegSet<Arch>* fpregs);
+template <typename Arch>
+void FixUpRegsPadding(UContext<Arch>* ucontext) {
+  FixUpGRegsPadding(&ucontext->gregs);
+  FixUpFPRegsPadding(&ucontext->fpregs);
+}
 
 // Returns true iff corresponding zeroing has been done on the arg.
 // Has simple, not most-efficient impl: meant for (D)CHECK-s.
-bool HasZeroRegsPadding(const UContext& ucontext);
-bool HasZeroGRegsPadding(const GRegSet& gregs);
-bool HasZeroFPRegsPadding(const FPRegSet& fpregs);
+template <typename Arch>
+bool HasZeroGRegsPadding(const GRegSet<Arch>& gregs) {
+  GRegSet<Arch> copy = gregs;
+  ZeroOutGRegsPadding(&copy);
+  return copy == gregs;
+}
+template <typename Arch>
+bool HasZeroFPRegsPadding(const FPRegSet<Arch>& fpregs) {
+  FPRegSet<Arch> copy = fpregs;
+  ZeroOutFPRegsPadding(&copy);
+  return copy == fpregs;
+}
+template <typename Arch>
+bool HasZeroRegsPadding(const UContext<Arch>& ucontext) {
+  return HasZeroGRegsPadding(ucontext.gregs) &&
+         HasZeroFPRegsPadding(ucontext.fpregs);
+}
 
 // RestoreUContext may not restore every register to its original state for
 // architecture-specific reasons. Some of these registers may cause difficulties
@@ -119,15 +148,17 @@ bool HasZeroFPRegsPadding(const FPRegSet& fpregs);
 // to restore the context.
 // Returns true iff specific registers in `actual` have the same values as the
 // corresponding registers in `expected`.
-bool CriticalUnrestoredRegistersAreSame(const GRegSet& actual,
-                                        const GRegSet& expected);
+template <typename Arch>
+bool CriticalUnrestoredRegistersAreSame(const GRegSet<Arch>& actual,
+                                        const GRegSet<Arch>& expected);
 
 // This accessor function allows architecture-neutral code to reason about the
 // state of execution.
 // Note: aarch64 would call this the "program counter" but we're defaulting to
 // x86_64 terminology when we need to make an arbitrary choice for an
 // architecture-neutral name.
-uint64_t GetInstructionPointer(const GRegSet& gregs);
+template <typename Arch>
+uint64_t GetInstructionPointer(const GRegSet<Arch>& gregs);
 
 // Returns the instruction pointer that points right after the
 // call into CurrentInstructionPointer(). Test-only uses so far.

@@ -29,7 +29,7 @@ namespace {
 TEST(UContextTypes, NoGaps) {
   // Check that there are no gaps in GRegSet:
   EXPECT_EQ(
-      sizeof(GRegSet),
+      sizeof(GRegSet<X86_64>),
       sizeof(uint64_t) * (8 /* r8 .. r15*/ + 9 /* named regs */) +
           sizeof(uint64_t) /* eflags */ + sizeof(uint16_t) * 6 /* cs .. es */ +
           sizeof(uint64_t) * 2 /* fs_base, gs_base */ +
@@ -40,42 +40,46 @@ TEST(UContextTypes, NoGaps) {
   // need to check for gaps in that.
 
   // Check that there are no gaps in UContext:
-  EXPECT_EQ(offsetof(UContext, fpregs), 0);
-  EXPECT_EQ(offsetof(UContext, gregs), sizeof(FPRegSet));
-  EXPECT_EQ(sizeof(UContext), sizeof(FPRegSet) + sizeof(GRegSet));
+  EXPECT_EQ(offsetof(UContext<X86_64>, fpregs), 0);
+  EXPECT_EQ(offsetof(UContext<X86_64>, gregs), sizeof(FPRegSet<X86_64>));
+  EXPECT_EQ(sizeof(UContext<X86_64>),
+            sizeof(FPRegSet<X86_64>) + sizeof(GRegSet<X86_64>));
 }
 
 // Verify that the constants from ucontext_offsets.h are as expected.
 // All these can be done as static_assert, but gunit checks log better
 // diagnostics if the constants do not match.
 TEST(UContextTest, Constants) {
-  EXPECT_EQ(UCONTEXT_FPREGS_OFFSET, offsetof(UContext, fpregs));
-  EXPECT_EQ(UCONTEXT_GREGS_R8_OFFSET, offsetof(UContext, gregs.r8));
-  EXPECT_EQ(UCONTEXT_GREGS_R9_OFFSET, offsetof(UContext, gregs.r9));
-  EXPECT_EQ(UCONTEXT_GREGS_R10_OFFSET, offsetof(UContext, gregs.r10));
-  EXPECT_EQ(UCONTEXT_GREGS_R11_OFFSET, offsetof(UContext, gregs.r11));
-  EXPECT_EQ(UCONTEXT_GREGS_R12_OFFSET, offsetof(UContext, gregs.r12));
-  EXPECT_EQ(UCONTEXT_GREGS_R13_OFFSET, offsetof(UContext, gregs.r13));
-  EXPECT_EQ(UCONTEXT_GREGS_R14_OFFSET, offsetof(UContext, gregs.r14));
-  EXPECT_EQ(UCONTEXT_GREGS_R15_OFFSET, offsetof(UContext, gregs.r15));
-  EXPECT_EQ(UCONTEXT_GREGS_RDI_OFFSET, offsetof(UContext, gregs.rdi));
-  EXPECT_EQ(UCONTEXT_GREGS_RSI_OFFSET, offsetof(UContext, gregs.rsi));
-  EXPECT_EQ(UCONTEXT_GREGS_RBP_OFFSET, offsetof(UContext, gregs.rbp));
-  EXPECT_EQ(UCONTEXT_GREGS_RBX_OFFSET, offsetof(UContext, gregs.rbx));
-  EXPECT_EQ(UCONTEXT_GREGS_RDX_OFFSET, offsetof(UContext, gregs.rdx));
-  EXPECT_EQ(UCONTEXT_GREGS_RAX_OFFSET, offsetof(UContext, gregs.rax));
-  EXPECT_EQ(UCONTEXT_GREGS_RCX_OFFSET, offsetof(UContext, gregs.rcx));
-  EXPECT_EQ(UCONTEXT_GREGS_RSP_OFFSET, offsetof(UContext, gregs.rsp));
-  EXPECT_EQ(UCONTEXT_GREGS_RIP_OFFSET, offsetof(UContext, gregs.rip));
-  EXPECT_EQ(UCONTEXT_GREGS_EFLAGS_OFFSET, offsetof(UContext, gregs.eflags));
-  EXPECT_EQ(UCONTEXT_GREGS_CS_OFFSET, offsetof(UContext, gregs.cs));
-  EXPECT_EQ(UCONTEXT_GREGS_GS_OFFSET, offsetof(UContext, gregs.gs));
-  EXPECT_EQ(UCONTEXT_GREGS_FS_OFFSET, offsetof(UContext, gregs.fs));
-  EXPECT_EQ(UCONTEXT_GREGS_SS_OFFSET, offsetof(UContext, gregs.ss));
-  EXPECT_EQ(UCONTEXT_GREGS_DS_OFFSET, offsetof(UContext, gregs.ds));
-  EXPECT_EQ(UCONTEXT_GREGS_ES_OFFSET, offsetof(UContext, gregs.es));
-  EXPECT_EQ(UCONTEXT_GREGS_FS_BASE_OFFSET, offsetof(UContext, gregs.fs_base));
-  EXPECT_EQ(UCONTEXT_GREGS_GS_BASE_OFFSET, offsetof(UContext, gregs.gs_base));
+  EXPECT_EQ(UCONTEXT_FPREGS_OFFSET, offsetof(UContext<X86_64>, fpregs));
+  EXPECT_EQ(UCONTEXT_GREGS_R8_OFFSET, offsetof(UContext<X86_64>, gregs.r8));
+  EXPECT_EQ(UCONTEXT_GREGS_R9_OFFSET, offsetof(UContext<X86_64>, gregs.r9));
+  EXPECT_EQ(UCONTEXT_GREGS_R10_OFFSET, offsetof(UContext<X86_64>, gregs.r10));
+  EXPECT_EQ(UCONTEXT_GREGS_R11_OFFSET, offsetof(UContext<X86_64>, gregs.r11));
+  EXPECT_EQ(UCONTEXT_GREGS_R12_OFFSET, offsetof(UContext<X86_64>, gregs.r12));
+  EXPECT_EQ(UCONTEXT_GREGS_R13_OFFSET, offsetof(UContext<X86_64>, gregs.r13));
+  EXPECT_EQ(UCONTEXT_GREGS_R14_OFFSET, offsetof(UContext<X86_64>, gregs.r14));
+  EXPECT_EQ(UCONTEXT_GREGS_R15_OFFSET, offsetof(UContext<X86_64>, gregs.r15));
+  EXPECT_EQ(UCONTEXT_GREGS_RDI_OFFSET, offsetof(UContext<X86_64>, gregs.rdi));
+  EXPECT_EQ(UCONTEXT_GREGS_RSI_OFFSET, offsetof(UContext<X86_64>, gregs.rsi));
+  EXPECT_EQ(UCONTEXT_GREGS_RBP_OFFSET, offsetof(UContext<X86_64>, gregs.rbp));
+  EXPECT_EQ(UCONTEXT_GREGS_RBX_OFFSET, offsetof(UContext<X86_64>, gregs.rbx));
+  EXPECT_EQ(UCONTEXT_GREGS_RDX_OFFSET, offsetof(UContext<X86_64>, gregs.rdx));
+  EXPECT_EQ(UCONTEXT_GREGS_RAX_OFFSET, offsetof(UContext<X86_64>, gregs.rax));
+  EXPECT_EQ(UCONTEXT_GREGS_RCX_OFFSET, offsetof(UContext<X86_64>, gregs.rcx));
+  EXPECT_EQ(UCONTEXT_GREGS_RSP_OFFSET, offsetof(UContext<X86_64>, gregs.rsp));
+  EXPECT_EQ(UCONTEXT_GREGS_RIP_OFFSET, offsetof(UContext<X86_64>, gregs.rip));
+  EXPECT_EQ(UCONTEXT_GREGS_EFLAGS_OFFSET,
+            offsetof(UContext<X86_64>, gregs.eflags));
+  EXPECT_EQ(UCONTEXT_GREGS_CS_OFFSET, offsetof(UContext<X86_64>, gregs.cs));
+  EXPECT_EQ(UCONTEXT_GREGS_GS_OFFSET, offsetof(UContext<X86_64>, gregs.gs));
+  EXPECT_EQ(UCONTEXT_GREGS_FS_OFFSET, offsetof(UContext<X86_64>, gregs.fs));
+  EXPECT_EQ(UCONTEXT_GREGS_SS_OFFSET, offsetof(UContext<X86_64>, gregs.ss));
+  EXPECT_EQ(UCONTEXT_GREGS_DS_OFFSET, offsetof(UContext<X86_64>, gregs.ds));
+  EXPECT_EQ(UCONTEXT_GREGS_ES_OFFSET, offsetof(UContext<X86_64>, gregs.es));
+  EXPECT_EQ(UCONTEXT_GREGS_FS_BASE_OFFSET,
+            offsetof(UContext<X86_64>, gregs.fs_base));
+  EXPECT_EQ(UCONTEXT_GREGS_GS_BASE_OFFSET,
+            offsetof(UContext<X86_64>, gregs.gs_base));
 }
 
 // This tests that ZeroOutRegsPadding() and SaveUContext() together fill
@@ -89,17 +93,19 @@ TEST(UContextTest, Constants) {
 TEST(UContextTest, Padding) {
   // Each of ucX will be created slightly differently but the register
   // and sigmask values in them must match.
-  UContext uc1;  // 0xAB-init, zero-out, SaveUContext(), FixUpRegsPadding()
-  UContext uc2;  // 0xCD-init, SaveUContext(), zero-out
-  UContext uc3;  // 0-init, sigemptyset(), SaveUContext(), FixUpRegsPadding()
-  UContext uc4;  // SaveUContext(), zero-out
+  UContext<X86_64>
+      uc1;  // 0xAB-init, zero-out, SaveUContext(), FixUpRegsPadding()
+  UContext<X86_64> uc2;  // 0xCD-init, SaveUContext(), zero-out
+  UContext<X86_64>
+      uc3;  // 0-init, sigemptyset(), SaveUContext(), FixUpRegsPadding()
+  UContext<X86_64> uc4;  // SaveUContext(), zero-out
 
   memset(&uc1, 0xAB, sizeof(uc1));
   memset(&uc2, 0xCD, sizeof(uc2));
   memset(&uc3, 0, sizeof(uc3));
 
   ZeroOutRegsPadding(&uc1);
-  UContext* ucs[] = {&uc1, &uc2, &uc3, &uc4};
+  UContext<X86_64>* ucs[] = {&uc1, &uc2, &uc3, &uc4};
   // Use inline asm to ensure the four SaveUContext(ucs[i]) calls
   // are back-to-back and no callee-saved register can be altered.
   // Note: the clobber list depends on SaveUContext not modifying any registers.
@@ -212,12 +218,13 @@ TEST(UContextTest, AllOtherFields) { TestUContextVarious(); }
 
 #define TestOneSegmentRegister(name)                         \
   do {                                                       \
-    GRegSet expected = actual;                               \
+    GRegSet<X86_64> expected = actual;                       \
     expected.name = 1000;                                    \
     EXPECT_FALSE(HasSameSegmentRegisters(actual, expected)); \
   } while (0)
 TEST(UContextTest, HasSameSegmentRegisters) {
-  GRegSet actual = {.cs = 1, .gs = 2, .fs = 3, .ss = 4, .ds = 5, .es = 6};
+  GRegSet<X86_64> actual = {
+      .cs = 1, .gs = 2, .fs = 3, .ss = 4, .ds = 5, .es = 6};
   EXPECT_TRUE(CriticalUnrestoredRegistersAreSame(actual, actual));
   TestOneSegmentRegister(cs);
   TestOneSegmentRegister(gs);

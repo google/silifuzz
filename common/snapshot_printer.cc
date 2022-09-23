@@ -322,7 +322,8 @@ void SnapshotPrinter::RegsLogger(void* this_printer, const char* str1,
   static_cast<SnapshotPrinter*>(this_printer)->Line(str1, str2, str3, str4);
 }
 
-void SnapshotPrinter::PrintGRegs(const GRegSet gregs, const GRegSet* base,
+void SnapshotPrinter::PrintGRegs(const GRegSet<Host>& gregs,
+                                 const GRegSet<Host>* base,
                                  absl::string_view comment, bool log_diff) {
   Line("gregs", comment, ":");
   Indent();
@@ -330,7 +331,8 @@ void SnapshotPrinter::PrintGRegs(const GRegSet gregs, const GRegSet* base,
   Unindent();
 }
 
-void SnapshotPrinter::PrintFPRegs(const FPRegSet fpregs, const FPRegSet* base,
+void SnapshotPrinter::PrintFPRegs(const FPRegSet<Host>& fpregs,
+                                  const FPRegSet<Host>* base,
                                   absl::string_view comment, bool log_diff) {
   if (options_.fp_regs_mode == kNoFPRegs) return;
   Line("fpregs", options_.fp_regs_mode == kCtrlFPRegs ? " (control only)" : "",
@@ -345,8 +347,8 @@ void SnapshotPrinter::PrintRegisterState(
     const Snapshot& snapshot, const RegisterState& register_state,
     const RegisterState* base_register_state, bool log_diff) {
   if (snapshot.architecture() == Snapshot::CurrentArchitecture()) {
-    GRegSet gregs, gregs_base;
-    FPRegSet fpregs, fpregs_base;
+    GRegSet<Host> gregs, gregs_base;
+    FPRegSet<Host> fpregs, fpregs_base;
     ConvertRegsFromSnapshot(register_state, &gregs, &fpregs);
     if (base_register_state != nullptr) {
       ConvertRegsFromSnapshot(*base_register_state, &gregs_base, &fpregs_base);

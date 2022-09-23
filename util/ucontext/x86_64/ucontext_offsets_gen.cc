@@ -17,7 +17,7 @@
 
 #include "./util/ucontext/ucontext_types.h"
 
-using silifuzz::UContext;
+using UContext = silifuzz::UContext<silifuzz::X86_64>;
 
 int main() {
   std::cout << R"(// Copyright 2022 The SiliFuzz Authors.

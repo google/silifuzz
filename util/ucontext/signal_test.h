@@ -52,7 +52,7 @@ class FatalSignalHandler {
   struct sigaction old_;
 
   // The context before we tried to trigger the signal handler.
-  UContext saved_context_;
+  UContext<Host> saved_context_;
 
   // Pointers to where we should capture the result of the signal handler.
   siginfo_t* siginfo_result_;

@@ -38,8 +38,9 @@ namespace silifuzz {
         (log_diff && base != nullptr) ? HexStr(base->reg_name[index]) : ""); \
   }
 
-void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
-              const GRegSet* base, bool log_diff) {
+template <>
+void LogGRegs(const GRegSet<X86_64>& regs, RegsLogger logger, void* logger_arg,
+              const GRegSet<X86_64>* base, bool log_diff) {
   LOG_ONE_REG(rax);
   LOG_ONE_REG(rbx);
   LOG_ONE_REG(rcx);
@@ -72,8 +73,10 @@ void LogGRegs(const GRegSet& regs, RegsLogger logger, void* logger_arg,
   LOG_ONE_REG(es);
 }
 
-void LogFPRegs(const FPRegSet& regs, bool log_fp_data, RegsLogger logger,
-               void* logger_arg, const FPRegSet* base, bool log_diff) {
+template <>
+void LogFPRegs(const FPRegSet<X86_64>& regs, bool log_fp_data,
+               RegsLogger logger, void* logger_arg,
+               const FPRegSet<X86_64>* base, bool log_diff) {
   LOG_ONE_REG(fcw);
   LOG_ONE_REG(fsw);
   LOG_ONE_REG(ftw);

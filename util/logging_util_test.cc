@@ -27,27 +27,27 @@ void pattern_init(void* data, size_t size) {
   }
 }
 
-GRegSet MakeDiff(const GRegSet& regs) {
-  GRegSet base = regs;
-#if defined(__x86_64__)
+GRegSet<X86_64> MakeDiff(const GRegSet<X86_64>& regs) {
+  GRegSet<X86_64> base = regs;
   base.r10 = 0;
-#elif defined(__aarch64__)
-  base.x[10] = 0;
-#else
-#error "Unsupported architecture"
-#endif
   return base;
 }
 
-FPRegSet MakeDiff(const FPRegSet& regs) {
-  FPRegSet base = regs;
-#if defined(__x86_64__)
+GRegSet<AArch64> MakeDiff(const GRegSet<AArch64>& regs) {
+  GRegSet<AArch64> base = regs;
+  base.x[10] = 0;
+  return base;
+}
+
+FPRegSet<X86_64> MakeDiff(const FPRegSet<X86_64>& regs) {
+  FPRegSet<X86_64> base = regs;
   base.xmm[2] = 0;
-#elif defined(__aarch64__)
+  return base;
+}
+
+FPRegSet<AArch64> MakeDiff(const FPRegSet<AArch64>& regs) {
+  FPRegSet<AArch64> base = regs;
   base.v[2] = 0;
-#else
-#error "Unsupported architecture"
-#endif
   return base;
 }
 

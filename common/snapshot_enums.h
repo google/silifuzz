@@ -165,8 +165,8 @@ struct EndSpot {
   SignalRegSet sigregs;
 
   // Values for all the registers.
-  GRegSet gregs;
-  FPRegSet fpregs;
+  GRegSet<Host> gregs;
+  FPRegSet<Host> fpregs;
 
   // Logs this EndSpot via LOG_INFO().
   // Not a DebugString() so that we can use this in nolibc mode.

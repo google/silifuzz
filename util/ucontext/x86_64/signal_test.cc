@@ -38,47 +38,50 @@ TEST(SignalTest, GRegOffsets) {
   (offsetof(ucontext_t, uc_mcontext.gregs[REG_##REG]) - \
    offsetof(ucontext_t, uc_mcontext.gregs))
 
-  EXPECT_EQ(offsetof(GRegSet, r8), REG_OFFSET(R8));
-  EXPECT_EQ(offsetof(GRegSet, r9), REG_OFFSET(R9));
-  EXPECT_EQ(offsetof(GRegSet, r10), REG_OFFSET(R10));
-  EXPECT_EQ(offsetof(GRegSet, r11), REG_OFFSET(R11));
-  EXPECT_EQ(offsetof(GRegSet, r12), REG_OFFSET(R12));
-  EXPECT_EQ(offsetof(GRegSet, r13), REG_OFFSET(R13));
-  EXPECT_EQ(offsetof(GRegSet, r14), REG_OFFSET(R14));
-  EXPECT_EQ(offsetof(GRegSet, r15), REG_OFFSET(R15));
-  EXPECT_EQ(offsetof(GRegSet, rdi), REG_OFFSET(RDI));
-  EXPECT_EQ(offsetof(GRegSet, rsi), REG_OFFSET(RSI));
-  EXPECT_EQ(offsetof(GRegSet, rbp), REG_OFFSET(RBP));
-  EXPECT_EQ(offsetof(GRegSet, rbx), REG_OFFSET(RBX));
-  EXPECT_EQ(offsetof(GRegSet, rdx), REG_OFFSET(RDX));
-  EXPECT_EQ(offsetof(GRegSet, rax), REG_OFFSET(RAX));
-  EXPECT_EQ(offsetof(GRegSet, rcx), REG_OFFSET(RCX));
-  EXPECT_EQ(offsetof(GRegSet, rsp), REG_OFFSET(RSP));
-  EXPECT_EQ(offsetof(GRegSet, rip), REG_OFFSET(RIP));
-  EXPECT_EQ(offsetof(GRegSet, eflags), REG_OFFSET(EFL));
-  EXPECT_EQ(offsetof(GRegSet, cs), REG_OFFSET(CSGSFS));
-  EXPECT_EQ(offsetof(GRegSet, gs), REG_OFFSET(CSGSFS) + sizeof(GRegSet::cs));
-  EXPECT_EQ(offsetof(GRegSet, fs),
-            REG_OFFSET(CSGSFS) + sizeof(GRegSet::cs) + sizeof(GRegSet::gs));
-  EXPECT_EQ(offsetof(GRegSet, ss), REG_OFFSET(CSGSFS) + sizeof(GRegSet::cs) +
-                                       sizeof(GRegSet::gs) +
-                                       sizeof(GRegSet::fs));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r8), REG_OFFSET(R8));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r9), REG_OFFSET(R9));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r10), REG_OFFSET(R10));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r11), REG_OFFSET(R11));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r12), REG_OFFSET(R12));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r13), REG_OFFSET(R13));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r14), REG_OFFSET(R14));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, r15), REG_OFFSET(R15));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rdi), REG_OFFSET(RDI));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rsi), REG_OFFSET(RSI));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rbp), REG_OFFSET(RBP));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rbx), REG_OFFSET(RBX));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rdx), REG_OFFSET(RDX));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rax), REG_OFFSET(RAX));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rcx), REG_OFFSET(RCX));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rsp), REG_OFFSET(RSP));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, rip), REG_OFFSET(RIP));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, eflags), REG_OFFSET(EFL));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, cs), REG_OFFSET(CSGSFS));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, gs),
+            REG_OFFSET(CSGSFS) + sizeof(GRegSet<X86_64>::cs));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, fs), REG_OFFSET(CSGSFS) +
+                                               sizeof(GRegSet<X86_64>::cs) +
+                                               sizeof(GRegSet<X86_64>::gs));
+  EXPECT_EQ(offsetof(GRegSet<X86_64>, ss),
+            REG_OFFSET(CSGSFS) + sizeof(GRegSet<X86_64>::cs) +
+                sizeof(GRegSet<X86_64>::gs) + sizeof(GRegSet<X86_64>::fs));
 #undef REG_OFFSET
 }
 
 TEST(SignalTest, FPRegOffsets) {
   using signal_fpregset = std::remove_pointer<fpregset_t>::type;
-  EXPECT_EQ(offsetof(FPRegSet, fcw), offsetof(signal_fpregset, cwd));
-  EXPECT_EQ(offsetof(FPRegSet, fsw), offsetof(signal_fpregset, swd));
-  EXPECT_EQ(offsetof(FPRegSet, ftw), offsetof(signal_fpregset, ftw));
-  EXPECT_EQ(offsetof(FPRegSet, fop), offsetof(signal_fpregset, fop));
-  EXPECT_EQ(offsetof(FPRegSet, rip), offsetof(signal_fpregset, rip));
-  EXPECT_EQ(offsetof(FPRegSet, rdp), offsetof(signal_fpregset, rdp));
-  EXPECT_EQ(offsetof(FPRegSet, mxcsr), offsetof(signal_fpregset, mxcsr));
-  EXPECT_EQ(offsetof(FPRegSet, mxcsr_mask),
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, fcw), offsetof(signal_fpregset, cwd));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, fsw), offsetof(signal_fpregset, swd));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, ftw), offsetof(signal_fpregset, ftw));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, fop), offsetof(signal_fpregset, fop));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, rip), offsetof(signal_fpregset, rip));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, rdp), offsetof(signal_fpregset, rdp));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, mxcsr),
+            offsetof(signal_fpregset, mxcsr));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, mxcsr_mask),
             offsetof(signal_fpregset, mxcr_mask));
-  EXPECT_EQ(offsetof(FPRegSet, st), offsetof(signal_fpregset, _st));
-  EXPECT_EQ(offsetof(FPRegSet, xmm), offsetof(signal_fpregset, _xmm));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, st), offsetof(signal_fpregset, _st));
+  EXPECT_EQ(offsetof(FPRegSet<X86_64>, xmm), offsetof(signal_fpregset, _xmm));
 }
 
 TEST(SignalTest, ExtraSignalRegs) {
@@ -86,7 +89,7 @@ TEST(SignalTest, ExtraSignalRegs) {
   // This ensures the test doesn't pass because an uninitialized value is the
   // same.
 
-  UContext uc;
+  UContext<X86_64> uc;
   memset(&uc, 0xa5, sizeof(uc));
   SaveUContext(&uc);
   ZeroOutRegsPadding(&uc);
@@ -107,7 +110,7 @@ TEST(SignalTest, ExtraSignalRegsNoSyscalls) {
   // This ensures the test doesn't pass because an uninitialized value is the
   // same.
 
-  UContext uc;
+  UContext<X86_64> uc;
   memset(&uc, 0xa5, sizeof(uc));
   SaveUContextNoSyscalls(&uc);
   ZeroOutRegsPadding(&uc);
@@ -126,7 +129,7 @@ TEST(SignalTest, ExtraSignalRegsNoSyscalls) {
 TEST(SignalTest, ConvertGRegs) {
   ucontext_t libc_ucontext;
   ExtraSignalRegs eg;
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
 
   pattern_init(&libc_ucontext, sizeof(libc_ucontext), 1000);
   pattern_init(&eg, sizeof(eg), 2000);
@@ -192,7 +195,7 @@ TEST(SignalTest, UnmappedRead) {
   EXPECT_EQ(sigregs.trapno, X86Exception::X86_TRAP_PF);
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -224,7 +227,7 @@ TEST(SignalTest, UnmappedWrite) {
   EXPECT_EQ(sigregs.trapno, X86Exception::X86_TRAP_PF);
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -254,7 +257,7 @@ TEST(SignalTest, IllegalInstruction) {
   EXPECT_EQ(sigregs.err, 0);
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -285,7 +288,7 @@ TEST(SignalTest, PrivilegedInstruction) {
   EXPECT_EQ(sigregs.err, 0);
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // One instruction's worth of setup before the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -316,7 +319,7 @@ TEST(SignalTest, DebugInstruction) {
   EXPECT_EQ(sigregs.err, 0);
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points _after_ the trap instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),

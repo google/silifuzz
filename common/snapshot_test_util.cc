@@ -107,7 +107,7 @@ DECLARE_SNAPSHOT(kINT3);
 DECLARE_SNAPSHOT(kChangesSegmentReg);
 DECLARE_SNAPSHOT(kIn);
 
-static void InitTestSnapshotRegs(UContext& ucontext) {
+static void InitTestSnapshotRegs(UContext<X86_64>& ucontext) {
   SaveUContext(&ucontext);
   ZeroOutRegsPadding(&ucontext);
   memset(ucontext.fpregs.st, 0, sizeof(ucontext.fpregs.st));

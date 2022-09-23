@@ -18,7 +18,9 @@ namespace silifuzz {
 
 namespace serialize_internal {
 
-ssize_t SerializeGRegs(const GRegSet& gregs, void* data, size_t data_size) {
+template <>
+ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
+                       size_t data_size) {
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
   user_regs_struct* user_gregs = reinterpret_cast<user_regs_struct*>(data);
@@ -67,7 +69,9 @@ ssize_t SerializeGRegs(const GRegSet& gregs, void* data, size_t data_size) {
   return sizeof(*user_gregs);
 }
 
-ssize_t DeserializeGRegs(const void* data, size_t data_size, GRegSet* gregs) {
+template <>
+ssize_t DeserializeGRegs(const void* data, size_t data_size,
+                         GRegSet<X86_64>* gregs) {
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
   const user_regs_struct* user_gregs =
@@ -116,10 +120,12 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size, GRegSet* gregs) {
 
 // FPRegSet in UContext and struct user_fpregs_struct have exact same
 // layout, just slightly different field and type names, so we byte-copy.
-static_assert(sizeof(FPRegSet) == sizeof(struct user_fpregs_struct),
+static_assert(sizeof(FPRegSet<X86_64>) == sizeof(struct user_fpregs_struct),
               "fpregs structs do not match");
 
-ssize_t SerializeFPRegs(const FPRegSet& fpregs, void* data, size_t data_size) {
+template <>
+ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
+                        size_t data_size) {
   // Is there enough space?
   if (data_size < sizeof(struct user_fpregs_struct)) {
     return -1;
@@ -128,8 +134,9 @@ ssize_t SerializeFPRegs(const FPRegSet& fpregs, void* data, size_t data_size) {
   return sizeof(struct user_fpregs_struct);
 }
 
+template <>
 ssize_t DeserializeFPRegs(const void* data, size_t data_size,
-                          FPRegSet* fpregs) {
+                          FPRegSet<X86_64>* fpregs) {
   // Is there enough data?
   if (data_size < sizeof(struct user_fpregs_struct)) {
     return -1;

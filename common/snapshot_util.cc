@@ -52,8 +52,8 @@ Snapshot ReadSnapshotFromFileOrDie(absl::string_view filename) {
   return std::move(snapshot_or).value();
 }
 
-Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet& gregs,
-                                              const FPRegSet& fpregs) {
+Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Host>& gregs,
+                                              const FPRegSet<Host>& fpregs) {
   Snapshot::ByteData gregs_bytes, fpregs_bytes;
   CHECK(SerializeGRegs(gregs, &gregs_bytes));
   CHECK(SerializeFPRegs(fpregs, &fpregs_bytes));
@@ -61,12 +61,12 @@ Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet& gregs,
 }
 
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet* gregs) {
+                             GRegSet<Host>* gregs) {
   CHECK(DeserializeGRegs(register_state.gregs(), gregs));
 }
 
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet* gregs, FPRegSet* fpregs) {
+                             GRegSet<Host>* gregs, FPRegSet<Host>* fpregs) {
   ConvertRegsFromSnapshot(register_state, gregs);
   CHECK(DeserializeFPRegs(register_state.fpregs(), fpregs));
 }

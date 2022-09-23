@@ -59,7 +59,7 @@ namespace silifuzz {
 // This stores register states when the snap exit point is entered.
 // The value stored here persists until the next call of
 // SnapExitImpl().
-extern "C" UContext snap_exit_context;
+extern "C" UContext<Host> snap_exit_context;
 
 // Returns true if the execution is currently inside a Snap. Can be used inside
 // a signal handler to determine if the signal was raised while executing a
@@ -82,7 +82,7 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
 // snaps.
 //
 // REQUIRES: Called after calling InitSnapExit().
-snapshot_types::EndSpot RunSnap(const UContext& context);
+snapshot_types::EndSpot RunSnap(const UContext<Host>& context);
 
 }  // namespace silifuzz
 

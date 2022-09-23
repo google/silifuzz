@@ -32,15 +32,19 @@ struct header {
 };
 
 static_assert(sizeof(header) == 8, "Header struct is wrong size.");
-static_assert(kSerializeGRegsMaxSize == sizeof(header) + sizeof(GRegSet),
+static_assert(kSerializeGRegsMaxSize ==
+                  sizeof(header) + sizeof(GRegSet<AArch64>),
               "GRegsMaxSize is wrong.");
-static_assert(kSerializeFPRegsMaxSize == sizeof(header) + sizeof(FPRegSet),
+static_assert(kSerializeFPRegsMaxSize ==
+                  sizeof(header) + sizeof(FPRegSet<AArch64>),
               "FPRegsMaxSize is wrong.");
 
 static constexpr uint16_t kAarch64GRegsMagic = 0x6167;
 static constexpr uint16_t kAarch64FPRegsMagic = 0x6166;
 
-ssize_t SerializeGRegs(const GRegSet& gregs, void* data, size_t data_size) {
+template <>
+ssize_t SerializeGRegs(const GRegSet<AArch64>& gregs, void* data,
+                       size_t data_size) {
   uint8_t* begin = reinterpret_cast<uint8_t*>(data);
   uint8_t* current = begin;
   uint8_t* end = current + data_size;
@@ -72,7 +76,9 @@ ssize_t SerializeGRegs(const GRegSet& gregs, void* data, size_t data_size) {
   return current - begin;
 }
 
-ssize_t DeserializeGRegs(const void* data, size_t data_size, GRegSet* gregs) {
+template <>
+ssize_t DeserializeGRegs(const void* data, size_t data_size,
+                         GRegSet<AArch64>* gregs) {
   const uint8_t* begin = reinterpret_cast<const uint8_t*>(data);
   const uint8_t* current = begin;
   const uint8_t* end = current + data_size;
@@ -111,7 +117,9 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size, GRegSet* gregs) {
   return current - begin;
 }
 
-ssize_t SerializeFPRegs(const FPRegSet& fpregs, void* data, size_t data_size) {
+template <>
+ssize_t SerializeFPRegs(const FPRegSet<AArch64>& fpregs, void* data,
+                        size_t data_size) {
   uint8_t* begin = reinterpret_cast<uint8_t*>(data);
   uint8_t* current = begin;
   uint8_t* end = current + data_size;
@@ -143,8 +151,9 @@ ssize_t SerializeFPRegs(const FPRegSet& fpregs, void* data, size_t data_size) {
   return current - begin;
 }
 
+template <>
 ssize_t DeserializeFPRegs(const void* data, size_t data_size,
-                          FPRegSet* fpregs) {
+                          FPRegSet<AArch64>* fpregs) {
   const uint8_t* begin = reinterpret_cast<const uint8_t*>(data);
   const uint8_t* current = begin;
   const uint8_t* end = current + data_size;

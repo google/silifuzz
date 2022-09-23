@@ -20,12 +20,13 @@
 namespace silifuzz {
 
 void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
-                          const ExtraSignalRegs& extra_gregs, GRegSet* gregs) {
+                          const ExtraSignalRegs& extra_gregs,
+                          GRegSet<X86_64>* gregs) {
   auto& mcontext = libc_ucontext.uc_mcontext;
 
   // Copy the part of ucontext_t::mcontext.gregs that has the same layout
   // as GRegSet:
-  memcpy(gregs, &mcontext.gregs, offsetof(GRegSet, ss));
+  memcpy(gregs, &mcontext.gregs, offsetof(GRegSet<X86_64>, ss));
   gregs->ss = extra_gregs.ss;
   gregs->ds = extra_gregs.ds;
   gregs->es = extra_gregs.es;
@@ -37,7 +38,8 @@ void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
 // TODO(ksteuck): [as-needed] This is called when libc_ucontext was made by
 // a signal handler. If signal invocation does not use fxsave to save complete
 // state of FP regs, we might need to do that ourselves here.
-void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext, FPRegSet* fpregs) {
+void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext,
+                           FPRegSet<X86_64>* fpregs) {
   auto& mcontext = libc_ucontext.uc_mcontext;
 
   static_assert(sizeof(*mcontext.fpregs) == sizeof(*fpregs),
