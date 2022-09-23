@@ -260,6 +260,7 @@ cc_library(
     name = "raw_insns_util",
     srcs = ["raw_insns_util.cc"],
     hdrs = ["raw_insns_util.h"],
+    linkopts = ["-lcrypto"],
     deps = [
         ":memory_perms",
         ":snapshot",

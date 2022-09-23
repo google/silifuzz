@@ -17,6 +17,7 @@
 #
 # * git: to get the SiliFuzz sources.
 # * bazel, clang, lld, python: to build SiliFuzz
+# * libssl-dev: silifuzz uses SHA1.
 #   Clang 11 or newer will work.
 #   To get all of the functionality you may need to install fresh clang from
 #   source: https://llvm.org/.
@@ -35,4 +36,4 @@ echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
 apt update
 
 # Install dependencies.
-apt install --no-install-recommends -y git bazel clang lld python3 libpython3-stdlib
+apt install --no-install-recommends -y git bazel libssl-dev clang lld python3 libpython3-stdlib

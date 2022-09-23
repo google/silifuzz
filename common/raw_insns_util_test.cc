@@ -43,5 +43,10 @@ TEST(RawInsnsUtil, InstructionsToSnapshotRandomizedCodePage) {
   EXPECT_EQ(0xac6'183c'3000, snapshot->ExtractRip(snapshot->registers()));
 }
 
+TEST(RawInsnsUtil, InstructionsToSnapshotId) {
+  EXPECT_EQ(InstructionsToSnapshotId("Silifuzz"),
+            "679016f223a6925ba69f055f513ea8aa0e0720ed");
+}
+
 }  // namespace
 }  // namespace silifuzz

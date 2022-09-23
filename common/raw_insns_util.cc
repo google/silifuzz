@@ -14,11 +14,14 @@
 
 #include "./common/raw_insns_util.h"
 
+#include <openssl/sha.h>  // IWYU pragma: keep
+
 #include <cstdint>
 #include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "third_party/cityhash/city.h"
 #include "./common/memory_perms.h"
@@ -126,6 +129,13 @@ absl::StatusOr<Snapshot> InstructionsToSnapshotRandomizedCodePage(
   // but different code page placement.
   uint64_t code_page_addr = 0x10000 + (hash & 0x0FFF'FFFF'F000ULL);
   return InstructionsToSnapshot(code, id, code_page_addr);
+}
+
+std::string InstructionsToSnapshotId(absl::string_view code) {
+  uint8_t sha1_digest[SHA_DIGEST_LENGTH];
+  SHA1(reinterpret_cast<const uint8_t*>(code.data()), code.size(), sha1_digest);
+  return absl::BytesToHexString(
+      {reinterpret_cast<const char*>(&sha1_digest), sizeof(sha1_digest)});
 }
 
 }  // namespace silifuzz

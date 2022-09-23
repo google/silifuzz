@@ -46,6 +46,9 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot(
 absl::StatusOr<Snapshot> InstructionsToSnapshotRandomizedCodePage(
     absl::string_view code, const Snapshot::Id& id = Snapshot::UnsetId());
 
+// Returns a Snapshot ID that is a function of bytes in `code`.
+std::string InstructionsToSnapshotId(absl::string_view code);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_
