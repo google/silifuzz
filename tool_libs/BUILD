@@ -68,6 +68,25 @@ cc_library(
 )
 
 cc_library(
+    name = "simple_fix_tool_counters",
+    hdrs = ["simple_fix_tool_counters.h"],
+    deps = [
+        ":fix_tool_common",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "simple_fix_tool_counters_test",
+    srcs = ["simple_fix_tool_counters_test.cc"],
+    deps = [
+        ":simple_fix_tool_counters",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "snap_group",
     srcs = ["snap_group.cc"],
     hdrs = ["snap_group.h"],
