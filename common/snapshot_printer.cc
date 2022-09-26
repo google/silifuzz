@@ -349,9 +349,10 @@ void SnapshotPrinter::PrintRegisterState(
   if (snapshot.architecture() == Snapshot::CurrentArchitecture()) {
     GRegSet<Host> gregs, gregs_base;
     FPRegSet<Host> fpregs, fpregs_base;
-    ConvertRegsFromSnapshot(register_state, &gregs, &fpregs);
+    CHECK_STATUS(ConvertRegsFromSnapshot(register_state, &gregs, &fpregs));
     if (base_register_state != nullptr) {
-      ConvertRegsFromSnapshot(*base_register_state, &gregs_base, &fpregs_base);
+      CHECK_STATUS(ConvertRegsFromSnapshot(*base_register_state, &gregs_base,
+                                           &fpregs_base));
     } else {
       memset(&gregs_base, 0, sizeof(gregs_base));
       memset(&fpregs_base, 0, sizeof(fpregs_base));

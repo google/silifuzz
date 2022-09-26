@@ -43,11 +43,12 @@ Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Arch>& gregs,
 // Register data conversion helper.
 // REQUIRES: register_state is in Snapshot::CurrentArchitecture().
 template <typename Arch>
-void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Arch>* gregs);
+absl::Status ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<Arch>* gregs);
 template <typename Arch>
-void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Arch>* gregs, FPRegSet<Arch>* fpregs);
+absl::Status ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<Arch>* gregs,
+    FPRegSet<Arch>* fpregs);
 
 }  // namespace silifuzz
 

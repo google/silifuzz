@@ -103,7 +103,7 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters) {
 bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
   GRegSet gregs;
   FPRegSet fpregs;
-  ConvertRegsFromSnapshot(snapshot.registers(), &gregs, &fpregs);
+  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs, &fpregs));
 
   // Non-zero initialization of at least 1 XMM register inhibits init state
   // optimization on Arcadia. This is a workaround for erratum 1386 "XSAVES

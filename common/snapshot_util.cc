@@ -67,27 +67,34 @@ template Snapshot::RegisterState ConvertRegsToSnapshot(
     const GRegSet<AArch64>& gregs, const FPRegSet<AArch64>& fpregs);
 
 template <typename Arch>
-void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Arch>* gregs) {
-  CHECK(DeserializeGRegs(register_state.gregs(), gregs));
+absl::Status ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<Arch>* gregs) {
+  if (!DeserializeGRegs(register_state.gregs(), gregs)) {
+    return absl::InvalidArgumentError("Failed to deserialize gregs");
+  }
+  return absl::OkStatus();
 }
 
-template void ConvertRegsFromSnapshot(
+template absl::Status ConvertRegsFromSnapshot(
     const Snapshot::RegisterState& register_state, GRegSet<X86_64>* gregs);
-template void ConvertRegsFromSnapshot(
+template absl::Status ConvertRegsFromSnapshot(
     const Snapshot::RegisterState& register_state, GRegSet<AArch64>* gregs);
 
 template <typename Arch>
-void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Arch>* gregs, FPRegSet<Arch>* fpregs) {
-  ConvertRegsFromSnapshot(register_state, gregs);
-  CHECK(DeserializeFPRegs(register_state.fpregs(), fpregs));
+absl::Status ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<Arch>* gregs,
+    FPRegSet<Arch>* fpregs) {
+  RETURN_IF_NOT_OK(ConvertRegsFromSnapshot(register_state, gregs));
+  if (!DeserializeFPRegs(register_state.fpregs(), fpregs)) {
+    return absl::InvalidArgumentError("Failed to deserialize fpregs");
+  }
+  return absl::OkStatus();
 }
 
-template void ConvertRegsFromSnapshot(
+template absl::Status ConvertRegsFromSnapshot(
     const Snapshot::RegisterState& register_state, GRegSet<X86_64>* gregs,
     FPRegSet<X86_64>* fpregs);
-template void ConvertRegsFromSnapshot(
+template absl::Status ConvertRegsFromSnapshot(
     const Snapshot::RegisterState& register_state, GRegSet<AArch64>* gregs,
     FPRegSet<AArch64>* fpregs);
 

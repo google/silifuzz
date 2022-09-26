@@ -594,7 +594,7 @@ MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytesFixed(
 MemoryState::MemoryBytes MemoryState::RestoreUContextStackBytes(
     const Snapshot& snapshot) {
   GRegSet gregs;
-  ConvertRegsFromSnapshot(snapshot.registers(), &gregs);
+  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
   static constexpr auto reg_size = sizeof(gregs.rax);
   std::string stack_data;
   stack_data.append(reinterpret_cast<const char*>(&gregs.eflags), reg_size);
