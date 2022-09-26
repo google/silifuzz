@@ -49,7 +49,11 @@ cc_library_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "ucontext",
-    srcs = ["ucontext.cc"] + select({
+    srcs = [
+        "ucontext.cc",
+        "aarch64/ucontext.cc",
+        "x86_64/ucontext.cc",
+    ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "aarch64/restore_ucontext_body.inc",
             "aarch64/restore_ucontext_no_syscalls.S",
@@ -57,7 +61,6 @@ cc_library_plus_nolibc(
             "aarch64/save_ucontext_body.inc",
             "aarch64/save_ucontext_no_syscalls.S",
             "aarch64/save_ucontext.S",
-            "aarch64/ucontext.cc",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "//third_party/silifuzz_libunwind:restore_ucontext_body.inc",
@@ -67,7 +70,6 @@ cc_library_plus_nolibc(
             "//third_party/silifuzz_libunwind:save_ucontext_no_syscalls.S",
             "//third_party/silifuzz_libunwind:save_ucontext.S",
             "x86_64/ucontext_offsets.h",
-            "x86_64/ucontext.cc",
         ],
     }),
     hdrs = ["ucontext.h"],
@@ -286,14 +288,10 @@ cc_test(
 
 cc_library_plus_nolibc(
     name = "serialize",
-    srcs = select({
-        "@silifuzz//build_defs/platform:aarch64": [
-            "aarch64/serialize.cc",
-        ],
-        "@silifuzz//build_defs/platform:x86_64": [
-            "x86_64/serialize.cc",
-        ],
-    }),
+    srcs = [
+        "aarch64/serialize.cc",
+        "x86_64/serialize.cc",
+    ],
     hdrs = ["serialize.h"],
     as_is_deps = [
         "@com_google_absl//absl/base:core_headers",

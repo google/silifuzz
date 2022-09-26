@@ -14,13 +14,36 @@
 
 #include "./util/ucontext/serialize.h"
 
+#include "./util/checks.h"
+#include "./util/ucontext/ucontext_types.h"
+
+#if defined(__x86_64__)
+#include <sys/user.h>  // for user_regs_struct and user_fpregs_struct
+#endif
+
 namespace silifuzz {
 
 namespace serialize_internal {
 
+// Static asserts that depend on libc.
+#if defined(__x86_64__)
+// FPRegSet in UContext and struct user_fpregs_struct have exact same
+// layout, just slightly different field and type names, so we can byte-copy.
+static_assert(sizeof(FPRegSet<X86_64>) == sizeof(struct user_fpregs_struct),
+              "fpregs structs do not match");
+// The serialization buffer should be able to contain a user_regs_struct.
+static_assert(SerializedSizeMax<GRegSet<X86_64>>() ==
+                  sizeof(struct user_regs_struct),
+              "SerializedSizeMax is wrong for GRegSet<X86_64>");
+#endif
+
+static_assert(SerializedSizeMax<FPRegSet<X86_64>>() == sizeof(FPRegSet<X86_64>),
+              "SerializedSizeMax is wrong for FPRegSet<X86_64>");
+
 template <>
 ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
                        size_t data_size) {
+#if defined(__x86_64__)
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
   user_regs_struct* user_gregs = reinterpret_cast<user_regs_struct*>(data);
@@ -67,11 +90,17 @@ ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
   user_gregs->es = gregs.es;
 
   return sizeof(*user_gregs);
+#else
+  // TODO port to other platforms
+  LOG_FATAL("Serializing x86_64 GRegSet only supported on x86_64.");
+  return -1;
+#endif
 }
 
 template <>
 ssize_t DeserializeGRegs(const void* data, size_t data_size,
                          GRegSet<X86_64>* gregs) {
+#if defined(__x86_64__)
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
   const user_regs_struct* user_gregs =
@@ -116,33 +145,33 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size,
   gregs->es = user_gregs->es;
 
   return sizeof(*user_gregs);
+#else
+  // TODO(ncbray) port to other platforms.
+  LOG_FATAL("Deserializing x86_64 GRegSet only supported on x86_64.");
+  return -1;
+#endif
 }
-
-// FPRegSet in UContext and struct user_fpregs_struct have exact same
-// layout, just slightly different field and type names, so we byte-copy.
-static_assert(sizeof(FPRegSet<X86_64>) == sizeof(struct user_fpregs_struct),
-              "fpregs structs do not match");
 
 template <>
 ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
                         size_t data_size) {
   // Is there enough space?
-  if (data_size < sizeof(struct user_fpregs_struct)) {
+  if (data_size < sizeof(fpregs)) {
     return -1;
   }
-  memcpy(data, &fpregs, sizeof(struct user_fpregs_struct));
-  return sizeof(struct user_fpregs_struct);
+  memcpy(data, &fpregs, sizeof(fpregs));
+  return sizeof(fpregs);
 }
 
 template <>
 ssize_t DeserializeFPRegs(const void* data, size_t data_size,
                           FPRegSet<X86_64>* fpregs) {
   // Is there enough data?
-  if (data_size < sizeof(struct user_fpregs_struct)) {
+  if (data_size < sizeof(*fpregs)) {
     return -1;
   }
-  memcpy(fpregs, data, sizeof(struct user_fpregs_struct));
-  return sizeof(struct user_fpregs_struct);
+  memcpy(fpregs, data, sizeof(*fpregs));
+  return sizeof(*fpregs);
 }
 
 }  // namespace serialize_internal

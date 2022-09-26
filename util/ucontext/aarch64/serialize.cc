@@ -32,12 +32,12 @@ struct header {
 };
 
 static_assert(sizeof(header) == 8, "Header struct is wrong size.");
-static_assert(kSerializeGRegsMaxSize ==
+static_assert(SerializedSizeMax<GRegSet<AArch64>>() ==
                   sizeof(header) + sizeof(GRegSet<AArch64>),
-              "GRegsMaxSize is wrong.");
-static_assert(kSerializeFPRegsMaxSize ==
+              "SerializedSizeMax is wrong.");
+static_assert(SerializedSizeMax<FPRegSet<AArch64>>() ==
                   sizeof(header) + sizeof(FPRegSet<AArch64>),
-              "FPRegsMaxSize is wrong.");
+              "SerializedSizeMax is wrong.");
 
 static constexpr uint16_t kAarch64GRegsMagic = 0x6167;
 static constexpr uint16_t kAarch64FPRegsMagic = 0x6166;

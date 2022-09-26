@@ -16,7 +16,6 @@
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_SERIALIZE_H_
 
 #include <sys/types.h>
-#include <sys/user.h>  // for user_regs_struct and user_fpregs_struct
 
 #include <cstdint>
 
@@ -35,19 +34,28 @@ namespace serialize_internal {
 
 // TODO(ncbray) make arch generic by decoupling the x86_64 sizes from libc.
 
-// How big of a buffer must you provide to guarantee serialization never fails?
-#if defined(__x86_64__)
-constexpr size_t kSerializeGRegsMaxSize = sizeof(struct user_regs_struct);
-constexpr size_t kSerializeFPRegsMaxSize = sizeof(struct user_fpregs_struct);
-#elif defined(__aarch64__)
-// See aarch64/serialize.cc to understand how these values are derived.
-// The definition here is opaque because we don't want to expose the internal
-// data structures.
-constexpr size_t kSerializeGRegsMaxSize = 8 + sizeof(GRegSet<AArch64>);
-constexpr size_t kSerializeFPRegsMaxSize = 8 + sizeof(FPRegSet<AArch64>);
-#else
-#error "Unsupported architecture"
-#endif
+template <typename T>
+constexpr size_t SerializedSizeMax();
+
+template <>
+constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
+  return 216;  // sizeof(struct user_regs_struct)
+}
+
+template <>
+constexpr size_t SerializedSizeMax<FPRegSet<X86_64>>() {
+  return sizeof(FPRegSet<X86_64>);
+}
+
+template <>
+constexpr size_t SerializedSizeMax<GRegSet<AArch64>>() {
+  return 8 + sizeof(GRegSet<AArch64>);
+}
+
+template <>
+constexpr size_t SerializedSizeMax<FPRegSet<AArch64>>() {
+  return 8 + sizeof(FPRegSet<AArch64>);
+}
 
 // Convert GRegsSet into bytes that can be stored in a snapshot proto.
 // The format is different for each architechture. The serialized bytes are
@@ -74,14 +82,15 @@ ABSL_MUST_USE_RESULT ssize_t DeserializeFPRegs(const void* data,
                                                FPRegSet<Arch>* fpregs);
 }  // namespace serialize_internal
 
-struct SerializedGRegs {
-  char data[serialize_internal::kSerializeGRegsMaxSize];
+template <typename T>
+struct Serialized {
+  char data[serialize_internal::SerializedSizeMax<T>()];
   size_t size;
 };
 
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeGRegs(const GRegSet<Arch>& src,
-                                                SerializedGRegs* dst) {
+inline ABSL_MUST_USE_RESULT bool SerializeGRegs(
+    const GRegSet<Arch>& src, Serialized<GRegSet<Arch>>* dst) {
   ssize_t sz =
       serialize_internal::SerializeGRegs(src, dst->data, sizeof(dst->data));
   if (sz < 0) {
@@ -91,14 +100,9 @@ inline ABSL_MUST_USE_RESULT bool SerializeGRegs(const GRegSet<Arch>& src,
   return true;
 }
 
-struct SerializedFPRegs {
-  char data[serialize_internal::kSerializeFPRegsMaxSize];
-  size_t size;
-};
-
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(const FPRegSet<Arch>& src,
-                                                 SerializedFPRegs* dst) {
+inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(
+    const FPRegSet<Arch>& src, Serialized<FPRegSet<Arch>>* dst) {
   ssize_t sz =
       serialize_internal::SerializeFPRegs(src, dst->data, sizeof(dst->data));
   if (sz < 0) {
@@ -115,12 +119,11 @@ template <typename Arch>
 inline ABSL_MUST_USE_RESULT bool SerializeGRegs(const GRegSet<Arch>& src,
                                                 std::string* dst) {
   CHECK(dst->empty());
-  char tmp[serialize_internal::kSerializeGRegsMaxSize];
-  ssize_t sz = serialize_internal::SerializeGRegs(src, tmp, sizeof(tmp));
-  if (sz < 0) {
+  Serialized<GRegSet<Arch>> tmp;
+  if (!SerializeGRegs(src, &tmp)) {
     return false;
   }
-  dst->append(tmp, sz);
+  dst->append(tmp.data, tmp.size);
   return true;
 }
 
@@ -139,12 +142,11 @@ template <typename Arch>
 inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(const FPRegSet<Arch>& src,
                                                  std::string* dst) {
   CHECK(dst->empty());
-  char tmp[serialize_internal::kSerializeFPRegsMaxSize];
-  ssize_t sz = serialize_internal::SerializeFPRegs(src, tmp, sizeof(tmp));
-  if (sz < 0) {
+  Serialized<FPRegSet<Arch>> tmp;
+  if (!SerializeFPRegs(src, &tmp)) {
     return false;
   }
-  dst->append(tmp, sz);
+  dst->append(tmp.data, tmp.size);
   return true;
 }
 

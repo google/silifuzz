@@ -476,12 +476,12 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
     auto registers_m = actual_end_state->Message("registers");
 
     // Serialize the GRegs
-    SerializedGRegs serialized_gregs;
+    Serialized<decltype(run_result.end_spot.gregs)> serialized_gregs;
     CHECK(SerializeGRegs(run_result.end_spot.gregs, &serialized_gregs));
     registers_m->Bytes("gregs", serialized_gregs.data, serialized_gregs.size);
 
     // Serialize the FPRegs
-    SerializedFPRegs serialized_fpregs;
+    Serialized<decltype(run_result.end_spot.fpregs)> serialized_fpregs;
     CHECK(SerializeFPRegs(run_result.end_spot.fpregs, &serialized_fpregs));
     registers_m->Bytes("fpregs", serialized_fpregs.data,
                        serialized_fpregs.size);

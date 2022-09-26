@@ -22,6 +22,19 @@
 namespace silifuzz {
 namespace {
 
+// For docs on TYPED_TEST_SUITE:
+// http://google.github.io/googletest/reference/testing.html#TYPED_TEST_SUITE
+// TODO(ncbray): enable x86_64 serialization on other arches.
+#if defined(__x86_64__)
+using arch_typelist = testing::Types<X86_64, AArch64>;
+#else
+using arch_typelist = testing::Types<AArch64>;
+#endif
+
+template <class>
+struct SerializeTest : testing::Test {};
+TYPED_TEST_SUITE(SerializeTest, arch_typelist);
+
 void pattern_init(void* data, size_t size) {
   uint16_t* ptr = reinterpret_cast<uint16_t*>(data);
   for (int i = 0; i < size / sizeof(*ptr); ++i) {
@@ -29,20 +42,20 @@ void pattern_init(void* data, size_t size) {
   }
 }
 
-TEST(SerializeTest, RawGRegs) {
+TYPED_TEST(SerializeTest, RawGRegs) {
   // Set up a randomized context.
-  GRegSet original;
+  GRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutGRegsPadding(&original);
 
   // Copy to user context.
-  uint8_t tmp[serialize_internal::kSerializeGRegsMaxSize];
+  uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
   memset(&tmp, 0xca, sizeof(tmp));
   ASSERT_EQ(serialize_internal::SerializeGRegs(original, tmp, sizeof(tmp)),
             sizeof(tmp));
 
   // Copy back.
-  GRegSet bounced;
+  GRegSet<TypeParam> bounced;
   memset(&bounced, 0x35, sizeof(bounced));
   ASSERT_EQ(serialize_internal::DeserializeGRegs(tmp, sizeof(tmp), &bounced),
             sizeof(tmp));
@@ -50,50 +63,50 @@ TEST(SerializeTest, RawGRegs) {
   EXPECT_EQ(original, bounced);
 }
 
-TEST(SerializeTest, WrappedGRegs) {
+TYPED_TEST(SerializeTest, WrappedGRegs) {
   // Set up a randomized context.
-  GRegSet original;
+  GRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutGRegsPadding(&original);
 
-  SerializedGRegs tmp;
+  Serialized<decltype(original)> tmp;
   ASSERT_TRUE(SerializeGRegs(original, &tmp));
 
-  GRegSet bounced;
+  GRegSet<TypeParam> bounced;
   ASSERT_EQ(serialize_internal::DeserializeGRegs(tmp.data, tmp.size, &bounced),
             tmp.size);
 
   EXPECT_EQ(original, bounced);
 }
 
-TEST(SerializeTest, StringGRegs) {
+TYPED_TEST(SerializeTest, StringGRegs) {
   // Set up a randomized context.
-  GRegSet original;
+  GRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutGRegsPadding(&original);
 
   std::string tmp;
   ASSERT_TRUE(SerializeGRegs(original, &tmp));
 
-  GRegSet bounced;
+  GRegSet<TypeParam> bounced;
   ASSERT_TRUE(DeserializeGRegs(tmp, &bounced));
   EXPECT_EQ(original, bounced);
 }
 
-TEST(SerializeTest, RawFPRegs) {
+TYPED_TEST(SerializeTest, RawFPRegs) {
   // Set up a randomized context.
-  FPRegSet original;
+  FPRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutFPRegsPadding(&original);
 
   // Copy to user context.
-  uint8_t tmp[serialize_internal::kSerializeFPRegsMaxSize];
+  uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
   memset(&tmp, 0xca, sizeof(tmp));
   ASSERT_EQ(serialize_internal::SerializeFPRegs(original, tmp, sizeof(tmp)),
             sizeof(tmp));
 
   // Copy back.
-  FPRegSet bounced;
+  FPRegSet<TypeParam> bounced;
   memset(&bounced, 0x35, sizeof(bounced));
   ASSERT_EQ(serialize_internal::DeserializeFPRegs(tmp, sizeof(tmp), &bounced),
             sizeof(tmp));
@@ -103,31 +116,31 @@ TEST(SerializeTest, RawFPRegs) {
   EXPECT_TRUE(original == bounced);
 }
 
-TEST(SerializeTest, WrappedFPRegs) {
+TYPED_TEST(SerializeTest, WrappedFPRegs) {
   // Set up a randomized context.
-  FPRegSet original;
+  FPRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutFPRegsPadding(&original);
 
-  SerializedFPRegs tmp;
+  Serialized<decltype(original)> tmp;
   ASSERT_TRUE(SerializeFPRegs(original, &tmp));
 
-  FPRegSet bounced;
+  FPRegSet<TypeParam> bounced;
   ASSERT_EQ(serialize_internal::DeserializeFPRegs(tmp.data, tmp.size, &bounced),
             tmp.size);
   EXPECT_TRUE(original == bounced);
 }
 
-TEST(SerializeTest, StringFPRegs) {
+TYPED_TEST(SerializeTest, StringFPRegs) {
   // Set up a randomized context.
-  FPRegSet original;
+  FPRegSet<TypeParam> original;
   pattern_init(&original, sizeof(original));
   ZeroOutFPRegsPadding(&original);
 
   std::string tmp;
   ASSERT_TRUE(SerializeFPRegs(original, &tmp));
 
-  FPRegSet bounced;
+  FPRegSet<TypeParam> bounced;
   ASSERT_TRUE(DeserializeFPRegs(tmp, &bounced));
   EXPECT_TRUE(original == bounced);
 }
