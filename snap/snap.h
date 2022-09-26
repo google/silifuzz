@@ -57,9 +57,6 @@ struct Snap {
   // conversion or copying.
   using RegisterState = UContext<Host>;
 
-  // Special initializer to make UContext linker initailizable.
-  using ConstexprRegisterState = UContext<Host>::ConstexprInit;
-
   using Corpus = Array<const Snap*>;
 
   // Describes a single contiguous range of byte values in memory.

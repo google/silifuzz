@@ -700,11 +700,11 @@ void SnapGenerator::GenerateRegisters(
   // RegisterState is not a POD class and we need to use a special
   // constructor that converts ConstexprRegisterState in order to
   // make it linker initialized.
-  Print("Snap::ConstexprRegisterState({ .fpregs = ");
+  Print("{ .fpregs = ");
   GenerateFPRegs(registers.fpregs());
   Print(", .gregs = ");
   GenerateGRegs(registers.gregs());
-  Print("})");
+  Print("}");
 }
 
 }  // namespace silifuzz

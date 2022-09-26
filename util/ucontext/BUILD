@@ -36,7 +36,6 @@ DISABLE_ARM_TAGS = [
 
 cc_library_plus_nolibc(
     name = "ucontext_types",
-    srcs = ["ucontext_types.cc"],
     hdrs = ["ucontext_types.h"],
     as_is_deps = [
         "@com_google_absl//absl/base:core_headers",

@@ -34,18 +34,13 @@ namespace silifuzz {
 
 using snapshot_types::EndSpot;
 
-// Linker initialized to avoid compiler generating a static initializer,
-// which do not work in nolibc environment. Strictly speak this does not
-// matter as both UContext objects below over written at runtime. However,
-// we still want to suppress static initializer generation here to ensure that
-// the runner binary does not contain any.
-UContext<Host> snap_exit_context = UContext<Host>::ConstexprInit({});
+UContext<Host> snap_exit_context;
 
 namespace {
 
 // Before entering a Snap, the runner's context is saved here. After a Snap
 // finishes normally, control flow continues after this saved context.
-UContext<Host> runner_return_context = UContext<Host>::ConstexprInit({});
+UContext<Host> runner_return_context;
 
 // Bool indicating if we are about to enter a Snap's context. This is used by
 // RunSnap() below to distinguish whether we have just saved the runner's

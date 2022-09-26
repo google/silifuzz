@@ -184,28 +184,6 @@ template <typename Arch = Host>
 struct UContext {
   FPRegSet<Arch> fpregs;
   GRegSet<Arch> gregs;
-
-  UContext();
-
-  // Helper struct for constexpr initialization.
-  struct ConstexprInit {
-    FPRegSet<Arch> fpregs;
-    GRegSet<Arch> gregs;
-  };
-
-  // This is used in generated code for Snap. A ConstexprInit is implicitly
-  // converted to a constexpr UContext. We cannot use the no argument
-  // constructor below for constexpr.
-  //
-  // Usage:
-  // constexpr UContext u = ConstexprInit({ .fpregs = {...}, .gregs = {...} };
-  //
-  constexpr UContext(const ConstexprInit& init)
-      : fpregs(init.fpregs), gregs(init.gregs) {
-    // Alignment of UContext initialized by
-    // this constructor is handled by the linker. Hence we do not need to
-    // perform a runtime alignment check as in the no argument constructor.
-  }
 };
 
 // Required to satisfy -Wctad-maybe-unsupported
