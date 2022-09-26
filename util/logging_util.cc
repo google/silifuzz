@@ -31,16 +31,10 @@ void LogGRegs(const GRegSet<Arch>& gregs, const GRegSet<Arch>* base,
   LogGRegs(gregs, &LogInfoLogger, nullptr, base, log_diff);
 }
 
-// TODO(ncbray): compile in both arch-specific versions.
-#if defined(__x86_64__)
 template void LogGRegs(const GRegSet<X86_64>& gregs,
                        const GRegSet<X86_64>* base, bool log_diff);
-#elif defined(__aarch64__)
 template void LogGRegs(const GRegSet<AArch64>& gregs,
                        const GRegSet<AArch64>* base, bool log_diff);
-#else
-#error "Unsupported architecture"
-#endif
 
 template <typename Arch>
 void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data,
@@ -48,16 +42,10 @@ void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data,
   LogFPRegs(fpregs, log_fp_data, &LogInfoLogger, nullptr, base, log_diff);
 }
 
-// TODO: compile in both arch-specific versions.
-#if defined(__x86_64__)
 template void LogFPRegs(const FPRegSet<X86_64>& gregs, bool log_fp_data,
                         const FPRegSet<X86_64>* base, bool log_diff);
-#elif defined(__aarch64__)
 template void LogFPRegs(const FPRegSet<AArch64>& gregs, bool log_fp_data,
                         const FPRegSet<AArch64>* base, bool log_diff);
-#else
-#error "Unsupported architecture"
-#endif
 
 void LogSignalRegs(const SignalRegSet& sigregs, const SignalRegSet* base,
                    bool log_diff) {

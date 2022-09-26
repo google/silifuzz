@@ -99,12 +99,14 @@ void LogFPRegs(const FPRegSet<X86_64>& regs, bool log_fp_data,
   }
 }
 
+#if defined(__x86_64__)
 void LogSignalRegs(const SignalRegSet& regs, RegsLogger logger,
                    void* logger_arg, const SignalRegSet* base, bool log_diff) {
   LOG_ONE_REG(err);
   LOG_ONE_REG(cr2);
   LOG_ONE_REG(trapno);
 }
+#endif
 
 #undef LOG_ONE_REG
 #undef LOG_INDEXED_REG

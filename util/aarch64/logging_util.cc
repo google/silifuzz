@@ -66,10 +66,12 @@ void LogFPRegs(const FPRegSet<AArch64>& regs, bool log_fp_data,
   LOG_ONE_REG(fpcr);
 }
 
+#if defined(__aarch64__)
 void LogSignalRegs(const SignalRegSet& regs, RegsLogger logger,
                    void* logger_arg, const SignalRegSet* base, bool log_diff) {
   LOG_ONE_REG(esr);
 }
+#endif
 
 #undef LOG_ONE_REG
 #undef LOG_INDEXED_REG

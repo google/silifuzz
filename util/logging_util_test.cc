@@ -20,6 +20,11 @@
 namespace silifuzz {
 namespace {
 
+using arch_typelist = testing::Types<X86_64, AArch64>;
+template <class>
+struct LoggingUtilTest : testing::Test {};
+TYPED_TEST_SUITE(LoggingUtilTest, arch_typelist);
+
 void pattern_init(void* data, size_t size) {
   uint16_t* ptr = reinterpret_cast<uint16_t*>(data);
   for (int i = 0; i < size / sizeof(*ptr); ++i) {
@@ -66,66 +71,66 @@ SignalRegSet MakeDiff(const SignalRegSet& regs) {
 // The following tests are fairly weak. They make sure the logging functions
 // don't crash, and also allow the output to be visually inspected.
 
-TEST(LoggingUtilTest, GRegsDefault) {
+TYPED_TEST(LoggingUtilTest, GRegsDefault) {
   // Set up a randomized context.
-  GRegSet regs;
+  GRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutGRegsPadding(&regs);
   LogGRegs(regs);
 }
 
-TEST(LoggingUtilTest, GRegsWithBase) {
+TYPED_TEST(LoggingUtilTest, GRegsWithBase) {
   // Set up a randomized context.
-  GRegSet regs;
+  GRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutGRegsPadding(&regs);
-  GRegSet base = MakeDiff(regs);
+  GRegSet<TypeParam> base = MakeDiff(regs);
   LogGRegs(regs, &base, false);
 }
 
-TEST(LoggingUtilTest, GRegsWithDiff) {
+TYPED_TEST(LoggingUtilTest, GRegsWithDiff) {
   // Set up a randomized context.
-  GRegSet regs;
+  GRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutGRegsPadding(&regs);
-  GRegSet base = MakeDiff(regs);
+  GRegSet<TypeParam> base = MakeDiff(regs);
   LogGRegs(regs, &base, true);
 }
 
-TEST(LoggingUtilTest, FPRegsDefault) {
+TYPED_TEST(LoggingUtilTest, FPRegsDefault) {
   // Set up a randomized context.
-  FPRegSet regs;
+  FPRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutFPRegsPadding(&regs);
   LogFPRegs(regs);
 }
 
-TEST(LoggingUtilTest, FPRegsWithBase) {
+TYPED_TEST(LoggingUtilTest, FPRegsWithBase) {
   // Set up a randomized context.
-  FPRegSet regs;
+  FPRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutFPRegsPadding(&regs);
-  FPRegSet base = MakeDiff(regs);
+  FPRegSet<TypeParam> base = MakeDiff(regs);
   LogFPRegs(regs, true, &base, false);
 }
 
-TEST(LoggingUtilTest, FPRegsWithDiff) {
+TYPED_TEST(LoggingUtilTest, FPRegsWithDiff) {
   // Set up a randomized context.
-  FPRegSet regs;
+  FPRegSet<TypeParam> regs;
   pattern_init(&regs, sizeof(regs));
   ZeroOutFPRegsPadding(&regs);
-  FPRegSet base = MakeDiff(regs);
+  FPRegSet<TypeParam> base = MakeDiff(regs);
   LogFPRegs(regs, true, &base, true);
 }
 
-TEST(LoggingUtilTest, SignalRegsDefault) {
+TEST(LoggingUtilSignalTest, SignalRegsDefault) {
   // Set up a randomized context.
   SignalRegSet regs;
   pattern_init(&regs, sizeof(regs));
   LogSignalRegs(regs);
 }
 
-TEST(LoggingUtilTest, SignalRegsWithBase) {
+TEST(LoggingUtilSignalTest, SignalRegsWithBase) {
   // Set up a randomized context.
   SignalRegSet regs;
   pattern_init(&regs, sizeof(regs));
@@ -133,7 +138,7 @@ TEST(LoggingUtilTest, SignalRegsWithBase) {
   LogSignalRegs(regs, &base, false);
 }
 
-TEST(LoggingUtilTest, SignalRegsWithDiff) {
+TEST(LoggingUtilSignalTest, SignalRegsWithDiff) {
   // Set up a randomized context.
   SignalRegSet regs;
   pattern_init(&regs, sizeof(regs));

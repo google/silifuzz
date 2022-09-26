@@ -282,14 +282,11 @@ cc_test_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "logging_util",
-    srcs = ["logging_util.cc"] + select({
-        "@silifuzz//build_defs/platform:aarch64": [
-            "aarch64/logging_util.cc",
-        ],
-        "@silifuzz//build_defs/platform:x86_64": [
-            "x86_64/logging_util.cc",
-        ],
-    }),
+    srcs = [
+        "aarch64/logging_util.cc",
+        "logging_util.cc",
+        "x86_64/logging_util.cc",
+    ],
     hdrs = ["logging_util.h"],
     as_is_deps = [
         "@com_google_absl//absl/base:core_headers",
