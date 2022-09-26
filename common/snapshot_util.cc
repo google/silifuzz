@@ -52,23 +52,43 @@ Snapshot ReadSnapshotFromFileOrDie(absl::string_view filename) {
   return std::move(snapshot_or).value();
 }
 
-Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Host>& gregs,
-                                              const FPRegSet<Host>& fpregs) {
+template <typename Arch>
+Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Arch>& gregs,
+                                              const FPRegSet<Arch>& fpregs) {
   Snapshot::ByteData gregs_bytes, fpregs_bytes;
   CHECK(SerializeGRegs(gregs, &gregs_bytes));
   CHECK(SerializeFPRegs(fpregs, &fpregs_bytes));
   return Snapshot::RegisterState(gregs_bytes, fpregs_bytes);
 }
 
+template Snapshot::RegisterState ConvertRegsToSnapshot(
+    const GRegSet<X86_64>& gregs, const FPRegSet<X86_64>& fpregs);
+template Snapshot::RegisterState ConvertRegsToSnapshot(
+    const GRegSet<AArch64>& gregs, const FPRegSet<AArch64>& fpregs);
+
+template <typename Arch>
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Host>* gregs) {
+                             GRegSet<Arch>* gregs) {
   CHECK(DeserializeGRegs(register_state.gregs(), gregs));
 }
 
+template void ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<X86_64>* gregs);
+template void ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<AArch64>* gregs);
+
+template <typename Arch>
 void ConvertRegsFromSnapshot(const Snapshot::RegisterState& register_state,
-                             GRegSet<Host>* gregs, FPRegSet<Host>* fpregs) {
+                             GRegSet<Arch>* gregs, FPRegSet<Arch>* fpregs) {
   ConvertRegsFromSnapshot(register_state, gregs);
   CHECK(DeserializeFPRegs(register_state.fpregs(), fpregs));
 }
+
+template void ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<X86_64>* gregs,
+    FPRegSet<X86_64>* fpregs);
+template void ConvertRegsFromSnapshot(
+    const Snapshot::RegisterState& register_state, GRegSet<AArch64>* gregs,
+    FPRegSet<AArch64>* fpregs);
 
 }  // namespace silifuzz
