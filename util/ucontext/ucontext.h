@@ -160,6 +160,9 @@ bool CriticalUnrestoredRegistersAreSame(const GRegSet<Arch>& actual,
 template <typename Arch>
 uint64_t GetInstructionPointer(const GRegSet<Arch>& gregs);
 
+template <typename Arch>
+uint64_t GetStackPointer(const GRegSet<Arch>& gregs);
+
 // Returns the instruction pointer that points right after the
 // call into CurrentInstructionPointer(). Test-only uses so far.
 int64_t CurrentInstructionPointer();

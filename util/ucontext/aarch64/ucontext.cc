@@ -69,4 +69,9 @@ uint64_t GetInstructionPointer(const GRegSet<AArch64>& gregs) {
   return gregs.pc;
 }
 
+template <>
+uint64_t GetStackPointer(const GRegSet<AArch64>& gregs) {
+  return gregs.sp;
+}
+
 }  // namespace silifuzz

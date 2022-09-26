@@ -23,6 +23,8 @@
 #include "./common/mapped_memory_map.h"
 #include "./util/checks.h"
 #include "./util/platform.h"
+#include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 
@@ -40,21 +42,6 @@ struct Snapshot::ArchitectureDescr {
   // getpagesize() - size of pages in the address space.
   int page_size;
 
-  // sizeof(struct user_regs_struct) on the architecture.
-  int sizeof_user_regs_struct;
-
-  // sizeof(struct user_fpregs_struct) on the architecture.
-  int sizeof_user_fpregs_struct;
-
-  // offsetof(struct user_regs_struct, rip) on the architecture.
-  int offsetof_rip_in_user_regs_struct;
-
-  // offsetof(struct user_regs_struct, rsp) on the architecture.
-  int offsetof_rsp_in_user_regs_struct;
-
-  // sizeof(register in user_regs_struct) on the architecture.
-  int greg_size;
-
   // See Snapshot::required_stack_size().
   int required_stack_size;
 
@@ -71,13 +58,7 @@ ABSL_CONST_INIT const Snapshot::ArchitectureDescr
         {.id = Snapshot::Architecture::kLinux_x86_64,
          .name = "x86_64 Linux",
          .page_size = 4096,
-         .sizeof_user_regs_struct = 216,
-         .sizeof_user_fpregs_struct = 512,
-         .offsetof_rip_in_user_regs_struct = 128,
-         .offsetof_rsp_in_user_regs_struct = 152,
-         .greg_size = 8,
-         // RestoreUContext() needs to push 2*greg_size bytes onto
-         // the snapshot's stack:
+         // RestoreUContext() needs to push two registers onto the stack
          .required_stack_size = 8 * 2,
          .trap_instruction = "\xCC"},
 };
@@ -116,18 +97,6 @@ absl::StatusOr<bool> Snapshot::IsExecutable(Address addr, ByteSize size) const {
   RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(addr, size));
   return mapped_memory_map_.Perms(addr, addr + size, MemoryPerms::kAnd)
       .Has(MemoryPerms::kExecutable);
-}
-
-Snapshot::Address Snapshot::ExtractGRegAtOffset(const RegisterState& x,
-                                                int offset) const {
-  Address v = kUnsetRegisterValue;
-  CHECK_EQ(sizeof(v), architecture_descr_->greg_size);
-  // TODO(ksteuck): [as-needed] Support other registers sizes and endianness
-  // when adding such architectures.
-  if (!x.gregs().empty()) {
-    memcpy(&v, x.gregs().data() + offset, architecture_descr_->greg_size);
-  }
-  return v;
 }
 
 // ----------------------------------------------------------------------- //
@@ -542,39 +511,49 @@ const Snapshot::RegisterState& Snapshot::registers() const {
   return *registers_;
 }
 
-absl::Status Snapshot::can_set_registers(const RegisterState& x,
-                                         bool is_end_state) const {
-  if (architecture_descr_->sizeof_user_fpregs_struct != x.fpregs().size()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "fpregs sizes do not match the architecture: got ", x.fpregs().size(),
-        " want ", architecture_descr_->sizeof_user_fpregs_struct));
+template <typename Arch>
+absl::Status Snapshot::can_set_registers_impl(const Snapshot::RegisterState& x,
+                                              bool is_end_state) const {
+  GRegSet<Arch> gregs;
+  FPRegSet<Arch> fpregs;
+  // It would be cleaner to use ConvertRegsFromSnapshot, but this would cause
+  // a cycle in the dependency graph. Instead, we inline.
+  // TODO(ncbray) relayer the snapshot libraries.
+  if (!DeserializeGRegs(x.gregs(), &gregs)) {
+    return absl::InvalidArgumentError("Failed to deserialize gregs");
   }
-  if (architecture_descr_->sizeof_user_regs_struct != x.gregs().size()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "gregs sizes do not match the architecture: got ", x.gregs().size(),
-        " want ", architecture_descr_->sizeof_user_regs_struct));
+  if (!DeserializeFPRegs(x.fpregs(), &fpregs)) {
+    return absl::InvalidArgumentError("Failed to deserialize fpregs");
   }
+
   // For EndState rsp and rip can be anything: their values going outside of the
   // mapped memory might be the reason for the SIGSEGV that is the end-state.
   if (is_end_state) return absl::OkStatus();
-  Address rip = ExtractRip(x);
-  absl::StatusOr<bool> s = IsExecutable(rip, 1);
+  Address instruction_pointer = GetInstructionPointer(gregs);
+  absl::StatusOr<bool> s = IsExecutable(instruction_pointer, 1);
   RETURN_IF_NOT_OK(s.status());
   if (!*s) {
     return absl::InvalidArgumentError(
-        absl::StrCat("rip (0x", absl::Hex(rip),
+        absl::StrCat("instruction pointer (0x", absl::Hex(instruction_pointer),
                      ") is not in an existing executable MemoryMapping"));
   }
-  Address rsp = ExtractRsp(x);
+  Address stack_pointer = GetStackPointer(gregs);
   auto stack_bytes = required_stack_size();
-  if (rsp < stack_bytes ||
-      mapped_memory_map_.Perms(rsp - stack_bytes, rsp, MemoryPerms::kAnd)
+  if (stack_pointer < stack_bytes ||
+      mapped_memory_map_
+          .Perms(stack_pointer - stack_bytes, stack_pointer, MemoryPerms::kAnd)
           .HasNo(MemoryPerms::kWritable)) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("[rsp-", stack_bytes, ", rsp) (rsp=0x", absl::Hex(rsp),
-                     ") must be within a writable MemoryMapping"));
+    return absl::InvalidArgumentError(absl::StrCat(
+        "stack pointer (0x", absl::Hex(stack_pointer), ") and ", stack_bytes,
+        " bytes before it must be within a writable MemoryMapping"));
   }
   return absl::OkStatus();
+}
+
+absl::Status Snapshot::can_set_registers(const RegisterState& x,
+                                         bool is_end_state) const {
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  return can_set_registers_impl<X86_64>(x, is_end_state);
 }
 
 void Snapshot::set_registers(const RegisterState& x) {
@@ -825,14 +804,34 @@ bool Snapshot::TryRemoveUndefinedEndStates() {
 
 // ----------------------------------------------------------------------- //
 
+template <typename Arch>
+Snapshot::Address Snapshot::ExtractRipImpl(const RegisterState& x) const {
+  if (x.gregs().empty()) {
+    return kUnsetRegisterValue;
+  }
+  GRegSet<Arch> gregs;
+  CHECK(DeserializeGRegs(x.gregs(), &gregs));
+  return GetInstructionPointer(gregs);
+}
+
 Snapshot::Address Snapshot::ExtractRip(const RegisterState& x) const {
-  return ExtractGRegAtOffset(
-      x, architecture_descr_->offsetof_rip_in_user_regs_struct);
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  return ExtractRipImpl<X86_64>(x);
+}
+
+template <typename Arch>
+Snapshot::Address Snapshot::ExtractRspImpl(const RegisterState& x) const {
+  if (x.gregs().empty()) {
+    return kUnsetRegisterValue;
+  }
+  GRegSet<Arch> gregs;
+  CHECK(DeserializeGRegs(x.gregs(), &gregs));
+  return GetStackPointer(gregs);
 }
 
 Snapshot::Address Snapshot::ExtractRsp(const RegisterState& x) const {
-  return ExtractGRegAtOffset(
-      x, architecture_descr_->offsetof_rsp_in_user_regs_struct);
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  return ExtractRspImpl<X86_64>(x);
 }
 
 int Snapshot::num_pages() const {

@@ -61,14 +61,16 @@ TEST(Snapshot, CanSetRegs) {
       CreateRegState(Snapshot::kUnsetRegisterValue, 0x100000 + 4096));
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       ContainsRegex("rip \\(0x.+\\) is not in an existing "
-                                     "executable MemoryMapping")));
+                       ContainsRegex("instruction pointer \\(0x.+\\) is not in "
+                                     "an existing executable MemoryMapping")));
 
   status = s.can_set_registers(
       CreateRegState(0x100000, Snapshot::kUnsetRegisterValue));
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               ContainsRegex("\\(rsp=0x.+\\) must be within a "
-                                             "writable MemoryMapping")));
+  EXPECT_THAT(
+      status,
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               ContainsRegex("stack pointer \\(0x.+\\) and \\d+ bytes before "
+                             "it must be within a writable MemoryMapping")));
 }
 
 TEST(Snapshot, IsComplete) {

@@ -127,6 +127,8 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:platform",
+        "@silifuzz//util/ucontext",
+        "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

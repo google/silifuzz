@@ -440,6 +440,16 @@ class Snapshot final {
   static MemoryMappingList SortedMemoryMappingList(
       const MappedMemoryMap& memory_map);
 
+  template <typename Arch>
+  Snapshot::Address ExtractRipImpl(const RegisterState& x) const;
+
+  template <typename Arch>
+  Snapshot::Address ExtractRspImpl(const RegisterState& x) const;
+
+  template <typename Arch>
+  absl::Status can_set_registers_impl(const Snapshot::RegisterState& x,
+                                      bool is_end_state) const;
+
   // ----------------------------------------------------------------------- //
 
   // See id().
