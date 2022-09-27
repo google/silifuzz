@@ -114,6 +114,7 @@ cc_test(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )

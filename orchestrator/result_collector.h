@@ -22,7 +22,6 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./orchestrator/binary_log_channel.h"
 #include "./proto/corpus_metadata.pb.h"
@@ -51,8 +50,7 @@ class ResultCollector {
   // If `binary_log_fd_channel` >= 0, will also log each result to the said
   // file descriptor via BinaryLogProducer API. The instance of this class
   // will also take ownership of the FD and close it upon destruction.
-  ResultCollector(int binary_log_channel_fd,
-                  absl::Time start_time = absl::Now());
+  ResultCollector(int binary_log_channel_fd, absl::Time start_time);
 
   // Processes a single execution result.
   void operator()(const RunnerDriver::RunResult &result);

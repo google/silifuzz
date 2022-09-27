@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/statusor.h"
+#include "absl/time/clock.h"
 #include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"
 #include "./proto/binary_log_entry.pb.h"
@@ -34,7 +35,7 @@ using silifuzz::testing::IsOk;
 using snapshot_types::PlaybackOutcome;
 
 TEST(ResultCollector, Simple) {
-  ResultCollector collector(-1);
+  ResultCollector collector(-1, absl::Now());
   collector(RunnerDriver::RunResult::Successful());
   ASSERT_EQ(collector.summary().play_count, 1);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 0);
@@ -49,7 +50,7 @@ TEST(ResultCollector, BinaryLogging) {
   int pipefd[2] = {-1, -1};
   ASSERT_EQ(pipe(pipefd), 0);
   {
-    ResultCollector collector(pipefd[1]);
+    ResultCollector collector(pipefd[1], absl::Now());
     collector(RunnerDriver::RunResult::Successful());
     RunnerDriver::PlayerResult result = {
         .outcome = PlaybackOutcome::kExecutionMisbehave};

@@ -167,7 +167,8 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
                      const std::vector<std::string> &runner_extra_argv) {
   LOG_INFO("SiliFuzz Orchestrator started");
 
-  absl::Time deadline = absl::Now() + absl::GetFlag(FLAGS_duration);
+  const absl::Time start_time = absl::Now();
+  absl::Time deadline = start_time + absl::GetFlag(FLAGS_duration);
   // Load corpora and exit if there is any error.
   // File descriptors of the uncompressed corpora are kept open
   // until corpus_fds goes out of scope.
@@ -217,7 +218,8 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
     }
   }
 
-  ResultCollector result_collector(absl::GetFlag(FLAGS_binary_log_fd));
+  ResultCollector result_collector(absl::GetFlag(FLAGS_binary_log_fd),
+                                   start_time);
   ExecutionContext *ctx = OrchestratorInit(
       deadline, num_threads,
       absl::bind_front(&ResultCollector::operator(), &result_collector));
