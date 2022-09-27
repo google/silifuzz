@@ -256,12 +256,17 @@ extern "C" char* getenv(const char* name) {
   return nullptr;
 }
 
-// Dummies for stderr and fprintf, which are used in assert(). Without these
-// debug build fails.
+// Dummies for stderr, fprintf and vfprintf which are used in assert(). Without
+// these debug build fails.
 FILE* stderr;
 
 int fprintf(FILE* stream, const char* format, ...) {
   LOG_FATAL("fprintf() not implemented, format = \"", format,
+            "\". This is probably called by assert()");
+}
+
+int vfprintf(FILE* stream, const char* format, va_list ap) {
+  LOG_FATAL("vfprintf() not implemented, format = \"", format,
             "\". This is probably called by assert()");
 }
 
