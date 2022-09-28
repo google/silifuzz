@@ -30,10 +30,19 @@ class OrchestratorTest(absltest.TestCase):
   def setUpClass(cls):
     super(OrchestratorTest, cls).setUpClass()
     temp_dir = absltest.get_default_test_tmpdir()
-    for x in ('One', 'Two'):
-      path = os.path.join(temp_dir, f'fake_corpus_{x}.xz')
+    corpus_contents = ['One', 'Two']
+    for i, contents in enumerate(corpus_contents):
+      # Compress one corpus only. The orchestrator can load
+      # both corpora with and without compression.
+      is_compressed = i > 0
+      suffix = '.xz' if is_compressed else ''
+      path = os.path.join(temp_dir, f'fake_corpus_{contents}{suffix}')
       with open(path, 'wb') as f:
-        f.write(lzma.compress(f'Corpus {x}'.encode('ascii')))
+        encoded = f'Corpus {contents}'.encode('ascii')
+        if is_compressed:
+          f.write(lzma.compress(encoded))
+        else:
+          f.write(encoded)
       cls._FAKE_CORPUS.append(path)
 
   def _popen_args(

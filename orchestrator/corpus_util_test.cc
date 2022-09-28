@@ -45,6 +45,26 @@ using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
 
+// Check that opened file with desciptor `fd` has the `expected_contents`.
+// Returns a status.
+absl::Status CheckFileContents(int fd, const std::string& expected_contents) {
+  struct stat stat_buf {};
+  if (fstat(fd, &stat_buf) < 0) {
+    return absl::ErrnoToStatus(errno, "fstat() failed");
+  }
+  if (stat_buf.st_size != expected_contents.size()) {
+    return absl::UnknownError("incorrect file size");
+  }
+  std::string buffer(stat_buf.st_size, 0);
+  if (Read(fd, buffer.data(), buffer.size()) != buffer.size()) {
+    return absl::ErrnoToStatus(errno, "Read failed");
+  }
+  if (buffer != expected_contents) {
+    return absl::FailedPreconditionError("contents mismatch");
+  }
+  return absl::OkStatus();
+}
+
 TEST(CorpusUtil, ReadXZipFile) {
   // What we expect to get from decompression.
   const std::string kContents = "Hello World.\n";
@@ -177,23 +197,14 @@ TEST(CorpusUtil, LoadCorpora) {
   EXPECT_EQ(owned_fds.size(), kCorporaSize);
   EXPECT_EQ(fd_paths.size(), kCorporaSize);
 
-  auto check_file_contents = [](int fd, const std::string& expected_contents) {
-    struct stat stat_buf {};
-    EXPECT_EQ(fstat(fd, &stat_buf), 0);
-    EXPECT_EQ(stat_buf.st_size, expected_contents.size());
-    std::string buffer(stat_buf.st_size, 0);
-    ASSERT_EQ(Read(fd, buffer.data(), buffer.size()), buffer.size());
-    EXPECT_EQ(buffer, expected_contents);
-  };
-
   for (size_t i = 0; i < kCorporaSize; ++i) {
     const int fd = *(owned_fds[i].get());
-    check_file_contents(fd, corpus_contents[i]);
+    EXPECT_THAT(CheckFileContents(fd, corpus_contents[i]), IsOk());
 
     // Check again using file descriptor path.
     const int fd2 = open(fd_paths[i].c_str(), O_RDONLY);
     ASSERT_GE(fd2, 0);
-    check_file_contents(fd2, corpus_contents[i]);
+    EXPECT_THAT(CheckFileContents(fd2, corpus_contents[i]), IsOk());
     EXPECT_EQ(close(fd2), 0);
   }
 }
@@ -205,6 +216,39 @@ TEST(CorpusUtil, LoadCorporaFileNotFound) {
   EXPECT_THAT(
       load_corpora_result_or.status(),
       StatusIs(absl::StatusCode::kInternal, HasSubstr("Failed to open")));
+}
+
+TEST(CorpusUtil, LoadCorporaUncompressed) {
+  const std::vector<std::string> corpus_contents{"one\n", "two\n", "three\n"};
+
+  std::vector<std::string> corpus_paths;
+  for (size_t i = 0; i < corpus_contents.size(); ++i) {
+    corpus_paths.push_back(absl::StrCat(std::string_view{getenv("TEST_TMPDIR")},
+                                        "/LoadCoporaUncompressedTest_", i));
+    const int fd = open(corpus_paths[i].c_str(), O_CREAT | O_TRUNC | O_WRONLY,
+                        S_IRUSR | S_IWUSR);
+    ASSERT_NE(fd, -1);
+    ASSERT_EQ(Write(fd, corpus_contents[i].data(), corpus_contents[i].size()),
+              corpus_contents[i].size());
+    ASSERT_EQ(close(fd), 0);
+  }
+
+  absl::StatusOr<LoadCorporaResult> load_corpora_result_or =
+      LoadCorpora(corpus_paths);
+  ASSERT_THAT(load_corpora_result_or, IsOk());
+
+  const std::vector<OwnedFileDescriptor>& owned_fds =
+      load_corpora_result_or.value().file_descriptors;
+  const std::vector<std::string>& fd_paths =
+      load_corpora_result_or.value().file_descriptor_paths;
+
+  EXPECT_EQ(owned_fds.size(), corpus_contents.size());
+  EXPECT_EQ(fd_paths.size(), corpus_contents.size());
+
+  for (size_t i = 0; i < corpus_contents.size(); ++i) {
+    const int fd = *(owned_fds[i].get());
+    EXPECT_THAT(CheckFileContents(fd, corpus_contents[i]), IsOk());
+  }
 }
 
 }  // namespace

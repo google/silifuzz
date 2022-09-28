@@ -58,6 +58,23 @@ absl::Status WriteCord(const absl::Cord& cord, int fd) {
   return absl::OkStatus();
 }
 
+// Returns contents for file with descriptor `fd` as a Cord or a status.
+// This reads starting from the current file offset.
+absl::StatusOr<absl::Cord> ReadCord(int fd) {
+  constexpr size_t kChunkSize = 1 << 20;  // 1MB
+  std::string buffer(kChunkSize, 0);
+  ssize_t bytes_read;
+  absl::Cord cord;
+  while ((bytes_read = Read(fd, buffer.data(), buffer.size())) > 0) {
+    cord.Append(absl::string_view(buffer.data(), bytes_read));
+  }
+  if (bytes_read < 0) {
+    // If Read() returns a negative number, there is an error.
+    return absl::ErrnoToStatus(errno, "read()");
+  }
+  return cord;
+}
+
 }  // namespace
 
 absl::StatusOr<absl::Cord> ReadXzipFile(const std::string& path) {
@@ -161,8 +178,13 @@ absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path) {
   if (absl::EndsWith(path, ".xz")) {
     ASSIGN_OR_RETURN_IF_NOT_OK(contents, ReadXzipFile(path));
   } else {
-    return absl::InvalidArgumentError(
-        absl::StrCat("Unrecognized file extension for ", path));
+    // Assume this is an uncompressed corpus.
+    int fd = open(path.c_str(), O_RDONLY);
+    if (fd < 0) {
+      return absl::ErrnoToStatus(errno, "open()");
+    }
+    absl::Cleanup file_closer = absl::MakeCleanup([fd] { close(fd); });
+    ASSIGN_OR_RETURN_IF_NOT_OK(contents, ReadCord(fd));
   }
 
   // Set linked name in /proc/self/fd/ for ease of debugging.
