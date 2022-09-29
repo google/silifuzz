@@ -15,6 +15,7 @@
 #include "./util/subprocess.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <sys/personality.h>
 #include <sys/prctl.h>  // prctl(), PR_SET_PDEATHSIG
@@ -85,8 +86,20 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
       CHECK_EQ(prctl(PR_SET_PDEATHSIG, options_.parent_death_signal_), 0);
     }
     dup2(stdout_pipe[1], STDOUT_FILENO);
-    if (options_.map_stderr_to_stdout_) {
-      dup2(stdout_pipe[1], STDERR_FILENO);
+    switch (options_.map_stderr_) {
+      case kNoMapping:
+        // Same stderr as the parent.
+        break;
+      case kMapToStdout:
+        dup2(stdout_pipe[1], STDERR_FILENO);
+        break;
+      case kMapToDevNull: {
+        int dev_null = open("/dev/null", O_RDWR | O_APPEND);
+        CHECK_NE(dev_null, -1);
+        CHECK_GE(dup2(dev_null, STDERR_FILENO), 0);
+        close(dev_null);
+        break;
+      }
     }
 
     close(stdout_pipe[0]);

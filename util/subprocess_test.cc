@@ -28,6 +28,7 @@ namespace silifuzz {
 namespace {
 using silifuzz::testing::IsOk;
 using ::testing::HasSubstr;
+using ::testing::IsEmpty;
 
 TEST(Subprocess, Communicate) {
   Subprocess sp;
@@ -55,7 +56,7 @@ TEST(Subprocess, StderrDupParent) {
 
 TEST(Subprocess, StderrMapToStdout) {
   Subprocess::Options opts = Subprocess::Options::Default();
-  opts.MapStderrToStdout(true);
+  opts.MapStderr(Subprocess::kMapToStdout);
   Subprocess sp(opts);
   ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}), IsOk());
   std::string stdout;
@@ -63,9 +64,21 @@ TEST(Subprocess, StderrMapToStdout) {
   EXPECT_EQ(stdout, "stderr");
 }
 
+TEST(Subprocess, StderrMapToDevNull) {
+  Subprocess::Options opts = Subprocess::Options::Default();
+  opts.MapStderr(Subprocess::kMapToDevNull);
+  Subprocess sp(opts);
+  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}), IsOk());
+  std::string stdout;
+  // This only tests that setting the mapping does not crash and stdout is
+  // empty. There is no easy way to verify that we wrote to /dev/null.
+  EXPECT_EQ(sp.Communicate(&stdout), 0);
+  EXPECT_THAT(stdout, IsEmpty());
+}
+
 TEST(Subprocess, NoExecutable) {
   Subprocess::Options opts = Subprocess::Options::Default();
-  opts.MapStderrToStdout(true);
+  opts.MapStderr(Subprocess::kMapToStdout);
   Subprocess sp(opts);
   ASSERT_THAT(sp.Start({"/bin/foobarbaz"}), IsOk());
   std::string stdout;

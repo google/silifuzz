@@ -30,6 +30,14 @@ namespace silifuzz {
 // This class is thread-compatible.
 class Subprocess {
  public:
+  // How to map a file descriptor in the child process.
+  // Current this applies only to stderr.
+  enum FileDescriptorMapping {
+    kNoMapping = 0,  // leave file descriptor unmapped.
+    kMapToStdout,    // map to stdout
+    kMapToDevNull,   // send output to /dev/null.
+  };
+
   // Represent options for running the subprocess.
   class Options {
    public:
@@ -58,8 +66,8 @@ class Subprocess {
       return *this;
     }
 
-    Options& MapStderrToStdout(bool v) {
-      map_stderr_to_stdout_ = v;
+    Options& MapStderr(FileDescriptorMapping map) {
+      map_stderr_ = map;
       return *this;
     }
 
@@ -76,10 +84,9 @@ class Subprocess {
    private:
     friend class Subprocess;  // for rlimit_tuples_ and itimer_vals_ access.
 
-    // When true, the stderr of the child process will
-    // be redirected to stdout and captured by Communicate(). Otherwise
-    // parent's stderr is used.
-    bool map_stderr_to_stdout_ = false;
+    // How stderr of the child process will be mapped.
+    // See defintion of FileDescriptorMapping above.
+    FileDescriptorMapping map_stderr_ = kNoMapping;
 
     // Disable ASLR.
     bool disable_aslr_ = false;
