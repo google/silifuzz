@@ -117,6 +117,10 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
     argv.push_back(corpus_path_);
   }
 
+  if (runner_options.map_stderr_to_dev_null()) {
+    options.MapStderr(Subprocess::kMapToDevNull);
+  }
+
   Subprocess runner_proc(options);
   RETURN_IF_NOT_OK(runner_proc.Start(argv));
 

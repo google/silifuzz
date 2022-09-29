@@ -59,6 +59,11 @@ class RunnerOptions {
     return *this;
   }
 
+  RunnerOptions& set_map_stderr_to_dev_null(bool map_stderr_to_dev_null) {
+    this->map_stderr_to_dev_null_ = map_stderr_to_dev_null;
+    return *this;
+  }
+
   int cpu() const { return cpu_; }
   absl::Duration cpu_time_budget() const { return cpu_time_budget_; }
   absl::Duration wall_time_budget() const { return wall_time_budget_; }
@@ -66,6 +71,7 @@ class RunnerOptions {
   // implementation details.
   bool disable_aslr() const { return disable_aslr_; }
   bool sequential_mode() const { return sequential_mode_; }
+  bool map_stderr_to_dev_null() const { return map_stderr_to_dev_null_; }
 
   RunnerOptions(const RunnerOptions&) = default;
   RunnerOptions(RunnerOptions&&) = default;
@@ -106,6 +112,9 @@ class RunnerOptions {
 
   // If true, enumerate all corpora sequentially and then exit.
   bool sequential_mode_ = false;
+
+  // If true, map runner's stderr to /dev/null.
+  bool map_stderr_to_dev_null_ = false;
 };
 
 }  // namespace silifuzz

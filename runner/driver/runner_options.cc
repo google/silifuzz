@@ -48,7 +48,10 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id) {
   return RunnerOptions()
       .set_cpu_time_bugdet(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
-                       "1", "--make"});
+                       "1", "--make"})
+      // Discard human-readable failure details in stderr.
+      // Failures are expected during making.
+      .set_map_stderr_to_dev_null(true);
 }
 
 RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
@@ -56,7 +59,9 @@ RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
       .set_cpu_time_bugdet(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv(
           {"--snap_id", std::string(snap_id), "--num_iterations", "3"})
-      .set_disable_aslr(false);
+      .set_disable_aslr(false)
+      // Skip failures details also just like MakeOptions().
+      .set_map_stderr_to_dev_null(true);
 }
 
 RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id) {
