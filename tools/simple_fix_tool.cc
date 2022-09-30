@@ -26,7 +26,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "third_party/centipede/blob_file.h"
+#include "external/centipede/blob_file.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"
