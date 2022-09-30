@@ -170,7 +170,18 @@ mkdir -p /tmp/wd
 
 ### Prework (collect corpus from fuzzing result)
 
-TODO: Coming soon
+```shell
+cd "${SILIFUZZ_SRC_DIR}"
+bazel build -c opt @silifuzz//tools:simple_fix_tool
+
+# convert fuzzing result corpus.* into a 10-shard runnable corpus
+# for the architecture we are using. The shards will be at
+# /tmp/wd/runnable-corpus.*
+"${SILIFUZZ_BIN_DIR}/tools/simple_fix_tool_main" \
+  --num_output_shards 10 \
+  --output_path_prefix /tmp/wd/runnable-corpus \
+  /tmp/wd/corpus.*
+```
 
 ## Tools
 
@@ -236,6 +247,17 @@ Registers:
     rax = 0x20000000
     ....
 ```
+
+### simple_fix_tool
+
+The simple fix tool takes fuzzing results from Centipede, converts raw
+instructions into a snapshots with no end states, adds end states to snapshots
+and finally packages snapshots into a sharded relocatable snap corpus.
+
+Currently this runs as a non-restartable process on a single host and everything is put into
+memory so the size of corpus that can be handled is limited by available memory
+of the host. Since end states are generated on the hosts, the resulting corpus
+is single architecture.
 
 ## Frequently asked questions
 

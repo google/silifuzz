@@ -22,6 +22,11 @@ licenses(["notice"])
 
 # =========================================================================== #
 
+DISABLE_ARM_TAGS = [
+    "not_build:arm",
+    "not_test:arm",
+]
+
 cc_binary(
     name = "snap_tool",
     srcs = ["snap_tool.cc"],
@@ -106,5 +111,63 @@ cc_binary(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "simple_fix_tool",
+    srcs = ["simple_fix_tool.cc"],
+    hdrs = ["simple_fix_tool.h"],
+    deps = [
+        "//third_party/centipede:blob_file",
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//snap/gen:relocatable_snap_generator",
+        "@silifuzz//tool_libs:corpus_partitioner_lib",
+        "@silifuzz//tool_libs:fix_tool_common",
+        "@silifuzz//tool_libs:simple_fix_tool_counters",
+        "@silifuzz//tool_libs:snap_group",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:span_util",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_binary(
+    name = "simple_fix_tool_main",
+    srcs = ["simple_fix_tool_main.cc"],
+    deps = [
+        ":simple_fix_tool",
+        "@silifuzz//tool_libs:simple_fix_tool_counters",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/log:initialize",
+    ],
+)
+
+cc_test(
+    name = "simple_fix_tool_test",
+    size = "medium",
+    srcs = ["simple_fix_tool_test.cc"],
+    deps = [
+        ":simple_fix_tool",
+        "//third_party/centipede:blob_file",
+        "@silifuzz//snap:snap_relocator",
+        "@silifuzz//tool_libs:simple_fix_tool_counters",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:mmapped_memory_ptr",
+        "@silifuzz//util:path_util",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/cleanup",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_googletest//:gtest_main",
     ],
 )
