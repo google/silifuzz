@@ -18,13 +18,13 @@ Establish read/write 2 data mappings 0.5Gb each in different parts of the
 address space.
 
 1.  `[0x10000, 0x20010000)` (*DATA1*)
-1.  `[0x1010000000, 0x1030000000)` (*DATA2*)
+1.  `[0x1000010000, 0x1020010000)` (*DATA2*)
 
-Two desirable properties that these mappings should satisfy is
+Two desirable properties that these mappings should satisfy are:
 
 *   a single instruction, e.g. a bit set, can translate an address from one
     mapping to an address of another mapping
-*   one mapping resides in the lower 2Gb and the other is not
+*   one mapping resides in the lower 2Gb and the other does not
 
 The combined size of all *CODE* and *DATA* mappings must stay below 3Gb to limit
 per-runner memory footprint. The actual upper limit is machine specific and
@@ -55,7 +55,7 @@ All other registers must be consistently initialized across fuzzing and the
 subsequent filtering/making stages of the pipeline.
 
 NOTE: On X86_64 at least the following registers must be non-zero: `%cs`, `%ss`
-and `%xmm0`. The two segment selectors are set by the kernel to 0x2b and 0x33
+and `%xmm0`. The two segment selectors are set by the kernel to 0x33 and 0x2b
 for userspace. The xmm register is a workaround for
 [erratum 1386](https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf)
 

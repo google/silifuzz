@@ -49,6 +49,17 @@ absl::StatusOr<Snapshot> InstructionsToSnapshotRandomizedCodePage(
 // Returns a Snapshot ID that is a function of bytes in `code`.
 std::string InstructionsToSnapshotId(absl::string_view code);
 
+// Converts the code snippet into a properly formatted Snapshot.
+// This is similar to InstructionsToSnapshot() above but follows the convention
+// described in
+// https://github.com/google/silifuzz/blob/main/doc/proxy_architecture.md.
+// [code_range_start; code_range_start+code_range_size) defines an address range
+// where the code page containing bytes from `code`  will be placed.
+// code_range_size must be a power of 2.
+absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
+    absl::string_view code, uint64_t code_range_start, uint64_t code_range_size,
+    uint64_t stack_page_start);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_

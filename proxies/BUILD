@@ -36,6 +36,40 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "unicorn_x86_64_lib",
+    testonly = True,
+    srcs = ["unicorn_x86_64_example.cc"],
+    hdrs = ["unicorn_x86_64.h"],
+    deps = [
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot_util",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@unicorn//:unicorn_x86",
+    ],
+    alwayslink = True,
+)
+
+cc_test(
+    name = "unicorn_x86_64_test",
+    size = "medium",
+    srcs = ["unicorn_x86_64_test.cc"],
+    deps = [
+        ":unicorn_x86_64_lib",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/random:distributions",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+        "@unicorn//:unicorn_x86",
+    ],
+)
+
 centipede_fuzz_target(
     name = "unicorn_aarch64_sancov",
     srcs = ["unicorn_aarch64.cc"],
@@ -44,6 +78,17 @@ centipede_fuzz_target(
 
 centipede_fuzz_target(
     name = "unicorn_x86_64_sancov",
-    srcs = ["unicorn_x86_64_example.cc"],
-    deps = ["@unicorn//:unicorn_x86"],
+    srcs = ["unicorn_x86_64_sancov.cc"],
+    deps = [
+        ":unicorn_x86_64_lib",
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot_util",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@unicorn//:unicorn_x86",
+    ],
 )

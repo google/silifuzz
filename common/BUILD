@@ -268,6 +268,7 @@ cc_library(
         ":snapshot",
         ":snapshot_util",
         "@silifuzz//util/ucontext",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@cityhash",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
