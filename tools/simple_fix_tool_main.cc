@@ -50,9 +50,14 @@ int SimpleFixToolMain(int argc, char* argv[]) {
   // Initialize the logging subsystem.
   absl::InitializeLog();
 
-  // All non-flags-args are inputs.
-  const std::vector<std::string> inputs(non_flag_args.begin(),
+  // All non-flag-args are inputs except args[0], which is the executable name.
+  CHECK_GT(non_flag_args.size(), 0);
+  const std::vector<std::string> inputs(non_flag_args.begin() + 1,
                                         non_flag_args.end());
+  if (inputs.empty()) {
+    LOG_ERROR("No input corpus specified");
+    return EXIT_FAILURE;
+  }
 
   SimpleFixToolOptions options;
   options.num_partitioning_iterations =
