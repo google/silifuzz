@@ -24,6 +24,11 @@ licenses(["notice"])
 
 # =========================================================================== #
 
+DISABLE_ARM_TAGS = [
+    "not_build:arm",
+    "not_test:arm",
+]
+
 cc_library(
     name = "memory_mapping",
     srcs = ["memory_mapping.cc"],
