@@ -55,8 +55,8 @@ struct Snapshot::ArchitectureDescr {
 // static
 ABSL_CONST_INIT const Snapshot::ArchitectureDescr
     Snapshot::kSupportedArchitectures[] = {
-        {.id = Snapshot::Architecture::kLinux_x86_64,
-         .name = "x86_64 Linux",
+        {.id = Snapshot::Architecture::kX86_64,
+         .name = "x86_64",
          .page_size = 4096,
          // RestoreUContext() needs to push two registers onto the stack
          .required_stack_size = 8 * 2,
@@ -87,8 +87,8 @@ absl::Status Snapshot::IsValidId(const Snapshot::Id& id) {
 // static
 Snapshot::Architecture Snapshot::CurrentArchitecture() {
   // TODO(ksteuck): [as-needed] Evolve as we add more architectures.
-#if defined(__linux__) && defined(__x86_64__)
-  return Architecture::kLinux_x86_64;
+#if defined(__x86_64__)
+  return Architecture::kX86_64;
 #endif
   return Architecture::kUnsupported;
 }
@@ -433,7 +433,7 @@ absl::Status Snapshot::AddNegativeMemoryMappingsFor(const EndState& x) {
         LOG_FATAL("unreachable");
     }
     switch (architecture()) {
-      case Architecture::kLinux_x86_64:
+      case Architecture::kX86_64:
         if (endpoint.sig_cause() == Endpoint::kSegvCantRead) {
           // On x86_64 PROT_EXEC and PROT_WRITE each imply PROT_READ
           // (see silifuzz/tools/mem_perms_testing.cc),
@@ -552,7 +552,7 @@ absl::Status Snapshot::can_set_registers_impl(const Snapshot::RegisterState& x,
 
 absl::Status Snapshot::can_set_registers(const RegisterState& x,
                                          bool is_end_state) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
   return can_set_registers_impl<X86_64>(x, is_end_state);
 }
 
@@ -815,7 +815,7 @@ Snapshot::Address Snapshot::ExtractRipImpl(const RegisterState& x) const {
 }
 
 Snapshot::Address Snapshot::ExtractRip(const RegisterState& x) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
   return ExtractRipImpl<X86_64>(x);
 }
 
@@ -830,7 +830,7 @@ Snapshot::Address Snapshot::ExtractRspImpl(const RegisterState& x) const {
 }
 
 Snapshot::Address Snapshot::ExtractRsp(const RegisterState& x) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kLinux_x86_64);
+  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
   return ExtractRspImpl<X86_64>(x);
 }
 

@@ -144,7 +144,7 @@ static void InitTestSnapshotRegs(UContext<X86_64>& ucontext) {
 // static
 Snapshot TestSnapshots::Create(Type type, Options options) {
   // Currently only x86_64 is supported.
-  CHECK(Snapshot::CurrentArchitecture() == Architecture::kLinux_x86_64);
+  CHECK(Snapshot::CurrentArchitecture() == Architecture::kX86_64);
 
   Snapshot snapshot(Snapshot::CurrentArchitecture());
   snapshot.set_id(EnumStr(type));

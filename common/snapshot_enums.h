@@ -49,7 +49,7 @@ using ByteSize = uint64_t;
 // snapshot_proto.cc makes sure it's the case.
 enum class Architecture {
   kUnsupported = 0,
-  kLinux_x86_64 = 1,
+  kX86_64 = 1,
 };
 
 // Type of an endpoint.

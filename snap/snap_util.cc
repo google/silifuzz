@@ -54,7 +54,7 @@ Snapshot::MemoryMappingList SnapMemoryMappings(const Snap& snap) {
 absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
   // TODO(ksteuck): [impl] x86 is hardcoded. We need to use "current"
   // architecture instead and also ensure it matches the target arch.
-  Snapshot snapshot(Snapshot::Architecture::kLinux_x86_64, snap.id);
+  Snapshot snapshot(Snapshot::Architecture::kX86_64, snap.id);
   for (const Snap::MemoryMapping& m : snap.memory_mappings) {
     RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(m.start_address, m.num_bytes));
     MemoryMapping mapping = MemoryMapping::MakeSized(

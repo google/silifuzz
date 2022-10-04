@@ -135,7 +135,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshotRandomizedCodePage(
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code, uint64_t code_range_start, uint64_t code_range_size,
     uint64_t stack_page_start) {
-  Snapshot snapshot(Snapshot::Architecture::kLinux_x86_64);
+  Snapshot snapshot(Snapshot::Architecture::kX86_64);
   const auto page_size = snapshot.page_size();
 
   // All must be page-aligned.

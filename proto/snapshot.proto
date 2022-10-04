@@ -235,10 +235,10 @@ message SnapshotMetadata {
 //
 // NEXT ID: 9
 message Snapshot {
-  // Supported srchitectures of snapshots.
+  // Supported architectures of snapshots.
   enum Architecture {
     UNDEFINED_ARCH = 0;
-    LINUX_X86_64 = 1;
+    X86_64 = 1;
   }
 
   // Snapshot identifier. The identifier is a printable string e.g. hex of an
