@@ -24,11 +24,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
 namespace {
 
-static int run_bytes(std::vector<uint8_t> data) {
+static int run_bytes(std::vector<uint8_t>&& data) {
   return LLVMFuzzerTestOneInput(data.data(), data.size());
 }
 
-static int run_instructions(std::vector<uint32_t> data) {
+static int run_instructions(std::vector<uint32_t>&& data) {
   // Instructions should be little endian.
   for (size_t i = 0; i < data.size(); ++i) {
     data[i] = htole32(data[i]);
