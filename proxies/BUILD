@@ -39,7 +39,7 @@ cc_test(
 cc_library(
     name = "unicorn_x86_64_lib",
     testonly = True,
-    srcs = ["unicorn_x86_64_example.cc"],
+    srcs = ["unicorn_x86_64.cc"],
     hdrs = ["unicorn_x86_64.h"],
     deps = [
         "@silifuzz//common:raw_insns_util",

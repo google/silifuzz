@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(ksteuck): Rename to unicorn_x86_64.cc
+#include "./proxies/unicorn_x86_64.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot_util.h"
-#include "./proxies/unicorn_x86_64.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
