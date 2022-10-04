@@ -332,3 +332,8 @@ cc_binary(
         "@lss",
     ],
 )
+
+cc_library(
+    name = "proxy_config",
+    hdrs = ["proxy_config.h"],
+)

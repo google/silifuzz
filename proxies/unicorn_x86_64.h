@@ -22,24 +22,6 @@
 #include "./util/checks.h"
 #include "third_party/unicorn/unicorn.h"
 
-// Memory page size.
-constexpr inline size_t kPageSize = 4096;
-
-// Code region.
-// The proxy code will map just a single page inside this region.
-constexpr uint64_t kCodeAddr = 0x30000000;
-constexpr uint64_t kCodeLimit = 0xB0000000;
-static_assert((kCodeLimit - kCodeAddr & (kCodeLimit - kCodeAddr - 1)) == 0,
-              "Size of the code region must a power of 2");
-
-// Memory region 1.
-constexpr uint64_t kMem1Addr = 0x10000;
-constexpr uint64_t kMem1Limit = kMem1Addr + 0x20000000;
-
-// Memory region 2.
-constexpr uint64_t kMem2Addr = 0x1000010000;
-constexpr uint64_t kMem2Limit = kMem2Addr + 0x20000000;
-
 #define UNICORN_CHECK(...)                                       \
   do {                                                           \
     uc_err __uc_check_err = __VA_ARGS__;                         \

@@ -42,6 +42,7 @@ cc_library(
     srcs = ["unicorn_x86_64.cc"],
     hdrs = ["unicorn_x86_64.h"],
     deps = [
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot_util",
         "@silifuzz//util:checks",

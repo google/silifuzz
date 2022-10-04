@@ -22,6 +22,7 @@
 #include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot_util.h"
 #include "./util/checks.h"
@@ -29,11 +30,8 @@
 #include "third_party/unicorn/unicorn.h"
 #include "third_party/unicorn/x86.h"
 
+namespace silifuzz {
 namespace {
-
-using silifuzz::FPRegSet;
-using silifuzz::GRegSet;
-using silifuzz::X86_64;
 
 absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
                                   const FPRegSet<X86_64> &fpregs) {
@@ -101,8 +99,6 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
 }
 
 }  // namespace
-
-namespace silifuzz {
 
 absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
