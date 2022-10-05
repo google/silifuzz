@@ -18,6 +18,8 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "./util/checks.h"
+#include "./util/itoa.h"
 #include "third_party/unicorn/arm64.h"
 #include "third_party/unicorn/unicorn.h"
 
@@ -35,36 +37,30 @@ constexpr uint64_t kMem1Size = 4 * 1024 * 1024;
 constexpr uint64_t kMem2Addr = 0x10007000000;
 constexpr uint64_t kMem2Size = 4 * 1024 * 1024;
 
-#define LOG_ERROR(...) fprintf(stderr, __VA_ARGS__)
-
-#define LOG_FATAL(...)            \
-  do {                            \
-    fprintf(stderr, __VA_ARGS__); \
-    abort();                      \
-  } while (0)
-
-#define UNICORN_CHECK(...)                                       \
-  do {                                                           \
-    uc_err __uc_check_err = __VA_ARGS__;                         \
-    if ((__uc_check_err != UC_ERR_OK)) {                         \
-      LOG_FATAL(#__VA_ARGS__ " failed %u: %s\n", __uc_check_err, \
-                uc_strerror(__uc_check_err));                    \
-    }                                                            \
+#define UNICORN_CHECK(...)                              \
+  do {                                                  \
+    uc_err __uc_check_err = __VA_ARGS__;                \
+    if ((__uc_check_err != UC_ERR_OK)) {                \
+      LOG_FATAL(#__VA_ARGS__ " failed with ",           \
+                silifuzz::IntStr(__uc_check_err), ": ", \
+                uc_strerror(__uc_check_err));           \
+    }                                                   \
   } while (0);
 
 void map_memory(uc_engine *uc, uint64_t addr, uint64_t size, uint32_t prot) {
   uc_err err = uc_mem_map(uc, addr, size, prot);
   if (err != UC_ERR_OK) {
-    LOG_FATAL("mapping %" PRIx64 " failed with %u: %s\n", addr, err,
-              uc_strerror(err));
+    LOG_FATAL("mapping ", silifuzz::HexStr(addr), " failed with ",
+              silifuzz::IntStr(err), ": ", uc_strerror(err));
   }
 }
 
 void set_reg(uc_engine *uc, uc_arm64_reg reg, uint64_t value) {
   uc_err err = uc_reg_write(uc, reg, &value);
   if (err != UC_ERR_OK) {
-    LOG_FATAL("trying to set %u to %" PRIx64 " failed with %u: %s\n", reg,
-              value, err, uc_strerror(err));
+    LOG_FATAL("trying to set ", silifuzz::IntStr(reg), " to ",
+              silifuzz::HexStr(value), " failed with ", silifuzz::IntStr(err),
+              ": ", uc_strerror(err));
   }
 }
 
@@ -134,7 +130,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   // Check if the emulator stopped cleanly.
   if (err) {
-    LOG_ERROR("uc_emu_start() returned %u: %s\n", err, uc_strerror(err));
+    LOG_ERROR("uc_emu_start() returned ", silifuzz::IntStr(err), ": ",
+              uc_strerror(err));
     input_is_acceptable = false;
   }
 
@@ -144,8 +141,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   uint64_t pc = 0;
   UNICORN_CHECK(uc_reg_read(uc, UC_ARM64_REG_PC, &pc));
   if (pc != end_of_code) {
-    LOG_ERROR("expected PC would be %" PRIu64 ", but got %" PRIu64 " instead\n",
-              end_of_code, pc);
+    LOG_ERROR("expected PC would be ", silifuzz::HexStr(end_of_code),
+              ", but got ", silifuzz::HexStr(pc), " instead");
     input_is_acceptable = false;
   }
 

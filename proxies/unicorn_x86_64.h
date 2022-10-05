@@ -20,15 +20,17 @@
 
 #include "absl/status/statusor.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "third_party/unicorn/unicorn.h"
 
-#define UNICORN_CHECK(...)                                       \
-  do {                                                           \
-    uc_err __uc_check_err = __VA_ARGS__;                         \
-    if ((__uc_check_err != UC_ERR_OK)) {                         \
-      LOG_FATAL(#__VA_ARGS__ " failed %u: %s\n", __uc_check_err, \
-                uc_strerror(__uc_check_err));                    \
-    }                                                            \
+#define UNICORN_CHECK(...)                              \
+  do {                                                  \
+    uc_err __uc_check_err = __VA_ARGS__;                \
+    if ((__uc_check_err != UC_ERR_OK)) {                \
+      LOG_FATAL(#__VA_ARGS__ " failed with ",           \
+                silifuzz::IntStr(__uc_check_err), ": ", \
+                uc_strerror(__uc_check_err));           \
+    }                                                   \
   } while (0);
 
 #define UNICORN_RETURN_IF_NOT_OK(...)    \

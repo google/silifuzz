@@ -22,7 +22,11 @@ cc_library(
     name = "unicorn_aarch64_lib",
     testonly = True,
     srcs = ["unicorn_aarch64.cc"],
-    deps = ["@unicorn//:unicorn_arm64"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@unicorn//:unicorn_arm64",
+    ],
     alwayslink = True,
 )
 
@@ -46,6 +50,7 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot_util",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
@@ -74,7 +79,11 @@ cc_test(
 centipede_fuzz_target(
     name = "unicorn_aarch64_sancov",
     srcs = ["unicorn_aarch64.cc"],
-    deps = ["@unicorn//:unicorn_arm64"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@unicorn//:unicorn_arm64",
+    ],
 )
 
 centipede_fuzz_target(
