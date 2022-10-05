@@ -27,6 +27,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "external/centipede/blob_file.h"
+#include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"
@@ -59,13 +60,14 @@ void FixToolWorker(FixToolWorkerArgs& args) {
                                             &args.counters);
 
   for (const auto& blob : args.blobs) {
-    const std::string id = InstructionsToSnapshotId(blob);
-    auto snapshot = InstructionsToSnapshotRandomizedCodePage(blob.data(), id);
+    absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64(
+        blob.data(), kCodeAddr, kCodeLimit - kCodeAddr, kMem1Addr);
     if (!snapshot.ok()) {
       args.counters.Increment(
           "silifuzz-ERROR-FixToolWorker:instructions-to-snapshot-failed");
       continue;
     }
+    snapshot->set_id(InstructionsToSnapshotId(blob));
     if (!NormalizeSnapshot(snapshot.value(), &args.counters)) {
       continue;
     }

@@ -65,6 +65,7 @@ cc_binary(
     name = "fuzz_filter_tool",
     srcs = ["fuzz_filter_tool.cc"],
     deps = [
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
@@ -119,6 +120,7 @@ cc_library(
     srcs = ["simple_fix_tool.cc"],
     hdrs = ["simple_fix_tool.h"],
     deps = [
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//snap/gen:relocatable_snap_generator",
