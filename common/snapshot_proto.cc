@@ -29,8 +29,12 @@
 namespace silifuzz {
 
 // Make sure that architecture enum values match.
+static_assert(ToInt(Snapshot::Architecture::kUnsupported) ==
+              ToInt(proto::Snapshot::UNDEFINED_ARCH));
 static_assert(ToInt(Snapshot::Architecture::kX86_64) ==
               ToInt(proto::Snapshot::X86_64));
+static_assert(ToInt(Snapshot::Architecture::kAArch64) ==
+              ToInt(proto::Snapshot::AARCH64));
 
 // Make sure that permission bit values match.
 static_assert(ToInt(MemoryPerms::kReadable) ==

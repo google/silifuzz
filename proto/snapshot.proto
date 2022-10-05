@@ -239,6 +239,7 @@ message Snapshot {
   enum Architecture {
     UNDEFINED_ARCH = 0;
     X86_64 = 1;
+    AARCH64 = 2;
   }
 
   // Snapshot identifier. The identifier is a printable string e.g. hex of an

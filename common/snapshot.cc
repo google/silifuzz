@@ -20,6 +20,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./common/mapped_memory_map.h"
 #include "./util/checks.h"
 #include "./util/platform.h"
@@ -46,7 +47,7 @@ struct Snapshot::ArchitectureDescr {
   int required_stack_size;
 
   // int3 bytcode or equivalent - see Snapshot::trap_instruction().
-  const char* trap_instruction;
+  const absl::string_view trap_instruction;
 
   // TODO(ksteuck): [as-needed]: Add a flag to indicate the direction of
   // stack growth.
@@ -61,6 +62,12 @@ ABSL_CONST_INIT const Snapshot::ArchitectureDescr
          // RestoreUContext() needs to push two registers onto the stack
          .required_stack_size = 8 * 2,
          .trap_instruction = "\xCC"},
+        {.id = Snapshot::Architecture::kAArch64,
+         .name = "aarch64",
+         .page_size = 4096,
+         // RestoreUContext() has a 32-byte stack frame
+         .required_stack_size = 32,
+         .trap_instruction = absl::string_view("\0\0\0\0", 4)},
 };
 
 const Snapshot::Id& Snapshot::UnsetId() {
@@ -89,8 +96,11 @@ Snapshot::Architecture Snapshot::CurrentArchitecture() {
   // TODO(ksteuck): [as-needed] Evolve as we add more architectures.
 #if defined(__x86_64__)
   return Architecture::kX86_64;
-#endif
+#elif defined(__aarch64__)
+  return Architecture::kAArch64;
+#else
   return Architecture::kUnsupported;
+#endif
 }
 
 absl::StatusOr<bool> Snapshot::IsExecutable(Address addr, ByteSize size) const {

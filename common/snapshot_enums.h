@@ -50,6 +50,7 @@ using ByteSize = uint64_t;
 enum class Architecture {
   kUnsupported = 0,
   kX86_64 = 1,
+  kAArch64 = 2,
 };
 
 // Type of an endpoint.
