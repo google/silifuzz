@@ -45,7 +45,7 @@ namespace silifuzz {
 
 template <>
 ABSL_CONST_INIT const char*
-    EnumNameMap<TestSnapshots::Type>[ToInt(TestSnapshots::kRunaway) + 1] = {
+    EnumNameMap<TestSnapshots::Type>[ToInt(TestSnapshots::kSplitLock) + 1] = {
         "kEmpty",
         "kEndsAsExpected",
         "kHasPlatformMismatch",
@@ -68,6 +68,7 @@ ABSL_CONST_INIT const char*
         "kChangesSegmentReg",
         "kIn",
         "kRunaway",
+        "kSplitLock",
 };
 
 // static
@@ -83,6 +84,7 @@ bool TestSnapshots::HasNormalEndState(Type type) {
     case kRegsAndMemoryMismatchRandom:
     case kChangesSegmentReg:
     case kSyscall:
+    case kSplitLock:
       return true;
     default:
       return false;
@@ -106,6 +108,7 @@ DECLARE_SNAPSHOT(kSigIll);
 DECLARE_SNAPSHOT(kINT3);
 DECLARE_SNAPSHOT(kChangesSegmentReg);
 DECLARE_SNAPSHOT(kIn);
+DECLARE_SNAPSHOT(kSplitLock);
 
 static void InitTestSnapshotRegs(UContext<X86_64>& ucontext) {
   SaveUContext(&ucontext);
@@ -344,6 +347,17 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
       // interrupted):
       // JMP . -- jumps to itself
       bytecode = DEFINE_SNAPSHOT(kRunaway, "jmp .");
+      break;
+    case kSplitLock:
+      bytecode =
+          DEFINE_SNAPSHOT(kSplitLock,
+                          // x86 L1 cache line size is 64b typically. Just in
+                          // case future CPUs have wider cache lines, align down
+                          // to 256b boundary from stack top.
+                          "movq %rsp, %rax;"
+                          "dec %rax;"
+                          "xorb %al,%al;"
+                          "lock incl -1(%rax)");
       break;
   }
   snapshot.add_memory_bytes(

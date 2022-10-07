@@ -135,6 +135,8 @@ Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type) {
       return TestSnapshots::Create(TestSnapshots::kRegsMismatchRandom, opts);
     case SnapRunnerTestType::kINT3:
       return TestSnapshots::Create(TestSnapshots::kINT3, opts);
+    case SnapRunnerTestType::kSplitLock:
+      return TestSnapshots::Create(TestSnapshots::kSplitLock, opts);
   }
 }
 

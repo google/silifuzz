@@ -52,8 +52,9 @@ enum class SnapRunnerTestType {
   kRegsMismatchRandom,
   kINT3,
   kSyscall,
+  kSplitLock,
 
-  kLastSnapRunnerTest = kSyscall,
+  kLastSnapRunnerTest = kSplitLock,
 };
 
 }  // namespace silifuzz

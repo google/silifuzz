@@ -24,7 +24,7 @@ readonly TOOL="${TEST_SRCDIR}/silifuzz/tools/snap_corpus_tool"
 readonly CORPUS="${TEST_SRCDIR}/silifuzz/tools/testdata/runnable_corpus-fake-platform-00000"
 
 function test::snap_corpus_tool() {
-  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 11'
+  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 12'
 }
 
 function test::extract() {

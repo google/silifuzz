@@ -114,6 +114,9 @@ class TestSnapshots : private SnapshotTypeNames {
 
     // Snapshot that is a run-away (never reaches its end-point).
     kRunaway,
+
+    // Snapshot that does lock access across cache lines on x86.
+    kSplitLock,
   };
 
   // If snapshot has a Snapshot::kNormalState or Snapshot::kUndefinedEndState.
@@ -168,7 +171,7 @@ class TestSnapshots : private SnapshotTypeNames {
 // EnumStr() works for TestSnapshots::Type.
 template <>
 extern const char*
-    EnumNameMap<TestSnapshots::Type>[ToInt(TestSnapshots::kRunaway) + 1];
+    EnumNameMap<TestSnapshots::Type>[ToInt(TestSnapshots::kSplitLock) + 1];
 
 }  // namespace silifuzz
 
