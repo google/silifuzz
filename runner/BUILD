@@ -298,6 +298,7 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_printer",
+        "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//util:checks",

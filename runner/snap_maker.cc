@@ -29,6 +29,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
+#include "./player/trace_options.h"
 #include "./runner/disassembling_snap_tracer.h"
 #include "./runner/driver/runner_driver.h"
 #include "./snap/gen/snap_generator.h"
@@ -181,7 +182,9 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
   // Single-step flags snapshots with non-deterministic instructions and
   // snapshots that execute to many instructions. No attempt is made to fix such
   // snapshots.
-  DisassemblingSnapTracer tracer(snapified);
+  TraceOptions trace_options = TraceOptions::Default();
+  trace_options.x86_trap_on_split_lock = opts_.x86_filter_split_lock;
+  DisassemblingSnapTracer tracer(snapified, trace_options);
   absl::StatusOr<RunnerDriver::RunResult> trace_result_or = verifier.TraceOne(
       snapified.id(),
       absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));

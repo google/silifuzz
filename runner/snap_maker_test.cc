@@ -41,8 +41,10 @@ SnapMaker::Options DefaultSnapMakerOptions() {
 
 // Applies Make(), Record() and Verify() to the snapshot and returns either
 // the fixed Snapshot or an error.
-absl::StatusOr<Snapshot> Fix(const Snapshot& snapshot) {
-  SnapMaker snap_maker(DefaultSnapMakerOptions());
+absl::StatusOr<Snapshot> Fix(
+    const Snapshot& snapshot,
+    const SnapMaker::Options& options = DefaultSnapMakerOptions()) {
+  SnapMaker snap_maker(options);
   auto made_snapshot_or = snap_maker.Make(snapshot);
   RETURN_IF_NOT_OK(made_snapshot_or.status());
   auto recorded_snap_or = snap_maker.RecordEndState(made_snapshot_or.value());
@@ -95,6 +97,20 @@ TEST(SnapMaker, Idempotent) {
   auto result2_or = Fix(*result_or);
   ASSERT_THAT(result2_or, IsOk());
   ASSERT_EQ(*result2_or, *result_or);
+}
+
+TEST(SnapMake, SplitLock) {
+  const auto splitLockSnap =
+      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSplitLock);
+  SnapMaker::Options options = DefaultSnapMakerOptions();
+  options.x86_filter_split_lock = false;
+  auto result_or = Fix(splitLockSnap, options);
+  EXPECT_THAT(result_or, IsOk());
+
+  options.x86_filter_split_lock = true;
+  result_or = Fix(splitLockSnap, options);
+  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
+                                  HasSubstr("Split-lock insn")));
 }
 
 }  // namespace

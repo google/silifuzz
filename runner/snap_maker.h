@@ -49,6 +49,12 @@ class SnapMaker {
     // value is somewhat arbitrary but it should normally be > 1.
     int num_verify_attempts = 5;
 
+    // If true, reject any snapshot with a locking instruction that accesses
+    // memory across cache line boundary. This option is x86-only and has no
+    // effect on other platforms. See https://lwn.net/Articles/790464/ for
+    // details.
+    bool x86_filter_split_lock = false;
+
     absl::Status Validate() const {
       if (runner_path.empty()) {
         return absl::InvalidArgumentError("runner_path must be non-empty");
