@@ -276,6 +276,7 @@ cc_test(
         ":disassembling_snap_tracer",
         ":runner_provider",
         "@silifuzz//common:snapshot_enums",
+        "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//snap/testing:snap_test_types",

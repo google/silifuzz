@@ -99,6 +99,11 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
           absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());
       return HarnessTracer::kInjectSigusr1;
     }
+    if (options_.x86_trap_on_split_lock && insn_or->may_have_split_lock(regs)) {
+      trace_result_.early_termination_reason =
+          absl::StrCat("Split-lock insn ", insn_or->mnemonic());
+      return HarnessTracer::kInjectSigusr1;
+    }
   } else {
     VLOG_INFO(1, HexStr(addr), ": <undecodable>");
     prev_instruction_decoding_failed_ = true;

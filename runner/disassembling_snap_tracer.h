@@ -58,10 +58,11 @@ class DisassemblingSnapTracer {
   };
 
   // `snapshot` must outlive the instance of DisassemblingSnapTracer.
-  DisassemblingSnapTracer(const Snapshot& snapshot)
+  DisassemblingSnapTracer(const Snapshot& snapshot,
+                          const TraceOptions& options = TraceOptions::Default())
       : snapshot_(snapshot),
         was_in_snapshot_(false),
-        stepper_(snapshot, TraceOptions::Default(), trace_result_) {}
+        stepper_(snapshot, options, trace_result_) {}
 
   // Not movable or copyable. Not just a data container.
   DisassemblingSnapTracer(const DisassemblingSnapTracer&) = delete;
