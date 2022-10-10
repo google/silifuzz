@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
 
+#include <sys/user.h>
+
 #include "absl/status/status.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
@@ -52,6 +54,26 @@ class DecodedInsn {
   // REQUIRES: is_valid().
   bool is_deterministic() const;
 
+  // Tells if the instruction locks memory. An instruction locks memory if
+  // it 1) has at least 1 memory operand and
+  //    2) has a valid lock prefix (e.g. lock add) or
+  //       it is the XCHG instruction, which does not require a lock prefix.
+  // REQUIRES: is_valid().
+  bool is_locking() const;
+
+  // Tells if executing the instruction with register values in `regs` may
+  // create a split-lock that crosses a cache line boundary. This is a
+  // best-effort estimate. The decision is made using the effective address
+  // only. If the address cannot be accessed in runtime, a page fault or a
+  // general protection fault will prevent a split-lock even if
+  // may_have_split_lock() returns true. The effective address computation is
+  // as accurate as the underlying XED library. If an instruction cannot be
+  // decoded by XED. This function cannot be used at all. If address computation
+  // fails internally in XED, this return false. So this can have false
+  // negatives in theory.
+  // REQUIRES: is_valid().
+  bool may_have_split_lock(const struct user_regs_struct& regs);
+
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
   absl::string_view DebugString() const {
@@ -85,12 +107,33 @@ class DecodedInsn {
   }
 
  private:
+  friend class DecodedInsnTestPeer;
+
   absl::Status Decode(absl::string_view data, uint64_t start_address = 0x0);
 
   // Fetches up to 16 bytes starting at `addr` from the ptrace-stopped process
   // identified by `pid`.
   static absl::StatusOr<Snapshot::MemoryBytes> FetchInstruction(
       pid_t pid, Snapshot::Address addr);
+
+  // Helper function for address generation using XED.
+  // Returns a 64-bit zero-extended value of `reg` from `regs` or an error.
+  static absl::StatusOr<uint64_t> get_reg(xed_reg_enum_t reg,
+                                          const struct user_regs_struct& regs);
+
+  // XED agen register callback. `context` must be a user_regs_struct pointer.
+  static xed_uint64_t agen_reg_callback(xed_reg_enum_t reg, void* context,
+                                        xed_bool_t* error);
+
+  // XED agen segment callback. `context` must be a user_regs_struct pointer.
+  static xed_uint64_t agen_segment_callback(xed_reg_enum_t reg, void* context,
+                                            xed_bool_t* error);
+
+  // Returns the address of the `i-th` memory operand of this instruction
+  // using register values in `regs` or returns an error.
+  // REQUIRES: is_valid() and i < number of memory operands.
+  absl::StatusOr<uint64_t> memory_operand_address(
+      size_t i, const struct user_regs_struct& regs);
 
   // The decoded insn.
   xed_decoded_inst_t xed_insn_;

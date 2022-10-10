@@ -291,6 +291,7 @@ cc_library(
         "@silifuzz//util:itoa",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -303,8 +304,10 @@ cc_test(
     srcs = ["decoded_insn_test.cc"],
     deps = [
         ":decoded_insn",
+        "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
+        "@libxed//:xed",
     ],
 )
 
