@@ -90,9 +90,13 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters);
 bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters);
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.
+// If `x86_filter_split_lock` is true, snapshots containing instructions that
+// access memory across cache line boundaries are filtered. This option is
+// x86-only and has no effect on other platforms.
 // Returns the fixed-up snapshot or an error status.
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
-                                       PlatformFixToolCounters* counters);
+                                       PlatformFixToolCounters* counters,
+                                       bool x86_filter_split_lock = false);
 
 }  // namespace fix_tool_internal
 }  // namespace silifuzz
