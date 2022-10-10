@@ -27,7 +27,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "third_party/libxed/_/xed/third_party/libxed/xed-reg-enum.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
