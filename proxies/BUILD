@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@centipede//testing:build_defs.bzl", "centipede_fuzz_target")
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -76,29 +74,35 @@ cc_test(
     ],
 )
 
-centipede_fuzz_target(
-    name = "unicorn_aarch64_sancov",
+cc_binary(
+    name = "unicorn_aarch64",
+    testonly = True,
     srcs = ["unicorn_aarch64.cc"],
+    linkopts = [
+        "-ldl",
+        "-lrt",
+        "-lpthread",
+    ],
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@centipede//:centipede_runner",
         "@unicorn//:unicorn_arm64",
     ],
 )
 
-centipede_fuzz_target(
-    name = "unicorn_x86_64_sancov",
+cc_binary(
+    name = "unicorn_x86_64",
+    testonly = True,
     srcs = ["unicorn_x86_64_sancov.cc"],
+    linkopts = [
+        "-ldl",
+        "-lrt",
+        "-lpthread",
+    ],
     deps = [
         ":unicorn_x86_64_lib",
-        "@silifuzz//common:raw_insns_util",
-        "@silifuzz//common:snapshot_util",
-        "@silifuzz//util:checks",
-        "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@centipede//:centipede_runner",
         "@unicorn//:unicorn_x86",
     ],
 )

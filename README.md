@@ -143,7 +143,9 @@ paper
 git clone https://github.com/google/silifuzz.git && cd silifuzz
 SILIFUZZ_SRC_DIR=`pwd`
 ./install_build_dependencies.sh  # Currently, works for the latest Debian and Ubuntu only
-bazel build @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id} @silifuzz//runner:reading_runner_main_nolibc @silifuzz//orchestrator:silifuzz_orchestrator_main
+bazel build @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id,simple_fix_tool_main} \
+     @silifuzz//runner:reading_runner_main_nolibc \
+     @silifuzz//orchestrator:silifuzz_orchestrator_main
 SILIFUZZ_BIN_DIR=`pwd`/bazel-bin/
 cd "${SILIFUZZ_BIN_DIR}"
 ```
@@ -157,22 +159,23 @@ type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian /bin/bash -c "cd /app &&
 
 ```shell
 cd "${SILIFUZZ_SRC_DIR}"
-bazel build -c opt @silifuzz//proxies:unicorn_x86_64_sancov
+COV_FLAGS_FILE="$(bazel info output_base)/external/centipede/clang-flags.txt"
+bazel build -c opt --copt=-UNDEBUG --dynamic_mode=off \
+  --per_file_copt=unicorn/.*@$(xargs < "${COV_FLAGS_FILE}" |sed -e 's/,/\\,/g' -e 's/ /,/g') unicorn_x86_64
 bazel build -c opt @centipede//:centipede
 mkdir -p /tmp/wd
 
-# Fuzz unicorn proxies under centipede with parallelism of 30.
+# Fuzz unicorn proxies under Centipede with parallelism of 30.
 "${SILIFUZZ_BIN_DIR}/external/centipede/centipede" \
-  --binary "${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64_sancov" \
-  --workdir /tmp/wd
+  --binary "${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
+  --workdir /tmp/wd \
   -j 30
 ```
 
 ### Prework (collect corpus from fuzzing result)
 
 ```shell
-cd "${SILIFUZZ_SRC_DIR}"
-bazel build -c opt @silifuzz//tools:simple_fix_tool
+cd "${SILIFUZZ_BIN_DIR}"
 
 # convert fuzzing result corpus.* into a 10-shard runnable corpus
 # for the architecture we are using. The shards will be at
