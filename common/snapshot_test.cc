@@ -69,7 +69,7 @@ TEST(Snapshot, CanSetRegs) {
   EXPECT_THAT(
       status,
       StatusIs(absl::StatusCode::kInvalidArgument,
-               ContainsRegex("stack pointer \\(0x.+\\) and \\d+ bytes before "
+               ContainsRegex("stack pointer \\(0x.+\\) and [0-9]+ bytes before "
                              "it must be within a writable MemoryMapping")));
 }
 

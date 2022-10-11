@@ -109,7 +109,6 @@ TEST(Subprocess, ParentDeath) {
   std::thread t([&] {
     // Start the process in a separate thread. The death signal is delivered
     // when the parent thread exits.
-    LOG(INFO) << "Starting sleep";
     if (!sp.Start({"/bin/sleep", "3600"}).ok()) {
       abort();
     }
