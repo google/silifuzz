@@ -82,7 +82,7 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
 // tool statistics in `counters`.
 std::vector<std::vector<Snapshot>> PartitionSnapshots(
     const SimpleFixToolOptions& options, int num_groups,
-    std::vector<Snapshot>& snapshots, SimpleFixToolCounters* counters);
+    std::vector<Snapshot>& snapshots);
 
 // Writes snapshots in `shards` into relocatable corpora. Each corpus has
 // a path `output_path_prefix` + '.' + <shard index>. Updates fix tool

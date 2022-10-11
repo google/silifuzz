@@ -59,9 +59,9 @@ void FixToolWorker(FixToolWorkerArgs& args) {
   PlatformFixToolCounters platform_counters(ShortPlatformName(current_platform),
                                             &args.counters);
 
-  for (const auto& blob : args.blobs) {
+  for (const std::string& blob : args.blobs) {
     absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64(
-        blob.data(), kCodeAddr, kCodeLimit - kCodeAddr, kMem1Addr);
+        blob, kCodeAddr, kCodeLimit - kCodeAddr, kMem1Addr);
     if (!snapshot.ok()) {
       args.counters.Increment(
           "silifuzz-ERROR-FixToolWorker:instructions-to-snapshot-failed");
@@ -81,7 +81,6 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     args.counters.Increment("silifuzz-INFO-FixToolWorker:success");
   }
 }
-
 }  // namespace
 
 std::vector<std::string> ReadUniqueCentipedeBlobs(
@@ -93,7 +92,7 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
   // Record unique snapshot names seen so far to de-dupe blobs.
   absl::flat_hash_set<Snapshot::Id> id_seen;
 
-  for (const auto& input : inputs) {
+  for (const std::string& input : inputs) {
     auto reader = centipede::DefaultBlobFileReaderFactory();
     if (!reader->Open(input).ok()) {
       counters->Increment("silifuzz-ERROR-Read:open-blob-reader-failed");
@@ -175,7 +174,7 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
 
 std::vector<std::vector<Snapshot>> PartitionSnapshots(
     const SimpleFixToolOptions& options, int num_groups,
-    std::vector<Snapshot>& snapshots, SimpleFixToolCounters* counters) {
+    std::vector<Snapshot>& snapshots) {
   // Create snapshot summaries for partitioner.
   SnapshotGroup::SnapshotSummaryList ungrouped;
   ungrouped.reserve(snapshots.size());
@@ -186,8 +185,6 @@ std::vector<std::vector<Snapshot>> PartitionSnapshots(
   // Run iterative partitioner.
   auto partitions = PartitionCorpus(
       num_groups, options.num_partitioning_iterations, ungrouped);
-  counters->IncrementBy("silifuzz-INFO-Partition:cannot-group",
-                        ungrouped.size());
 
   // Build Snapshot ID -> Group index map.
   absl::flat_hash_map<Snapshot::Id, int> group_map;
@@ -255,7 +252,10 @@ void FixupCorpus(const SimpleFixToolOptions& options,
       MakeSnapshotsFromBlobs(options, blobs, counters);
 
   std::vector<std::vector<Snapshot>> shards =
-      PartitionSnapshots(options, num_output_shards, made_snapshots, counters);
+      fix_tool_internal::PartitionSnapshots(options, num_output_shards,
+                                            made_snapshots);
+  counters->IncrementBy("silifuzz-ERROR-Partition:cannot-group",
+                        made_snapshots.size());
   made_snapshots.clear();  // discard any left-over snapshots.
 
   WriteOutputFiles(shards, output_path_prefix, counters);
