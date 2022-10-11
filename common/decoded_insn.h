@@ -61,9 +61,9 @@ class DecodedInsn {
   // REQUIRES: is_valid().
   bool is_locking() const;
 
-  // Tells if executing the instruction with register values in `regs` may
-  // create a split-lock that crosses a cache line boundary. This is a
-  // best-effort estimate. The decision is made using the effective address
+  // Tells if executing the instruction with pre-execution register values in
+  // `regs` may create a split-lock that crosses a cache line boundary. This is
+  // a best-effort estimate. The decision is made using the effective address
   // only. If the address cannot be accessed in runtime, a page fault or a
   // general protection fault will prevent a split-lock even if
   // may_have_split_lock() returns true. The effective address computation is
@@ -130,7 +130,7 @@ class DecodedInsn {
                                             xed_bool_t* error);
 
   // Returns the address of the `i-th` memory operand of this instruction
-  // using register values in `regs` or returns an error.
+  // using pre-execution register values in `regs` or returns an error.
   // REQUIRES: is_valid() and i < number of memory operands.
   absl::StatusOr<uint64_t> memory_operand_address(
       size_t i, const struct user_regs_struct& regs);

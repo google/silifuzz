@@ -401,8 +401,14 @@ absl::StatusOr<uint64_t> DecodedInsn::memory_operand_address(
     size_t i, const struct user_regs_struct& regs) {
   DCHECK_STATUS(status_);
   xed_uint64_t address;
+
+  // For RIP-relative addressing, we need the address after this instruction.
+  // So make a copy of `regs` and fix up RIP there.
+  user_regs_struct regs_with_adjusted_rip = regs;
+  regs_with_adjusted_rip.rip += xed_decoded_inst_get_length(&xed_insn_);
   xed_error_enum_t error = xed_agen(
-      &xed_insn_, i, const_cast<struct user_regs_struct*>(&regs), &address);
+      &xed_insn_, i,
+      const_cast<struct user_regs_struct*>(&regs_with_adjusted_rip), &address);
   if (error == XED_ERROR_NONE) {
     return address;
   } else {

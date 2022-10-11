@@ -260,6 +260,17 @@ TEST(DecodedInsn, memory_operand_address) {
   regs.rcx = 0xabcdef00;
   DecodedInsnTestPeer peer2(insn2);
   EXPECT_THAT(peer2.memory_operand_address(0, regs), IsOkAndHolds(regs.rcx));
+
+  // RIP relative addressing. Check that RIP value is adjusted correctly
+  // for address calculation.
+  DecodedInsn insn3(absl::string_view("\x48\x8b\x05\x00\x00\x00\x00", 7));
+  ASSERT_TRUE(insn3.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()),
+            "mov rax, qword ptr [rip]");
+  regs.rip = 0x1000;
+  DecodedInsnTestPeer peer3(insn3);
+  EXPECT_THAT(peer3.memory_operand_address(0, regs),
+              IsOkAndHolds(regs.rip + insn3.length()));
 }
 
 TEST(DecodedInsn, may_have_split_lock) {
@@ -286,6 +297,14 @@ TEST(DecodedInsn, may_have_split_lock) {
   EXPECT_EQ(absl::StripAsciiWhitespace(insn2.DebugString()),
             "add dword ptr [rsi+rax*4+0x78], 0x1");
   EXPECT_FALSE(insn2.may_have_split_lock(regs));
+
+  // RIP relative addressing. Check that RIP value is adjusted correctly.
+  regs.rip = 0x1000;
+  DecodedInsn insn3({"\x48\x87\x05\xf4\xff\xff\xff"});
+  ASSERT_TRUE(insn3.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()),
+            "xchg qword ptr [rip-0xc], rax");
+  EXPECT_TRUE(insn3.may_have_split_lock(regs));
 }
 
 }  // namespace
