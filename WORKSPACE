@@ -165,6 +165,7 @@ new_git_repository(
     commit = "63a445cbba18bf1313ac3699b5d25462b5d529f4",
     patch_cmds = [
         "sed -i -e 's|ARM64_REGS_STORAGE_SIZE|DEFAULT_VISIBILITY ARM64_REGS_STORAGE_SIZE|' qemu/target-arm/unicorn.h",
+        "sed -i -e 's|X86_REGS_STORAGE_SIZE|DEFAULT_VISIBILITY X86_REGS_STORAGE_SIZE|' qemu/target-i386/unicorn.h",
     ],
     remote = "https://github.com/unicorn-engine/unicorn",
     shallow_since = "1639356032 +0800",
