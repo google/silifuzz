@@ -161,30 +161,20 @@ type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian /bin/bash -c "cd /app &&
 cd "${SILIFUZZ_SRC_DIR}"
 COV_FLAGS_FILE="$(bazel info output_base)/external/centipede/clang-flags.txt"
 bazel build -c opt --copt=-UNDEBUG --dynamic_mode=off \
-  --per_file_copt=unicorn/.*@$(xargs < "${COV_FLAGS_FILE}" |sed -e 's/,/\\,/g' -e 's/ /,/g') unicorn_x86_64
+  --per_file_copt=unicorn/.*@$(xargs < "${COV_FLAGS_FILE}" |sed -e 's/,/\\,/g' -e 's/ /,/g') @//proxies:unicorn_x86_64
 bazel build -c opt @centipede//:centipede
 mkdir -p /tmp/wd
 
-# Fuzz unicorn proxies under Centipede with parallelism of 30.
+# Fuzz the Unicorn proxy under Centipede with parallelism of 30.
 "${SILIFUZZ_BIN_DIR}/external/centipede/centipede" \
-  --binary "${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
-  --workdir /tmp/wd \
-  -j 30
+  --binary="${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
+  --workdir=/tmp/wd \
+  -j=30
 ```
 
-### Prework (collect corpus from fuzzing result)
-
-```shell
-cd "${SILIFUZZ_BIN_DIR}"
-
-# convert fuzzing result corpus.* into a 10-shard runnable corpus
-# for the architecture we are using. The shards will be at
-# /tmp/wd/runnable-corpus.*
-"${SILIFUZZ_BIN_DIR}/tools/simple_fix_tool_main" \
-  --num_output_shards 10 \
-  --output_path_prefix /tmp/wd/runnable-corpus \
-  /tmp/wd/corpus.*
-```
+NOTE: Please refer to
+[Centipede](https://github.com/google/centipede/blob/main/README.md#run-centipede-locally-run-step)
+documentation on how to efficiently run the fuzzing engine.
 
 ## Tools
 
@@ -199,6 +189,10 @@ $ ${SILIFUZZ_BIN_DIR}/tools/silifuzz_platform_id
 ```
 intel-skylake
 ```
+
+NOTE: SiliFuzz CPU detection logic does not account for certain desktop variants
+of otherwise supported CPUs. The tool will report "Unsupported platform" in such
+cases.
 
 ### fuzz_filter_tool
 
@@ -257,10 +251,10 @@ The simple fix tool takes fuzzing results from Centipede, converts raw
 instructions into a snapshots with no end states, adds end states to snapshots
 and finally packages snapshots into a sharded relocatable snap corpus.
 
-Currently this runs as a non-restartable process on a single host and everything is put into
-memory so the size of corpus that can be handled is limited by available memory
-of the host. Since end states are generated on the hosts, the resulting corpus
-is single architecture.
+Currently this runs as a non-restartable process on a single host and everything
+is put into memory so the size of corpus that can be handled is limited by
+available memory of the host. Since end states are generated on the host, the
+resulting corpus is single architecture.
 
 ## Frequently asked questions
 
@@ -341,7 +335,7 @@ $ ./tools/snap_tool play /tmp/inc_eax.pb
 Snapshot played successfully.
 ```
 
-### How to create and use a (relocatable) corpus
+### How to convert a single snapshot into a (relocatable) corpus
 
 ```shell
 $ ./tools/snap_tool generate_corpus /tmp/inc_eax.pb > /tmp/inc_eax.corpus
@@ -365,6 +359,24 @@ Breakpoint 1, 0x0000456700010598 in RestoreUContextNoSyscalls ()
    0xeb85c12b000:       inc    %eax
 ```
 
+### How to create a corpus from an emulator
+
+NOTE: This step relies on the "fuzzing Unicorn target" step described earlier.
+
+Convert fuzzing result corpus.* into a 10-shard runnable corpus for the current
+architecture.
+
+```shell
+cd "${SILIFUZZ_BIN_DIR}"
+
+"${SILIFUZZ_BIN_DIR}/tools/simple_fix_tool_main" \
+  --num_output_shards=10 \
+  --output_path_prefix=/tmp/wd/runnable-corpus \
+  /tmp/wd/corpus.*
+```
+
+The corpus shards will be at /tmp/wd/runnable-corpus.*
+
 ### How to inspect a corpus file
 
 ```shell
@@ -374,10 +386,6 @@ I0000 00:00:1661887744.019079 4074672 snap_corpus_tool.cc:155] inc_eax
 ```
 
 NOTE: This is a very basic tool at the moment offering just a few commands.
-
-### How to create and run a standalone runner binary
-
-TODO: coming soon
 
 ### How to invoke the runner to scan a single core of a CPU
 
@@ -390,13 +398,21 @@ $ ./runner/reading_runner_main_nolibc \
 ### How to scan all cores of a CPU
 
 ```shell
-$ xz -c /tmp/inc_eax.corpus > /tmp/inc_eax.corpus.xz
 # Will repeatedly run the corpus on all available CPU cores for 30s.
 $ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
      --runner=./runner/reading_runner_main_nolibc \
-     /tmp/inc_eax.corpus.xz
+     /tmp/inc_eax.corpus
 ```
 
-### How to create a corpus from a real target
+You can pass multiple corpus shards to the orchestrator. It'll cycle through
+them in random order:
 
-TODO: coming soon
+```shell
+# Will repeatedly run the corpus on all available CPU cores for 30s using
+# /tmp/wd/runnable-corpus.* selected randomly.
+$ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
+     --runner=./runner/reading_runner_main_nolibc \
+     /tmp/wd/runnable-corpus.*
+```
+
+NOTE: The orchestrator can also use XZ-compressed corpus shards.
