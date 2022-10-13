@@ -32,32 +32,29 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./util/checks.h"
-#include "util/process/subprocess.h"
+#include "./util/subprocess.h"
 
 namespace silifuzz {
 namespace {
 
 using ::testing::Optional;
 
-std::unique_ptr<SubProcess> HelperProcess(absl::string_view mode) {
+std::unique_ptr<Subprocess> StartHelperProcess(absl::string_view mode) {
   std::string helper = absl::StrCat(
       devtools_build::GetRunfilesDir(),
       "/google3/third_party/silifuzz/common/harness_tracer_test_helper");
-  auto helper_process = std::make_unique<SubProcess>();
+  Subprocess::Options options = Subprocess::Options::Default();
+  options.MapStderr(Subprocess::kMapToStdout);
+  auto helper_process = std::make_unique<Subprocess>(options);
 
-  helper_process->SetProgram(helper, {std::string(mode)});
-  helper_process->SetChannelAction(CHAN_STDIN, ACTION_CLOSE);
-  helper_process->SetChannelAction(CHAN_STDOUT, ACTION_DUPPARENT);
-  helper_process->SetChannelAction(CHAN_STDERR, ACTION_DUPPARENT);
+  CHECK_OK(helper_process->Start({helper, std::string(mode)}));
   return helper_process;
 }
 
 TEST(HarnessTracerTest, CrashAndExit) {
   for (absl::string_view test_mode : {"test-crash", "test-exit"}) {
     SCOPED_TRACE(absl::StrCat("Testing ", test_mode));
-    std::unique_ptr<SubProcess> helper_process = HelperProcess(test_mode);
-
-    helper_process->Start();
+    std::unique_ptr<Subprocess> helper_process = StartHelperProcess(test_mode);
 
     HarnessTracer tracer(helper_process->pid(), HarnessTracer::kSyscall,
                          [](pid_t pid, const user_regs_struct& regs,
@@ -73,14 +70,15 @@ TEST(HarnessTracerTest, CrashAndExit) {
     } else {
       EXPECT_EQ(*status, 0);
     }
-    helper_process->Wait();
+    std::string stdout_str;
+    helper_process->Communicate(&stdout_str);
+    LOG(INFO) << "Helper stdout for " << test_mode << ":\n" << stdout_str;
   }
 }
 
 TEST(HarnessTracerTest, SingleStep) {
-  std::unique_ptr<SubProcess> helper_process = HelperProcess("test-singlestep");
-
-  helper_process->Start();
+  std::unique_ptr<Subprocess> helper_process =
+      StartHelperProcess("test-singlestep");
 
   int n_xchg_seen = 0;
   HarnessTracer tracer(
@@ -102,15 +100,16 @@ TEST(HarnessTracerTest, SingleStep) {
       });
   tracer.Attach();
   EXPECT_THAT(tracer.Join(), Optional(0));
-  helper_process->Wait();
+  std::string stdout_str;
+  helper_process->Communicate(&stdout_str);
+  LOG(INFO) << "Helper stdout:\n" << stdout_str;
   // Expecting exactly 100 (50+50) xchg ops executed while the tracer is active.
   EXPECT_EQ(n_xchg_seen, 100);
 }
 
 TEST(HarnessTracerTest, Syscall) {
-  std::unique_ptr<SubProcess> helper_process = HelperProcess("test-syscall");
-
-  helper_process->Start();
+  std::unique_ptr<Subprocess> helper_process =
+      StartHelperProcess("test-syscall");
 
   // Number of times SYS_getcpu was invoked by SyscallHelper in
   // harness_tracer_test_helper.cc. For every invocation the callback runs twice
@@ -130,15 +129,16 @@ TEST(HarnessTracerTest, Syscall) {
       });
   tracer.Attach();
   EXPECT_THAT(tracer.Join(), Optional(0));
-  helper_process->Wait();
+  std::string stdout_str;
+  helper_process->Communicate(&stdout_str);
+  LOG(INFO) << "Helper stdout:\n" << stdout_str;
   EXPECT_EQ(num_seen_getcpu, 2);
 }
 
 TEST(HarnessTracerTest, Signal) {
   for (auto mode : {HarnessTracer::kSyscall, HarnessTracer::kSingleStep}) {
-    std::unique_ptr<SubProcess> helper_process = HelperProcess("test-signal");
-
-    helper_process->Start();
+    std::unique_ptr<Subprocess> helper_process =
+        StartHelperProcess("test-signal");
 
     HarnessTracer tracer(helper_process->pid(), mode,
                          [&](pid_t pid, const struct user_regs_struct& regs,
@@ -158,15 +158,15 @@ TEST(HarnessTracerTest, Signal) {
           << "SignalHelper() does 3 rounds of 4 types of causing SIGTRAP"
           << " except icebp is not properly handled by the tracer";
     }
-    helper_process->Wait();
+    std::string stdout_str;
+    helper_process->Communicate(&stdout_str);
+    LOG(INFO) << "Helper stdout for mode=" << mode << ":\n" << stdout_str;
   }
 }
 
 TEST(HarnessTracerTest, SignalInjection) {
-  std::unique_ptr<SubProcess> helper_process =
-      HelperProcess("test-signal-injection");
-
-  helper_process->Start();
+  std::unique_ptr<Subprocess> helper_process =
+      StartHelperProcess("test-signal-injection");
 
   HarnessTracer tracer(helper_process->pid(), HarnessTracer::kSyscall,
                        [](pid_t pid, const struct user_regs_struct& regs,
@@ -184,7 +184,9 @@ TEST(HarnessTracerTest, SignalInjection) {
   ASSERT_TRUE(status.has_value());
   ASSERT_TRUE(WIFEXITED(*status)) << "status = " << *status;
   EXPECT_EQ(WEXITSTATUS(*status), 1);
-  helper_process->Wait();
+  std::string stdout_str;
+  helper_process->Communicate(&stdout_str);
+  LOG(INFO) << "Helper stdout:\n" << stdout_str;
 }
 
 }  // namespace

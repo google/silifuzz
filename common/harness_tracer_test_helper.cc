@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Helper binary to test different parts of :harness_tracer functionality.
-// Implements a number of modes (controlled by argv[0]).
+// Implements a number of modes (controlled by argv[1]).
 // Refer to individual *Helper() functions for details.
 #include <string.h>
 #include <unistd.h>
@@ -150,17 +150,17 @@ int main(int argc, char** argv) {
   absl::string_view msg = "Helper alive\n";
   write(STDOUT_FILENO, msg.data(), msg.size());
 
-  if (strcmp(argv[0], "test-syscall") == 0) {
+  if (strcmp(argv[1], "test-syscall") == 0) {
     SyscallHelper();
-  } else if (strcmp(argv[0], "test-singlestep") == 0) {
+  } else if (strcmp(argv[1], "test-singlestep") == 0) {
     SingleStepHelper();
-  } else if (strcmp(argv[0], "test-crash") == 0) {
+  } else if (strcmp(argv[1], "test-crash") == 0) {
     sys_raise(SIGILL);
-  } else if (strcmp(argv[0], "test-exit") == 0) {
+  } else if (strcmp(argv[1], "test-exit") == 0) {
     // do nothing.
-  } else if (strcmp(argv[0], "test-signal") == 0) {
+  } else if (strcmp(argv[1], "test-signal") == 0) {
     return SignalHelper();
-  } else if (strcmp(argv[0], "test-signal-injection") == 0) {
+  } else if (strcmp(argv[1], "test-signal-injection") == 0) {
     return SignalInjectionHelper();
   }
 
