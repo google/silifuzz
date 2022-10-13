@@ -18,6 +18,8 @@
 #include <sys/user.h>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
 
@@ -62,17 +64,16 @@ class DecodedInsn {
   bool is_locking() const;
 
   // Tells if executing the instruction with pre-execution register values in
-  // `regs` may create a split-lock that crosses a cache line boundary. This is
-  // a best-effort estimate. The decision is made using the effective address
-  // only. If the address cannot be accessed in runtime, a page fault or a
-  // general protection fault will prevent a split-lock even if
-  // may_have_split_lock() returns true. The effective address computation is
-  // as accurate as the underlying XED library. If an instruction cannot be
-  // decoded by XED. This function cannot be used at all. If address computation
-  // fails internally in XED, this return false. So this can have false
-  // negatives in theory.
-  // REQUIRES: is_valid().
-  bool may_have_split_lock(const struct user_regs_struct& regs);
+  // `regs` may create a split-lock that crosses a cache line boundary or
+  // returns an error. This is a best-effort estimate. The decision is made
+  // using the effective address only. If the address cannot be accessed in
+  // runtime, a page fault or a general protection fault will prevent a
+  // split-lock even if may_have_split_lock() returns true. The effective
+  // address computation is as accurate as the underlying XED library. If an
+  // instruction cannot be decoded by XED. This function cannot be used at all.
+  // If address computation fails internally in XED, this return false. So this
+  // can have false negatives in theory. REQUIRES: is_valid().
+  absl::StatusOr<bool> may_have_split_lock(const struct user_regs_struct& regs);
 
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().

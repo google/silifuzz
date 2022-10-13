@@ -35,6 +35,7 @@ extern "C" {
 #include "third_party/libxed/xed-agen.h"
 #include "third_party/libxed/xed-error-enum.h"
 #include "third_party/libxed/xed-iclass-enum.h"
+#include "third_party/libxed/xed-iform-enum.h"
 #include "third_party/libxed/xed-reg-class.h"
 #include "third_party/libxed/xed-reg-enum.h"
 #include "third_party/libxed/xed-syntax-enum.h"
@@ -130,56 +131,73 @@ bool DecodedInsn::is_deterministic() const {
 
 bool DecodedInsn::is_locking() const {
   DCHECK_STATUS(status_);
-  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
-  switch (iclass) {
-    // Instructions that can be prefixed with LOCK. Adding the prefix to any
-    // instructions not in this list will cause #UD in runtime. See documention
-    // of LOCK prefix in x86_64 ISA manual, vol 2, chapter 3.
-    case XED_ICLASS_ADC_LOCK:
-    case XED_ICLASS_ADD_LOCK:
-    case XED_ICLASS_AND_LOCK:
-    case XED_ICLASS_BTC_LOCK:
-    case XED_ICLASS_BTR_LOCK:
-    case XED_ICLASS_BTS_LOCK:
-    case XED_ICLASS_CMPXCHG16B_LOCK:
-    case XED_ICLASS_CMPXCHG8B_LOCK:
-    case XED_ICLASS_CMPXCHG_LOCK:
-    case XED_ICLASS_DEC_LOCK:
-    case XED_ICLASS_INC_LOCK:
-    case XED_ICLASS_NEG_LOCK:
-    case XED_ICLASS_NOT_LOCK:
-    case XED_ICLASS_OR_LOCK:
-    case XED_ICLASS_SBB_LOCK:
-    case XED_ICLASS_SUB_LOCK:
-    case XED_ICLASS_XADD_LOCK:
-    case XED_ICLASS_XOR_LOCK:
-      // If there is no memory operand, the instruction is not considered
-      // locking. It is possible to encode one of the instructions above that is
-      // register-only using a lock prefix. XED will reject such a combination
-      // as undecodable instruction with a BAD_LOCK_PREFIX error.
-      CHECK_GT(xed_decoded_inst_number_of_memory_operands(&xed_insn_), 0);
-      return true;
-    case XED_ICLASS_XCHG:
-      // xchg does not need a LOCK prefix.  However, we need to check that
-      // there is at least one memory operand in order to be considered
-      // locking as register-only form of xchg is valid.
-      return xed_decoded_inst_number_of_memory_operands(&xed_insn_) > 0;
-    default:
-      return false;
-  }
+  return xed_decoded_inst_get_attribute(&xed_insn_, XED_ATTRIBUTE_LOCKED) != 0;
 }
 
-bool DecodedInsn::may_have_split_lock(const struct user_regs_struct& regs) {
+absl::StatusOr<bool> DecodedInsn::may_have_split_lock(
+    const struct user_regs_struct& regs) {
   DCHECK_STATUS(status_);
   if (!is_locking()) return false;
 
   // We expect only 1 memory operand.  Bail out if this is not the case.
   if (xed_decoded_inst_number_of_memory_operands(&xed_insn_) != 1) return false;
 
-  absl::StatusOr<uint64_t> operand_address_or = memory_operand_address(0, regs);
-  if (!operand_address_or.ok()) return false;
+  ASSIGN_OR_RETURN_IF_NOT_OK(uint64_t address, memory_operand_address(0, regs));
 
-  const uint64_t offset = operand_address_or.value() & (l1_cache_line_size - 1);
+  // For bit test instructions, the effective address is determined by both
+  // bit base and bit offset. See Bit(BitBase, BitOffset) in 3.1.1.9 Operation
+  // Section, vol 2. Intel 64 and IA-32 Architecture SDM for details.
+  const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
+  if (iclass == XED_ICLASS_BTC_LOCK || iclass == XED_ICLASS_BTR_LOCK ||
+      iclass == XED_ICLASS_BTS_LOCK) {
+    const xed_iform_enum_t iform = xed_decoded_inst_get_iform_enum(&xed_insn_);
+    const uint64_t operand_bit_size =
+        xed_decoded_inst_get_operand_width(&xed_insn_);
+    const uint64_t operand_bit_size_mask = operand_bit_size - 1;
+    uint64_t bit_offset = 0;
+    switch (iform) {
+      case XED_IFORM_BTC_LOCK_MEMv_GPRv:
+      case XED_IFORM_BTR_LOCK_MEMv_GPRv:
+      case XED_IFORM_BTS_LOCK_MEMv_GPRv: {
+        xed_reg_enum_t reg =
+            xed_decoded_inst_get_reg(&xed_insn_, XED_OPERAND_REG0);
+        auto value_or = get_reg(reg, regs);
+        RETURN_IF_NOT_OK(value_or.status());
+        // A register bit value is interpreted as a signed integer of the
+        // operand bit size. Here we treat it as unsigned. This is okay as we
+        // only care about the lower bits up to cache line size in bits.
+        bit_offset = value_or.value();
+        break;
+      }
+      case XED_IFORM_BTC_LOCK_MEMv_IMMb:
+      case XED_IFORM_BTR_LOCK_MEMv_IMMb:
+      case XED_IFORM_BTS_LOCK_MEMv_IMMb:
+        // We are being conservative here as it is not clear in XED's
+        // documentation if xed_decode_inst_get_unsigned_immediate() fails when
+        // immediate is signed. This may be unnecessary.
+        if (xed_decoded_inst_get_immediate_is_signed(&xed_insn_)) {
+          return absl::InternalError(
+              absl::StrCat("Unexpected signed immediate in iform ",
+                           xed_iform_enum_t2str(iform)));
+        }
+
+        // Immediate bits beyond operand width are not used.
+        bit_offset = xed_decoded_inst_get_unsigned_immediate(&xed_insn_) &
+                     operand_bit_size_mask;
+        break;
+      default:
+        return absl::InternalError(
+            absl::StrCat("Unexpected iform: ", xed_iform_enum_t2str(iform)));
+    }
+
+    // Round bit offset to multiples of operand bit size first to compute
+    // the byte offset from bit base.
+    const uint64_t byte_offset =
+        ((bit_offset / operand_bit_size) * operand_bit_size) / 8;
+    address += byte_offset;
+  }
+
+  const uint64_t offset = address & (l1_cache_line_size - 1);
   const uint64_t operand_size =
       xed_decoded_inst_get_memory_operand_length(&xed_insn_, 0);
   return offset + operand_size > l1_cache_line_size;

@@ -282,21 +282,21 @@ TEST(DecodedInsn, may_have_split_lock) {
   regs.rsi = 0x340000;
   regs.rax = 0x5600 >> 2;
   // Address: 0x345678
-  EXPECT_FALSE(insn.may_have_split_lock(regs));
+  EXPECT_THAT(insn.may_have_split_lock(regs), IsOkAndHolds(false));
 
   regs.rsi += 4;
   // Address: 0x34567c, just touching cache boundary.
-  EXPECT_FALSE(insn.may_have_split_lock(regs));
+  EXPECT_THAT(insn.may_have_split_lock(regs), IsOkAndHolds(false));
 
   regs.rsi += 1;
   // Address: 0x34567d, crossing cache boundary.
-  EXPECT_TRUE(insn.may_have_split_lock(regs));
+  EXPECT_THAT(insn.may_have_split_lock(regs), IsOkAndHolds(true));
 
   DecodedInsn insn2("\x83\x44\x86\x78\x01");
   ASSERT_TRUE(insn2.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn2.DebugString()),
             "add dword ptr [rsi+rax*4+0x78], 0x1");
-  EXPECT_FALSE(insn2.may_have_split_lock(regs));
+  EXPECT_THAT(insn2.may_have_split_lock(regs), IsOkAndHolds(false));
 
   // RIP relative addressing. Check that RIP value is adjusted correctly.
   regs.rip = 0x1000;
@@ -304,7 +304,37 @@ TEST(DecodedInsn, may_have_split_lock) {
   ASSERT_TRUE(insn3.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()),
             "xchg qword ptr [rip-0xc], rax");
-  EXPECT_TRUE(insn3.may_have_split_lock(regs));
+  EXPECT_THAT(insn3.may_have_split_lock(regs), IsOkAndHolds(true));
+
+  // A bit test instruction uses both operands to determine the
+  // actually memory address accessed.
+  regs.r15 = 0x20000000;
+  regs.rcx = 0xf5fd74df;
+  DecodedInsn insn4("\xf3\x67\xf0\x4b\x0f\xb3\x4f\x67");
+  ASSERT_TRUE(insn4.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn4.DebugString()),
+            "xrelease lock btr qword ptr [r15d+0x67], rcx");
+  EXPECT_THAT(insn4.may_have_split_lock(regs), IsOkAndHolds(true));
+  regs.rcx += 64;
+  EXPECT_THAT(insn4.may_have_split_lock(regs), IsOkAndHolds(false));
+
+  // Bit test instruction with immediate bit offset.
+  regs.rsi = 0xfff;
+  DecodedInsn insn5("\x67\x66\xf0\x0f\xba\x2e\xf7");
+  ASSERT_TRUE(insn5.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn5.DebugString()),
+            "lock bts word ptr [esi], 0xf7");
+  EXPECT_THAT(insn5.may_have_split_lock(regs), IsOkAndHolds(true));
+  regs.rsi = 0xffe;
+  EXPECT_THAT(insn5.may_have_split_lock(regs), IsOkAndHolds(false));
+
+  // A compare-exchange instruction using a register-pair.
+  regs.rsi = 0xfffc;
+  DecodedInsn insn6("\xf0\x0f\xc7\x0e");
+  ASSERT_TRUE(insn6.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn6.DebugString()),
+            "lock cmpxchg8b qword ptr [rsi]");
+  EXPECT_THAT(insn6.may_have_split_lock(regs), IsOkAndHolds(true));
 }
 
 }  // namespace

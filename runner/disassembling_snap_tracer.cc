@@ -99,10 +99,21 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
           absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());
       return HarnessTracer::kInjectSigusr1;
     }
-    if (options_.x86_trap_on_split_lock && insn_or->may_have_split_lock(regs)) {
-      trace_result_.early_termination_reason =
-          absl::StrCat("Split-lock insn ", insn_or->mnemonic());
-      return HarnessTracer::kInjectSigusr1;
+    if (options_.x86_trap_on_split_lock && insn_or->is_locking()) {
+      auto may_have_split_lock_or = insn_or->may_have_split_lock(regs);
+      if (!may_have_split_lock_or.ok()) {
+        // We cannot determine if there is a split-lock because of an internal
+        // error in may_have_split_lock(). Abort tracing.
+        trace_result_.early_termination_reason = absl::StrCat(
+            "may_have_split_lock() failed for insn ", insn_or->mnemonic());
+        return HarnessTracer::kInjectSigusr1;
+      }
+
+      if (may_have_split_lock_or.value()) {
+        trace_result_.early_termination_reason =
+            absl::StrCat("Split-lock insn ", insn_or->mnemonic());
+        return HarnessTracer::kInjectSigusr1;
+      }
     }
   } else {
     VLOG_INFO(1, HexStr(addr), ": <undecodable>");
