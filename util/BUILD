@@ -153,6 +153,31 @@ cc_test_plus_nolibc(
     ],
 )
 
+cc_library(
+    name = "data_dependency",
+    srcs = ["data_dependency.cc"],
+    hdrs = ["data_dependency.h"],
+    deps = [
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "data_dependency_test",
+    size = "medium",
+    timeout = "short",
+    srcs = [
+        "data_dependency_test.cc",
+    ],
+    data = [
+        "testdata/data_dependency_testdata",
+    ],
+    deps = [
+        ":data_dependency",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library_plus_nolibc(
     name = "cache",
     hdrs = ["cache.h"],

@@ -12,21 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./runner/runner_provider.h"
+#ifndef THIRD_PARTY_SILIFUZZ_UTIL_DATA_DEPENDENCY_H_
+#define THIRD_PARTY_SILIFUZZ_UTIL_DATA_DEPENDENCY_H_
 
-#include <filesystem>
 #include <string>
 
-#include "./util/data_dependency.h"
+#include "absl/strings/string_view.h"
 
 namespace silifuzz {
 
-std::string RunnerLocation() {
-  return GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
-}
-
-std::string RunnerTestHelperLocation() {
-  return GetDataDependencyFilepath("runner/runner_test_helper_nolibc");
-}
+// Get the silifuzz-relative filepath for a data dependency.
+std::string GetDataDependencyFilepath(absl::string_view relative_path);
 
 }  // namespace silifuzz
+
+#endif  // THIRD_PARTY_SILIFUZZ_UTIL_DATA_DEPENDENCY_H_

@@ -395,6 +395,9 @@ cc_library(
     data = [
         ":sanless_reading_runner_main_nolibc",
     ],
+    deps = [
+        "@silifuzz//util:data_dependency",
+    ],
 )
 
 cc_test(

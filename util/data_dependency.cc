@@ -12,21 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./runner/runner_provider.h"
+#include "./util/data_dependency.h"
 
 #include <filesystem>
 #include <string>
 
-#include "./util/data_dependency.h"
+#include "absl/strings/string_view.h"
 
 namespace silifuzz {
 
-std::string RunnerLocation() {
-  return GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
-}
-
-std::string RunnerTestHelperLocation() {
-  return GetDataDependencyFilepath("runner/runner_test_helper_nolibc");
+std::string GetDataDependencyFilepath(absl::string_view relative_path) {
+  // https://bazel.build/concepts/dependencies#data-dependencies
+  // https://bazel.build/reference/test-encyclopedia
+  auto test_dir = std::getenv("TEST_SRCDIR");
+  if (test_dir == nullptr) {
+    return std::filesystem::current_path() / relative_path;
+  }
+  return std::string(test_dir) +
+         std::string("/silifuzz/").append(relative_path);
 }
 
 }  // namespace silifuzz

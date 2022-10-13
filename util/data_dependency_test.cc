@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./runner/runner_provider.h"
-
-#include <filesystem>
-#include <string>
-
 #include "./util/data_dependency.h"
 
+#include <sys/stat.h>
+
+#include "gtest/gtest.h"
+
 namespace silifuzz {
+namespace {
 
-std::string RunnerLocation() {
-  return GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
+TEST(DataDependency, DataDependenciesExist) {
+  std::string filepath =
+      GetDataDependencyFilepath("util/testdata/data_dependency_testdata");
+  struct stat s;
+  ASSERT_EQ(stat(filepath.c_str(), &s), 0);
 }
 
-std::string RunnerTestHelperLocation() {
-  return GetDataDependencyFilepath("runner/runner_test_helper_nolibc");
-}
-
+}  // namespace
 }  // namespace silifuzz
