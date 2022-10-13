@@ -336,6 +336,22 @@ cc_binary(
     ],
 )
 
+cc_test(
+    name = "harness_tracer_test",
+    size = "medium",
+    timeout = "short",
+    srcs = ["harness_tracer_test.cc"],
+    data = [":harness_tracer_test_helper"],
+    deps = [
+        ":harness_tracer",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:data_dependency",
+        "@silifuzz//util:subprocess",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "proxy_config",
     hdrs = ["proxy_config.h"],

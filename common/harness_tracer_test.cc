@@ -26,12 +26,12 @@
 #include <optional>
 #include <string>
 
-#include "devtools/build/runtime/get_runfiles_dir.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./util/checks.h"
+#include "./util/data_dependency.h"
 #include "./util/subprocess.h"
 
 namespace silifuzz {
@@ -40,9 +40,8 @@ namespace {
 using ::testing::Optional;
 
 std::unique_ptr<Subprocess> StartHelperProcess(absl::string_view mode) {
-  std::string helper = absl::StrCat(
-      devtools_build::GetRunfilesDir(),
-      "/google3/third_party/silifuzz/common/harness_tracer_test_helper");
+  std::string helper =
+      GetDataDependencyFilepath("common/harness_tracer_test_helper");
   Subprocess::Options options = Subprocess::Options::Default();
   options.MapStderr(Subprocess::kMapToStdout);
   auto helper_process = std::make_unique<Subprocess>(options);
