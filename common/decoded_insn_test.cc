@@ -337,5 +337,11 @@ TEST(DecodedInsn, may_have_split_lock) {
   EXPECT_THAT(insn6.may_have_split_lock(regs), IsOkAndHolds(true));
 }
 
+TEST(DecodedInsn, ConstructWithAddress) {
+  DecodedInsn insn("\x74\x02", 0x123000);
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "jz 0x123004");
+}
+
 }  // namespace
 }  // namespace silifuzz

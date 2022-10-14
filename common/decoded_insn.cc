@@ -61,8 +61,8 @@ DecodedInsn::DecodedInsn(const Snapshot::MemoryBytes& data) {
   if (!status_.ok()) LOG_ERROR(status_.message());
 }
 
-DecodedInsn::DecodedInsn(absl::string_view data) {
-  status_ = Decode(data);
+DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
+  status_ = Decode(data, address);
   if (!status_.ok()) LOG_ERROR(status_.message());
 }
 

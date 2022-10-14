@@ -38,8 +38,10 @@ class DecodedInsn {
   // Constructs an instance from MemoryBytes.
   explicit DecodedInsn(const Snapshot::MemoryBytes& data);
 
-  // Constructs an instance from a string-like object.
-  explicit DecodedInsn(absl::string_view data);
+  // Constructs an instance from a string-like object. The instruction is
+  // to be decoded as if it was placed at `address`, which affects how
+  // a relative branch address is converted into a string.
+  explicit DecodedInsn(absl::string_view data, uint64_t address = 0x0);
 
   // Default movable and copyable.
 
