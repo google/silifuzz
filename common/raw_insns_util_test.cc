@@ -34,13 +34,30 @@ TEST(RawInsnsUtil, InstructionsToSnapshot) {
   EXPECT_EQ(snapshot->num_pages(), 2);
   // must be executable
   EXPECT_THAT(snapshot->IsCompleteSomeState(), IsOk());
+  // code and RIP set to kFuzzCodePageAddr
+  EXPECT_EQ(kFuzzCodePageAddr, snapshot->ExtractRip(snapshot->registers()));
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshotRandomizedCodePage) {
-  absl::StatusOr<Snapshot> snapshot =
-      InstructionsToSnapshotRandomizedCodePage("\xCC", "my_id");
-  ASSERT_THAT(snapshot, IsOk());
-  EXPECT_EQ(0xac6'183c'3000, snapshot->ExtractRip(snapshot->registers()));
+  absl::StatusOr<Snapshot> snapshot_1 =
+      InstructionsToSnapshotRandomizedCodePage("\xCC", "my_id_1");
+  ASSERT_THAT(snapshot_1, IsOk());
+  constexpr uint64_t kSnapshot1CodePageAddr = 0xed0'6068'7000;
+  EXPECT_EQ(kSnapshot1CodePageAddr,
+            snapshot_1->ExtractRip(snapshot_1->registers()));
+
+  absl::StatusOr<Snapshot> snapshot_2 =
+      InstructionsToSnapshotRandomizedCodePage("\xAA", "my_id_2");
+  ASSERT_THAT(snapshot_2, IsOk());
+  constexpr uint64_t kSnapshot2CodePageAddr = 0x40'557c'4000;
+  EXPECT_EQ(kSnapshot2CodePageAddr,
+            snapshot_2->ExtractRip(snapshot_2->registers()));
+
+  absl::StatusOr<Snapshot> snapshot_3 =
+      InstructionsToSnapshotRandomizedCodePage("\xAA", "my_id_3");
+  ASSERT_THAT(snapshot_3, IsOk());
+  EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
+            snapshot_3->ExtractRip(snapshot_3->registers()));
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshotId) {

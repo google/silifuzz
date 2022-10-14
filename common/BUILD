@@ -281,6 +281,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "raw_insns_util_test",
+    size = "small",
+    srcs = ["raw_insns_util_test.cc"],
+    deps = [
+        ":raw_insns_util",
+        "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "decoded_insn",
     srcs = ["decoded_insn.cc"],
