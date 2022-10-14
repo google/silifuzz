@@ -42,9 +42,18 @@ void SnapRelocator::AdjustPointer(T*& ptr) {
   ptr = reinterpret_cast<T*>(adjusted_address);
 }
 
+template <typename T>
+void SnapRelocator::AdjustArray(Snap::Array<T>& array) {
+  if (array.size > 0) {
+    AdjustPointer(array.elements);
+  } else {
+    array.elements = nullptr;
+  }
+}
+
 void SnapRelocator::RelocateMemoryBytesArray(
     Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {
-  AdjustPointer(memory_bytes_array.elements);
+  AdjustArray(memory_bytes_array);
   for (size_t i = 0; i < memory_bytes_array.size; ++i) {
     Snap::MemoryBytes& memory_byte = memory_bytes_array.mutable_elements()[i];
     if (!memory_byte.repeating) {
@@ -60,14 +69,14 @@ void SnapRelocator::RelocateCorpus() {
   CHECK_EQ(start_address_ % alignof(CorpusType), 0);
   CorpusType& corpus = *reinterpret_cast<CorpusType*>(start_address_);
 
-  AdjustPointer(corpus.elements);
+  AdjustArray(corpus);
   for (size_t i = 0; i < corpus.size; ++i) {
     AdjustPointer(corpus.mutable_elements()[i]);
 
     // Adjust pointers in this Snap.
     Snap& snap = *(corpus.mutable_elements()[i]);
     AdjustPointer(snap.id);
-    AdjustPointer(snap.memory_mappings.elements);
+    AdjustArray(snap.memory_mappings);
 
     // Adjust memory bytes arrays.
     RelocateMemoryBytesArray(snap.memory_bytes);

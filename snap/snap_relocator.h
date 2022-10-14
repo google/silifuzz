@@ -18,7 +18,6 @@
 #include <cstdint>
 
 #include "./snap/snap.h"
-#include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
@@ -56,6 +55,12 @@ class SnapRelocator {
   // relocatable corpus and is properly aligned for type T.
   template <typename T>
   void AdjustPointer(T*&);
+
+  // Similar to AdjustPointer() but for Snap::Array<T>.
+  // Adjusts array.elements if array.size>0 otherwise sets array.elements to
+  // nullptr.
+  template <typename T>
+  void AdjustArray(Snap::Array<T>& array);
 
   // Relocates a Snap::Array<MemoryBytes>.
   void RelocateMemoryBytesArray(

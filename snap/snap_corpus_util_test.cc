@@ -61,5 +61,16 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
   EXPECT_EQ(loaded_corpus->elements[0]->id, snapified_corpus[0].id());
 }
 
+TEST(SnapCorpusUtilTest, LoadEmptyCorpus) {
+  std::vector<Snapshot> snapified_corpus;
+  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(snapified_corpus);
+  auto tmpfile = CreateTempFile(
+      UnitTest::GetInstance()->current_test_info()->test_case_name());
+  ASSERT_TRUE(
+      SetContents(*tmpfile, {reinterpret_cast<const char*>(buffer.get()),
+                             MmappedMemorySize(buffer)}));
+  EXPECT_EQ(LoadCorpusFromFile(tmpfile->c_str())->size, 0);
+}
+
 }  // namespace
 }  // namespace silifuzz
