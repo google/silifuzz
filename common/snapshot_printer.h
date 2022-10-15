@@ -137,6 +137,10 @@ class SnapshotPrinter : private SnapshotTypeNames {
   void PrintMemoryBytes(const Snapshot& snapshot,
                         const MemoryBytesList& memory_bytes);
 
+  // Prints executable memory bytes in `snapshot` as instructions.
+  void PrintExecutableMemoryBytes(const Snapshot& snapshot,
+                                  const MemoryBytesList& memory_bytes);
+
   // Helper forwarding "lambda" for LogGRegs() and LogFPRegs() functions.
   // this_printer will be a SnapshotPrinter*.
   static void RegsLogger(void* this_printer, const char* str1, const char* str2,

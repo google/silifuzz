@@ -215,6 +215,8 @@ cc_library(
     srcs = ["snapshot_printer.cc"],
     hdrs = ["snapshot_printer.h"],
     deps = [
+        ":decoded_insn",
+        ":memory_perms",
         ":memory_state",
         ":snapshot",
         ":snapshot_types",

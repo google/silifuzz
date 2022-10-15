@@ -14,10 +14,14 @@
 
 #include "./common/snapshot_printer.h"
 
+#include <cstdint>
 #include <limits>
 #include <optional>
 
 #include "absl/strings/escaping.h"
+#include "absl/strings/str_cat.h"
+#include "./common/decoded_insn.h"
+#include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
 #include "./util/itoa.h"
@@ -62,6 +66,7 @@ void SnapshotPrinter::Print(const Snapshot& snapshot) {
   PrintEndStates(snapshot);
   PrintMemoryMappings(snapshot);
   PrintMemoryBytes(snapshot, snapshot.memory_bytes());
+  PrintExecutableMemoryBytes(snapshot, snapshot.memory_bytes());
 }
 
 void SnapshotPrinter::PrintEndpointsOnly(const Snapshot& snapshot) {
@@ -312,6 +317,70 @@ void SnapshotPrinter::PrintMemoryBytes(const Snapshot& snapshot,
     }
     Unindent();
   }
+  Unindent();
+}
+
+void SnapshotPrinter::PrintExecutableMemoryBytes(
+    const Snapshot& snapshot, const MemoryBytesList& memory_bytes) {
+  MemoryBytesList normalized_memory_bytes = memory_bytes;
+  Snapshot::NormalizeMemoryBytes(snapshot.mapped_memory_map(),
+                                 &normalized_memory_bytes);
+  Line("Memory bytes with executable permission:");
+  Indent();
+
+  for (const auto& mb : normalized_memory_bytes) {
+    // NormalizeMemoryBytes() above ensures identical permission in every
+    // byte within this range.
+    const auto perms = snapshot.Perms(mb.start_address(), mb.limit_address(),
+                                      MemoryPerms::kOr);
+    if (perms.HasNo(MemoryPerms::kExecutable)) continue;
+
+    absl::string_view byte_view(mb.byte_values());
+    size_t i = 0;
+
+    // Code pages are typically filled with int3 or 0. We keep track of how many
+    // times an instruction repeats in consecutive line to avoid printing lots
+    // of uninteresting output.
+    constexpr size_t kMaxRepeat = 4;
+    std::string last_insn;
+    size_t repeat_count = 1;
+
+    while (i < mb.num_bytes()) {
+      DecodedInsn insn(byte_view, mb.start_address() + i);
+      std::string current_insn;
+      size_t len;
+
+      // Skip to next byte if this cannot be disassembled.
+      if (!insn.is_valid()) {
+        CHECK(i < mb.num_bytes());
+        const uint8_t b = byte_view[0];
+        current_insn = absl::StrCat(".byte ", HexStr(b));
+        len = 1;
+      } else {
+        current_insn = insn.DebugString();
+        len = insn.length();
+      }
+
+      if (current_insn == last_insn) {
+        repeat_count++;
+      } else {
+        repeat_count = 1;
+        last_insn = current_insn;
+      }
+
+      if (repeat_count <= kMaxRepeat) {
+        Line(HexStr(mb.start_address() + i), " ", current_insn);
+      } else if (repeat_count == kMaxRepeat + 1) {
+        // If we reach the max repeat count, print ... instead of instruction.
+        Line(HexStr(mb.start_address() + i),
+             " ... (repeated instruction omitted)");
+      }
+
+      i += len;
+      byte_view.remove_prefix(len);
+    }
+  }
+  Line("");
   Unindent();
 }
 
