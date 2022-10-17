@@ -16,31 +16,39 @@
 
 set -eu -o pipefail
 
-source googletest.sh || exit 1
-source gbash.sh || exit 1
-source module gbash_unit.sh
+function die() {
+  echo "$@"
+  exit 1
+}
 
 readonly TOOL="${TEST_SRCDIR}/silifuzz/tools/snap_corpus_tool"
 readonly CORPUS="${TEST_SRCDIR}/silifuzz/tools/testdata/runnable_corpus-fake-platform-00000"
 
-function test::snap_corpus_tool() {
-  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 12'
+function snap_corpus_tool_test() {
+  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 12' \
+    || die "snap_corpus_tool test failed"
 }
 
-function test::extract() {
+function extract_test() {
   OUTPUT="$(mktemp)"
   ID=kEndsAsExpected
   "${TOOL}" extract "${CORPUS}" ${ID} "${OUTPUT}" 2>&1 \
-    | grep -q 'Wrote snap to'
+    | grep -q 'Wrote snap to' \
+    || die "extract test failed"
   rm -f "${OUTPUT}"
 }
 
-function test::extract_code_address() {
+function extract_code_address_test() {
   OUTPUT="$(mktemp)"
   CODE_ADDRESS=0x12355000
   "${TOOL}" extract_code_address "${CORPUS}" ${CODE_ADDRESS} \
-    "${OUTPUT}" 2>&1 | grep -q 'Wrote snap to'
+    "${OUTPUT}" 2>&1 | grep -q 'Wrote snap to' \
+    || die "extract_code_address test failed"
   rm -f "${OUTPUT}"
 }
 
-gbash::unit::main "$@"
+snap_corpus_tool_test
+extract_test
+extract_code_address_test
+
+echo "PASS"

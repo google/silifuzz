@@ -115,6 +115,16 @@ cc_binary(
     ],
 )
 
+sh_test(
+    name = "snap_corpus_tool_test",
+    size = "large",
+    srcs = ["snap_corpus_tool_test.sh"],
+    data = [
+        ":snap_corpus_tool",
+        "@silifuzz//tools/testdata:runnable_corpus-fake-platform-00000",
+    ],
+)
+
 cc_library(
     name = "simple_fix_tool",
     srcs = ["simple_fix_tool.cc"],
