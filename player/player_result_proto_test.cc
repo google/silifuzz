@@ -25,19 +25,22 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/time/time.h"
+#include "google/protobuf/util/message_differencer.h"
 #include "./common/snapshot.h"
-#include "./player/player.h"
+#include "./common/snapshot_enums.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/checks.h"
+#include "./util/testing/status_matchers.h"
 #include "./util/time_proto_util.h"
-
-using testing::_;
-using testing::EqualsProto;
-using testing::status::StatusIs;
 
 namespace silifuzz {
 namespace {
+
+using ::google::protobuf::util::MessageDifferencer;
+using snapshot_types::PlaybackOutcome;
+using ::testing::_;
+using Result = snapshot_types::PlaybackResult<Snapshot::EndState>;
 
 struct BuildOptions {
   // The end state has a signal.
@@ -49,7 +52,7 @@ struct BuildOptions {
 
 // Build a proto of a given outcome suitable for testing.
 absl::StatusOr<proto::PlayerResult> BuildTestProto(
-    Player::Outcome outcome, const BuildOptions& options) {
+    PlaybackOutcome outcome, const BuildOptions& options) {
   proto::PlayerResult result;
   result.set_outcome(static_cast<proto::PlayerResult::Outcome>(outcome));
 
@@ -57,9 +60,9 @@ absl::StatusOr<proto::PlayerResult> BuildTestProto(
   // Snapshot::expected_end_states().
   // Missing only for kEndpointMismatch, kExecutionRunaway,
   // or kExecutionMisbehave.
-  if (outcome != Player::kEndpointMismatch &&
-      outcome != Player::kExecutionRunaway &&
-      outcome != Player::kExecutionMisbehave) {
+  if (outcome != PlaybackOutcome::kEndpointMismatch &&
+      outcome != PlaybackOutcome::kExecutionRunaway &&
+      outcome != PlaybackOutcome::kExecutionMisbehave) {
     result.set_end_state_index(1);
   }
 
@@ -71,8 +74,9 @@ absl::StatusOr<proto::PlayerResult> BuildTestProto(
   // Might be missing for kExecutionMisbehave.
   // For kExecutionRunaway this is just the arbitrary moment where we've
   // stopped the runaway execution.
-  if (options.always_have_end_state || (outcome != Player::kAsExpected &&
-                                        outcome != Player::kPlatformMismatch)) {
+  if (options.always_have_end_state ||
+      (outcome != PlaybackOutcome::kAsExpected &&
+       outcome != PlaybackOutcome::kPlatformMismatch)) {
     proto::EndState* end_state = result.mutable_actual_end_state();
     proto::Endpoint* end_point = end_state->mutable_endpoint();
     end_point->set_instruction_address(0x12345678);
@@ -95,21 +99,21 @@ absl::StatusOr<proto::PlayerResult> BuildTestProto(
   return result;
 }
 
-// Build a Player::Result of a given outcome suitable for testing. This builds
+// Build a Result of a given outcome suitable for testing. This builds
 // the exact same result corresponding to each proto built by BuildTestProto
 // above.
-absl::StatusOr<Player::Result> BuildTestResult(Player::Outcome outcome,
-                                               const BuildOptions& options) {
-  Player::Result result;
+absl::StatusOr<Result> BuildTestResult(PlaybackOutcome outcome,
+                                       const BuildOptions& options) {
+  Result result;
   result.outcome = outcome;
 
   // Index of the (partially) matched element of
   // Snapshot::expected_end_states().
   // Missing only for kEndpointMismatch, kExecutionRunaway,
   // or kExecutionMisbehave.
-  if (outcome != Player::kEndpointMismatch &&
-      outcome != Player::kExecutionRunaway &&
-      outcome != Player::kExecutionMisbehave) {
+  if (outcome != PlaybackOutcome::kEndpointMismatch &&
+      outcome != PlaybackOutcome::kExecutionRunaway &&
+      outcome != PlaybackOutcome::kExecutionMisbehave) {
     result.end_state_index = 1;
   }
 
@@ -121,8 +125,9 @@ absl::StatusOr<Player::Result> BuildTestResult(Player::Outcome outcome,
   // Might be missing for kExecutionMisbehave.
   // For kExecutionRunaway this is just the arbitrary moment where we've
   // stopped the runaway execution.
-  if (options.always_have_end_state || (outcome != Player::kAsExpected &&
-                                        outcome != Player::kPlatformMismatch)) {
+  if (options.always_have_end_state ||
+      (outcome != PlaybackOutcome::kAsExpected &&
+       outcome != PlaybackOutcome::kPlatformMismatch)) {
     const Snapshot::RegisterState regs(std::string(128, 'g'),
                                        std::string(512, 'f'));
     const Snapshot::Endpoint normal_endpoint(0x12345678);
@@ -139,7 +144,7 @@ absl::StatusOr<Player::Result> BuildTestResult(Player::Outcome outcome,
 }
 
 // Helper to compare 2 Results.
-bool ResultEq(const Player::Result& lhs, const Player::Result& rhs) {
+bool ResultEq(const Result& lhs, const Result& rhs) {
   return lhs.outcome == rhs.outcome &&
          lhs.end_state_index == rhs.end_state_index &&
          lhs.actual_end_state == rhs.actual_end_state &&
@@ -159,24 +164,27 @@ proto::PlayerResult ResultProtoWithGarbage() {
   return proto;
 }
 
-constexpr std::array<Player::Outcome, 7> kOutcomes = {
-    Player::kAsExpected,         Player::kPlatformMismatch,
-    Player::kMemoryMismatch,     Player::kRegisterStateMismatch,
-    Player::kEndpointMismatch,   Player::kExecutionRunaway,
-    Player::kExecutionMisbehave,
+constexpr std::array<PlaybackOutcome, 7> kOutcomes = {
+    PlaybackOutcome::kAsExpected,
+    PlaybackOutcome::kPlatformMismatch,
+    PlaybackOutcome::kMemoryMismatch,
+    PlaybackOutcome::kRegisterStateMismatch,
+    PlaybackOutcome::kEndpointMismatch,
+    PlaybackOutcome::kExecutionRunaway,
+    PlaybackOutcome::kExecutionMisbehave,
 };
 
-constexpr std::array<Player::Outcome, 2> kSignalOutcomes = {
-    Player::kEndpointMismatch,
-    Player::kExecutionMisbehave,
+constexpr std::array<PlaybackOutcome, 2> kSignalOutcomes = {
+    PlaybackOutcome::kEndpointMismatch,
+    PlaybackOutcome::kExecutionMisbehave,
 };
 
 TEST(PlayerResultProto, FromProto) {
   for (const auto& outcome : kOutcomes) {
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult result_proto,
                          BuildTestProto(outcome, {}));
-    ASSERT_OK_AND_ASSIGN(Player::Result expected, BuildTestResult(outcome, {}));
-    ASSERT_OK_AND_ASSIGN(Player::Result result,
+    ASSERT_OK_AND_ASSIGN(Result expected, BuildTestResult(outcome, {}));
+    ASSERT_OK_AND_ASSIGN(Result result,
                          PlayerResultProto::FromProto(result_proto));
     EXPECT_TRUE(ResultEq(result, expected));
   }
@@ -188,9 +196,8 @@ TEST(PlayerResultProto, FromProtoWithSignal) {
   for (const auto& outcome : kSignalOutcomes) {
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult result_proto,
                          BuildTestProto(outcome, options));
-    ASSERT_OK_AND_ASSIGN(Player::Result expected,
-                         BuildTestResult(outcome, options));
-    ASSERT_OK_AND_ASSIGN(Player::Result result,
+    ASSERT_OK_AND_ASSIGN(Result expected, BuildTestResult(outcome, options));
+    ASSERT_OK_AND_ASSIGN(Result result,
                          PlayerResultProto::FromProto(result_proto));
     EXPECT_TRUE(ResultEq(result, expected));
   }
@@ -201,22 +208,22 @@ TEST(PlayerResultProto, FromProtoAlwaysHaveEndstate) {
   BuildOptions options;
   options.always_have_end_state = true;
   ASSERT_OK_AND_ASSIGN(proto::PlayerResult result_proto,
-                       BuildTestProto(Player::kAsExpected, options));
-  ASSERT_OK_AND_ASSIGN(Player::Result expected,
-                       BuildTestResult(Player::kAsExpected, options));
-  ASSERT_OK_AND_ASSIGN(Player::Result result,
+                       BuildTestProto(PlaybackOutcome::kAsExpected, options));
+  ASSERT_OK_AND_ASSIGN(Result expected,
+                       BuildTestResult(PlaybackOutcome::kAsExpected, options));
+  ASSERT_OK_AND_ASSIGN(Result result,
                        PlayerResultProto::FromProto(result_proto));
   EXPECT_TRUE(ResultEq(result, expected));
 }
 
 TEST(PlayerResultProto, ToProto) {
   for (const auto& outcome : kOutcomes) {
-    ASSERT_OK_AND_ASSIGN(Player::Result result, BuildTestResult(outcome, {}));
+    ASSERT_OK_AND_ASSIGN(Result result, BuildTestResult(outcome, {}));
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
                          BuildTestProto(outcome, {}));
     proto::PlayerResult result_proto = ResultProtoWithGarbage();
     ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
-    EXPECT_THAT(result_proto, EqualsProto(expected));
+    EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
   }
 }
 
@@ -224,13 +231,12 @@ TEST(PlayerResultProto, ToProtoWithSignal) {
   BuildOptions options;
   options.ends_at_signal = true;
   for (const auto& outcome : kSignalOutcomes) {
-    ASSERT_OK_AND_ASSIGN(Player::Result result,
-                         BuildTestResult(outcome, options));
+    ASSERT_OK_AND_ASSIGN(Result result, BuildTestResult(outcome, options));
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
                          BuildTestProto(outcome, options));
     proto::PlayerResult result_proto = ResultProtoWithGarbage();
     ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
-    EXPECT_THAT(result_proto, EqualsProto(expected));
+    EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
   }
 }
 
@@ -238,27 +244,27 @@ TEST(PlayerResultProto, ToProtoWithSignal) {
 TEST(PlayerResultProto, ToProtoAlwaysHaveEndstate) {
   BuildOptions options;
   options.always_have_end_state = true;
-  ASSERT_OK_AND_ASSIGN(Player::Result result,
-                       BuildTestResult(Player::kAsExpected, options));
+  ASSERT_OK_AND_ASSIGN(Result result,
+                       BuildTestResult(PlaybackOutcome::kAsExpected, options));
   ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
-                       BuildTestProto(Player::kAsExpected, options));
+                       BuildTestProto(PlaybackOutcome::kAsExpected, options));
   proto::PlayerResult result_proto = ResultProtoWithGarbage();
   ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
-  EXPECT_THAT(result_proto, EqualsProto(expected));
+  EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
 }
 
 // Range of google.protobuf.Duration is narrower than that of absl:Duration.
 TEST(PlayerResultProto, InfiniteDurations) {
-  ASSERT_OK_AND_ASSIGN(Player::Result result,
-                       BuildTestResult(Player::kAsExpected, {}));
+  ASSERT_OK_AND_ASSIGN(Result result,
+                       BuildTestResult(PlaybackOutcome::kAsExpected, {}));
   result.cpu_usage = absl::InfiniteDuration();
   proto::PlayerResult result_proto;
   EXPECT_THAT(PlayerResultProto::ToProto(result, result_proto),
-              StatusIs(absl::StatusCode::kInvalidArgument, _));
+              testing::StatusIs(absl::StatusCode::kInvalidArgument, _));
 
   result.cpu_usage = -absl::InfiniteDuration();
   EXPECT_THAT(PlayerResultProto::ToProto(result, result_proto),
-              StatusIs(absl::StatusCode::kInvalidArgument, _));
+              testing::StatusIs(absl::StatusCode::kInvalidArgument, _));
 }
 
 }  // namespace
