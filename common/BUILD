@@ -245,6 +245,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "memory_state_test",
+    srcs = ["memory_state_test.cc"],
+    deps = [
+        ":memory_mapping",
+        ":memory_perms",
+        ":memory_state",
+        "@com_github_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "snapshot_test_util",
     testonly = True,

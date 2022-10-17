@@ -15,6 +15,8 @@
 #include "./common/memory_state.h"
 
 #include "benchmark/benchmark.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
 
 namespace silifuzz {
 namespace {
@@ -41,9 +43,11 @@ template <auto MakeRanges>
 void BM_SetMemoryBytes(benchmark::State& state) {
   MemoryBytesList memory_bytes = MakeRanges();
   for (const auto _ : state) {
-    MemoryState state;
-    state.SetMemoryBytes(memory_bytes);
-    benchmark::DoNotOptimize(state);
+    MemoryState memory_state;
+    memory_state.SetMemoryMappingEmptyPermsOk(
+        MemoryMapping::MakeSized(0, 6400, MemoryPerms::None()));
+    memory_state.SetMemoryBytes(memory_bytes);
+    benchmark::DoNotOptimize(memory_state);
   }
 }
 
