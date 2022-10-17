@@ -71,6 +71,7 @@ bool FilterToolMain(absl::string_view raw_insns_file,
   SnapMaker::Options opts;
   opts.runner_path = RunnerLocation();
   opts.num_verify_attempts = 1;
+  opts.x86_filter_split_lock = true;
   SnapMaker maker(opts);
 
   absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(input_snapshot);

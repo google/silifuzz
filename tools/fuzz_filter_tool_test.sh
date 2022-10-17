@@ -44,5 +44,7 @@ echo -n -e "\xEF" | "${TOOL}" /dev/stdin && die "Failed in OUT"
 echo -n -e "\x0F\x31" | "${TOOL}" /dev/stdin && die "Failed in RDTSC"
 echo -n -e "\x0F\xA2" | "${TOOL}" /dev/stdin && die "Failed in CPUID"
 echo -n -e "\x0F\x00\xC0" | "${TOOL}" /dev/stdin && die "Failed in SLDT"
+echo -n -e "\x48\x89\xe0\x48\xff\xc8\x30\xc0\xf0\xff\x40\xff" \
+  | "${TOOL}" /dev/stdin && die "Failed in INC_LOCK"
 
 echo "PASS"
