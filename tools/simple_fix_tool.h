@@ -43,6 +43,10 @@ struct SimpleFixToolOptions {
   // Number of parallel worker threads.  If it is 0, the maximum hardware
   // parallelism is used.
   int parallelism = 0;
+
+  // If true, filter Snap containing lock instructions that access memory
+  // across cache line boundary. This has no effect on platforms other than x86.
+  bool x86_filter_split_lock = true;
 };
 
 // Converts raw instructions blobs in `inputs` into snapshots of the

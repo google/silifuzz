@@ -73,7 +73,8 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     }
     RewriteInitialState(snapshot.value(), &args.counters);
     auto remade_snapshot_or =
-        FixupSnapshot(snapshot.value(), &platform_counters);
+        FixupSnapshot(snapshot.value(), &platform_counters,
+                      args.options->x86_filter_split_lock);
     if (!remade_snapshot_or.ok()) {
       continue;
     }
