@@ -390,6 +390,7 @@ xed_uint64_t DecodedInsn::agen_segment_callback(xed_reg_enum_t reg,
                                                 xed_bool_t* error) {
   DCHECK(context != nullptr);
   xed_reg_enum_t base_reg = XED_REG_INVALID;
+  *error = false;
   switch (reg) {
     case XED_REG_CS:
     case XED_REG_SS:
