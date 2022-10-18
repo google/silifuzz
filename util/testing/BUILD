@@ -19,6 +19,17 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
+cc_test(
+    name = "status_matchers_test",
+    srcs = ["status_matchers_test.cc"],
+    deps = [
+        ":status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "status_matchers",
     testonly = 1,

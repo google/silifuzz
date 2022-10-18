@@ -117,9 +117,9 @@ TEST(IsOkAndHoldsTest, DescribeExpectedValue) {
 TEST(IsOkAndHoldsTest, ExplainNotMatchingStatus) {
   Matcher<absl::StatusOr<int>> is_ok_and_less_than =
       IsOkAndHolds(LessThan(100));
-  absl::StatusOr<int> status = absl::UnknownError("Unknown");
-  EXPECT_EQ(ExplainMatch(is_ok_and_less_than, status),
-            "which has status " + PrintToString(status));
+  absl::StatusOr<int> status_or = absl::UnknownError("Unknown");
+  EXPECT_EQ(ExplainMatch(is_ok_and_less_than, status_or),
+            "which has status " + PrintToString(status_or.status()));
 }
 
 TEST(IsOkAndHoldsTest, ExplainNotMatchingValue) {
