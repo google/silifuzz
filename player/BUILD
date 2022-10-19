@@ -16,11 +16,6 @@
 #   Libraries and binaries for different variants/components of the snapshot
 #   player.
 
-load(
-    "@silifuzz//util:nolibc.bzl",
-    "cc_library_plus_nolibc",
-)
-
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
