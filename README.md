@@ -208,7 +208,7 @@ fuzz_filter_tool raw_input_sequence [optional output proto]
 
 The `raw_input_sequence` file contains `x86_64` instructions which will be
 converted into the Snapshot format using
-[InstructionsToSnapshotRandomizedCodepage](https://github.com/google/silifuzz/blob/main/common/raw_insns_util.cc)
+[InstructionsToSnapshot_X86_64](https://github.com/google/silifuzz/blob/main/common/raw_insns_util.cc)
 
 When the second argument is provided, the tool will also output the resulting
 Snapshot proto.

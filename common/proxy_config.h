@@ -24,23 +24,33 @@
 
 namespace silifuzz {
 
-// Memory page size.
-constexpr inline size_t kPageSize = 4096;
+// FuzzingConfig describes desired Snapshot execution environment. Currently,
+// this is limited to the memory regions where code and data can be placed.
+// Can include things like "default GPR value" in the future.
+struct FuzzingConfig {
+  // CODE region [start;limit).
+  // Size of the CODE region (i.e. limit-start) must be a power of 2.
+  uint64_t code_range_start;
+  uint64_t code_range_limit;
 
-// Code region.
-// The proxy code will map just a single page inside this region.
-constexpr uint64_t kCodeAddr = 0x30000000;
-constexpr uint64_t kCodeLimit = 0xB0000000;
-static_assert((kCodeLimit - kCodeAddr & (kCodeLimit - kCodeAddr - 1)) == 0,
-              "Size of the code region must a power of 2");
+  // DATA1 region [start;limit)
+  // Both DATA regions must be page-granular.
+  uint64_t data1_range_start;
+  uint64_t data1_range_limit;
 
-// Memory region 1.
-constexpr uint64_t kMem1Addr = 0x10000;
-constexpr uint64_t kMem1Limit = kMem1Addr + 0x20000000;
+  // DATA2 region [start;limit)
+  uint64_t data2_range_start;
+  uint64_t data2_range_limit;
+};
 
-// Memory region 2.
-constexpr uint64_t kMem2Addr = 0x1000010000;
-constexpr uint64_t kMem2Limit = kMem2Addr + 0x20000000;
+constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
+    .code_range_start = 0x30000000,
+    .code_range_limit = 0xB0000000,
+    .data1_range_start = 0x10000,
+    .data1_range_limit = 0x20010000,
+    .data2_range_start = 0x1000010000,
+    .data2_range_limit = 0x1020010000,
+};
 
 }  // namespace silifuzz
 

@@ -284,9 +284,9 @@ cc_library(
     linkopts = ["-lcrypto"],
     deps = [
         ":memory_perms",
+        ":proxy_config",
         ":snapshot",
         ":snapshot_util",
-        "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
         "@cityhash",
         "@com_google_absl//absl/status",

@@ -26,7 +26,7 @@ namespace {
 using silifuzz::testing::IsOk;
 
 TEST(SnapshotProto, MetadataRoundtrip) {
-  absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot("\xCC", "my_id");
+  absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64("\xCC");
   ASSERT_THAT(snapshot, IsOk());
   proto::Snapshot proto;
   SnapshotProto::ToProto(*snapshot, &proto);

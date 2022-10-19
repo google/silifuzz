@@ -26,7 +26,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
@@ -49,8 +48,8 @@ bool FilterToolMain(absl::string_view raw_insns_file,
     LOG_ERROR(bytes.status().message());
     return false;
   }
-  absl::StatusOr<Snapshot> input_snapshot_or = InstructionsToSnapshot_X86_64(
-      *bytes, kCodeAddr, kCodeLimit - kCodeAddr, kMem1Addr);
+  absl::StatusOr<Snapshot> input_snapshot_or =
+      InstructionsToSnapshot_X86_64(*bytes);
   if (!input_snapshot_or.ok()) {
     LOG_ERROR(input_snapshot_or.status().message());
     return false;

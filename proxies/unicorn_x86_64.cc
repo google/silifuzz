@@ -51,9 +51,9 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
   // restore all FP registers using uc_reg_write* APIs.
   //
   // Use page 0 to stage the fpregs and the restore code.
-  uint64_t addr = 0;
+  const uint64_t addr = 0;
   UNICORN_RETURN_IF_NOT_OK(uc_reg_write(uc, UC_X86_REG_RDI, &addr));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, addr, kPageSize, UC_PROT_ALL));
+  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, addr, 4096, UC_PROT_ALL));
   UNICORN_RETURN_IF_NOT_OK(uc_mem_write(uc, addr, &fpregs, kFPRegsSize));
   // fxrstor64 [rdi]
   const std::string fxRstorRdiByteCode = {0x48, 0x0F, 0xAE, 0x0F};
@@ -63,7 +63,7 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
   // Execute exactly one instruction (count=1).
   UNICORN_RETURN_IF_NOT_OK(
       uc_emu_start(uc, addr + kFPRegsSize, 0, 0, /* count = */ 1));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_unmap(uc, addr, kPageSize));
+  UNICORN_RETURN_IF_NOT_OK(uc_mem_unmap(uc, addr, 4096));
 
   // List of all general purpose registers to write to Unicorn.
   // uc_reg_write_batch() is smart enough to distinguish the sizes of
@@ -101,10 +101,9 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
 }  // namespace
 
 absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapshot,
-      InstructionsToSnapshot_X86_64(insns, kCodeAddr, kCodeLimit - kCodeAddr,
-                                    kMem1Addr));
+  FuzzingConfig config = DEFAULT_X86_64_FUZZING_CONFIG;
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
+                             InstructionsToSnapshot_X86_64(insns, config));
   const uint64_t code_addr = snapshot.ExtractRip(snapshot.registers());
   const Snapshot::MemoryBytes *code_bytes = [&]() {
     for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
@@ -135,10 +134,14 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
                                         code_bytes->num_bytes()));
 
   // Map the data region(s).
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, kMem1Addr, kMem1Limit - kMem1Addr,
-                                      UC_PROT_READ | UC_PROT_WRITE));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, kMem2Addr, kMem2Limit - kMem2Addr,
-                                      UC_PROT_READ | UC_PROT_WRITE));
+  UNICORN_RETURN_IF_NOT_OK(
+      uc_mem_map(uc, config.data1_range_start,
+                 config.data1_range_limit - config.data1_range_start,
+                 UC_PROT_READ | UC_PROT_WRITE));
+  UNICORN_RETURN_IF_NOT_OK(
+      uc_mem_map(uc, config.data2_range_start,
+                 config.data2_range_limit - config.data2_range_start,
+                 UC_PROT_READ | UC_PROT_WRITE));
 
   // Emulate up to kMaxInstExecuted instructions.
   uint64_t end_of_code = code_addr + insns.size();

@@ -26,35 +26,26 @@ namespace {
 
 using silifuzz::testing::IsOk;
 
-TEST(RawInsnsUtil, InstructionsToSnapshot) {
-  absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot("\xCC", "my_id");
+TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
+  auto config = DEFAULT_X86_64_FUZZING_CONFIG;
+  absl::StatusOr<Snapshot> snapshot =
+      InstructionsToSnapshot_X86_64("\xCC", config);
   ASSERT_THAT(snapshot, IsOk());
-  EXPECT_EQ("my_id", snapshot->id());
   // data page + code page
   EXPECT_EQ(snapshot->num_pages(), 2);
   // must be executable
-  EXPECT_THAT(snapshot->IsCompleteSomeState(), IsOk());
-  // code and RIP set to kFuzzCodePageAddr
-  EXPECT_EQ(kFuzzCodePageAddr, snapshot->ExtractRip(snapshot->registers()));
+  EXPECT_THAT(snapshot->IsComplete(Snapshot::kUndefinedEndState), IsOk());
+
+  uint64_t rip = snapshot->ExtractRip(snapshot->registers());
+  EXPECT_GE(rip, config.code_range_start);
+  EXPECT_LT(rip, config.code_range_limit);
 }
 
-TEST(RawInsnsUtil, InstructionsToSnapshotRandomizedCodePage) {
-  absl::StatusOr<Snapshot> snapshot_1 =
-      InstructionsToSnapshotRandomizedCodePage("\xCC", "my_id_1");
-  ASSERT_THAT(snapshot_1, IsOk());
-  constexpr uint64_t kSnapshot1CodePageAddr = 0xed0'6068'7000;
-  EXPECT_EQ(kSnapshot1CodePageAddr,
-            snapshot_1->ExtractRip(snapshot_1->registers()));
-
-  absl::StatusOr<Snapshot> snapshot_2 =
-      InstructionsToSnapshotRandomizedCodePage("\xAA", "my_id_2");
+TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
+  absl::StatusOr<Snapshot> snapshot_2 = InstructionsToSnapshot_X86_64("\xAA");
   ASSERT_THAT(snapshot_2, IsOk());
-  constexpr uint64_t kSnapshot2CodePageAddr = 0x40'557c'4000;
-  EXPECT_EQ(kSnapshot2CodePageAddr,
-            snapshot_2->ExtractRip(snapshot_2->registers()));
 
-  absl::StatusOr<Snapshot> snapshot_3 =
-      InstructionsToSnapshotRandomizedCodePage("\xAA", "my_id_3");
+  absl::StatusOr<Snapshot> snapshot_3 = InstructionsToSnapshot_X86_64("\xAA");
   ASSERT_THAT(snapshot_3, IsOk());
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));

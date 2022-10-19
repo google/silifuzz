@@ -20,45 +20,27 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 
 namespace silifuzz {
 
-// A single code page mapped by snapshots produced by InstructionsToSnapshot.
-constexpr inline uint64_t kFuzzCodePageAddr = 0x10000000;
-
-// A single data page mapped by snapshots produced by InstructionsToSnapshot.
-// Same as used in testing/silifuzz/ifuzz/ifuzzcc.go
-constexpr inline uint64_t kFuzzDataPageAddr = 0x20000000;
-
-// Converts the code snippet into a properly formatted Snapshot.
-// The code is placed at `code_start_addr` and RIP is set to the same value.
-// Optional `id` parameter allows to specify snapshot id.
-//
-// The returned Snapshot will contain a single undefined (i.e. no registers)
-// end-state at the address immediately following the final `code` byte.
-absl::StatusOr<Snapshot> InstructionsToSnapshot(
-    absl::string_view code, const Snapshot::Id& id = Snapshot::UnsetId(),
-    uint64_t code_start_addr = kFuzzCodePageAddr);
-
-// Similar to the above except the location of the code page is determined
-// based on the hash of `code`. The result is guaranteed to be stable.
-absl::StatusOr<Snapshot> InstructionsToSnapshotRandomizedCodePage(
-    absl::string_view code, const Snapshot::Id& id = Snapshot::UnsetId());
-
 // Returns a Snapshot ID that is a function of bytes in `code`.
 std::string InstructionsToSnapshotId(absl::string_view code);
 
-// Converts the code snippet into a properly formatted Snapshot.
-// This is similar to InstructionsToSnapshot() above but follows the convention
-// described in
+// Converts the code snippet into a Snapshot as described in
 // https://github.com/google/silifuzz/blob/main/doc/proxy_architecture.md.
 // [code_range_start; code_range_start+code_range_size) defines an address range
 // where the code page containing bytes from `code`  will be placed.
-// code_range_size must be a power of 2.
+// code_range_size must be a power of 2. The exact address is determined based
+// on the hash of `code`.
+//
+// The returned Snapshot will contain a single undefined (i.e. no registers)
+// expected end-state at the address immediately following the final `code`
+// byte. The result is guaranteed to be stable.
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
-    absl::string_view code, uint64_t code_range_start, uint64_t code_range_size,
-    uint64_t stack_page_start);
+    absl::string_view code,
+    const FuzzingConfig& config = DEFAULT_X86_64_FUZZING_CONFIG);
 
 }  // namespace silifuzz
 
