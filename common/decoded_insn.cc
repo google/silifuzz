@@ -124,6 +124,10 @@ bool DecodedInsn::is_deterministic() const {
       // Non-deterministic but also controlled by CR4.UMIP disables these on
       // newer platforms.
       return false;
+    case XED_ICLASS_XBEGIN:
+    case XED_ICLASS_XEND:
+    case XED_ICLASS_XABORT:
+      return false;
     default:
       return true;
   }
