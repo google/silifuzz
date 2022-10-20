@@ -18,10 +18,13 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "absl/strings/string_view.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "third_party/unicorn/arm64.h"
 #include "third_party/unicorn/unicorn.h"
+
+namespace silifuzz {
 
 namespace {
 
@@ -50,36 +53,35 @@ constexpr uint64_t kMem2Size = 4 * 1024 * 1024;
 void map_memory(uc_engine *uc, uint64_t addr, uint64_t size, uint32_t prot) {
   uc_err err = uc_mem_map(uc, addr, size, prot);
   if (err != UC_ERR_OK) {
-    LOG_FATAL("mapping ", silifuzz::HexStr(addr), " failed with ",
-              silifuzz::IntStr(err), ": ", uc_strerror(err));
+    LOG_FATAL("mapping ", HexStr(addr), " failed with ", IntStr(err), ": ",
+              uc_strerror(err));
   }
 }
 
 void set_reg(uc_engine *uc, uc_arm64_reg reg, uint64_t value) {
   uc_err err = uc_reg_write(uc, reg, &value);
   if (err != UC_ERR_OK) {
-    LOG_FATAL("trying to set ", silifuzz::IntStr(reg), " to ",
-              silifuzz::HexStr(value), " failed with ", silifuzz::IntStr(err),
-              ": ", uc_strerror(err));
+    LOG_FATAL("trying to set ", IntStr(reg), " to ", HexStr(value),
+              " failed with ", IntStr(err), ": ", uc_strerror(err));
   }
 }
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+int RunAArch64Instructions(absl::string_view insns) {
   // Require at least one instruction.
-  if (size < 4) {
+  if (insns.size() < 4) {
     return -1;
   }
 
   // Require complete instructions.
   // This makes disassembling the corpus easier.
-  if (size % 4 != 0) {
+  if (insns.size() % 4 != 0) {
     return -1;
   }
 
   // Reject huge examples, for now.
-  if (size > kCodeSize) {
+  if (insns.size() > kCodeSize) {
     return -1;
   }
 
@@ -103,7 +105,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   map_memory(uc, kCodeAddr, kCodeSize, UC_PROT_EXEC);
 
   // Write the instructions to memory.
-  uc_mem_write(uc, kCodeAddr, data, size);
+  uc_mem_write(uc, kCodeAddr, insns.data(), insns.size());
 
   // Allocate stack.
   map_memory(uc, kStackAddr, kStackSize, UC_PROT_READ | UC_PROT_WRITE);
@@ -122,16 +124,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   set_reg(uc, UC_ARM64_REG_X7, kMem2Addr);
 
   // Execute the instructions.
+  uint64_t end_of_code = kCodeAddr + insns.size();
   // Stop at an arbitrary instruction count to avoid infinite loops.
-  bool input_is_acceptable = true;
-  uint64_t end_of_code = kCodeAddr + size;
   size_t max_inst_executed = 0x1000;
   uc_err err = uc_emu_start(uc, kCodeAddr, end_of_code, 0, max_inst_executed);
 
+  bool input_is_acceptable = true;
+
   // Check if the emulator stopped cleanly.
   if (err) {
-    LOG_ERROR("uc_emu_start() returned ", silifuzz::IntStr(err), ": ",
-              uc_strerror(err));
+    LOG_ERROR("uc_emu_start() returned ", IntStr(err), ": ", uc_strerror(err));
     input_is_acceptable = false;
   }
 
@@ -141,12 +143,19 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   uint64_t pc = 0;
   UNICORN_CHECK(uc_reg_read(uc, UC_ARM64_REG_PC, &pc));
   if (pc != end_of_code) {
-    LOG_ERROR("expected PC would be ", silifuzz::HexStr(end_of_code),
-              ", but got ", silifuzz::HexStr(pc), " instead");
+    LOG_ERROR("expected PC would be ", HexStr(end_of_code), ", but got ",
+              HexStr(pc), " instead");
     input_is_acceptable = false;
   }
 
   uc_close(uc);
 
   return input_is_acceptable ? 0 : -1;
+}
+
+}  // namespace silifuzz
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  return silifuzz::RunAArch64Instructions(
+      absl::string_view((const char *)data, size));
 }

@@ -23,6 +23,7 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@com_google_absl//absl/strings",
         "@unicorn//:unicorn_arm64",
     ],
     alwayslink = True,
