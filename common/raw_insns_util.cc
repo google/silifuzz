@@ -32,16 +32,39 @@
 
 namespace silifuzz {
 
+namespace {
+
+uint64_t HashToCodeAddress(uint64_t hash, uint64_t code_range_start_address,
+                           uint64_t code_range_num_bytes,
+                           uint64_t granularity) {
+  // Must be aligned.
+  CHECK_EQ(code_range_start_address % granularity, 0);
+  CHECK_EQ(code_range_num_bytes % granularity, 0);
+
+  // Must a power of 2.
+  CHECK_EQ(code_range_num_bytes & code_range_num_bytes - 1, 0);
+
+  const uint64_t mask = code_range_num_bytes / granularity - 1;
+  return code_range_start_address + (hash & mask) * granularity;
+}
+
+uint64_t InstructionsToCodeAddress(const absl::string_view& code,
+                                   uint64_t code_range_start_address,
+                                   uint64_t code_range_num_bytes,
+                                   uint64_t granularity) {
+  uint64_t hash = CityHash64(code.data(), code.size());
+  return HashToCodeAddress(hash, code_range_start_address, code_range_num_bytes,
+                           granularity);
+}
+
+}  // namespace
+
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code, const FuzzingConfig& config) {
   Snapshot snapshot(Snapshot::Architecture::kX86_64);
   const uint64_t page_size = snapshot.page_size();
 
   // All must be page-aligned.
-  CHECK_EQ(config.code_range.start_address % page_size, 0);
-  // Must a power of 2.
-  CHECK_EQ(config.code_range.num_bytes & config.code_range.num_bytes - 1, 0);
-
   CHECK_EQ(config.data1_range.start_address % page_size, 0);
   CHECK_EQ(config.data1_range.num_bytes % page_size, 0);
   CHECK_EQ(config.data2_range.start_address % page_size, 0);
@@ -54,10 +77,9 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
         "code snippet + the exit sequence must fit into a single page.");
   }
 
-  uint64_t hash = CityHash64(code.data(), code.size());
-  uint64_t mask = (config.code_range.num_bytes - 1) / page_size;
   const uint64_t code_start_addr =
-      config.code_range.start_address + ((hash & mask) * page_size);
+      InstructionsToCodeAddress(code, config.code_range.start_address,
+                                config.code_range.num_bytes, page_size);
   auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
       code_start_addr, page_size, MemoryPerms::XR());
   snapshot.add_memory_mapping(code_page_mapping);
