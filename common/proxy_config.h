@@ -24,33 +24,63 @@
 
 namespace silifuzz {
 
+// A memory region spanning [start_address;start_address+num_bytes).
+struct MemoryRange {
+  uint64_t start_address;
+  uint64_t num_bytes;
+
+  constexpr bool overlaps(const MemoryRange& other) const {
+    if (start_address < other.start_address) {
+      return other.start_address - start_address < num_bytes;
+    } else {
+      return start_address - other.start_address < other.num_bytes;
+    }
+  }
+};
+
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
 // Can include things like "default GPR value" in the future.
 struct FuzzingConfig {
-  // CODE region [start;limit).
-  // Size of the CODE region (i.e. limit-start) must be a power of 2.
-  uint64_t code_range_start;
-  uint64_t code_range_limit;
+  // The start_address address must be page aligned.
+  // The num_bytes must be a power of 2.
+  MemoryRange code_range;
 
-  // DATA1 region [start;limit)
-  // Both DATA regions must be page-granular.
-  uint64_t data1_range_start;
-  uint64_t data1_range_limit;
+  // The start_address address must be page aligned.
+  // The num_bytes must be a multiple of page size.
+  MemoryRange data1_range;
 
-  // DATA2 region [start;limit)
-  uint64_t data2_range_start;
-  uint64_t data2_range_limit;
+  // Constraints for start_address and num_bytes are same as data1.
+  MemoryRange data2_range;
+
+  // Check that there are no obvious problems with the config.
+  constexpr bool ok() const {
+    if (code_range.overlaps(data1_range)) return false;
+    if (code_range.overlaps(data2_range)) return false;
+    if (data1_range.overlaps(data2_range)) return false;
+    return true;
+  }
 };
 
 constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
-    .code_range_start = 0x30000000,
-    .code_range_limit = 0xB0000000,
-    .data1_range_start = 0x10000,
-    .data1_range_limit = 0x20010000,
-    .data2_range_start = 0x1000010000,
-    .data2_range_limit = 0x1020010000,
+    .code_range =
+        {
+            .start_address = 0x30000000,
+            .num_bytes = 0x80000000,  // 2 GB
+        },
+    .data1_range =
+        {
+            .start_address = 0x10000,
+            .num_bytes = 0x20000000,  // 512 MB
+        },
+    .data2_range =
+        {
+            .start_address = 0x1000010000,
+            .num_bytes = 0x20000000,  // 512 MB
+        },
 };
+
+static_assert(DEFAULT_X86_64_FUZZING_CONFIG.ok(), "Malformed config");
 
 }  // namespace silifuzz
 

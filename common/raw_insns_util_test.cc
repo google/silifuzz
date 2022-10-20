@@ -37,8 +37,8 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
   EXPECT_THAT(snapshot->IsComplete(Snapshot::kUndefinedEndState), IsOk());
 
   uint64_t rip = snapshot->ExtractRip(snapshot->registers());
-  EXPECT_GE(rip, config.code_range_start);
-  EXPECT_LT(rip, config.code_range_limit);
+  EXPECT_GE(rip, config.code_range.start_address);
+  EXPECT_LT(rip, config.code_range.start_address + config.code_range.num_bytes);
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {

@@ -37,13 +37,15 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   Snapshot snapshot(Snapshot::Architecture::kX86_64);
   const uint64_t page_size = snapshot.page_size();
 
-  uint64_t code_range_size = config.code_range_limit - config.code_range_start;
   // All must be page-aligned.
-  CHECK_EQ(code_range_size % page_size, 0);
-  CHECK_EQ(config.code_range_start % page_size, 0);
-  CHECK_EQ(config.data1_range_start % page_size, 0);
+  CHECK_EQ(config.code_range.start_address % page_size, 0);
   // Must a power of 2.
-  CHECK_EQ(code_range_size & code_range_size - 1, 0);
+  CHECK_EQ(config.code_range.num_bytes & config.code_range.num_bytes - 1, 0);
+
+  CHECK_EQ(config.data1_range.start_address % page_size, 0);
+  CHECK_EQ(config.data1_range.num_bytes % page_size, 0);
+  CHECK_EQ(config.data2_range.start_address % page_size, 0);
+  CHECK_EQ(config.data2_range.num_bytes % page_size, 0);
 
   // Leave this many bytes at the end of the code page for the exit sequence.
   constexpr auto kPaddingSizeBytes = 32;
@@ -53,9 +55,9 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   }
 
   uint64_t hash = CityHash64(code.data(), code.size());
-  uint64_t mask = (code_range_size - 1) / page_size;
+  uint64_t mask = (config.code_range.num_bytes - 1) / page_size;
   const uint64_t code_start_addr =
-      config.code_range_start + ((hash & mask) * page_size);
+      config.code_range.start_address + ((hash & mask) * page_size);
   auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
       code_start_addr, page_size, MemoryPerms::XR());
   snapshot.add_memory_mapping(code_page_mapping);
@@ -69,7 +71,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
       Snapshot::MemoryBytes(code_start_addr, code_with_traps));
 
   MemoryMapping data_page_mapping = Snapshot::MemoryMapping::MakeSized(
-      config.data1_range_start, page_size, MemoryPerms::RW());
+      config.data1_range.start_address, page_size, MemoryPerms::RW());
   snapshot.add_memory_mapping(data_page_mapping);
 
   UContext<X86_64> current = {};

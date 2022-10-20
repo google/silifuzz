@@ -132,11 +132,11 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
                              code_bytes->num_bytes()));
 
   // Map the data region(s).
-  UNICORN_CHECK(uc_mem_map(uc, config.data1_range_start,
-                           config.data1_range_limit - config.data1_range_start,
+  UNICORN_CHECK(uc_mem_map(uc, config.data1_range.start_address,
+                           config.data1_range.num_bytes,
                            UC_PROT_READ | UC_PROT_WRITE));
-  UNICORN_CHECK(uc_mem_map(uc, config.data2_range_start,
-                           config.data2_range_limit - config.data2_range_start,
+  UNICORN_CHECK(uc_mem_map(uc, config.data2_range.start_address,
+                           config.data2_range.num_bytes,
                            UC_PROT_READ | UC_PROT_WRITE));
 
   // Emulate up to kMaxInstExecuted instructions.
