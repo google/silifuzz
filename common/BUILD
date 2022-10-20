@@ -382,3 +382,13 @@ cc_library(
     name = "proxy_config",
     hdrs = ["proxy_config.h"],
 )
+
+cc_test(
+    name = "proxy_config_test",
+    size = "small",
+    srcs = ["proxy_config_test.cc"],
+    deps = [
+        ":proxy_config",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

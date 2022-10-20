@@ -28,14 +28,6 @@ namespace silifuzz {
 struct MemoryRange {
   uint64_t start_address;
   uint64_t num_bytes;
-
-  constexpr bool overlaps(const MemoryRange& other) const {
-    if (start_address < other.start_address) {
-      return other.start_address - start_address < num_bytes;
-    } else {
-      return start_address - other.start_address < other.num_bytes;
-    }
-  }
 };
 
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
@@ -52,14 +44,6 @@ struct FuzzingConfig {
 
   // Constraints for start_address and num_bytes are same as data1.
   MemoryRange data2_range;
-
-  // Check that there are no obvious problems with the config.
-  constexpr bool ok() const {
-    if (code_range.overlaps(data1_range)) return false;
-    if (code_range.overlaps(data2_range)) return false;
-    if (data1_range.overlaps(data2_range)) return false;
-    return true;
-  }
 };
 
 constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
@@ -80,7 +64,6 @@ constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
         },
 };
 
-static_assert(DEFAULT_X86_64_FUZZING_CONFIG.ok(), "Malformed config");
 
 }  // namespace silifuzz
 
