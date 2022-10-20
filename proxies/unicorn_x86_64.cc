@@ -38,9 +38,9 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
   // Set OSFXSR bit in CR4 to enable FXSAVE and FXRSTOR handling of XMM
   // registers. See https://en.wikipedia.org/wiki/Control_register#CR4
   uint64_t cr4 = 0;
-  UNICORN_RETURN_IF_NOT_OK(uc_reg_read(uc, UC_X86_REG_CR4, &cr4));
+  UNICORN_CHECK(uc_reg_read(uc, UC_X86_REG_CR4, &cr4));
   cr4 |= (1ULL << 9);
-  UNICORN_RETURN_IF_NOT_OK(uc_reg_write(uc, UC_X86_REG_CR4, &cr4));
+  UNICORN_CHECK(uc_reg_write(uc, UC_X86_REG_CR4, &cr4));
 
   constexpr size_t kFPRegsSize = sizeof(fpregs);
   static_assert(kFPRegsSize == 512,
@@ -52,18 +52,16 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
   //
   // Use page 0 to stage the fpregs and the restore code.
   const uint64_t addr = 0;
-  UNICORN_RETURN_IF_NOT_OK(uc_reg_write(uc, UC_X86_REG_RDI, &addr));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, addr, 4096, UC_PROT_ALL));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_write(uc, addr, &fpregs, kFPRegsSize));
+  UNICORN_CHECK(uc_reg_write(uc, UC_X86_REG_RDI, &addr));
+  UNICORN_CHECK(uc_mem_map(uc, addr, 4096, UC_PROT_ALL));
+  UNICORN_CHECK(uc_mem_write(uc, addr, &fpregs, kFPRegsSize));
   // fxrstor64 [rdi]
   const std::string fxRstorRdiByteCode = {0x48, 0x0F, 0xAE, 0x0F};
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_write(uc, addr + kFPRegsSize,
-                                        fxRstorRdiByteCode.data(),
-                                        fxRstorRdiByteCode.length()));
+  UNICORN_CHECK(uc_mem_write(uc, addr + kFPRegsSize, fxRstorRdiByteCode.data(),
+                             fxRstorRdiByteCode.length()));
   // Execute exactly one instruction (count=1).
-  UNICORN_RETURN_IF_NOT_OK(
-      uc_emu_start(uc, addr + kFPRegsSize, 0, 0, /* count = */ 1));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_unmap(uc, addr, 4096));
+  UNICORN_CHECK(uc_emu_start(uc, addr + kFPRegsSize, 0, 0, /* count = */ 1));
+  UNICORN_CHECK(uc_mem_unmap(uc, addr, 4096));
 
   // List of all general purpose registers to write to Unicorn.
   // uc_reg_write_batch() is smart enough to distinguish the sizes of
@@ -90,7 +88,7 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
   // "array of const pointer to void" but it should have been "array of pointer
   // to const void" (i.e. the value under the pointer cannot change). Therefore
   // the cast.
-  UNICORN_RETURN_IF_NOT_OK(
+  UNICORN_CHECK(
       uc_reg_write_batch(uc,
                          /* regs = */ kX86UnicornGregs,
                          /* vals = */ const_cast<void *const *>(gregs_srs),
@@ -127,21 +125,19 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
   RETURN_IF_NOT_OK(Initialize(uc, gregs, fpregs).status());
 
   // Map the code page.
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_map(uc, code_bytes->start_address(),
-                                      code_bytes->num_bytes(), UC_PROT_EXEC));
-  UNICORN_RETURN_IF_NOT_OK(uc_mem_write(uc, code_bytes->start_address(),
-                                        code_bytes->byte_values().data(),
-                                        code_bytes->num_bytes()));
+  UNICORN_CHECK(uc_mem_map(uc, code_bytes->start_address(),
+                           code_bytes->num_bytes(), UC_PROT_EXEC));
+  UNICORN_CHECK(uc_mem_write(uc, code_bytes->start_address(),
+                             code_bytes->byte_values().data(),
+                             code_bytes->num_bytes()));
 
   // Map the data region(s).
-  UNICORN_RETURN_IF_NOT_OK(
-      uc_mem_map(uc, config.data1_range_start,
-                 config.data1_range_limit - config.data1_range_start,
-                 UC_PROT_READ | UC_PROT_WRITE));
-  UNICORN_RETURN_IF_NOT_OK(
-      uc_mem_map(uc, config.data2_range_start,
-                 config.data2_range_limit - config.data2_range_start,
-                 UC_PROT_READ | UC_PROT_WRITE));
+  UNICORN_CHECK(uc_mem_map(uc, config.data1_range_start,
+                           config.data1_range_limit - config.data1_range_start,
+                           UC_PROT_READ | UC_PROT_WRITE));
+  UNICORN_CHECK(uc_mem_map(uc, config.data2_range_start,
+                           config.data2_range_limit - config.data2_range_start,
+                           UC_PROT_READ | UC_PROT_WRITE));
 
   // Emulate up to kMaxInstExecuted instructions.
   uint64_t end_of_code = code_addr + insns.size();
@@ -151,7 +147,7 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
 
   // Reject the input if emulation didn't finish at end_of_code.
   uint64_t pc = 0;
-  UNICORN_RETURN_IF_NOT_OK(uc_reg_read(uc, UC_X86_REG_RIP, &pc));
+  UNICORN_CHECK(uc_reg_read(uc, UC_X86_REG_RIP, &pc));
   if (pc != end_of_code) {
     return absl::OutOfRangeError("Didn't reach expected PC");
   }
