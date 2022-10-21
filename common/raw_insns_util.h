@@ -42,6 +42,10 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code,
     const FuzzingConfig_X86_64& config = DEFAULT_X86_64_FUZZING_CONFIG);
 
+absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
+    absl::string_view code,
+    const FuzzingConfig_AArch64& config = DEFAULT_AARCH64_FUZZING_CONFIG);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_

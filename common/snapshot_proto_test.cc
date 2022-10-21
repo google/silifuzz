@@ -38,5 +38,19 @@ TEST(SnapshotProto, MetadataRoundtrip) {
   ASSERT_EQ(proto.metadata().comment(0), "test");
 }
 
+TEST(SnapshotProto, ArchRoundtrip) {
+  std::string instruction({0, 0, 0, 0});
+  absl::StatusOr<Snapshot> snapshot =
+      InstructionsToSnapshot_AArch64(instruction);
+  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_EQ(snapshot->architecture(), Snapshot::Architecture::kAArch64);
+
+  proto::Snapshot proto;
+  SnapshotProto::ToProto(*snapshot, &proto);
+  snapshot = SnapshotProto::FromProto(proto);
+  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_EQ(snapshot->architecture(), Snapshot::Architecture::kAArch64);
+}
+
 }  // namespace
 }  // namespace silifuzz

@@ -132,6 +132,80 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   return snapshot;
 }
 
+absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
+    absl::string_view code, const FuzzingConfig_AArch64& config) {
+  if (code.size() % 4 != 0) {
+    return absl::InvalidArgumentError(
+        "code snippet size must be a multiple of 4 to contain complete aarch64 "
+        "instructions.");
+  }
+
+  Snapshot snapshot(Snapshot::Architecture::kAArch64);
+  const auto page_size = snapshot.page_size();
+
+  // Leave this many bytes at the end of the code page for the exit sequence.
+  // TODO(ncbray): share a definition of this value with exit_sequence.h
+  constexpr size_t kPaddingSizeBytes = 12;
+  if (code.size() > snapshot.page_size() - kPaddingSizeBytes) {
+    return absl::InvalidArgumentError(
+        "code snippet + the exit sequence must fit into a single page.");
+  }
+
+  const uint64_t code_start_addr =
+      InstructionsToCodeAddress(code, config.code_range.start_address,
+                                config.code_range.num_bytes, page_size);
+
+  // Create mapping for the code.
+  // Map code execute-only to discourage depending on any widget that may exist
+  // before or after the code.
+  auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
+      code_start_addr, page_size, MemoryPerms::X());
+  snapshot.add_memory_mapping(code_page_mapping);
+
+  // Add code to the snapshot.
+  std::string code_with_traps = std::string(code);
+  // Pad the codepage with zero, i.e. undefined instructions.
+  code_with_traps.resize(page_size, 0);
+  snapshot.add_memory_bytes(
+      Snapshot::MemoryBytes(code_start_addr, code_with_traps));
+
+  // Create mapping for the stack.
+  MemoryMapping stack_mapping = Snapshot::MemoryMapping::MakeSized(
+      config.stack_range.start_address, config.stack_range.num_bytes,
+      MemoryPerms::RW());
+  snapshot.add_memory_mapping(stack_mapping);
+
+  // Note: data page mappings are not added to the snapshot here. We are
+  // currently relying on the SnapMaker discovering the minimum set of pages
+  // that are actually used.
+  // TODO(ncbray): specify the data pages here and ignore them later?
+
+  // Setup register state
+  UContext<AArch64> uctx = {};
+
+  // x30 will be aliased to pc as an artifact of how we jump into the code.
+  uctx.gregs.x[30] = code_start_addr;
+  uctx.gregs.pc = code_start_addr;
+
+  // sp points off the end of the stack.
+  uctx.gregs.sp =
+      config.stack_range.start_address + config.stack_range.num_bytes;
+
+  // HACK seed the addresses of the memory regions in registers.
+  uctx.gregs.x[6] = config.data1_range.start_address;
+  uctx.gregs.x[7] = config.data2_range.start_address;
+
+  // Note: FPCR of zero means round towards nearest and no exceptions enabled.
+
+  snapshot.set_registers(ConvertRegsToSnapshot(uctx.gregs, uctx.fpregs));
+
+  // Code should execute off the end of the instruction sequence.
+  snapshot.add_expected_end_state(
+      Snapshot::EndState(Snapshot::Endpoint(code_start_addr + code.length())));
+
+  return snapshot;
+}
+
 std::string InstructionsToSnapshotId(absl::string_view code) {
   uint8_t sha1_digest[SHA_DIGEST_LENGTH];
   SHA1(reinterpret_cast<const uint8_t*>(code.data()), code.size(), sha1_digest);

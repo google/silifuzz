@@ -562,8 +562,14 @@ absl::Status Snapshot::can_set_registers_impl(const Snapshot::RegisterState& x,
 
 absl::Status Snapshot::can_set_registers(const RegisterState& x,
                                          bool is_end_state) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
-  return can_set_registers_impl<X86_64>(x, is_end_state);
+  switch (architecture_descr_->id) {
+    case Snapshot::Architecture::kX86_64:
+      return can_set_registers_impl<X86_64>(x, is_end_state);
+    case Snapshot::Architecture::kAArch64:
+      return can_set_registers_impl<AArch64>(x, is_end_state);
+    default:
+      LOG_FATAL("Unexpected architecture: ", architecture_descr_->id);
+  }
 }
 
 void Snapshot::set_registers(const RegisterState& x) {
@@ -825,8 +831,14 @@ Snapshot::Address Snapshot::ExtractRipImpl(const RegisterState& x) const {
 }
 
 Snapshot::Address Snapshot::ExtractRip(const RegisterState& x) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
-  return ExtractRipImpl<X86_64>(x);
+  switch (architecture_descr_->id) {
+    case Snapshot::Architecture::kX86_64:
+      return ExtractRipImpl<X86_64>(x);
+    case Snapshot::Architecture::kAArch64:
+      return ExtractRipImpl<AArch64>(x);
+    default:
+      LOG_FATAL("Unexpected architecture: ", architecture_descr_->id);
+  }
 }
 
 template <typename Arch>
@@ -840,8 +852,14 @@ Snapshot::Address Snapshot::ExtractRspImpl(const RegisterState& x) const {
 }
 
 Snapshot::Address Snapshot::ExtractRsp(const RegisterState& x) const {
-  CHECK(architecture_descr_->id == Snapshot::Architecture::kX86_64);
-  return ExtractRspImpl<X86_64>(x);
+  switch (architecture_descr_->id) {
+    case Snapshot::Architecture::kX86_64:
+      return ExtractRspImpl<X86_64>(x);
+    case Snapshot::Architecture::kAArch64:
+      return ExtractRspImpl<AArch64>(x);
+    default:
+      LOG_FATAL("Unexpected architecture: ", architecture_descr_->id);
+  }
 }
 
 int Snapshot::num_pages() const {

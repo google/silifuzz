@@ -56,5 +56,34 @@ TEST(RawInsnsUtil, InstructionsToSnapshotId) {
             "679016f223a6925ba69f055f513ea8aa0e0720ed");
 }
 
+TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
+  auto config = DEFAULT_AARCH64_FUZZING_CONFIG;
+  std::string instruction({0, 0, 0, 0});
+  absl::StatusOr<Snapshot> snapshot =
+      InstructionsToSnapshot_AArch64(instruction, config);
+  ASSERT_THAT(snapshot, IsOk());
+  // code page + stack page
+  EXPECT_EQ(snapshot->num_pages(), 2);
+  // must be executable
+  EXPECT_THAT(snapshot->IsComplete(Snapshot::kUndefinedEndState), IsOk());
+
+  uint64_t pc = snapshot->ExtractRip(snapshot->registers());
+  EXPECT_GE(pc, config.code_range.start_address);
+  EXPECT_LT(pc, config.code_range.start_address + config.code_range.num_bytes);
+}
+
+TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Stable) {
+  std::string instruction({0x0, 0xc0, 0xb0, 0x72});
+  absl::StatusOr<Snapshot> snapshot_2 =
+      InstructionsToSnapshot_AArch64(instruction);
+  ASSERT_THAT(snapshot_2, IsOk());
+
+  absl::StatusOr<Snapshot> snapshot_3 =
+      InstructionsToSnapshot_AArch64(instruction);
+  ASSERT_THAT(snapshot_3, IsOk());
+  EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
+            snapshot_3->ExtractRip(snapshot_3->registers()));
+}
+
 }  // namespace
 }  // namespace silifuzz
