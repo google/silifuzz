@@ -19,6 +19,7 @@
 #include <cstdlib>
 
 #include "absl/strings/string_view.h"
+#include "./common/proxy_config.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "third_party/unicorn/arm64.h"
@@ -27,18 +28,6 @@
 namespace silifuzz {
 
 namespace {
-
-constexpr uint64_t kCodeAddr = 0x1000000;
-constexpr uint64_t kCodeSize = 0x1000;
-
-constexpr uint64_t kStackAddr = 0x2000000;
-constexpr uint64_t kStackSize = 0x1000;
-
-constexpr uint64_t kMem1Addr = 0x7000000;
-constexpr uint64_t kMem1Size = 4 * 1024 * 1024;
-
-constexpr uint64_t kMem2Addr = 0x10007000000;
-constexpr uint64_t kMem2Size = 4 * 1024 * 1024;
 
 #define UNICORN_CHECK(...)                              \
   do {                                                  \
@@ -79,6 +68,11 @@ int RunAArch64Instructions(absl::string_view insns) {
   if (insns.size() % 4 != 0) {
     return -1;
   }
+  FuzzingConfig_AArch64 config = DEFAULT_AARCH64_FUZZING_CONFIG;
+
+  // TODO(ncbray): randomize
+  const uint64_t kCodeAddr = config.code_range.start_address;
+  const uint64_t kCodeSize = 0x1000;
 
   // Reject huge examples, for now.
   if (insns.size() > kCodeSize) {
@@ -108,20 +102,25 @@ int RunAArch64Instructions(absl::string_view insns) {
   uc_mem_write(uc, kCodeAddr, insns.data(), insns.size());
 
   // Allocate stack.
-  map_memory(uc, kStackAddr, kStackSize, UC_PROT_READ | UC_PROT_WRITE);
+  map_memory(uc, config.stack_range.start_address, config.stack_range.num_bytes,
+             UC_PROT_READ | UC_PROT_WRITE);
 
   // Stack grows towards zero, start at the largest address.
   // Note this address is unmapped.
-  set_reg(uc, UC_ARM64_REG_SP, kStackAddr + kStackSize);
+  set_reg(uc, UC_ARM64_REG_SP,
+          config.stack_range.start_address + config.stack_range.num_bytes);
 
   // Setup memory regions.
+  map_memory(uc, config.data1_range.start_address, config.data1_range.num_bytes,
+             UC_PROT_READ | UC_PROT_WRITE);
+  map_memory(uc, config.data2_range.start_address, config.data2_range.num_bytes,
+             UC_PROT_READ | UC_PROT_WRITE);
+
   // HACK put the region addresses in an arbitrary register to make them
   // discoverable. In the future we should seed the dictionary with instructions
   // that materialize this constant instead.
-  map_memory(uc, kMem1Addr, kMem1Size, UC_PROT_READ | UC_PROT_WRITE);
-  set_reg(uc, UC_ARM64_REG_X6, kMem1Addr);
-  map_memory(uc, kMem2Addr, kMem2Size, UC_PROT_READ | UC_PROT_WRITE);
-  set_reg(uc, UC_ARM64_REG_X7, kMem2Addr);
+  set_reg(uc, UC_ARM64_REG_X6, config.data1_range.start_address);
+  set_reg(uc, UC_ARM64_REG_X7, config.data2_range.start_address);
 
   // Execute the instructions.
   uint64_t end_of_code = kCodeAddr + insns.size();

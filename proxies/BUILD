@@ -21,6 +21,7 @@ cc_library(
     testonly = True,
     srcs = ["unicorn_aarch64.cc"],
     deps = [
+        "@silifuzz//common:proxy_config",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@com_google_absl//absl/strings",

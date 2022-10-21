@@ -99,7 +99,7 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
 }  // namespace
 
 absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
-  FuzzingConfig config = DEFAULT_X86_64_FUZZING_CONFIG;
+  FuzzingConfig_X86_64 config = DEFAULT_X86_64_FUZZING_CONFIG;
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
                              InstructionsToSnapshot_X86_64(insns, config));
   const uint64_t code_addr = snapshot.ExtractRip(snapshot.registers());

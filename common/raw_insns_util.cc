@@ -60,7 +60,7 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
 }  // namespace
 
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
-    absl::string_view code, const FuzzingConfig& config) {
+    absl::string_view code, const FuzzingConfig_X86_64& config) {
   Snapshot snapshot(Snapshot::Architecture::kX86_64);
   const uint64_t page_size = snapshot.page_size();
 

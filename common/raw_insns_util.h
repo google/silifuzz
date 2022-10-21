@@ -40,7 +40,7 @@ std::string InstructionsToSnapshotId(absl::string_view code);
 // byte. The result is guaranteed to be stable.
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code,
-    const FuzzingConfig& config = DEFAULT_X86_64_FUZZING_CONFIG);
+    const FuzzingConfig_X86_64& config = DEFAULT_X86_64_FUZZING_CONFIG);
 
 }  // namespace silifuzz
 

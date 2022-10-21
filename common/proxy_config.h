@@ -33,7 +33,7 @@ struct MemoryRange {
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
 // Can include things like "default GPR value" in the future.
-struct FuzzingConfig {
+struct FuzzingConfig_X86_64 {
   // The start_address address must be page aligned.
   // The num_bytes must be a power of 2.
   MemoryRange code_range;
@@ -46,7 +46,7 @@ struct FuzzingConfig {
   MemoryRange data2_range;
 };
 
-constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
+constexpr FuzzingConfig_X86_64 DEFAULT_X86_64_FUZZING_CONFIG = {
     .code_range =
         {
             .start_address = 0x30000000,
@@ -64,6 +64,47 @@ constexpr FuzzingConfig DEFAULT_X86_64_FUZZING_CONFIG = {
         },
 };
 
+// Inheritance doesn't play well with designated initializers, so we're
+// manually duplicating parts of the config rather than inheriting from a base
+// config.
+// Even if the configs had identical fields, we'd probally want to keep the
+// types separate so type checking could catch config confusion.
+struct FuzzingConfig_AArch64 {
+  MemoryRange code_range;
+
+  // AArch64 currently has a separate stack. We may want to re-evaluate this in
+  // the future. For now, however, this simplifies the proxy because the
+  // Snapshot either includes each memory mapping in its entirety or completely
+  // omits it.
+  MemoryRange stack_range;
+
+  MemoryRange data1_range;
+  MemoryRange data2_range;
+};
+
+constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
+    .code_range =
+        {
+            .start_address = 0x30000000,
+            .num_bytes = 0x80000000,  // 2 GB
+        },
+    .stack_range =
+        {
+            .start_address = 0x2000000,
+            .num_bytes = 0x1000,
+        },
+
+    .data1_range =
+        {
+            .start_address = 0x700000000,
+            .num_bytes = 0x400000,  // 4 MB
+        },
+    .data2_range =
+        {
+            .start_address = 0x100700000000,
+            .num_bytes = 0x400000,  // 4 MB
+        },
+};
 
 }  // namespace silifuzz
 
