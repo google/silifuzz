@@ -351,6 +351,19 @@ cc_library_plus_nolibc(
     deps = [":checks"],
 )
 
+cc_binary_nolibc(
+    name = "mem_util_benchmark",
+    srcs = ["mem_util_benchmark.cc"],
+    as_is_deps = [
+        "@lss",
+    ],
+    deps = [
+        ":checks",
+        ":itoa",
+        ":mem_util",
+    ],
+)
+
 cc_test_plus_nolibc(
     name = "mem_util_test",
     srcs = ["mem_util_test.cc"],

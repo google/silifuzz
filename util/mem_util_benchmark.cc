@@ -74,7 +74,6 @@
 //
 #include <cstdint>
 #include <cstring>
-#include <functional>
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./util/checks.h"
@@ -139,8 +138,10 @@ inline size_t RoundUp(size_t size, size_t alignment) {
 
 // Returns bandwidth in bytes processed per second for a memory function.
 // function.
-inline uint64_t MeasureBandwidth(
-    std::function<void(size_t, size_t)> do_one_iteration, size_t size) {
+template <typename MemoryCompareFunc>
+inline uint64_t MeasureBandwidth(void (*do_one_iteration)(MemoryCompareFunc,
+                                                          size_t),
+                                 MemoryCompareFunc func, size_t size) {
   CHECK_LE(size, BUFFER_SIZE);
 
   size_t aligned_size = RoundUp(size, sizeof(uint64_t));
@@ -153,7 +154,7 @@ inline uint64_t MeasureBandwidth(
        num_iterations_in_1ms <<= 1) {
     const uint64_t start_nanos = GetThreadVirtualTimeNano();
     for (size_t i = 0; i < num_iterations_in_1ms; ++i) {
-      do_one_iteration(i, aligned_size);
+      do_one_iteration(func, aligned_size);
     }
     elapsed_nanos = GetThreadVirtualTimeNano() - start_nanos;
   }
@@ -165,7 +166,7 @@ inline uint64_t MeasureBandwidth(
   size_t num_iterations_in_1s = kNanosPerSec / estimated_nanos_per_iterations;
   const uint64_t benchmark_start_nanos = GetThreadVirtualTimeNano();
   for (size_t i = 0; i < num_iterations_in_1s; ++i) {
-    do_one_iteration(i, aligned_size);
+    do_one_iteration(func, aligned_size);
   }
   const uint64_t benchmark_end_nanos = GetThreadVirtualTimeNano();
   const double benchmarks_elapsed_secs =
@@ -177,23 +178,10 @@ inline uint64_t MeasureBandwidth(
                                benchmarks_elapsed_secs);
 }
 
-// Returns bandwidth in byte pairs compared per second for a memory comparison
-// function. The actual memory bandwidth is about double of that because we need
-// to read from two memory ranges.
-uint64_t MeasureCompareBandwidth(MemoryCompareFunc func, size_t size) {
-  auto do_one_iteration = [&func](size_t i, size_t size) {
-    bool result = func(test_buffer_1, test_buffer_2, size);
-    // Use a dummy assembly statement to avoid the call above being
-    // optimized away.
-    asm volatile("" : : "m"(result));
-    CHECK(result);
-  };
-  return MeasureBandwidth(do_one_iteration, size);
-}
-
 template <typename MemoryCompareFunc>
-void RunBenchmark(uint64_t (*measure)(MemoryCompareFunc, size_t),
-                  const char* func_name, MemoryCompareFunc func) {
+void RunBenchmark(void (*do_one_iteration)(MemoryCompareFunc, size_t),
+                  const char* func_name, MemoryCompareFunc func,
+                  bool should_memset = false) {
   constexpr size_t kTestSizes[] = {(1 << 4), (1 << 8), (1 << 12), (1 << 16),
                                    (1 << 20)};
   constexpr size_t kNumTestSizes = sizeof(kTestSizes) / sizeof(kTestSizes[0]);
@@ -201,67 +189,63 @@ void RunBenchmark(uint64_t (*measure)(MemoryCompareFunc, size_t),
   LOG_INFO("Benchmarking ", func_name);
   for (int i = 0; i < kNumTestSizes; ++i) {
     const size_t size = kTestSizes[i];
-    const uint64_t bandwidth_mibps = (*measure)(func, size) / (1 << 20);
+    if (should_memset) {
+      CHECK_LE(size, BUFFER_SIZE);
+      size_t aligned_size = RoundUp(size, sizeof(uint64_t));
+      memset(test_buffer_1, 0, aligned_size);
+    }
+    const uint64_t bandwidth_mibps =
+        MeasureBandwidth(do_one_iteration, func, size) / (1 << 20);
     LOG_INFO(IntStr(size), "B : ", IntStr(bandwidth_mibps), " MiB/s");
   }
 }
 
-void RunCompareBenchmark(const char* func_name, MemoryCompareFunc func) {
-  RunBenchmark(MeasureCompareBandwidth, func_name, func);
+// Compares size bytes between the two test buffers.
+void CompareOneIteration(MemoryCompareFunc func, size_t size) {
+  bool result = func(test_buffer_1, test_buffer_2, size);
+  // Use a dummy assembly statement to avoid the call above being
+  // optimized away.
+  asm volatile("" : : "m"(result));
+  CHECK(result);
 }
 
-// Returns bandwidth in bytes copied per second for a memory copying function.
-// The raw memory bandwidth is about double of that because we need to
-// access two memory ranges for each byte copied.
-uint64_t MeasureCopyBandwidth(MemoryCopyFunc func, size_t size) {
-  auto do_one_iteration = [&func](size_t i, size_t size) {
-    func(test_buffer_1, test_buffer_2, size);
-  };
-  return MeasureBandwidth(do_one_iteration, size);
+// Copies size bytes from one test buffer to the other.
+void CopyOneIteration(MemoryCopyFunc func, size_t size) {
+  func(test_buffer_1, test_buffer_2, size);
 }
 
-void RunCopyBenchmark(const char* func_name, MemoryCopyFunc func) {
-  RunBenchmark(MeasureCopyBandwidth, func_name, func);
+// Sets size bytes in a test buffer to 0.
+void SetOneIteration(MemorySetFunc func, size_t size) {
+  func(test_buffer_1, 0, size);
 }
 
-// Returns bandwidth in bytes set per second for a memory setting function.
-uint64_t MeasureSetBandwidth(MemorySetFunc func, size_t size) {
-  auto do_one_iteration = [&func](size_t i, size_t size) {
-    func(test_buffer_1, 0, size);
-  };
-  return MeasureBandwidth(do_one_iteration, size);
-}
-
-void RunSetBenchmark(const char* func_name, MemorySetFunc func) {
-  RunBenchmark(MeasureSetBandwidth, func_name, func);
-}
-
-// Returns bandwidth in bytes processed per second for a memory all equal to
-// function.
-uint64_t MeasureAllEqualToBandwidth(MemoryAllEqualToFunc func, size_t size) {
-  CHECK_LE(size, BUFFER_SIZE);
-  size_t aligned_size = RoundUp(size, sizeof(uint64_t));
-  memset(test_buffer_1, 0, aligned_size);
-
-  auto do_one_iteration = [&func](size_t i, size_t size) {
-    func(test_buffer_1, 0, size);
-  };
-  return MeasureBandwidth(do_one_iteration, size);
-}
-
-void RunAllEqualToBenchmark(const char* func_name, MemoryAllEqualToFunc func) {
-  RunBenchmark(MeasureAllEqualToBandwidth, func_name, func);
+// Checks that size bytes of a test buffer are equal to 0.
+void AllEqualToOneIteration(MemoryAllEqualToFunc func, size_t size) {
+  func(test_buffer_1, 0, size);
 }
 
 int BenchmarkMain() {
-  RunCompareBenchmark("MemEq", MemEq);
-  RunCompareBenchmark("bcmp", BcmpAdaptor);
-  RunCompareBenchmark("MemEqSSE", MemEqSSE);
-  RunCopyBenchmark("MemCopy", MemCopy);
-  RunCopyBenchmark("memcpy", MemcpyAdaptor);
-  RunSetBenchmark("MemSet", MemSet);
-  RunSetBenchmark("memset", NolibcMemsetAdaptor);
-  RunAllEqualToBenchmark("MemAllEqualTo", MemAllEqualTo);
+  // Measures bandwidth in byte pairs compared per second for a memory
+  // comparison function. The actual memory bandwidth is about double of that
+  // because we need to read from two memory ranges.
+  RunBenchmark(CompareOneIteration, "MemEq", MemEq);
+  RunBenchmark(CompareOneIteration, "bcmp", BcmpAdaptor);
+  RunBenchmark(CompareOneIteration, "MemEqSSE", MemEqSSE);
+
+  // Measures bandwidth in bytes copied per second for a memory copying
+  // function. The raw memory bandwidth is about double of that because we need
+  // to access two memory ranges for each byte copied.
+  RunBenchmark(CopyOneIteration, "MemCopy", MemCopy);
+  RunBenchmark(CopyOneIteration, "memcpy", MemcpyAdaptor);
+
+  // Measures bandwidth in bytes set per second for a memory setting function.
+  RunBenchmark(SetOneIteration, "MemSet", MemSet);
+  RunBenchmark(SetOneIteration, "memset", NolibcMemsetAdaptor);
+
+  // Measures bandwidth in bytes processed per second for a memory all equal to
+  // function.
+  RunBenchmark(AllEqualToOneIteration, "MemAllEqualTo", MemAllEqualTo,
+               /*should_memset=*/true);
   return 0;
 }
 
