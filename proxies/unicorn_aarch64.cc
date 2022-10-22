@@ -53,14 +53,6 @@ void map_memory(uc_engine *uc, uint64_t addr, uint64_t size, uint32_t prot) {
   }
 }
 
-void set_reg(uc_engine *uc, uc_arm64_reg reg, uint64_t value) {
-  uc_err err = uc_reg_write(uc, reg, &value);
-  if (err != UC_ERR_OK) {
-    LOG_FATAL("trying to set ", IntStr(reg), " to ", HexStr(value),
-              " failed with ", IntStr(err), ": ", uc_strerror(err));
-  }
-}
-
 uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms) {
   uint32_t prot = 0;
   if (perms.Has(MemoryPerms::kReadable)) {

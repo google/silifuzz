@@ -85,17 +85,14 @@ cc_test(
 cc_binary(
     name = "unicorn_aarch64",
     testonly = True,
-    srcs = ["unicorn_aarch64.cc"],
     linkopts = [
         "-ldl",
         "-lrt",
         "-lpthread",
     ],
     deps = [
-        "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
+        ":unicorn_aarch64_lib",
         "@centipede//:centipede_runner",
-        "@unicorn//:unicorn_arm64",
     ],
 )
 
