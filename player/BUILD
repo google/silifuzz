@@ -61,3 +61,24 @@ cc_library(
         "@com_google_absl//absl/time",
     ],
 )
+
+cc_test(
+    name = "player_result_proto_test",
+    srcs = ["player_result_proto_test.cc"],
+    deps = [
+        ":player_result_proto",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_enums",
+        "@silifuzz//proto:player_result_cc_proto",
+        "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:time_proto_util",
+        "@silifuzz//util/testing:status_macros",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+        "@com_google_protobuf//:protobuf",
+    ],
+)

@@ -19,14 +19,13 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-cc_test(
-    name = "status_matchers_test",
-    srcs = ["status_matchers_test.cc"],
+cc_library(
+    name = "status_macros",
+    testonly = 1,
+    hdrs = ["status_macros.h"],
     deps = [
         ":status_matchers",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 
@@ -39,5 +38,26 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_test(
+    name = "status_macros_test",
+    srcs = ["status_macros_test.cc"],
+    deps = [
+        ":status_macros",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "status_matchers_test",
+    srcs = ["status_matchers_test.cc"],
+    deps = [
+        ":status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_googletest//:gtest_main",
     ],
 )

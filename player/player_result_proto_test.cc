@@ -31,6 +31,7 @@
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/checks.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/time_proto_util.h"
 
@@ -38,6 +39,7 @@ namespace silifuzz {
 namespace {
 
 using ::google::protobuf::util::MessageDifferencer;
+using silifuzz::testing::IsOk;
 using snapshot_types::PlaybackOutcome;
 using ::testing::_;
 using Result = snapshot_types::PlaybackResult<Snapshot::EndState>;
@@ -222,7 +224,7 @@ TEST(PlayerResultProto, ToProto) {
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
                          BuildTestProto(outcome, {}));
     proto::PlayerResult result_proto = ResultProtoWithGarbage();
-    ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
+    ASSERT_THAT(PlayerResultProto::ToProto(result, result_proto), IsOk());
     EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
   }
 }
@@ -235,7 +237,7 @@ TEST(PlayerResultProto, ToProtoWithSignal) {
     ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
                          BuildTestProto(outcome, options));
     proto::PlayerResult result_proto = ResultProtoWithGarbage();
-    ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
+    ASSERT_THAT(PlayerResultProto::ToProto(result, result_proto), IsOk());
     EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
   }
 }
@@ -249,7 +251,7 @@ TEST(PlayerResultProto, ToProtoAlwaysHaveEndstate) {
   ASSERT_OK_AND_ASSIGN(proto::PlayerResult expected,
                        BuildTestProto(PlaybackOutcome::kAsExpected, options));
   proto::PlayerResult result_proto = ResultProtoWithGarbage();
-  ASSERT_OK(PlayerResultProto::ToProto(result, result_proto));
+  ASSERT_THAT(PlayerResultProto::ToProto(result, result_proto), IsOk());
   EXPECT_TRUE(MessageDifferencer::Equivalent(result_proto, expected));
 }
 
