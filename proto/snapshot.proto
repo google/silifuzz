@@ -53,17 +53,12 @@ message MemoryBytes {
 }
 
 // Describes the state of CPU registers.
-// This is available from silifuzz/util/ucontext/ucontext.h and
-// silifuzz/util/ucontext/conver.h or via PTRACE_GETREGS, PTRACE_GETFPREGS,
-// PTRACE_GETREGSET as <sys/user.h> structs.
+// This is available from silifuzz/util/ucontext/ucontext.h
 message RegisterState {
-  // Bytes of the user_regs_struct from <sys/user.h>.
+  // Serialized bytes of the GRegSet struct.
   optional bytes gregs = 1;  // semantically required
 
-  // Bytes of the user_fpregs_struct from <sys/user.h>.
-  // TBD: Might need to exclude the padding field at the end.
-  //      Also might need to allow for fp_regs to be absent
-  //      -- see user.u_fpvalid in <sys/user.h>.
+  // Serialized bytes of the FPRegSet struct.
   optional bytes fpregs = 2;  // semantically required
 }
 

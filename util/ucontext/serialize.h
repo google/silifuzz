@@ -32,29 +32,32 @@ namespace silifuzz {
 
 namespace serialize_internal {
 
-// TODO(ncbray) make arch generic by decoupling the x86_64 sizes from libc.
+constexpr size_t kHeaderSize = 8;
 
 template <typename T>
 constexpr size_t SerializedSizeMax();
 
 template <>
 constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
+  // Note that the legacy serialization format is larger because it encodes
+  // every field as a 64-bit integer and also contains an extra field.
+  // 216 vs 8 + 176.
   return 216;  // sizeof(struct user_regs_struct)
 }
 
 template <>
 constexpr size_t SerializedSizeMax<FPRegSet<X86_64>>() {
-  return sizeof(FPRegSet<X86_64>);
+  return kHeaderSize + sizeof(FPRegSet<X86_64>);
 }
 
 template <>
 constexpr size_t SerializedSizeMax<GRegSet<AArch64>>() {
-  return 8 + sizeof(GRegSet<AArch64>);
+  return kHeaderSize + sizeof(GRegSet<AArch64>);
 }
 
 template <>
 constexpr size_t SerializedSizeMax<FPRegSet<AArch64>>() {
-  return 8 + sizeof(FPRegSet<AArch64>);
+  return kHeaderSize + sizeof(FPRegSet<AArch64>);
 }
 
 // Convert GRegsSet into bytes that can be stored in a snapshot proto.
@@ -80,6 +83,16 @@ template <typename Arch>
 ABSL_MUST_USE_RESULT ssize_t DeserializeFPRegs(const void* data,
                                                size_t data_size,
                                                FPRegSet<Arch>* fpregs);
+
+#if defined(__x86_64__)
+
+// For testing only.
+ABSL_MUST_USE_RESULT ssize_t SerializeLegacyGRegs(const GRegSet<X86_64>& gregs,
+                                                  void* data, size_t data_size);
+ABSL_MUST_USE_RESULT ssize_t SerializeLegacyFPRegs(
+    const FPRegSet<X86_64>& fpregs, void* data, size_t data_size);
+
+#endif
 }  // namespace serialize_internal
 
 template <typename T>

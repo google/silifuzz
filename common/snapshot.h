@@ -571,10 +571,10 @@ class Snapshot::RegisterState final {
   // Returns true if *this describes an empty, unspecified register state.
   bool IsUnset() const { return gregs_.empty() && fpregs_.empty(); }
 
-  // Bytes of the user_regs_struct from <sys/user.h>.
+  // Serialized bytes of the GRegSet struct.
   const ByteData& gregs() const { return gregs_; }
 
-  // Bytes of the user_fpregs_struct from <sys/user.h>.
+  // Serialized bytes of the FPRegSet struct.
   const ByteData& fpregs() const { return fpregs_; }
 
  private:

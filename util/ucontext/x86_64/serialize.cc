@@ -15,6 +15,7 @@
 #include "./util/ucontext/serialize.h"
 
 #include "./util/checks.h"
+#include "./util/ucontext/simple_serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 
 #if defined(__x86_64__)
@@ -25,24 +26,31 @@ namespace silifuzz {
 
 namespace serialize_internal {
 
+static constexpr uint16_t kLegacyGRegsSize = 216;
+static constexpr uint16_t kLegacyFPRegsSize = 512;
+
 // Static asserts that depend on libc.
 #if defined(__x86_64__)
 // FPRegSet in UContext and struct user_fpregs_struct have exact same
 // layout, just slightly different field and type names, so we can byte-copy.
 static_assert(sizeof(FPRegSet<X86_64>) == sizeof(struct user_fpregs_struct),
               "fpregs structs do not match");
+static_assert(kLegacyFPRegsSize == sizeof(struct user_fpregs_struct),
+              "kLegacyFPRegsSize is wrong");
+
 // The serialization buffer should be able to contain a user_regs_struct.
-static_assert(SerializedSizeMax<GRegSet<X86_64>>() ==
+static_assert(SerializedSizeMax<GRegSet<X86_64>>() >=
                   sizeof(struct user_regs_struct),
               "SerializedSizeMax is wrong for GRegSet<X86_64>");
+static_assert(kLegacyGRegsSize == sizeof(struct user_regs_struct),
+              "kLegacyGRegsSize is wrong");
 #endif
 
-static_assert(SerializedSizeMax<FPRegSet<X86_64>>() == sizeof(FPRegSet<X86_64>),
+static_assert(SerializedSizeMax<FPRegSet<X86_64>>() >= sizeof(FPRegSet<X86_64>),
               "SerializedSizeMax is wrong for FPRegSet<X86_64>");
 
-template <>
-ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
-                       size_t data_size) {
+ssize_t SerializeLegacyGRegs(const GRegSet<X86_64>& gregs, void* data,
+                             size_t data_size) {
 #if defined(__x86_64__)
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
@@ -92,14 +100,13 @@ ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
   return sizeof(*user_gregs);
 #else
   // TODO port to other platforms
-  LOG_FATAL("Serializing x86_64 GRegSet only supported on x86_64.");
+  LOG_FATAL("Serializing legacy x86_64 GRegSet only supported on x86_64.");
   return -1;
 #endif
 }
 
-template <>
-ssize_t DeserializeGRegs(const void* data, size_t data_size,
-                         GRegSet<X86_64>* gregs) {
+ssize_t DeserializeLegacyGRegs(const void* data, size_t data_size,
+                               GRegSet<X86_64>* gregs) {
 #if defined(__x86_64__)
   // Note: there are no guarantees this pointer is correctly aligned, but that
   // should be a performance pitfall and not correctness.
@@ -147,14 +154,13 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size,
   return sizeof(*user_gregs);
 #else
   // TODO(ncbray) port to other platforms.
-  LOG_FATAL("Deserializing x86_64 GRegSet only supported on x86_64.");
+  LOG_FATAL("Deserializing legacy x86_64 GRegSet only supported on x86_64.");
   return -1;
 #endif
 }
 
-template <>
-ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
-                        size_t data_size) {
+ssize_t SerializeLegacyFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
+                              size_t data_size) {
   // Is there enough space?
   if (data_size < sizeof(fpregs)) {
     return -1;
@@ -163,15 +169,69 @@ ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
   return sizeof(fpregs);
 }
 
-template <>
-ssize_t DeserializeFPRegs(const void* data, size_t data_size,
-                          FPRegSet<X86_64>* fpregs) {
+ssize_t DeserializeLegacyFPRegs(const void* data, size_t data_size,
+                                FPRegSet<X86_64>* fpregs) {
   // Is there enough data?
   if (data_size < sizeof(*fpregs)) {
     return -1;
   }
   memcpy(fpregs, data, sizeof(*fpregs));
   return sizeof(*fpregs);
+}
+
+static_assert(sizeof(header) == kHeaderSize, "Header struct is wrong size.");
+
+static_assert(SerializedSizeMax<GRegSet<X86_64>>() >=
+                  sizeof(header) + sizeof(GRegSet<X86_64>),
+              "SerializedSizeMax is wrong.");
+static_assert(SerializedSizeMax<FPRegSet<X86_64>>() >=
+                  sizeof(header) + sizeof(FPRegSet<X86_64>),
+              "SerializedSizeMax is wrong.");
+
+// "ig" in little endian.
+static constexpr uint16_t kX86_64GRegsMagic = 0x6769;
+
+// "if" in little endian.
+static constexpr uint16_t kX86_64FPRegsMagic = 0x6669;
+
+template <>
+ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
+                       size_t data_size) {
+  ssize_t result = SimpleSerialize(gregs, kX86_64GRegsMagic, data, data_size);
+  // As long as we support the legacy serialization formats, the new
+  // serialization formats must be designed to always produce a different
+  // serialized size.
+  CHECK_NE(result, kLegacyGRegsSize);
+  return result;
+}
+
+template <>
+ssize_t DeserializeGRegs(const void* data, size_t data_size,
+                         GRegSet<X86_64>* gregs) {
+  if (data_size == kLegacyGRegsSize) {
+    return DeserializeLegacyGRegs(data, data_size, gregs);
+  }
+  return SimpleDeserialize(kX86_64GRegsMagic, data, data_size, gregs);
+}
+
+template <>
+ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
+                        size_t data_size) {
+  ssize_t result = SimpleSerialize(fpregs, kX86_64FPRegsMagic, data, data_size);
+  // As long as we support the legacy serialization formats, the new
+  // serialization formats must be designed to always produce a different
+  // serialized size.
+  CHECK_NE(result, kLegacyFPRegsSize);
+  return result;
+}
+
+template <>
+ssize_t DeserializeFPRegs(const void* data, size_t data_size,
+                          FPRegSet<X86_64>* fpregs) {
+  if (data_size == kLegacyFPRegsSize) {
+    return DeserializeLegacyFPRegs(data, data_size, fpregs);
+  }
+  return SimpleDeserialize(kX86_64FPRegsMagic, data, data_size, fpregs);
 }
 
 }  // namespace serialize_internal

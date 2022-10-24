@@ -24,12 +24,7 @@ namespace {
 
 // For docs on TYPED_TEST_SUITE:
 // http://google.github.io/googletest/reference/testing.html#TYPED_TEST_SUITE
-// TODO(ncbray): enable x86_64 serialization on other arches.
-#if defined(__x86_64__)
 using arch_typelist = testing::Types<X86_64, AArch64>;
-#else
-using arch_typelist = testing::Types<AArch64>;
-#endif
 
 template <class>
 struct SerializeTest : testing::Test {};
@@ -51,14 +46,16 @@ TYPED_TEST(SerializeTest, RawGRegs) {
   // Copy to user context.
   uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
   memset(&tmp, 0xca, sizeof(tmp));
-  ASSERT_EQ(serialize_internal::SerializeGRegs(original, tmp, sizeof(tmp)),
-            sizeof(tmp));
+  ssize_t size = serialize_internal::SerializeGRegs(original, tmp, sizeof(tmp));
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
 
   // Copy back.
   GRegSet<TypeParam> bounced;
   memset(&bounced, 0x35, sizeof(bounced));
-  ASSERT_EQ(serialize_internal::DeserializeGRegs(tmp, sizeof(tmp), &bounced),
-            sizeof(tmp));
+  size = serialize_internal::DeserializeGRegs(tmp, size, &bounced);
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
 
   EXPECT_EQ(original, bounced);
 }
@@ -102,18 +99,19 @@ TYPED_TEST(SerializeTest, RawFPRegs) {
   // Copy to user context.
   uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
   memset(&tmp, 0xca, sizeof(tmp));
-  ASSERT_EQ(serialize_internal::SerializeFPRegs(original, tmp, sizeof(tmp)),
-            sizeof(tmp));
+  ssize_t size =
+      serialize_internal::SerializeFPRegs(original, tmp, sizeof(tmp));
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
 
   // Copy back.
   FPRegSet<TypeParam> bounced;
   memset(&bounced, 0x35, sizeof(bounced));
-  ASSERT_EQ(serialize_internal::DeserializeFPRegs(tmp, sizeof(tmp), &bounced),
-            sizeof(tmp));
+  size = serialize_internal::DeserializeFPRegs(tmp, size, &bounced);
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
 
-  // For some reason EXPECT_EQ cannot find the equality operator when FPRegSet
-  // is typedefed.
-  EXPECT_TRUE(original == bounced);
+  EXPECT_EQ(original, bounced);
 }
 
 TYPED_TEST(SerializeTest, WrappedFPRegs) {
@@ -128,7 +126,7 @@ TYPED_TEST(SerializeTest, WrappedFPRegs) {
   FPRegSet<TypeParam> bounced;
   ASSERT_EQ(serialize_internal::DeserializeFPRegs(tmp.data, tmp.size, &bounced),
             tmp.size);
-  EXPECT_TRUE(original == bounced);
+  EXPECT_EQ(original, bounced);
 }
 
 TYPED_TEST(SerializeTest, StringFPRegs) {
@@ -142,8 +140,63 @@ TYPED_TEST(SerializeTest, StringFPRegs) {
 
   FPRegSet<TypeParam> bounced;
   ASSERT_TRUE(DeserializeFPRegs(tmp, &bounced));
-  EXPECT_TRUE(original == bounced);
+  EXPECT_EQ(original, bounced);
 }
+
+// Legacy serialization tests will only run on x86_64 because they depend on
+// arch-specific system headers.
+#if defined(__x86_64__)
+
+TEST(SerializeLegacyTest, GRegs) {
+  // Set up a randomized context.
+  GRegSet<X86_64> original;
+  pattern_init(&original, sizeof(original));
+  ZeroOutGRegsPadding(&original);
+
+  // Copy to user context.
+  uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
+  memset(&tmp, 0xca, sizeof(tmp));
+  ssize_t size =
+      serialize_internal::SerializeLegacyGRegs(original, tmp, sizeof(tmp));
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
+
+  // Copy back.
+  GRegSet<X86_64> bounced;
+  memset(&bounced, 0x35, sizeof(bounced));
+  // Intentionally using the non-legacy API to show it falls back.
+  size = serialize_internal::DeserializeGRegs(tmp, size, &bounced);
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
+
+  EXPECT_EQ(original, bounced);
+}
+
+TEST(SerializeLegacyTest, FPRegs) {
+  // Set up a randomized context.
+  FPRegSet<X86_64> original;
+  pattern_init(&original, sizeof(original));
+  ZeroOutFPRegsPadding(&original);
+
+  // Copy to user context.
+  uint8_t tmp[serialize_internal::SerializedSizeMax<decltype(original)>()];
+  memset(&tmp, 0xca, sizeof(tmp));
+  ssize_t size =
+      serialize_internal::SerializeLegacyFPRegs(original, tmp, sizeof(tmp));
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
+
+  // Copy back.
+  FPRegSet<X86_64> bounced;
+  memset(&bounced, 0x35, sizeof(bounced));
+  // Intentionally using the non-legacy API to show it falls back.
+  size = serialize_internal::DeserializeFPRegs(tmp, size, &bounced);
+  ASSERT_GT(size, 0);
+  ASSERT_LE(size, sizeof(tmp));
+
+  EXPECT_EQ(original, bounced);
+}
+#endif
 
 }  // namespace
 }  // namespace silifuzz

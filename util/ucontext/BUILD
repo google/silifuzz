@@ -289,6 +289,7 @@ cc_library_plus_nolibc(
     name = "serialize",
     srcs = [
         "aarch64/serialize.cc",
+        "simple_serialize.h",
         "x86_64/serialize.cc",
     ],
     hdrs = ["serialize.h"],
