@@ -143,7 +143,7 @@ paper
 git clone https://github.com/google/silifuzz.git && cd silifuzz
 SILIFUZZ_SRC_DIR=`pwd`
 ./install_build_dependencies.sh  # Currently, works for the latest Debian and Ubuntu only
-bazel build @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id,simple_fix_tool_main} \
+bazel build -c opt @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id,simple_fix_tool_main} \
      @silifuzz//runner:reading_runner_main_nolibc \
      @silifuzz//orchestrator:silifuzz_orchestrator_main
 SILIFUZZ_BIN_DIR=`pwd`/bazel-bin/
