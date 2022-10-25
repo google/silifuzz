@@ -299,34 +299,25 @@ TEST(Syscalls, sigaltstack) {
   CHECK_EQ(sigaltstack(nullptr, &old_ss), 0);
 
   // Allocate a block big enough for a signal stack.
-  size_t page_size = getpagesize();
-  size_t page_mask = page_size - 1;
-  CHECK_EQ(page_size & page_mask, 0);  // page size is a power of 2.
-  // Round alt-stack size up to page size.
-  size_t alt_stack_size = (MINSIGSTKSZ + page_mask) & ~page_mask;
-  void* alt_stack_ptr = mmap(nullptr, alt_stack_size, PROT_READ | PROT_WRITE,
-                             MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  CHECK_NE(alt_stack_ptr, MAP_FAILED);
+  static char alt_stack[64 * 1024] = {0};
 
   // Using a zero-sized stack should fail.
-  stack_t ss{.ss_sp = alt_stack_ptr, .ss_flags = 0, .ss_size = 0};
+  stack_t ss{.ss_sp = alt_stack, .ss_flags = 0, .ss_size = 0};
   errno = 0;
   CHECK_EQ(sigaltstack(&ss, nullptr), -1);
   CHECK_EQ(errno, ENOMEM);
 
   // This should work.
-  ss.ss_size = alt_stack_size;
+  ss.ss_size = sizeof(alt_stack);
   errno = 0;
   CHECK_EQ(sigaltstack(&ss, nullptr), 0);
 
   // Restore old signal stack. We should read back our stack.
   stack_t ss_check;
   CHECK_EQ(sigaltstack(&old_ss, &ss_check), 0);
-  CHECK_EQ(ss_check.ss_sp, alt_stack_ptr);
-  CHECK_EQ(ss_check.ss_size, alt_stack_size);
+  CHECK_EQ(ss_check.ss_sp, alt_stack);
+  CHECK_EQ(ss_check.ss_size, sizeof(alt_stack));
   CHECK_EQ(ss_check.ss_flags, 0);
-
-  CHECK_EQ(munmap(alt_stack_ptr, alt_stack_size), 0);
 }
 
 TEST(Syscalls, write) {
