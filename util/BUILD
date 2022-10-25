@@ -556,6 +556,25 @@ cc_library(
 )
 
 cc_library(
+    name = "signals",
+    srcs = ["signals.cc"],
+    hdrs = ["signals.h"],
+    deps = [
+        ":checks",
+    ],
+)
+
+cc_test(
+    name = "signals_test",
+    srcs = ["signals_test.cc"],
+    deps = [
+        ":checks",
+        ":signals",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "span_util",
     hdrs = ["span_util.h"],
     deps = [
