@@ -20,8 +20,10 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <csignal>
 #include <string>
 
+#include "absl/base/call_once.h"
 #include "absl/base/internal/endian.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -33,10 +35,15 @@
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/signals.h"
 
 namespace silifuzz {
 
 namespace {
+
+// Once flag to control SIGPIPE handling. The set-up is only done in the
+// first call of BinaryLogProducer's constructor.
+absl::once_flag set_up_sigpipe_handling_once;
 
 // End-of-channel error status
 absl::Status EndOfChannelError() { return absl::OutOfRangeError("EOC"); }
@@ -68,6 +75,10 @@ absl::Status WrapConstructorError(absl::Status s) {
 
 BinaryLogProducer::BinaryLogProducer(int fd, bool take_ownership)
     : fd_(fd), take_ownership_(take_ownership) {
+  // Ignore SIGPIPE globally so that we do not get a signal when writing
+  // to a pipe with closed reading end.
+  absl::call_once(set_up_sigpipe_handling_once, IgnoreSignal, SIGPIPE);
+
   // We need a non-blocking file descriptor.
   constructor_status_ = WrapConstructorError(ClearFlags(fd, O_NONBLOCK));
 }

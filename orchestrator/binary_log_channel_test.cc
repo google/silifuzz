@@ -170,5 +170,32 @@ TEST_F(BinaryLogChannelTest, BadDescriptor) {
                                  StartsWith("Constructor failed")));
 }
 
+TEST_F(BinaryLogChannelTest, IgnoreSIGPIPE) {
+  // Close the read end. Child should get a EPIPE on write.
+  CloseFD(READ_FD);
+
+  EXPECT_EXIT(
+      {
+        // Revert SIGPIPE to default to verify BinaryLogProducer sets up
+        // SIGPIPE handling correctly.
+        signal(SIGPIPE, SIG_DFL);
+
+        BinaryLogProducer producer(ReleaseFD(WRITE_FD));
+        proto::BinaryLogEntry empty;
+        absl::Status status = producer.Send(empty);
+        if (status.ok()) {
+          LOG_ERROR("Send succeeded unexpectedly");
+          exit(1);
+        }
+        if (!IsEndOfChannelError(status)) {
+          LOG_ERROR("unexpected error ", status.message());
+          exit(2);
+        }
+        LOG_INFO("Success");
+        exit(0);
+      },
+      ::testing::ExitedWithCode(0), "Success");
+}
+
 }  // namespace
 }  // namespace silifuzz
