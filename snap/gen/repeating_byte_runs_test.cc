@@ -26,12 +26,12 @@
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
@@ -90,9 +90,8 @@ TEST(RepeatingByteRuns, BelowMinRepeatingByteRunSize) {
   byte_data.append(ByteData(8, 'b'));
   constexpr Address addr = 0x1234000;
   MemoryBytesList memory_bytes_list{MemoryBytes(addr, byte_data)};
-  auto runs_or = GetRepeatingByteRuns(memory_bytes_list);
-  ASSERT_THAT(runs_or, IsOk());
-  EXPECT_TRUE(Snapshot::MemoryBytesListEq(memory_bytes_list, runs_or.value()));
+  ASSERT_OK_AND_ASSIGN(auto runs, GetRepeatingByteRuns(memory_bytes_list));
+  EXPECT_TRUE(Snapshot::MemoryBytesListEq(memory_bytes_list, runs));
 }
 
 TEST(RepeatingByteRuns, SplitMemoryBytesAsExpected) {

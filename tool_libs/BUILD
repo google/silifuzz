@@ -109,6 +109,7 @@ cc_test(
         ":snap_group",
         "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",

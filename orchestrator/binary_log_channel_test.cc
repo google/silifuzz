@@ -31,13 +31,13 @@
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./util/checks.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/time_proto_util.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 using ::testing::StartsWith;
 
@@ -102,14 +102,13 @@ TEST_F(BinaryLogChannelTest, SnapshotExecutionResults) {
   auto player_result = result->mutable_player_result();
   player_result->set_outcome(proto::PlayerResult::AS_EXPECTED);
   player_result->set_end_state_index(1);
-  ASSERT_THAT(EncodeGoogleApiProto(absl::Milliseconds(12),
-                                   player_result->mutable_cpu_usage()),
-              IsOk());
+  ASSERT_OK(EncodeGoogleApiProto(absl::Milliseconds(12),
+                                 player_result->mutable_cpu_usage()));
   player_result->set_cpu_id(12);
 
   // Some random date.
   const absl::Time t = absl::UniversalEpoch() + absl::Hours(24);
-  ASSERT_THAT(EncodeGoogleApiProto(t, result->mutable_time()), IsOk());
+  ASSERT_OK(EncodeGoogleApiProto(t, result->mutable_time()));
 
   // Sends a SnapshotExecutionProto over a pipe and checks that we got
   // the same proto back at the other end.
@@ -119,13 +118,12 @@ TEST_F(BinaryLogChannelTest, SnapshotExecutionResults) {
     producer_status = producer.Send(expected);
   });
   BinaryLogConsumer consumer(ReleaseFD(READ_FD));
-  absl::StatusOr<proto::BinaryLogEntry> entry_or = consumer.Receive();
+  ASSERT_OK_AND_ASSIGN(proto::BinaryLogEntry entry, consumer.Receive());
   ASSERT_TRUE(producer_thread.joinable());
   producer_thread.join();
 
-  EXPECT_THAT(producer_status, IsOk());
-  EXPECT_THAT(entry_or, IsOk());
-  EXPECT_EQ(entry_or->snapshot_execution_result().snapshot_id(),
+  ASSERT_OK(producer_status);
+  EXPECT_EQ(entry.snapshot_execution_result().snapshot_id(),
             expected.snapshot_execution_result().snapshot_id());
 }
 

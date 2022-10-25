@@ -24,11 +24,11 @@
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/checks.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
@@ -59,15 +59,13 @@ absl::StatusOr<Snapshot> Fix(
 TEST(SnapMaker, AsExpected) {
   auto endsAsExpectedSnap =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kEndsAsExpected);
-  auto result_or = Fix(endsAsExpectedSnap);
-  ASSERT_THAT(result_or, IsOk());
+  ASSERT_OK(Fix(endsAsExpectedSnap));
 }
 
 TEST(SnapMaker, MemoryMismatchSnap) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kMemoryMismatch);
-  auto result_or = Fix(memoryMismatchSnap);
-  ASSERT_THAT(result_or, IsOk());
+  ASSERT_OK(Fix(memoryMismatchSnap));
 }
 
 TEST(SnapMaker, RandomRegsMismatch) {
@@ -81,22 +79,19 @@ TEST(SnapMaker, RandomRegsMismatch) {
 TEST(SnapMaker, SigSegvRead) {
   auto sigSegvReadSnap =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSigSegvRead);
-  auto result_or = Fix(sigSegvReadSnap);
-  ASSERT_THAT(result_or, IsOk());
-  ASSERT_EQ(result_or->memory_mappings().size(),
+  ASSERT_OK_AND_ASSIGN(auto result, Fix(sigSegvReadSnap));
+  ASSERT_EQ(result.memory_mappings().size(),
             sigSegvReadSnap.memory_mappings().size() + 1)
       << "Expected Make to add 1 extra memory mapping";
-  ASSERT_THAT(result_or->negative_memory_mappings(), IsEmpty());
+  ASSERT_THAT(result.negative_memory_mappings(), IsEmpty());
 }
 
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kMemoryMismatch);
-  auto result_or = Fix(memoryMismatchSnap);
-  ASSERT_THAT(result_or, IsOk());
-  auto result2_or = Fix(*result_or);
-  ASSERT_THAT(result2_or, IsOk());
-  ASSERT_EQ(*result2_or, *result_or);
+  ASSERT_OK_AND_ASSIGN(auto result, Fix(memoryMismatchSnap));
+  ASSERT_OK_AND_ASSIGN(auto result2, Fix(result));
+  ASSERT_EQ(result2, result);
 }
 
 TEST(SnapMake, SplitLock) {
@@ -104,11 +99,10 @@ TEST(SnapMake, SplitLock) {
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSplitLock);
   SnapMaker::Options options = DefaultSnapMakerOptions();
   options.x86_filter_split_lock = false;
-  auto result_or = Fix(splitLockSnap, options);
-  EXPECT_THAT(result_or, IsOk());
+  ASSERT_OK(Fix(splitLockSnap, options));
 
   options.x86_filter_split_lock = true;
-  result_or = Fix(splitLockSnap, options);
+  auto result_or = Fix(splitLockSnap, options);
   EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("Split-lock insn")));
 }

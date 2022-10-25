@@ -33,6 +33,7 @@
 #include "./snap/testing/snap_test_snaps.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 // Snap generator test.
@@ -44,8 +45,6 @@
 namespace silifuzz {
 
 namespace {
-
-using silifuzz::testing::IsOk;
 
 SnapGenerator::Options TestSnapGeneratorOptions() {
   SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
@@ -114,11 +113,10 @@ TEST(SnapGenerator, Snapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   SnapGenerator::Options options = TestSnapGeneratorOptions();
-  const absl::StatusOr<Snapshot> snapified_or =
-      SnapGenerator::Snapify(snapshot, options);
-  ASSERT_THAT(snapified_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
+                       SnapGenerator::Snapify(snapshot, options));
 
-  for (const auto& mapping : snapified_or->memory_mappings()) {
+  for (const auto& mapping : snapified.memory_mappings()) {
     MemoryPerms original_perms = snapshot.PermsAt(mapping.start_address());
     const MemoryPerms expected = original_perms;
     EXPECT_EQ(mapping.perms().DebugString(), expected.DebugString());
@@ -126,10 +124,10 @@ TEST(SnapGenerator, Snapify) {
 
   // Check that we have the exit sequence in the initial memory bytes.
   MemoryState initial_memory_state = MemoryState::MakeInitial(
-      *snapified_or, MemoryState::kSnapshotOnly, MemoryState::kZeroMappedBytes);
+      snapified, MemoryState::kSnapshotOnly, MemoryState::kZeroMappedBytes);
 
   const Snapshot::EndState snapified_end_state =
-      snapified_or->expected_end_states()[0];
+      snapified.expected_end_states()[0];
   const Snapshot::Address snapified_end_state_rip =
       snapified_end_state.endpoint().instruction_address();
   CHECK(initial_memory_state.mapped_memory().Contains(
@@ -145,11 +143,10 @@ TEST(SnapGenerator, Snapify) {
 
   // Check that we have the exit sequence stack artifact.
   const Snapshot::Address snapfied_end_state_rsp =
-      snapified_or->ExtractRsp(snapified_end_state.registers());
+      snapified.ExtractRsp(snapified_end_state.registers());
 
-  MemoryState end_memory_state =
-      MemoryState::MakeEnd(*snapified_or, MemoryState::kSnapshotOnly, 0,
-                           MemoryState::kZeroMappedBytes);
+  MemoryState end_memory_state = MemoryState::MakeEnd(
+      snapified, MemoryState::kSnapshotOnly, 0, MemoryState::kZeroMappedBytes);
   const uint64_t expected_return_address =
       snapified_end_state_rip + kSnapExitSequenceSize - 8;
 
@@ -178,14 +175,13 @@ TEST(SnapGenerator, Snapify) {
 TEST(SnapGenerator, SnapifyIdempotent) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  const absl::StatusOr<Snapshot> snapified_or =
-      SnapGenerator::Snapify(snapshot);
-  ASSERT_THAT(snapified_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
+                       SnapGenerator::Snapify(snapshot));
   // snapified is now a v2-format
   auto opts = SnapGenerator::Options::V2InputRunOpts();
-  const auto snapified2 = SnapGenerator::Snapify(*snapified_or, opts);
-  ASSERT_THAT(snapified2, IsOk());
-  ASSERT_EQ(*snapified_or, *snapified2);
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2,
+                       SnapGenerator::Snapify(snapified, opts));
+  ASSERT_EQ(snapified, snapified2);
 }
 
 }  // namespace

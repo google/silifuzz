@@ -29,11 +29,11 @@
 #include "./snap/testing/snap_test_snaps.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/path_util.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 using snapshot_types::PlaybackOutcome;
 using ::testing::HasSubstr;
@@ -47,7 +47,7 @@ TEST(RunnerDriver, BasicRun) {
   Snap endAsExpectedSnap =
       GetSnapRunnerTestSnap(SnapRunnerTestType::kEndsAsExpected);
   auto run_result_or = driver.PlayOne(endAsExpectedSnap.id);
-  ASSERT_THAT(run_result_or, IsOk());
+  ASSERT_OK(run_result_or);
   ASSERT_TRUE(run_result_or->success());
 
   Snap syscallSnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kSyscall);
@@ -61,7 +61,7 @@ TEST(RunnerDriver, BasicMake) {
   Snap sigSegvReadSnap =
       GetSnapRunnerTestSnap(SnapRunnerTestType::kSigSegvRead);
   auto make_result_or = driver.MakeOne(sigSegvReadSnap.id);
-  ASSERT_THAT(make_result_or, IsOk());
+  ASSERT_OK(make_result_or);
   ASSERT_FALSE(make_result_or->success());
   ASSERT_EQ(make_result_or->player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
@@ -83,14 +83,14 @@ TEST(RunnerDriver, BasicTrace) {
     return HarnessTracer::kKeepTracing;
   };
   auto trace_result_or = driver.TraceOne(endAsExpectedSnap.id, cb);
-  ASSERT_THAT(trace_result_or, IsOk());
+  ASSERT_OK(trace_result_or);
   ASSERT_TRUE(trace_result_or->success());
   ASSERT_TRUE(hit_initial_snap_rip);
 }
 
 TEST(RunnerDriver, Cleanup) {
   auto tmp_binary = CreateTempFile("binary");
-  ASSERT_THAT(tmp_binary, IsOk());
+  ASSERT_OK(tmp_binary);
   ASSERT_TRUE(std::filesystem::exists(*tmp_binary));
   bool file_removed = false;
   {

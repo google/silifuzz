@@ -26,12 +26,12 @@
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/snapshot_test_util.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using ::silifuzz::testing::IsOk;
 using ::silifuzz::testing::StatusIs;
 using ::testing::Contains;
 using ::testing::HasSubstr;
@@ -161,7 +161,7 @@ TEST(SnapshotSummary, ConstructFromSnap) {
 TEST(SnapshotGroup, CanAddSnapshotIntoEmptyGroup) {
   SnapshotGroup snapshot_group(SnapshotGroup::kNoConflictAllowed);
   SnapshotGroup::SnapshotSummary snapshot_summary_1(kSnap1);
-  EXPECT_THAT(snapshot_group.CanAddSnapshot(snapshot_summary_1), IsOk());
+  EXPECT_OK(snapshot_group.CanAddSnapshot(snapshot_summary_1));
   snapshot_group.AddSnapshot(snapshot_summary_1);
   EXPECT_EQ(snapshot_group.size(), 1);
 }
@@ -181,7 +181,7 @@ TEST(SnapshotGroup, CanAddSnapshotNoConflict) {
   SnapshotGroup::SnapshotSummary snapshot_summary_1(kSnap1);
   snapshot_group.AddSnapshot(snapshot_summary_1);
   SnapshotGroup::SnapshotSummary snapshot_summary_2(kSnap2);
-  EXPECT_THAT(snapshot_group.CanAddSnapshot(snapshot_summary_2), IsOk());
+  EXPECT_OK(snapshot_group.CanAddSnapshot(snapshot_summary_2));
   snapshot_group.AddSnapshot(snapshot_summary_2);
   EXPECT_EQ(snapshot_group.size(), 2);
 }
@@ -201,7 +201,7 @@ TEST(SnapshotGroup, CanAddSnapshotWriteConflictSamePerms) {
   SnapshotGroup::SnapshotSummary snapshot_summary_1(kSnap1);
   snapshot_group.AddSnapshot(snapshot_summary_1);
   SnapshotGroup::SnapshotSummary snapshot_summary_4(kSnap4);
-  EXPECT_THAT(snapshot_group.CanAddSnapshot(snapshot_summary_4), IsOk());
+  EXPECT_OK(snapshot_group.CanAddSnapshot(snapshot_summary_4));
   snapshot_group.AddSnapshot(snapshot_summary_4);
   EXPECT_EQ(snapshot_group.size(), 2);
 }

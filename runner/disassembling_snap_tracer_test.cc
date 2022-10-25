@@ -30,12 +30,12 @@
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 using snapshot_types::SigNum;
 using ::testing::ElementsAre;
@@ -49,10 +49,12 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
   auto snapshot =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
-  auto result = driver.TraceOne(
-      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
-  ASSERT_THAT(result, IsOk());
-  ASSERT_TRUE(result->success());
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  ASSERT_TRUE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 2);
   EXPECT_THAT(trace_result.disassembly,
@@ -63,11 +65,13 @@ TEST(DisassemblingSnapTracer, TraceSigill) {
   RunnerDriver driver = HelperDriver();
   auto snapshot = MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSigIll);
   DisassemblingSnapTracer tracer(snapshot);
-  auto result = driver.TraceOne(
-      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
-  ASSERT_THAT(result, IsOk());
-  ASSERT_FALSE(result->success());
-  ASSERT_TRUE(result->player_result().actual_end_state->endpoint().sig_num() ==
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  ASSERT_FALSE(result.success());
+  ASSERT_TRUE(result.player_result().actual_end_state->endpoint().sig_num() ==
               SigNum::kSigIll);
 }
 
@@ -91,10 +95,12 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   TraceOptions options = TraceOptions::Default();
   options.x86_trap_on_split_lock = false;
   DisassemblingSnapTracer tracer(snapshot, options);
-  const auto result = driver.TraceOne(
-      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
-  ASSERT_THAT(result, IsOk());
-  EXPECT_FALSE(result->success());  // We don't have the correct endstate.
+  ASSERT_OK_AND_ASSIGN(
+      const auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  EXPECT_FALSE(result.success());  // We don't have the correct endstate.
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 5);
   EXPECT_THAT(

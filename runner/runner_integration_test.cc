@@ -26,12 +26,12 @@
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snaps.h"
 #include "./snap/testing/snap_test_types.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using ::silifuzz::testing::IsOk;
 using ::silifuzz::testing::StatusIs;
 using snapshot_types::PlaybackOutcome;
 using ::testing::HasSubstr;
@@ -56,11 +56,10 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
 TEST(RunnerTest, MemoryMismatchSnap) {
   Snap memoryMismatchSnap =
       GetSnapRunnerTestSnap(SnapRunnerTestType::kMemoryMismatch);
-  auto result = RunOneSnap(memoryMismatchSnap);
-  ASSERT_THAT(result, IsOk());
-  ASSERT_FALSE(result->success());
-  EXPECT_EQ(result->player_result().outcome, PlaybackOutcome::kMemoryMismatch);
-  const auto& end_state = *result->player_result().actual_end_state;
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(memoryMismatchSnap));
+  ASSERT_FALSE(result.success());
+  EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kMemoryMismatch);
+  const auto& end_state = *result.player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
   EXPECT_EQ(end_state.endpoint().instruction_address(),
             memoryMismatchSnap.end_state_instruction_address);
@@ -69,13 +68,12 @@ TEST(RunnerTest, MemoryMismatchSnap) {
 TEST(RunnerTest, SigSegvSnap) {
   Snap sigSegvReadSnap =
       GetSnapRunnerTestSnap(SnapRunnerTestType::kSigSegvRead);
-  auto result = RunOneSnap(sigSegvReadSnap);
-  ASSERT_THAT(result, IsOk());
-  ASSERT_FALSE(result->success());
-  EXPECT_EQ(result->player_result().outcome,
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(sigSegvReadSnap));
+  ASSERT_FALSE(result.success());
+  EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
   const Snapshot::EndState& end_state =
-      *result->player_result().actual_end_state;
+      *result.player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
   const snapshot_types::Endpoint& ep = end_state.endpoint();
   // The two magic addresses are snapshot-dependent but should be stable.
@@ -96,13 +94,12 @@ TEST(RunnerTest, SyscallSnap) {
 
 TEST(RunnerTest, INT3Snap) {
   Snap int3Snap = GetSnapRunnerTestSnap(SnapRunnerTestType::kINT3);
-  auto result = RunOneSnap(int3Snap);
-  ASSERT_THAT(result, IsOk());
-  ASSERT_FALSE(result->success());
-  EXPECT_EQ(result->player_result().outcome,
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(int3Snap));
+  ASSERT_FALSE(result.success());
+  EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
   const snapshot_types::Endpoint& ep =
-      result->player_result().actual_end_state->endpoint();
+      result.player_result().actual_end_state->endpoint();
   // See TestSnapshots::Create() for the actual code sequence.
   const uint64_t start_address = int3Snap.registers.gregs.rip;
   EXPECT_EQ(ep.sig_instruction_address(), start_address);
@@ -112,18 +109,15 @@ TEST(RunnerTest, INT3Snap) {
 
 TEST(RunnerTest, RunawaySnap) {
   Snap runawaySnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kRunaway);
-  auto result = RunOneSnap(runawaySnap);
-  ASSERT_THAT(result, IsOk());
-  ASSERT_FALSE(result->success());
-  EXPECT_EQ(result->player_result().outcome,
-            PlaybackOutcome::kExecutionRunaway);
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap));
+  ASSERT_FALSE(result.success());
+  EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kExecutionRunaway);
 }
 
 TEST(RunnerTest, Deadline) {
   Snap runawaySnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kRunaway);
-  auto result = RunOneSnap(runawaySnap, absl::Seconds(2));
-  ASSERT_THAT(result, IsOk());
-  ASSERT_TRUE(result->success());
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap, absl::Seconds(2)));
+  ASSERT_TRUE(result.success());
 }
 
 }  // namespace

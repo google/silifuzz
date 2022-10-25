@@ -172,6 +172,7 @@ cc_test(
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:path_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@centipede//:blob_file",
         "@com_google_absl//absl/cleanup",

@@ -122,6 +122,7 @@ cc_test(
         "@silifuzz//util:file_util",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:path_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",

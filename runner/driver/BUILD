@@ -74,6 +74,7 @@ cc_test(
         "@silifuzz//snap/testing:snap_test_snaps",
         "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util:path_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

@@ -30,11 +30,11 @@
 #include "./util/file_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::IsOk;
 using ::testing::UnitTest;
 
 TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
@@ -44,10 +44,9 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
     SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
-    absl::StatusOr<Snapshot> snapified_or =
-        SnapGenerator::Snapify(snapshot, opts);
-    ASSERT_THAT(snapified_or, IsOk());
-    snapified_corpus.emplace_back(std::move(snapified_or.value()));
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                         SnapGenerator::Snapify(snapshot, opts));
+    snapified_corpus.emplace_back(std::move(snapified));
   }
 
   MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(snapified_corpus);

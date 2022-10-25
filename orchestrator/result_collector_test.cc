@@ -25,12 +25,11 @@
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_driver.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-
-using silifuzz::testing::IsOk;
 
 using snapshot_types::PlaybackOutcome;
 
@@ -59,9 +58,8 @@ TEST(ResultCollector, BinaryLogging) {
     // This way the Receive() below does not block if logging misbehaves.
   }
   BinaryLogConsumer consumer(pipefd[0]);
-  absl::StatusOr<proto::BinaryLogEntry> fd_log_entry = consumer.Receive();
-  ASSERT_THAT(fd_log_entry, IsOk());
-  ASSERT_EQ(fd_log_entry->snapshot_execution_result().snapshot_id(), "snap_id");
+  ASSERT_OK_AND_ASSIGN(proto::BinaryLogEntry fd_log_entry, consumer.Receive());
+  ASSERT_EQ(fd_log_entry.snapshot_execution_result().snapshot_id(), "snap_id");
 }
 
 }  // namespace

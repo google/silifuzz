@@ -40,6 +40,7 @@
 #include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/platform.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
@@ -58,11 +59,10 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   SnapGenerator::Options snapify_options =
       SnapGenerator::Options::V2InputRunOpts();
   snapify_options.allow_undefined_end_state = true;
-  absl::StatusOr<Snapshot> snapified_or =
-      SnapGenerator::Snapify(snapshot, snapify_options);
-  ASSERT_THAT(snapified_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                       SnapGenerator::Snapify(snapshot, snapify_options));
   std::vector<Snapshot> corpus;
-  corpus.push_back(std::move(snapified_or.value()));
+  corpus.push_back(std::move(snapified));
   auto relocatable = GenerateRelocatableSnaps(corpus);
   auto relocated_corpus = SnapRelocator::RelocateCorpus(std::move(relocatable));
   EXPECT_EQ(relocated_corpus->size, 1);
@@ -75,10 +75,11 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
 
-    absl::StatusOr<Snapshot> snapified_or = SnapGenerator::Snapify(
-        snapshot, SnapGenerator::Options::V2InputRunOpts());
-    ASSERT_THAT(snapified_or, IsOk());
-    corpus.push_back(std::move(snapified_or.value()));
+    ASSERT_OK_AND_ASSIGN(
+        Snapshot snapified,
+        SnapGenerator::Snapify(snapshot,
+                               SnapGenerator::Options::V2InputRunOpts()));
+    corpus.push_back(std::move(snapified));
   }
 
   auto relocatable = GenerateRelocatableSnaps(corpus);
@@ -86,7 +87,7 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
   ASSERT_EQ(relocated_corpus->size, 1);
   auto snapshotFromSnap =
       SnapToSnapshot(*relocated_corpus->elements[0], CurrentPlatformId());
-  ASSERT_THAT(snapshotFromSnap, IsOk());
+  ASSERT_OK(snapshotFromSnap);
   ASSERT_EQ(corpus[0], *snapshotFromSnap);
 }
 
@@ -102,10 +103,9 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
        ++type) {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(static_cast<SnapRunnerTestType>(type));
-    absl::StatusOr<Snapshot> snapified_or =
-        SnapGenerator::Snapify(snapshot, opts);
-    ASSERT_THAT(snapified_or, IsOk());
-    snapified_corpus.push_back(std::move(snapified_or.value()));
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                         SnapGenerator::Snapify(snapshot, opts));
+    snapified_corpus.push_back(std::move(snapified));
   }
 
   auto relocatable_corpus = GenerateRelocatableSnaps(snapified_corpus);
@@ -140,10 +140,10 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   auto add_test_byte_data = [&](Snapshot::Address address) {
     const MemoryMapping mapping =
         MemoryMapping::MakeSized(address, page_size, MemoryPerms::R());
-    ASSERT_THAT(snapshot.can_add_memory_mapping(mapping), IsOk());
+    ASSERT_OK(snapshot.can_add_memory_mapping(mapping));
     snapshot.add_memory_mapping(mapping);
     const Snapshot::MemoryBytes memory_bytes(address, test_byte_data);
-    ASSERT_THAT(snapshot.can_add_memory_bytes(memory_bytes), IsOk());
+    ASSERT_OK(snapshot.can_add_memory_bytes(memory_bytes));
     snapshot.add_memory_bytes(memory_bytes);
   };
 
@@ -153,12 +153,12 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   add_test_byte_data(addr1);
   add_test_byte_data(addr2);
 
-  auto snapified_or = SnapGenerator::Snapify(
-      snapshot, SnapGenerator::Options::V2InputRunOpts());
-  ASSERT_THAT(snapified_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(auto snapified,
+                       SnapGenerator::Snapify(
+                           snapshot, SnapGenerator::Options::V2InputRunOpts()));
 
   std::vector<Snapshot> snapified_corpus;
-  snapified_corpus.push_back(std::move(snapified_or.value()));
+  snapified_corpus.push_back(std::move(snapified));
 
   auto relocatable_corpus = GenerateRelocatableSnaps(snapified_corpus);
   auto relocated_corpus =

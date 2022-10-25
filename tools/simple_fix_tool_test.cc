@@ -34,10 +34,10 @@
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 using centipede::DefaultBlobFileAppenderFactory;
-using silifuzz::testing::IsOk;
 using testing::SizeIs;
 using testing::UnorderedElementsAre;
 
@@ -77,16 +77,12 @@ TEST(SimpleFixTool, ReadUniqueCentipedeBlobs) {
   // Create 2 blobs file that contains duplicates.
 
   std::vector<std::string> blobs_1{"one", "two"};
-  auto blob_file_1_or = CreateTempBlobFile(blobs_1);
-  ASSERT_THAT(blob_file_1_or.status(), IsOk());
-  std::string blob_file_1 = blob_file_1_or.value();
+  ASSERT_OK_AND_ASSIGN(std::string blob_file_1, CreateTempBlobFile(blobs_1));
   absl::Cleanup delete_file_1 = absl::MakeCleanup(
       [blob_file_1] { std::filesystem::remove(blob_file_1); });
 
   std::vector<std::string> blobs_2{"two", "three", "three"};
-  auto blob_file_2_or = CreateTempBlobFile(blobs_2);
-  ASSERT_THAT(blob_file_2_or.status(), IsOk());
-  std::string blob_file_2 = blob_file_2_or.value();
+  ASSERT_OK_AND_ASSIGN(std::string blob_file_2, CreateTempBlobFile(blobs_2));
   absl::Cleanup delete_file_2 = absl::MakeCleanup(
       [blob_file_2] { std::filesystem::remove(blob_file_2); });
 
@@ -140,9 +136,8 @@ TEST(SimpleFixTool, FixCorpus) {
     for (int j = 0; j < kNumBlobsPerFile; ++j, insns += nop) {
       blobs.push_back(insns);
     }
-    auto blob_file_or = CreateTempBlobFile(blobs);
-    ASSERT_THAT(blob_file_or.status(), IsOk());
-    blob_files.push_back(blob_file_or.value());
+    ASSERT_OK_AND_ASSIGN(auto blob_file, CreateTempBlobFile(blobs));
+    blob_files.push_back(blob_file);
   }
 
   absl::string_view tmpdir = Dirname(blob_files[0]);

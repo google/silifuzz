@@ -35,12 +35,12 @@
 #include "absl/strings/str_cat.h"
 #include "./util/byte_io.h"
 #include "./util/owned_file_descriptor.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
@@ -119,9 +119,8 @@ TEST(CorpusUtil, WriteSharedMemoryFile) {
   contents.Append(big_string_1);
   contents.Append(big_string_2);
 
-  auto handle_or = WriteSharedMemoryFile(contents);
-  ASSERT_THAT(handle_or, IsOk());
-  OwnedFileDescriptor owned_fd = std::move(handle_or.value());
+  ASSERT_OK_AND_ASSIGN(OwnedFileDescriptor owned_fd,
+                       WriteSharedMemoryFile(contents));
   struct stat stat_buf;
   ASSERT_EQ(fstat(*owned_fd, &stat_buf), 0);
   EXPECT_EQ(stat_buf.st_size, contents.size());
@@ -185,26 +184,25 @@ TEST(CorpusUtil, LoadCorpora) {
     ASSERT_EQ(close(fd), 0);
   }
 
-  absl::StatusOr<LoadCorporaResult> load_corpora_result_or =
-      LoadCorpora(corpus_paths);
-  ASSERT_THAT(load_corpora_result_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(LoadCorporaResult load_corpora_result,
+                       LoadCorpora(corpus_paths));
 
   const std::vector<OwnedFileDescriptor>& owned_fds =
-      load_corpora_result_or.value().file_descriptors;
+      load_corpora_result.file_descriptors;
   const std::vector<std::string>& fd_paths =
-      load_corpora_result_or.value().file_descriptor_paths;
+      load_corpora_result.file_descriptor_paths;
 
   EXPECT_EQ(owned_fds.size(), kCorporaSize);
   EXPECT_EQ(fd_paths.size(), kCorporaSize);
 
   for (size_t i = 0; i < kCorporaSize; ++i) {
     const int fd = *(owned_fds[i].get());
-    EXPECT_THAT(CheckFileContents(fd, corpus_contents[i]), IsOk());
+    EXPECT_OK(CheckFileContents(fd, corpus_contents[i]));
 
     // Check again using file descriptor path.
     const int fd2 = open(fd_paths[i].c_str(), O_RDONLY);
     ASSERT_GE(fd2, 0);
-    EXPECT_THAT(CheckFileContents(fd2, corpus_contents[i]), IsOk());
+    EXPECT_OK(CheckFileContents(fd2, corpus_contents[i]));
     EXPECT_EQ(close(fd2), 0);
   }
 }
@@ -233,21 +231,20 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
     ASSERT_EQ(close(fd), 0);
   }
 
-  absl::StatusOr<LoadCorporaResult> load_corpora_result_or =
-      LoadCorpora(corpus_paths);
-  ASSERT_THAT(load_corpora_result_or, IsOk());
+  ASSERT_OK_AND_ASSIGN(LoadCorporaResult load_corpora_result,
+                       LoadCorpora(corpus_paths));
 
   const std::vector<OwnedFileDescriptor>& owned_fds =
-      load_corpora_result_or.value().file_descriptors;
+      load_corpora_result.file_descriptors;
   const std::vector<std::string>& fd_paths =
-      load_corpora_result_or.value().file_descriptor_paths;
+      load_corpora_result.file_descriptor_paths;
 
   EXPECT_EQ(owned_fds.size(), corpus_contents.size());
   EXPECT_EQ(fd_paths.size(), corpus_contents.size());
 
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
     const int fd = *(owned_fds[i].get());
-    EXPECT_THAT(CheckFileContents(fd, corpus_contents[i]), IsOk());
+    EXPECT_OK(CheckFileContents(fd, corpus_contents[i]));
   }
 }
 
