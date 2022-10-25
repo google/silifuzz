@@ -18,38 +18,34 @@
 #include "gtest/gtest.h"
 #include "./common/raw_insns_util.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
-
 TEST(SnapshotProto, MetadataRoundtrip) {
-  absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64("\xCC");
-  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
+                       InstructionsToSnapshot_X86_64("\xCC"));
   proto::Snapshot proto;
-  SnapshotProto::ToProto(*snapshot, &proto);
+  SnapshotProto::ToProto(snapshot, &proto);
   proto.mutable_metadata()->add_comment("test");
-  snapshot = SnapshotProto::FromProto(proto);
-  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_OK_AND_ASSIGN(snapshot, SnapshotProto::FromProto(proto));
   proto.Clear();
-  SnapshotProto::ToProto(*snapshot, &proto);
+  SnapshotProto::ToProto(snapshot, &proto);
   ASSERT_EQ(proto.metadata().comment(0), "test");
 }
 
 TEST(SnapshotProto, ArchRoundtrip) {
   std::string instruction({0, 0, 0, 0});
-  absl::StatusOr<Snapshot> snapshot =
-      InstructionsToSnapshot_AArch64(instruction);
-  ASSERT_THAT(snapshot, IsOk());
-  ASSERT_EQ(snapshot->architecture(), Snapshot::Architecture::kAArch64);
+  ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
+                       InstructionsToSnapshot_AArch64(instruction));
+  ASSERT_EQ(snapshot.architecture(), Snapshot::Architecture::kAArch64);
 
   proto::Snapshot proto;
-  SnapshotProto::ToProto(*snapshot, &proto);
-  snapshot = SnapshotProto::FromProto(proto);
-  ASSERT_THAT(snapshot, IsOk());
-  ASSERT_EQ(snapshot->architecture(), Snapshot::Architecture::kAArch64);
+  SnapshotProto::ToProto(snapshot, &proto);
+  ASSERT_OK_AND_ASSIGN(snapshot, SnapshotProto::FromProto(proto));
+  ASSERT_EQ(snapshot.architecture(), Snapshot::Architecture::kAArch64);
 }
 
 }  // namespace

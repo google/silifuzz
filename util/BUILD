@@ -622,6 +622,7 @@ cc_test(
     srcs = ["time_proto_util_test.cc"],
     deps = [
         ":time_proto_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
@@ -777,6 +778,7 @@ cc_test(
     srcs = ["subprocess_test.cc"],
     deps = [
         ":subprocess",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
@@ -816,6 +818,7 @@ cc_test(
     deps = [
         ":checks",
         ":path_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],

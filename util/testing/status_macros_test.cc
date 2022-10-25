@@ -23,7 +23,7 @@
 namespace silifuzz::testing {
 namespace {
 
-TEST(StatusMacrosTest, OkStatusAssigns) {
+TEST(StatusMacrosTest, AssertOkAndAssign) {
   absl::StatusOr<std::string> sor_message("Hello, world");
   ASSERT_OK_AND_ASSIGN(std::string message, sor_message);
   EXPECT_EQ(message, "Hello, world");
@@ -31,6 +31,22 @@ TEST(StatusMacrosTest, OkStatusAssigns) {
   absl::StatusOr<int> sor_value(777);
   ASSERT_OK_AND_ASSIGN(int value, sor_value);
   EXPECT_EQ(value, 777);
+}
+
+TEST(StatusMacrosTest, AssertOk) {
+  absl::Status status = absl::OkStatus();
+  ASSERT_OK(status);
+
+  absl::StatusOr<std::string> sor_message("Hello, world");
+  ASSERT_OK(sor_message);
+}
+
+TEST(StatusMacrosTest, ExpectOk) {
+  absl::Status status = absl::OkStatus();
+  EXPECT_OK(status);
+
+  absl::StatusOr<std::string> sor_message("Hello, world");
+  EXPECT_OK(sor_message);
 }
 
 }  // namespace

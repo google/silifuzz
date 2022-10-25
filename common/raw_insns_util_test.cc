@@ -19,22 +19,21 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
-
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
   auto config = DEFAULT_X86_64_FUZZING_CONFIG;
   absl::StatusOr<Snapshot> snapshot =
       InstructionsToSnapshot_X86_64("\xCC", config);
-  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_OK(snapshot);
   // data page + code page
   EXPECT_EQ(snapshot->num_pages(), 2);
   // must be executable
-  EXPECT_THAT(snapshot->IsComplete(Snapshot::kUndefinedEndState), IsOk());
+  EXPECT_OK(snapshot->IsComplete(Snapshot::kUndefinedEndState));
 
   uint64_t rip = snapshot->ExtractRip(snapshot->registers());
   EXPECT_GE(rip, config.code_range.start_address);
@@ -43,10 +42,10 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
   absl::StatusOr<Snapshot> snapshot_2 = InstructionsToSnapshot_X86_64("\xAA");
-  ASSERT_THAT(snapshot_2, IsOk());
+  ASSERT_OK(snapshot_2);
 
   absl::StatusOr<Snapshot> snapshot_3 = InstructionsToSnapshot_X86_64("\xAA");
-  ASSERT_THAT(snapshot_3, IsOk());
+  ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));
 }
@@ -61,11 +60,11 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
   std::string instruction({0, 0, 0, 0});
   absl::StatusOr<Snapshot> snapshot =
       InstructionsToSnapshot_AArch64(instruction, config);
-  ASSERT_THAT(snapshot, IsOk());
+  ASSERT_OK(snapshot);
   // code page + stack page
   EXPECT_EQ(snapshot->num_pages(), 2);
   // must be executable
-  EXPECT_THAT(snapshot->IsComplete(Snapshot::kUndefinedEndState), IsOk());
+  EXPECT_OK(snapshot->IsComplete(Snapshot::kUndefinedEndState));
 
   uint64_t pc = snapshot->ExtractRip(snapshot->registers());
   EXPECT_GE(pc, config.code_range.start_address);
@@ -76,11 +75,11 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Stable) {
   std::string instruction({0x0, 0xc0, 0xb0, 0x72});
   absl::StatusOr<Snapshot> snapshot_2 =
       InstructionsToSnapshot_AArch64(instruction);
-  ASSERT_THAT(snapshot_2, IsOk());
+  ASSERT_OK(snapshot_2);
 
   absl::StatusOr<Snapshot> snapshot_3 =
       InstructionsToSnapshot_AArch64(instruction);
-  ASSERT_THAT(snapshot_3, IsOk());
+  ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));
 }

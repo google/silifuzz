@@ -19,11 +19,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./util/checks.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::IsOk;
 using silifuzz::testing::IsOkAndHolds;
 using ::testing::EndsWith;
 using ::testing::KilledBySignal;
@@ -52,7 +52,7 @@ TEST(PathUtil, Dirname) {
 TEST(PathUtil, CreateTempFile) {
   // Normally the caller should remove the files. We are leaving them behind
   // since the files are created in $TEST_TMPDIR
-  ASSERT_THAT(CreateTempFile("test"), IsOk());
+  ASSERT_OK(CreateTempFile("test"));
   ASSERT_THAT(CreateTempFile("test", ".cc"), IsOkAndHolds(EndsWith(".cc")));
 }
 

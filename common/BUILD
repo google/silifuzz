@@ -188,6 +188,7 @@ cc_test(
         ":raw_insns_util",
         ":snapshot_proto",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],
@@ -302,6 +303,7 @@ cc_test(
     deps = [
         ":raw_insns_util",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],

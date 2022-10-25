@@ -22,17 +22,17 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::IsOk;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
 TEST(Subprocess, Communicate) {
   Subprocess sp;
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stdout"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stdout"}));
   std::string stdout;
   EXPECT_EQ(sp.Communicate(&stdout), 0);
   EXPECT_EQ(stdout, "stdout");
@@ -40,7 +40,7 @@ TEST(Subprocess, Communicate) {
 
 TEST(Subprocess, StatusCode) {
   Subprocess sp;
-  ASSERT_THAT(sp.Start({"/bin/false"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/false"}));
   std::string stdout;
   int status = sp.Communicate(&stdout);
   EXPECT_EQ(WEXITSTATUS(status), 1);
@@ -48,7 +48,7 @@ TEST(Subprocess, StatusCode) {
 
 TEST(Subprocess, StderrDupParent) {
   Subprocess sp;
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}));
   std::string stdout;
   EXPECT_EQ(sp.Communicate(&stdout), 0);
   EXPECT_EQ(stdout, "");
@@ -58,7 +58,7 @@ TEST(Subprocess, StderrMapToStdout) {
   Subprocess::Options opts = Subprocess::Options::Default();
   opts.MapStderr(Subprocess::kMapToStdout);
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}));
   std::string stdout;
   EXPECT_EQ(sp.Communicate(&stdout), 0);
   EXPECT_EQ(stdout, "stderr");
@@ -68,7 +68,7 @@ TEST(Subprocess, StderrMapToDevNull) {
   Subprocess::Options opts = Subprocess::Options::Default();
   opts.MapStderr(Subprocess::kMapToDevNull);
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}));
   std::string stdout;
   // This only tests that setting the mapping does not crash and stdout is
   // empty. There is no easy way to verify that we wrote to /dev/null.
@@ -80,7 +80,7 @@ TEST(Subprocess, NoExecutable) {
   Subprocess::Options opts = Subprocess::Options::Default();
   opts.MapStderr(Subprocess::kMapToStdout);
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/foobarbaz"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/foobarbaz"}));
   std::string stdout;
   int status = sp.Communicate(&stdout);
   EXPECT_EQ(WEXITSTATUS(status), 1);
@@ -91,12 +91,10 @@ TEST(Subprocess, DisableAslr) {
   Subprocess::Options opts = Subprocess::Options::Default();
   opts.DisableAslr(true);
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}),
-              IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}));
   std::string stdout1;
   ASSERT_EQ(sp.Communicate(&stdout1), 0);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}),
-              IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}));
   std::string stdout2;
   ASSERT_EQ(sp.Communicate(&stdout2), 0);
   ASSERT_EQ(stdout1, stdout2);
@@ -126,7 +124,7 @@ TEST(Subprocess, SetRLimit) {
   opts.SetRLimit(RLIMIT_CPU, 1, 2);
 
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "while :; do :; done"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "while :; do :; done"}));
   std::string stdout;
   int status = sp.Communicate(&stdout);
   ASSERT_EQ(WTERMSIG(status), SIGXCPU);
@@ -138,7 +136,7 @@ TEST(Subprocess, SetITimer) {
   opts.SetITimer(ITIMER_REAL, absl::Seconds(1));
 
   Subprocess sp(opts);
-  ASSERT_THAT(sp.Start({"/bin/sh", "-c", "while :; do :; done"}), IsOk());
+  ASSERT_OK(sp.Start({"/bin/sh", "-c", "while :; do :; done"}));
   std::string stdout;
   int status = sp.Communicate(&stdout);
   ASSERT_EQ(WTERMSIG(status), SIGALRM);

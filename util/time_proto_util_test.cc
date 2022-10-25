@@ -23,12 +23,12 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/time/time.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 
@@ -37,7 +37,7 @@ TEST(TimeProtoUtil, EncodeDurationProto) {
     google::protobuf::Duration proto;
     const absl::Duration duration =
         absl::Seconds(seconds) + absl::Nanoseconds(nanos);
-    EXPECT_THAT(EncodeGoogleApiProto(duration, &proto), IsOk());
+    EXPECT_OK(EncodeGoogleApiProto(duration, &proto));
     EXPECT_EQ(proto.seconds(), seconds);
     EXPECT_EQ(proto.nanos(), nanos);
   };
@@ -109,14 +109,14 @@ TEST(TimeProtoUtil, DecodeDurationProto) {
 TEST(TimeProtoUtil, EncodeTimestampProto) {
   // Test zero.
   google::protobuf::Timestamp proto;
-  EXPECT_THAT(EncodeGoogleApiProto(absl::UnixEpoch(), &proto), IsOk());
+  EXPECT_OK(EncodeGoogleApiProto(absl::UnixEpoch(), &proto));
   EXPECT_EQ(proto.seconds(), 0);
   EXPECT_EQ(proto.nanos(), 0);
 
   // Test limits.
   absl::Time min_time;
   ASSERT_TRUE(AbslParseFlag("0001-01-01T00:00:00Z", &min_time, nullptr));
-  EXPECT_THAT(EncodeGoogleApiProto(min_time, &proto), IsOk());
+  EXPECT_OK(EncodeGoogleApiProto(min_time, &proto));
   EXPECT_EQ(proto.seconds(), kTimeStampProtoMinSeconds);
   EXPECT_EQ(proto.nanos(), kTimeStampProtoMinNanos);
   EXPECT_THAT(EncodeGoogleApiProto(min_time - absl::Nanoseconds(1), &proto),
@@ -125,7 +125,7 @@ TEST(TimeProtoUtil, EncodeTimestampProto) {
   absl::Time max_time;
   ASSERT_TRUE(
       AbslParseFlag("9999-12-31T23:59:59.999999999Z", &max_time, nullptr));
-  EXPECT_THAT(EncodeGoogleApiProto(max_time, &proto), IsOk());
+  EXPECT_OK(EncodeGoogleApiProto(max_time, &proto));
   EXPECT_EQ(proto.seconds(), kTimeStampProtoMaxSeconds);
   EXPECT_EQ(proto.nanos(), kTimeStampProtoMaxNanos);
   EXPECT_THAT(EncodeGoogleApiProto(max_time + absl::Nanoseconds(1), &proto),
@@ -134,7 +134,7 @@ TEST(TimeProtoUtil, EncodeTimestampProto) {
   auto test_encodable_timestamp = [](int64_t seconds, int64_t nanos) {
     absl::Time t = absl::FromUnixSeconds(seconds) + absl::Nanoseconds(nanos);
     google::protobuf::Timestamp proto;
-    EXPECT_THAT(EncodeGoogleApiProto(t, &proto), IsOk());
+    EXPECT_OK(EncodeGoogleApiProto(t, &proto));
     EXPECT_EQ(proto.seconds(), seconds);
     EXPECT_EQ(proto.nanos(), nanos);
   };

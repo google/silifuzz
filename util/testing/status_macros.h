@@ -43,7 +43,8 @@ namespace silifuzz::testing {
 #define STATUS_MACROS_INTERNAL_CONCAT_(x, y) \
   STATUS_MACROS_INTERNAL_CONCAT_IMPL_(x, y)
 
-#ifndef ASSERT_OK_AND_ASSIGN
+#undef ASSERT_OK_AND_ASSIGN
+#undef ASSERT_OK_AND_ASSIGN_IMPL_
 #define ASSERT_OK_AND_ASSIGN(dest, src) \
   ASSERT_OK_AND_ASSIGN_IMPL_(           \
       STATUS_MACROS_INTERNAL_CONCAT_(status_or_, __LINE__), dest, src)
@@ -51,7 +52,24 @@ namespace silifuzz::testing {
   auto status_or = (src);                                \
   ASSERT_THAT(status_or, silifuzz::testing::IsOk());     \
   dest = std::move(status_or).value();
-#endif
+
+// ===============
+// ASSERT_OK(expr)
+// ===============
+//
+// Macro that asserts that expr evaluates to an OK Status or StatusOr.
+//
+// ===============
+// EXPECT_OK(expr)
+// ===============
+//
+// Macro that expects that expr evaluates to an OK Status or StatusOr.
+
+#undef ASSERT_OK
+#define ASSERT_OK(expr) ASSERT_THAT(expr, silifuzz::testing::IsOk());
+
+#undef EXPECT_OK
+#define EXPECT_OK(expr) EXPECT_THAT(expr, silifuzz::testing::IsOk());
 
 }  // namespace silifuzz::testing
 
