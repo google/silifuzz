@@ -22,6 +22,7 @@
 #include <sys/resource.h>
 #include <sys/wait.h>
 
+#include <csignal>
 #include <cstring>
 #include <memory>
 
@@ -30,6 +31,7 @@
 #include "absl/strings/str_join.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/signals.h"
 
 namespace silifuzz {
 
@@ -171,12 +173,7 @@ int Subprocess::Communicate(std::string* stdout_output) {
 
 void Subprocess::GlobalInit() {
   // Make sure SIGPIPE is disabled so that if the child dies it doesn't kill us.
-  struct sigaction sig_action = {};
-  sig_action.sa_handler = SIG_IGN;
-  sigemptyset(&sig_action.sa_mask);
-  if (sigaction(SIGPIPE, &sig_action, nullptr) < 0) {
-    LOG_FATAL("Couldn't ignore SIGPIPE");
-  }
+  IgnoreSignal(SIGPIPE);
 }
 
 }  // namespace silifuzz
