@@ -261,28 +261,18 @@ struct PlaybackResult {
 
 // The reason Make() stopped growing the snapshot.
 enum class MakerStopReason {
-  // Snapshot has reached an endpoint from SnapshotSource.
+  // Snapshot has reached an existing endpoint.
   kEndpoint = 0,
 
   // Snapshot has reached the corresponding MakerOptions page limit.
   kAllPageLimit,
-  kCodePageLimit,
-  kDataPageLimit,
-  kRODataPageLimit,
-  kRWDataPageLimit,
 
   // Snapshot has reached the specified PlayOptions::run_time_budget.
   kTimeBudget,
 
-  // Snapshot has tried to make a syscall.
-  kSysCall,
-
   // Snapshot has encountered a SIGSEGV that can't be fixed by adding
   // pages from SnapshotSource.
   kHardSigSegv,
-
-  // Snapshot caused a SIGSEGV with X86PFError::PF_USER_BIT not set.
-  kKernelSigSegv,
 
   // Snapshot caused a general protection fault (X86Exceptions::X86_TRAP_GP)
   kGeneralProtectionSigSegv,
@@ -296,9 +286,6 @@ enum class MakerStopReason {
   // Snapshot caused a signal that didn't fall into any of the more specific
   // buckets above (e.g. a SIGSEGV X86Exceptions::X86_TRAP_OF).
   kSignal,
-
-  // Due to should_abort arg of Make() returning true.
-  kWasAborted,
 };
 
 }  // namespace snapshot_types
@@ -317,9 +304,8 @@ extern const char* EnumNameMap<
 
 template <>
 extern const char* EnumNameMap<
-    snapshot_types::MakerStopReason>[ToInt(snapshot_types::MakerStopReason::
-                                               kWasAborted) +
-                                     1];
+    snapshot_types::
+        MakerStopReason>[ToInt(snapshot_types::MakerStopReason::kSignal) + 1];
 
 }  // namespace silifuzz
 

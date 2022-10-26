@@ -112,21 +112,14 @@ ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::SigCause>[7] = {
 };
 
 template <>
-ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::MakerStopReason>[14] = {
+ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::MakerStopReason>[7] = {
     "Endpoint",
     "AllPageLimit",
-    "CodePageLimit",
-    "DataPageLimit",
-    "RODataPageLimit",
-    "RWDataPageLimit",
     "TimeBudget",
-    "SysCall",
     "HargSigSegv",
-    "KernelSigSegv",
     "GeneralProtectionSigSegv",
     "SigTrap",
     "Signal",
-    "WasAborted",
 };
 
 }  // namespace silifuzz
