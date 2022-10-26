@@ -123,8 +123,8 @@ TEST(SnapGenerator, Snapify) {
   }
 
   // Check that we have the exit sequence in the initial memory bytes.
-  MemoryState initial_memory_state = MemoryState::MakeInitial(
-      snapified, MemoryState::kSnapshotOnly, MemoryState::kZeroMappedBytes);
+  MemoryState initial_memory_state =
+      MemoryState::MakeInitial(snapified, MemoryState::kZeroMappedBytes);
 
   const Snapshot::EndState snapified_end_state =
       snapified.expected_end_states()[0];
@@ -145,8 +145,8 @@ TEST(SnapGenerator, Snapify) {
   const Snapshot::Address snapfied_end_state_rsp =
       snapified.ExtractRsp(snapified_end_state.registers());
 
-  MemoryState end_memory_state = MemoryState::MakeEnd(
-      snapified, MemoryState::kSnapshotOnly, 0, MemoryState::kZeroMappedBytes);
+  MemoryState end_memory_state =
+      MemoryState::MakeEnd(snapified, 0, MemoryState::kZeroMappedBytes);
   const uint64_t expected_return_address =
       snapified_end_state_rip + kSnapExitSequenceSize - 8;
 

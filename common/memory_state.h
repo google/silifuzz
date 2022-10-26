@@ -32,12 +32,6 @@ namespace silifuzz {
 //
 // This class is thread-compatible.
 class MemoryState : private SnapshotTypeNames {
- private:
-  // Bits for the orthogonal subactions of FixupInclusion enum values below.
-  static constexpr int kEndpointTrapFixupBit = 1;
-  static constexpr int kStackDataFixupBit = 2;
-  static constexpr int kTrapFixupIfMappedBit = 4;
-
  public:
   // ----------------------------------------------------------------------- //
   // Types.
@@ -65,35 +59,6 @@ class MemoryState : private SnapshotTypeNames {
 
   using MemoryMappingCmdList = std::vector<MemoryMappingCmd>;
 
-  // A choice specifying whether memory bytes of a snapshot should include
-  // the side-effects of our machinery of executing the snapshots:
-  // 1. Setting of the instructions at all the Endpoint::kInstruction
-  //    endpoint to Snapshot::trap_instruction() like it needs to happen during
-  //    snapshot playback.
-  // 2. Setting of the two int64_t at the top of the stack to eflags and rip
-  //    registers like it will happen during ResoreUContext() that will jump
-  //    into snapshot's code to execute it.
-  enum FixupInclusion {
-    // No side-effects are applied.
-    kSnapshotOnly = 0,
-
-    // First side-effect only is applied.
-    kEndpointTrapFixupsOnly = kEndpointTrapFixupBit,
-
-    // Both side-effects are applied.
-    kWithRealExecutionFixups = kEndpointTrapFixupBit | kStackDataFixupBit,
-
-    // Same as kEndpointTrapFixupsOnly, but applied only if the memory
-    // for the fixup is already mapped.
-    kEndpointTrapFixupsOnlyIfMapped =
-        kEndpointTrapFixupBit | kTrapFixupIfMappedBit,
-
-    // Same as kWithRealExecutionFixups, but kEndpointTrapFixupsOnlyIfMapped
-    // is done instead of kEndpointTrapFixupsOnly.
-    kWithRealExecutionFixupsIfMapped =
-        kEndpointTrapFixupBit | kTrapFixupIfMappedBit | kStackDataFixupBit,
-  };
-
   // A bool (conceptually) specifying whether ZeroMappedMemoryBytes()
   // should be happening or not for all the relevant mapped regions.
   enum MappedZeroing { kZeroMappedBytes, kIgnoreMappedBytes };
@@ -104,14 +69,12 @@ class MemoryState : private SnapshotTypeNames {
   // Returns state corresponding to the initial snapshot state.
   // See also SetInitialState().
   static MemoryState MakeInitial(const Snapshot& snapshot,
-                                 FixupInclusion fixup_inclusion,
                                  MappedZeroing mapped_zeroing);
 
   // Returns state corresponding to the given endstate in `snapshot`.
   // REQUIRES: end_state_index is in [0, snapshot.expected_end_states().size())
-  static MemoryState MakeEnd(const Snapshot& snapshot,
-                             FixupInclusion fixup_inclusion,
-                             int end_state_index, MappedZeroing mapped_zeroing);
+  static MemoryState MakeEnd(const Snapshot& snapshot, int end_state_index,
+                             MappedZeroing mapped_zeroing);
 
   // ----------------------------------------------------------------------- //
   // Construction, etc.
@@ -195,20 +158,13 @@ class MemoryState : private SnapshotTypeNames {
   // chunks are appended to a growing ByteData blob.
   void ForgetMemoryBytes(Address start_address, Address limit_address);
 
-  // SetMemoryBytes() for all snapshot.memory_bytes() plus all the fixups
-  // per fixup_inclusion and `snapshot` also applied.
-  void SetMemoryBytes(const Snapshot& snapshot, FixupInclusion fixup_inclusion);
+  // SetMemoryBytes() for all snapshot.memory_bytes()
+  void SetMemoryBytes(const Snapshot& snapshot);
 
   // Convenience overload:
   void SetMemoryBytes(const EndState& end_state) {
     SetMemoryBytes(end_state.memory_bytes());
   }
-
-  // Like SetMemoryBytes(bytes), but with fixups per fixup_inclusion and
-  // `snapshot` that apply to `bytes` also applied.
-  void SetMemoryBytesFixed(const MemoryBytes& bytes,
-                           FixupInclusion fixup_inclusion,
-                           const Snapshot& snapshot);
 
   // Like SetMemoryBytes(), but sets all mapped memory bytes to 0.
   // This models the MAP_ANONYMOUS mmap() behavior happening in the harness.
@@ -222,8 +178,7 @@ class MemoryState : private SnapshotTypeNames {
 
   // Modifies *this to have the starting `snapshot` state in it (while leaving
   // anything pre-existing outside `snapshot` memory regions as is).
-  void SetInitialState(const Snapshot& snapshot, FixupInclusion fixup_inclusion,
-                       MappedZeroing mapped_zeroing);
+  void SetInitialState(const Snapshot& snapshot, MappedZeroing mapped_zeroing);
 
   // ----------------------------------------------------------------------- //
   // Accessors.
@@ -292,17 +247,9 @@ class MemoryState : private SnapshotTypeNames {
   // REQUIRES: `bytes` are disjoint ranges
   MemoryBytesList DeltaMemoryBytes(const MemoryBytesList& bytes) const;
 
-  // DeltaMemoryBytes() for all snapshot.memory_bytes() plus all the fixups
-  // per fixup_inclusion and `snapshot` also applied.
+  // DeltaMemoryBytes() for all snapshot.memory_bytes().
   // The returned MemoryBytes values are disjoint.
-  MemoryBytesList DeltaMemoryBytes(const Snapshot& snapshot,
-                                   FixupInclusion fixup_inclusion) const;
-
-  // Like DeltaMemoryBytes(bytes), but with fixups per fixup_inclusion and
-  // `snapshot` that apply to `bytes` also applied.
-  MemoryBytesList DeltaMemoryBytesFixed(const MemoryBytes& bytes,
-                                        FixupInclusion fixup_inclusion,
-                                        const Snapshot& snapshot) const;
+  MemoryBytesList DeltaMemoryBytes(const Snapshot& snapshot) const;
 
   // The bytes that RestoreUContext() will write into the stack of the
   // snapshot as a (presently unavoidable) part of doing its work
@@ -388,36 +335,6 @@ class MemoryState : private SnapshotTypeNames {
   using MemoryBytesMap =
       RangeMap<MemoryBytesMethods::Key, MemoryBytesMethods::Value,
                MemoryBytesMethods>;
-
-  // Helper class for constructing and applying fixups per FixupInclusion
-  // and a given Snapshot.
-  class Fixer {
-   public:
-    // Prepares the fixups.
-    Fixer(FixupInclusion fixup_inclusion, const Snapshot& snapshot);
-
-    // Not movable or copyable -- no need.
-    Fixer(const Fixer&) = delete;
-    Fixer(Fixer&&) = delete;
-    Fixer& operator=(const Fixer&) = delete;
-    Fixer& operator=(Fixer&&) = delete;
-
-    // Applies the fixups that intersect `bytes` to `bytes` and returns that,
-    // while also forgetting about those applied fixups.
-    // The return value is only valid till the next Fix() call and can be
-    // referencing `bytes` themselves.
-    const MemoryBytes& Fix(const MemoryBytes& bytes);
-
-    // Returns the fixups that survived the previous Fix() calls if any.
-    MemoryBytesList FixesLeft() const;
-
-   private:
-    // The fixups as a MemoryBytesMap.
-    MemoryBytesMap fixes_;
-
-    // Tmp space for when Fix() needs to change its arg.
-    MemoryBytes tmp_;
-  };
 
   // Helper for DeltaMemoryBytes(): see .cc for the spec.
   // Declared here only to get short type names for MemoryBytes and such.

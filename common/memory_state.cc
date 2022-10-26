@@ -33,65 +33,16 @@ std::string MemoryState::MemoryMappingCmd::DebugString() const {
 
 // ----------------------------------------------------------------------- //
 
-MemoryState::Fixer::Fixer(FixupInclusion fixup_inclusion,
-                          const Snapshot& snapshot)
-    : fixes_(), tmp_(0, " ") {
-  if (fixup_inclusion & kEndpointTrapFixupBit) {
-    for (const auto& end_state : snapshot.expected_end_states()) {
-      if (end_state.endpoint().type() == Endpoint::kInstruction) {
-        auto start = end_state.endpoint().instruction_address();
-        auto limit = start + snapshot.trap_instruction().size();
-        if ((fixup_inclusion & kTrapFixupIfMappedBit) == 0 ||
-            !snapshot.Perms(start, limit, MemoryPerms::kAnd).IsEmpty()) {
-          fixes_.Add(start, limit, snapshot.trap_instruction());
-        }
-      }
-    }
-  }
-  if (fixup_inclusion & kStackDataFixupBit) {
-    auto b = RestoreUContextStackBytes(snapshot);
-    fixes_.Add(b.start_address(), b.limit_address(), b.byte_values());
-  }
-}
-
-const MemoryState::MemoryBytes& MemoryState::Fixer::Fix(
-    const MemoryBytes& bytes) {
-  MemoryBytesMap intersection;
-  intersection.AddIntersectionOf(fixes_, bytes.start_address(),
-                                 bytes.limit_address(), ByteData());
-  if (intersection.empty()) return bytes;
-  tmp_ = bytes;
-  for (auto i = intersection.begin(); i != intersection.end(); ++i) {
-    tmp_.mutable_byte_values()->replace(i.start() - bytes.start_address(),
-                                        i.limit() - i.start(), i.value());
-  }
-  fixes_.Remove(bytes.start_address(), bytes.limit_address(), ByteData());
-  return tmp_;
-}
-
-MemoryState::MemoryBytesList MemoryState::Fixer::FixesLeft() const {
-  MemoryBytesList r;
-  for (auto i = fixes_.begin(); i != fixes_.end(); ++i) {
-    r.emplace_back(i.start(), i.value());
-  }
-  return r;
-}
-
-// ----------------------------------------------------------------------- //
-
 // static
 MemoryState MemoryState::MakeInitial(const Snapshot& snapshot,
-                                     FixupInclusion fixup_inclusion,
                                      MappedZeroing mapped_zeroing) {
   MemoryState r;
-  r.SetInitialState(snapshot, fixup_inclusion, mapped_zeroing);
+  r.SetInitialState(snapshot, mapped_zeroing);
   return r;
 }
 
 // static
-MemoryState MemoryState::MakeEnd(const Snapshot& snapshot,
-                                 FixupInclusion fixup_inclusion,
-                                 int end_state_index,
+MemoryState MemoryState::MakeEnd(const Snapshot& snapshot, int end_state_index,
                                  MappedZeroing mapped_zeroing) {
   DCHECK_GE(end_state_index, 0);
   DCHECK_LT(end_state_index, snapshot.expected_end_states().size());
@@ -102,7 +53,7 @@ MemoryState MemoryState::MakeEnd(const Snapshot& snapshot,
     // `snapshot` are new in `r`. Contrast with SetInitialState() below.
     r.ZeroMappedMemoryBytes(snapshot);
   }
-  r.SetMemoryBytes(snapshot, fixup_inclusion);
+  r.SetMemoryBytes(snapshot);
   r.SetMemoryBytes(snapshot.expected_end_states()[end_state_index]);
   return r;
 }
@@ -198,16 +149,8 @@ void MemoryState::ForgetMemoryBytes(Address start_address,
   written_memory_bytes_.Remove(start_address, limit_address, ByteData());
 }
 
-void MemoryState::SetMemoryBytes(const Snapshot& snapshot,
-                                 FixupInclusion fixup_inclusion) {
+void MemoryState::SetMemoryBytes(const Snapshot& snapshot) {
   SetMemoryBytes(snapshot.memory_bytes());
-  SetMemoryBytes(Fixer(fixup_inclusion, snapshot).FixesLeft());
-}
-
-void MemoryState::SetMemoryBytesFixed(const MemoryBytes& bytes,
-                                      FixupInclusion fixup_inclusion,
-                                      const Snapshot& snapshot) {
-  SetMemoryBytes(Fixer(fixup_inclusion, snapshot).Fix(bytes));
 }
 
 void MemoryState::ZeroMappedMemoryBytes(const MemoryMapping& mapping) {
@@ -217,7 +160,6 @@ void MemoryState::ZeroMappedMemoryBytes(const MemoryMapping& mapping) {
 }
 
 void MemoryState::SetInitialState(const Snapshot& snapshot,
-                                  FixupInclusion fixup_inclusion,
                                   MappedZeroing mapped_zeroing) {
   MappedMemoryMap new_mappings = snapshot.mapped_memory_map().Copy();
   new_mappings.RemoveRangesOf(mapped_memory_map_);
@@ -253,7 +195,7 @@ void MemoryState::SetInitialState(const Snapshot& snapshot,
           SetMemoryBytes(MemoryBytes(start, ByteData(limit - start, '\0')));
         });
   }
-  SetMemoryBytes(snapshot, fixup_inclusion);
+  SetMemoryBytes(snapshot);
 }
 
 // ----------------------------------------------------------------------- //
@@ -504,9 +446,8 @@ MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
   // TODO(ksteuck): [perf] New idea that works even if the compared bytes are
   // not 0: In Snapshot-s to be played and in MemoryState have a checksum
   // map covering power-of-two-boundary memory ranges that cover all
-  // MemoryBytes (with appropriate FixupInclusion fixups applied to snapshot's
-  // data). The largest ranges are page-sized, the smallest ones can be chosen
-  // by perf tuning all this. Then in this function we start comparing
+  // MemoryBytes. The largest ranges are page-sized, the smallest ones can be
+  // chosen by perf tuning all this. Then in this function we start comparing
   // those checksums starting from the largest ranges and then subdivide
   // recursively when checksums differ. This way, whole equal pages will be
   // skipped in O(1) time and we'll effectively skip subportions of pages
@@ -571,23 +512,14 @@ MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
 }
 
 MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
-    const Snapshot& snapshot, FixupInclusion fixup_inclusion) const {
-  Fixer fixer(fixup_inclusion, snapshot);
+    const Snapshot& snapshot) const {
   MemoryBytesList r;
   for (const auto& b : snapshot.memory_bytes()) {
-    for (MemoryBytes& x : DeltaMemoryBytes(fixer.Fix(b))) {
+    for (MemoryBytes& x : DeltaMemoryBytes(b)) {
       r.emplace_back(std::move(x));
     }
   }
-  auto tail = fixer.FixesLeft();
-  r.insert(r.end(), tail.begin(), tail.end());
   return r;
-}
-
-MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytesFixed(
-    const MemoryBytes& bytes, FixupInclusion fixup_inclusion,
-    const Snapshot& snapshot) const {
-  return DeltaMemoryBytes(Fixer(fixup_inclusion, snapshot).Fix(bytes));
 }
 
 // static

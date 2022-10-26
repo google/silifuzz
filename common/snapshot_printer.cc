@@ -594,9 +594,8 @@ int SnapshotPrinter::DiffSize(const Snapshot& snapshot,
                               const EndState& end_state) {
   const auto& base_end_state =
       snapshot.expected_end_states()[base_end_state_index];
-  auto memory_state =
-      MemoryState::MakeEnd(snapshot, MemoryState::kWithRealExecutionFixups,
-                           base_end_state_index, MemoryState::kZeroMappedBytes);
+  auto memory_state = MemoryState::MakeEnd(snapshot, base_end_state_index,
+                                           MemoryState::kZeroMappedBytes);
   // We write register bytes into memory_state on the otherwise unused
   // first page in the address space to reuse MemoryState::DeltaMemoryBytes()
   // for them.
@@ -701,9 +700,8 @@ void SnapshotPrinter::PrintEndState(const Snapshot& snapshot,
   if (!end_state.memory_bytes().empty()) {
     if (base_end_state) {
       Line("Memory (diff vs expected end_state ", base_end_state_index, "):");
-      auto memory_state = MemoryState::MakeEnd(
-          snapshot, MemoryState::kWithRealExecutionFixups, base_end_state_index,
-          MemoryState::kZeroMappedBytes);
+      auto memory_state = MemoryState::MakeEnd(snapshot, base_end_state_index,
+                                               MemoryState::kZeroMappedBytes);
       Indent();
       PrintMemoryBytes(snapshot,
                        memory_state.DeltaMemoryBytes(end_state.memory_bytes()));

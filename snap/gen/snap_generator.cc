@@ -300,8 +300,8 @@ absl::StatusOr<Snapshot> SnapGenerator::Snapify(const Snapshot &snapshot,
   snapified.set_registers(snapshot.registers());
 
   // Construct initial memory state of the snapified snaphsot.
-  MemoryState memory_state = MemoryState::MakeInitial(
-      snapshot, MemoryState::kSnapshotOnly, MemoryState::kZeroMappedBytes);
+  MemoryState memory_state =
+      MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
 
   // Add a snap exit sequence to initial memory bytes at the end point
   // instruction address.
