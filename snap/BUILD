@@ -69,7 +69,6 @@ cc_library_plus_nolibc(
     hdrs = ["snap_relocator.h"],
     deps = [
         ":snap",
-        "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
     ],
 )

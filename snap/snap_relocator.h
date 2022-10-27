@@ -27,12 +27,23 @@ namespace silifuzz {
 // the start address of the Snap corpus to every pointer inside the corpus.
 class SnapRelocator {
  public:
+  // Error codes for corpus relocation operaion.
+  enum class Error {
+    kOk = 0,       // No error.
+    kEmptyCorpus,  // Cannot relocate an empty corpus.
+    kAlignment,    // A pointer is unaligned.
+    kOutOfBound,   // A pointer points outside of the relocatable.
+    kMprotect,     // Error in setting up memory protection.
+  };
+
   // Relocates a relocatable Snap corpus pointed by `relocatable` and then
-  // mprotect the memory to be read-only. Dies if there is any error.
+  // mprotect the memory to be read-only.
   //
-  // RETURNS: A mmapped memory pointer to the relocated corpus.
+  // RETURNS: A mmapped memory pointer to the relocated corpus and an error
+  // code indicating if relocation succeeded. If relocation failed, the return
+  // contents are undefined.
   static MmappedMemoryPtr<const Snap::Corpus> RelocateCorpus(
-      MmappedMemoryPtr<char> relocatable);
+      MmappedMemoryPtr<char> relocatable, Error* error);
 
  private:
   // Constructs a SnapRelocator object for a relocatable Snap corpus in
@@ -53,22 +64,33 @@ class SnapRelocator {
   // offset from the start address to the address of the pointed object.
   // This also checks that the relocated pointer is still within the
   // relocatable corpus and is properly aligned for type T.
+  //
+  // RETURNS: whether adjustment succeeded. If adjustment failed, `T` has
+  // an undefined value.
   template <typename T>
-  void AdjustPointer(T*&);
+  Error AdjustPointer(T*&);
 
   // Similar to AdjustPointer() but for Snap::Array<T>.
   // Adjusts array.elements if array.size>0 otherwise sets array.elements to
   // nullptr.
+  //
+  // RETURNS: whether adjustment succeeded. If adjustment failed, contents of
+  // `array` are undefined.
   template <typename T>
-  void AdjustArray(Snap::Array<T>& array);
+  Error AdjustArray(Snap::Array<T>& array);
 
   // Relocates a Snap::Array<MemoryBytes>.
-  void RelocateMemoryBytesArray(
+  //
+  // RETURNS: whether relocation succeeded. If it failed, contents of
+  // `memory_byte_array` are undefined.
+  Error RelocateMemoryBytesArray(
       Snap::Array<Snap::MemoryBytes>& memory_bytes_array);
 
   // Relocates corpus by adjusting all pointers inside the corpus.
   // REQUIRES: Only called once.
-  void RelocateCorpus();
+  // RETURNS: whether relocation succeeded. If it failed, contents of
+  // corpus are undefined.
+  Error RelocateCorpus();
 
   // Address of the beginning of the corpus.
   uintptr_t start_address_;

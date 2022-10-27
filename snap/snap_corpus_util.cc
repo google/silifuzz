@@ -55,8 +55,10 @@ MmappedMemoryPtr<const Snap::Corpus> LoadCorpusFromFile(const char* filename,
   auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
                                            file_size);
   CHECK_EQ(close(fd), 0);
+  SnapRelocator::Error error;
   MmappedMemoryPtr<const Snap::Corpus> corpus =
-      SnapRelocator::RelocateCorpus(std::move(mapped));
+      SnapRelocator::RelocateCorpus(std::move(mapped), &error);
+  CHECK(error == SnapRelocator::Error::kOk);
   VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->size));
   return corpus;
 }
