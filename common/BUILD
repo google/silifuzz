@@ -339,6 +339,17 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "decoded_insn_fuzz_test",
+    srcs = ["decoded_insn_fuzz_test.cc"],
+    deps = [
+        ":decoded_insn",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_fuzztest//fuzztest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "harness_tracer",
     srcs = ["harness_tracer.cc"],

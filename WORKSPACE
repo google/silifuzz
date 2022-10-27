@@ -177,3 +177,21 @@ http_archive(
     strip_prefix = "abseil-py-1.2.0",
     urls = ["https://github.com/abseil/abseil-py/archive/refs/tags/v1.2.0.tar.gz"],
 )
+
+# To use the latest version of FuzzTest, update this regularly to the latest
+# commit in the main branch: https://github.com/google/fuzztest/commits/main
+FUZZTEST_COMMIT = "62cf00c7341eb05d128d0a3cbce79ac31dbda032"
+
+http_archive(
+    name = "com_google_fuzztest",
+    strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
+    url = "https://github.com/google/fuzztest/archive/" + FUZZTEST_COMMIT + ".zip",
+)
+
+# Required by com_google_fuzztest.
+http_archive(
+    name = "com_googlesource_code_re2",
+    sha256 = "f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f",
+    strip_prefix = "re2-2022-06-01",
+    url = "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz",
+)
