@@ -188,7 +188,6 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:signals",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
