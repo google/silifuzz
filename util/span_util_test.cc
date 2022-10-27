@@ -33,10 +33,6 @@ void VerifySpan(const std::vector<absl::Span<T>>& spans,
                 size_t expected_num_spans,
                 const std::vector<typename std::remove_const<T>::type>& v) {
   ASSERT_THAT(spans, SizeIs(expected_num_spans));
-  if (v.empty()) {
-    ASSERT_TRUE(spans.empty());
-    return;
-  }
 
   const double average_size =
       static_cast<double>(v.size()) / expected_num_spans;
@@ -46,7 +42,9 @@ void VerifySpan(const std::vector<absl::Span<T>>& spans,
   for (size_t i = 0; i < spans.size(); offset += spans[i].size(), ++i) {
     EXPECT_GE(spans[i].size(), lower_bound);
     EXPECT_LE(spans[i].size(), upper_bound);
-    EXPECT_EQ(spans[i].begin(), &v[offset]);
+    if (!spans[i].empty()) {
+      EXPECT_EQ(spans[i].begin(), &v[offset]);
+    }
   }
   EXPECT_EQ(offset, v.size());
 }
@@ -76,6 +74,20 @@ TEST(SpanUtil, SimpleTest) {
   const std::vector<Foo> v2(kVectorSize);
   std::vector<absl::Span<const Foo>> spans2 = PartitionEvenly(v2, kNumSpans);
   VerifySpan(spans2, kNumSpans, v2);
+}
+
+TEST(SpanUtil, Empty) {
+  std::vector<int> input = {};
+  constexpr size_t kNumSpans = 2;
+  std::vector<absl::Span<int>> output = PartitionEvenly(input, kNumSpans);
+  VerifySpan(output, kNumSpans, input);
+}
+
+TEST(SpanUtil, PartiallyEmpty) {
+  std::vector<int> input = {0};
+  constexpr size_t kNumSpans = 2;
+  std::vector<absl::Span<int>> output = PartitionEvenly(input, kNumSpans);
+  VerifySpan(output, kNumSpans, input);
 }
 
 }  // namespace

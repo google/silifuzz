@@ -25,13 +25,13 @@
 
 namespace silifuzz {
 
-// Partitions a vector-like container `v` into roughly `n` equal sized parts. If
-// v is empty this returns an empty vector. Otherwise, it returns a
-// vector<Span<...>> such that:
+// Partitions a vector-like container `v` into roughly `n` equal sized parts. It
+// returns a vector<Span<...>> such that:
 // 1. each span has size between floor(v.size()/n) and ceil(v.size())
-// 2. span[0].begin() == &v[0]
-// 3. span[i].end() == span[i+1].begin() for i in [0..n-1]
-// 4. sum of span lengths == v[0].size()
+// 2. if (v.size() < n) then n - v.size() spans will have a size of zero.
+// 3. span[0].begin() == &v[0]
+// 4. span[i].end() == span[i+1].begin() for i in [0..n-1]
+// 5. sum of span lengths == v.size()
 //
 // In order words, the spans cover exactly all the elements of `v` in
 // ascending order of positions. Any 2 vectors of the same size are divided
@@ -45,7 +45,6 @@ auto PartitionEvenly(VectorLikeType&& v, size_t n)
     -> std::vector<decltype(absl::MakeSpan(v))> {
   CHECK_GT(n, 0);
   std::vector<decltype(absl::MakeSpan(v))> result;
-  if (v.empty()) return result;
   result.reserve(n);
 
   // This is used for load balancing/sharding. So we want the spans to be as
@@ -57,7 +56,8 @@ auto PartitionEvenly(VectorLikeType&& v, size_t n)
   for (size_t i = 0, current = 0; i < n; ++i) {
     const size_t span_size =
         min_span_size + (i < num_spans_to_grow_by_1 ? 1 : 0);
-    result.push_back(absl::MakeSpan(&v[current], span_size));
+    result.push_back(
+        absl::MakeSpan(span_size ? &v[current] : nullptr, span_size));
     current += span_size;
   }
   return result;
