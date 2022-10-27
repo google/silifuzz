@@ -195,3 +195,22 @@ cc_library(
         "@com_google_absl//absl/synchronization",
     ],
 )
+
+cc_test(
+    name = "binary_log_channel_test",
+    srcs = ["binary_log_channel_test.cc"],
+    deps = [
+        ":binary_log_channel",
+        "@silifuzz//proto:binary_log_entry_cc_proto",
+        "@silifuzz//proto:player_result_cc_proto",
+        "@silifuzz//proto:snapshot_execution_result_cc_proto",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:time_proto_util",
+        "@silifuzz//util/testing:status_macros",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
