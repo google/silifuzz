@@ -73,6 +73,17 @@ cc_library_plus_nolibc(
     ],
 )
 
+cc_test(
+    name = "snap_relocator_fuzz_test",
+    srcs = ["snap_relocator_fuzz_test.cc"],
+    deps = [
+        ":snap_relocator",
+        "@silifuzz//util:mmapped_memory_ptr",
+        "@com_google_fuzztest//fuzztest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "snap_util",
     srcs = ["snap_util.cc"],
