@@ -22,13 +22,13 @@
 #include "./common/snapshot_test_util.h"
 #include "./common/snapshot_util.h"
 #include "./util/platform.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 using ::testing::ContainerEq;
 using ::testing::ContainsRegex;
@@ -54,10 +54,9 @@ TEST(Snapshot, CanSetRegs) {
   Snapshot s(Snapshot::CurrentArchitecture());
   s.add_memory_mapping(
       Snapshot::MemoryMapping::MakeSized(0x100000, 4096, MemoryPerms::All()));
-  auto status = s.can_set_registers(CreateRegState(0x100000, 0x100000 + 4096));
-  EXPECT_THAT(status, IsOk());
+  EXPECT_OK(s.can_set_registers(CreateRegState(0x100000, 0x100000 + 4096)));
 
-  status = s.can_set_registers(
+  auto status = s.can_set_registers(
       CreateRegState(Snapshot::kUnsetRegisterValue, 0x100000 + 4096));
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -75,20 +74,20 @@ TEST(Snapshot, CanSetRegs) {
 
 TEST(Snapshot, IsComplete) {
   Snapshot s = TestSnapshots::Create(TestSnapshots::kSigSegvRead);
-  EXPECT_THAT(s.IsCompleteSomeState(), IsOk());
+  EXPECT_OK(s.IsCompleteSomeState());
   Snapshot::Endpoint ep(Snapshot::Endpoint::kSigSegv,
                         Snapshot::Endpoint::kSegvCantRead, 0x10000,
                         s.ExtractRip(s.registers()));
   Snapshot::EndState es(ep);
-  ASSERT_THAT(s.AddNegativeMemoryMappingsFor(es), IsOk());
+  ASSERT_OK(s.AddNegativeMemoryMappingsFor(es));
 
   EXPECT_THAT(s.IsCompleteSomeState(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("Unnecessary negative_memory_mappings")));
 
-  ASSERT_THAT(s.can_add_expected_end_state(es), IsOk());
+  ASSERT_OK(s.can_add_expected_end_state(es));
   s.add_expected_end_state(es);
-  EXPECT_THAT(s.IsCompleteSomeState(), IsOk());
+  EXPECT_OK(s.IsCompleteSomeState());
   s.set_negative_memory_mappings({});
   EXPECT_THAT(s.IsCompleteSomeState(),
               StatusIs(absl::StatusCode::kInvalidArgument,

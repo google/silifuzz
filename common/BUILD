@@ -150,6 +150,7 @@ cc_test(
         ":snapshot_test_util",
         ":snapshot_util",
         "@silifuzz//util:platform",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_googletest//:gtest_main",
