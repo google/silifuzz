@@ -119,14 +119,6 @@ class TestSnapshots : private SnapshotTypeNames {
     kSplitLock,
   };
 
-  // If snapshot has a Snapshot::kNormalState or Snapshot::kUndefinedEndState.
-  // We only add the former to snapshots that test the
-  // PlaybackOutcome::kMemoryMismatch or PlaybackOutcome::kRegisterStateMismatch
-  // outcomes, as well as to kEndsAsExpected and kHasPlatformMismatch. Any
-  // snapshot can get a Snapshot::kNormalState by going through
-  // EndStateRecorder::Record().
-  static bool HasNormalEndState(Type type);
-
   // ----------------------------------------------------------------------- //
 
   // Options for Create() and CreateProto() below.

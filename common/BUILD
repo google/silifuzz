@@ -262,7 +262,11 @@ cc_test(
 cc_library(
     name = "snapshot_test_util",
     testonly = True,
-    srcs = ["snapshot_test_util.cc"],
+    srcs = [
+        "snapshot_test_config.cc",
+        "snapshot_test_config.h",
+        "snapshot_test_util.cc",
+    ],
     hdrs = ["snapshot_test_util.h"],
     deps = [
         ":snapshot",
@@ -271,12 +275,21 @@ cc_library(
         ":snapshot_types",
         ":snapshot_util",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:checks",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/time",
     ],
+)
+
+# This script is not set up to run under CI.
+# This test make sure it parses and runs (to some extent) to prevent regressions.
+py_test(
+    name = "generate_tests",
+    srcs = ["generate_tests.py"],
+    args = ["--test"],
 )
 
 cc_library(
