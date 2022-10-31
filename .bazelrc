@@ -8,6 +8,7 @@ build --host_cxxopt=-std=c++17 --host_cxxopt=-fno-stack-protector --host_copt=-W
 
 # Remove security hardening as it clashes with nolibc
 build --copt -U_FORTIFY_SOURCE
+build --host_copt -U_FORTIFY_SOURCE
 
 # We already have absl in the build, define absl=1 to tell googletest to use absl for backtrace.
 build --define absl=1
