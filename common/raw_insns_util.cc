@@ -28,6 +28,7 @@
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
+#include "./util/padding.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -87,8 +88,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   // Fill the codepage with traps. This is to help the generated snapshot exit
   // ASAP in case if we happen to "fixup" an invalid instruction to a valid one
   // by adding an endpoint trap.
-  CHECK_EQ(snapshot.trap_instruction().length(), 1);
-  code_with_traps.resize(page_size, snapshot.trap_instruction()[0]);
+  PadToSizeWithTraps<X86_64>(code_with_traps, page_size);
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(code_start_addr, code_with_traps));
 
@@ -164,8 +164,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
 
   // Add code to the snapshot.
   std::string code_with_traps = std::string(code);
-  // Pad the codepage with zero, i.e. undefined instructions.
-  code_with_traps.resize(page_size, 0);
+  PadToSizeWithTraps<AArch64>(code_with_traps, page_size);
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(code_start_addr, code_with_traps));
 

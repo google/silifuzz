@@ -851,3 +851,17 @@ cc_library_plus_nolibc(
         "@silifuzz//util:checks",
     ],
 )
+
+cc_library_plus_nolibc(
+    name = "arch",
+    hdrs = ["arch.h"],
+)
+
+cc_library(
+    name = "padding",
+    hdrs = ["padding.h"],
+    deps = [
+        ":arch",
+        ":checks",
+    ],
+)

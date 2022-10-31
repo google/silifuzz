@@ -19,18 +19,9 @@
 
 #include <cstdint>
 
+#include "./util/arch.h"
+
 namespace silifuzz {
-
-struct X86_64 {};
-struct AArch64 {};
-
-#if defined(__x86_64__)
-using Host = X86_64;
-#elif defined(__aarch64__)
-using Host = AArch64;
-#else
-#error "Unsupported architecture"
-#endif
 
 // Values for all general-purpose CPU registers.
 template <typename = Host>

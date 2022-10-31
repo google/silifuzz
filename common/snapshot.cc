@@ -46,9 +46,6 @@ struct Snapshot::ArchitectureDescr {
   // See Snapshot::required_stack_size().
   int required_stack_size;
 
-  // int3 bytcode or equivalent - see Snapshot::trap_instruction().
-  const absl::string_view trap_instruction;
-
   // TODO(ksteuck): [as-needed]: Add a flag to indicate the direction of
   // stack growth.
 };
@@ -56,18 +53,20 @@ struct Snapshot::ArchitectureDescr {
 // static
 ABSL_CONST_INIT const Snapshot::ArchitectureDescr
     Snapshot::kSupportedArchitectures[] = {
-        {.id = Snapshot::Architecture::kX86_64,
-         .name = "x86_64",
-         .page_size = 4096,
-         // RestoreUContext() needs to push two registers onto the stack
-         .required_stack_size = 8 * 2,
-         .trap_instruction = "\xCC"},
-        {.id = Snapshot::Architecture::kAArch64,
-         .name = "aarch64",
-         .page_size = 4096,
-         // RestoreUContext() has a 32-byte stack frame
-         .required_stack_size = 32,
-         .trap_instruction = absl::string_view("\0\0\0\0", 4)},
+        {
+            .id = Snapshot::Architecture::kX86_64,
+            .name = "x86_64",
+            .page_size = 4096,
+            // RestoreUContext() needs to push two registers onto the stack
+            .required_stack_size = 8 * 2,
+        },
+        {
+            .id = Snapshot::Architecture::kAArch64,
+            .name = "aarch64",
+            .page_size = 4096,
+            // RestoreUContext() has a 32-byte stack frame
+            .required_stack_size = 32,
+        },
 };
 
 const Snapshot::Id& Snapshot::UnsetId() {
@@ -115,7 +114,6 @@ Snapshot::Snapshot(Architecture arch, const Id& id)
     : id_(id),
       architecture_(arch),
       architecture_descr_(nullptr),
-      trap_instruction_(),
       mapped_memory_map_(),
       negative_mapped_memory_map_(),
       written_memory_set_(),
@@ -129,7 +127,6 @@ Snapshot::Snapshot(Architecture arch, const Id& id)
   for (const auto& arch : kSupportedArchitectures) {
     if (arch.id == architecture_) {
       architecture_descr_ = &arch;
-      trap_instruction_ = arch.trap_instruction;
       break;
     }
   }
@@ -161,8 +158,7 @@ bool Snapshot::operator==(const Snapshot& y) const {
 }
 
 bool Snapshot::EqualsButEndStates(const Snapshot& y) const {
-  return id_ == y.id_ &&
-         architecture_ == y.architecture_ &&  // covers trap_instruction_
+  return id_ == y.id_ && architecture_ == y.architecture_ &&
          mapped_memory_map_ ==
              y.mapped_memory_map_ &&  // covers memory_mappings_
          MemoryBytesListEq(memory_bytes_,
@@ -592,8 +588,10 @@ absl::Status Snapshot::can_add_expected_end_state(const EndState& x,
                                                   bool duplicate_ok) const {
   switch (x.endpoint().type()) {
     case Endpoint::kInstruction: {
-      auto s = IsExecutable(x.endpoint().instruction_address(),
-                            trap_instruction().size());
+      // Make sure there is at least some executable memory after the endpoint.
+      // Note this is a weak check because it doesn't guarentee we can add a
+      // full exit sequence.
+      auto s = IsExecutable(x.endpoint().instruction_address(), 1);
       RETURN_IF_NOT_OK(s.status());
       if (!unmapped_endpoint_ok && !*s) {
         return absl::InvalidArgumentError(

@@ -25,6 +25,7 @@
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_util.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/padding.h"
 #include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -119,20 +120,13 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
   std::string bytecode = config.instruction_bytes;
   const auto bytecode_size = bytecode.size();  // so we can ignore the fix-up
                                                // under the next if
-  if (bytecode.empty()) {
-    // Put something non-empty into snapshot to make it valid,
-    // endpoint_address below will still be at base_address.
-    bytecode = {0x0};
-  }
-  MemoryBytes code_bytes(config.code_addr, bytecode);
-  snapshot.add_memory_bytes(code_bytes);
   if (options.define_all_mapped) {
-    // TODO(ncbray): share padding code with raw_insns_util
-    ByteData trap = snapshot.trap_instruction();
-    DCHECK_EQ(trap.size(), 1);
-    snapshot.add_memory_bytes(MemoryBytes(
-        config.code_addr + code_bytes.num_bytes(),
-        ByteData(code_mapping.num_bytes() - code_bytes.num_bytes(), trap[0])));
+    PadToSizeWithTraps<X86_64>(bytecode, code_mapping.num_bytes());
+  }
+
+  if (!bytecode.empty()) {
+    MemoryBytes code_bytes(config.code_addr, bytecode);
+    snapshot.add_memory_bytes(code_bytes);
   }
 
   UContext ucontext;

@@ -174,9 +174,6 @@ class Snapshot final {
   // for snapshot playback to function.
   ByteSize required_stack_size() const;
 
-  // Returns the trap instruction causing SIGTRAP for architecture().
-  const ByteData& trap_instruction() const { return trap_instruction_; }
-
   // ----------------------------------------------------------------------- //
   // Basic contents.
 
@@ -460,9 +457,6 @@ class Snapshot final {
 
   // ArchitectureDescr corresponding to architecture_ (not null).
   const ArchitectureDescr* architecture_descr_;
-
-  // See trap_instruction().
-  ByteData trap_instruction_;
 
   // See mapped_memory_map().
   MappedMemoryMap mapped_memory_map_;

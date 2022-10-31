@@ -41,6 +41,7 @@ cc_library_plus_nolibc(
         "@com_google_absl//absl/base:core_headers",
     ],
     deps = [
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:misc_util",
     ],
