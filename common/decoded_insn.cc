@@ -243,7 +243,7 @@ absl::Status DecodedInsn::Decode(absl::string_view data,
   xed_init_print_info(&pi);
   pi.p = &xed_insn_;
   pi.buf = formatted_insn_buf_;
-  pi.blen = sizeof(formatted_insn_buf_);
+  pi.blen = sizeof(formatted_insn_buf_) - 1;
   pi.context = nullptr;
   pi.disassembly_callback = 0;
   pi.runtime_address = start_address;

@@ -145,7 +145,7 @@ class DecodedInsn {
   absl::Status status_;
 
   // Text-formatted insn. See DebugString()
-  char formatted_insn_buf_[64];
+  char formatted_insn_buf_[96];
 };
 
 }  // namespace silifuzz

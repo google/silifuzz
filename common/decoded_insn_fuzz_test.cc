@@ -52,6 +52,14 @@ FUZZ_TEST(FuzzDecodedInsn, MayHaveSplitLockRandomInsnAndRegs)
     .WithDomains(Arbitrary<std::string>().WithMaxSize(256),
                  Arbitrary<std::string>().WithSize(sizeof(user_regs_struct)));
 
+TEST(FuzzDecodedInsn, ConstructorWithRandomInsnBytesRegression) {
+  ConstructorWithRandomInsnBytes(
+      std::string("ggKi\274;"
+                  "\204j\005kk\017\001\370\032\000\366\362\322\322\2512\020\000"
+                  "\000\000\231\200\000\000\000\006k\323",
+                  34));
+}
+
 }  // namespace
 
 }  // namespace silifuzz
