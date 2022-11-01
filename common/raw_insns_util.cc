@@ -118,6 +118,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   // Initialize FCW and MXCSR to sensible defaults that mask as many exceptions
   // as possible with the idea to allow generated snapshots execute more code.
   current.fpregs.mxcsr = 0x1f80;
+  current.fpregs.mxcsr_mask = 0xffff;
   current.fpregs.fcw = 0x37f;
   // Non-zero initialization of at least 1 XMM register inhibits init state
   // optimization on Arcadia. This is a workaround for erratum 1386 "XSAVES

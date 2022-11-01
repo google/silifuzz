@@ -277,7 +277,6 @@ cc_library(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:padding",
-        "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:endian",

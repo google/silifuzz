@@ -26,17 +26,13 @@
 #include "./common/snapshot_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/padding.h"
-#include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
 static void InitTestSnapshotRegs(const TestSnapshotConfig& config,
                                  UContext<X86_64>& ucontext) {
-  SaveUContext(&ucontext);
-  ZeroOutRegsPadding(&ucontext);
-  memset(ucontext.fpregs.st, 0, sizeof(ucontext.fpregs.st));
-  memset(ucontext.fpregs.xmm, 0, sizeof(ucontext.fpregs.xmm));
+  memset(&ucontext, 0, sizeof(ucontext));
 
   constexpr uint64_t kCanary = 0xBBBBBBBBBBBBBBBB;
   ucontext.gregs.r8 = kCanary;
@@ -54,22 +50,27 @@ static void InitTestSnapshotRegs(const TestSnapshotConfig& config,
   ucontext.gregs.rdx = kCanary;
   ucontext.gregs.rax = kCanary;
   ucontext.gregs.rcx = kCanary;
-  ucontext.gregs.rsp = kCanary;
-  ucontext.gregs.rip = kCanary;
-
-  ucontext.gregs.eflags = 0x202;
-  // Intentionally leaving all segment registers untouched. They are much more
-  // sensitive to the choice of value and are typically not touched by
-  // user-space code.
-
-  ucontext.gregs.fs_base = 0;
-  ucontext.gregs.gs_base = 0;
 
   // Sets RIP and RSP to be within the memory of this snapshot.
   ucontext.gregs.rip = config.code_addr;
   ucontext.gregs.rsp = config.data_addr + config.data_num_bytes;
+
   // Set RBP to the start of the data page;
   ucontext.gregs.rbp = config.data_addr;
+
+  // These are the values of %cs and %ss kernel sets for userspace programs.
+  // RestoreUContext does not modify the two but the runner still verifies
+  // the values didn't change during snapshot execution.
+  ucontext.gregs.cs = 0x33;
+  ucontext.gregs.ss = 0x2b;
+
+  ucontext.gregs.eflags = 0x202;
+
+  // Initialize FCW and MXCSR to sensible defaults that mask as many exceptions
+  // as possible with the idea to allow generated snapshots execute more code.
+  ucontext.fpregs.mxcsr = 0x1f80;
+  ucontext.fpregs.mxcsr_mask = 0xffff;
+  ucontext.fpregs.fcw = 0x37f;
 }
 
 // static
