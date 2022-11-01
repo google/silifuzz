@@ -59,6 +59,13 @@ class SnapRelocator {
   SnapRelocator& operator=(const SnapRelocator&) = delete;
   SnapRelocator& operator=(SnapRelocator&&) = delete;
 
+  // Validates relocated `address` for type `T`. The address is valid if
+  // 1. the whole object is within memory bound of this and
+  // 2. the address is aligned for type `T`.
+  // Returns an Error.
+  template <typename T>
+  Error ValidateRelocatedAddress(uintptr_t address);
+
   // Adjusts a relocatable pointer in place. This adds the start address
   // of the relocatable corpus to a pointer, which is a relative
   // offset from the start address to the address of the pointed object.

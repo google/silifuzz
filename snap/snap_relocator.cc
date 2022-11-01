@@ -33,6 +33,26 @@ MmappedMemoryPtr<const Snap::Corpus> make_null_corpus() {
 
 }  // namespace
 
+// Similar to RETURN_IF_NOT_OK() but for SnapRelocator::Error.
+#define RETURN_IF_RELOCATION_FAILED(exp)   \
+  do {                                     \
+    const Error error = (exp);             \
+    if (error != Error::kOk) return error; \
+  } while (0)
+
+template <typename T>
+SnapRelocator::Error SnapRelocator::ValidateRelocatedAddress(
+    uintptr_t address) {
+  // The whole object must be within corpus bounds.
+  if (address < start_address_ || address + sizeof(T) > limit_address_)
+    return Error::kOutOfBound;
+
+  // Address be correctly aligned.
+  if (address % alignof(T) != 0) return Error::kAlignment;
+
+  return Error::kOk;
+}
+
 template <typename T>
 SnapRelocator::Error SnapRelocator::AdjustPointer(T*& ptr) {
   // A pointer in a relocatable Snap corpus offset is just offset from the
@@ -41,12 +61,7 @@ SnapRelocator::Error SnapRelocator::AdjustPointer(T*& ptr) {
   uintptr_t adjusted_address =
       reinterpret_cast<uintptr_t>(ptr) + start_address_;
 
-  // Adjusted pointer must be within corpus bounds.
-  if (adjusted_address < start_address_ || adjusted_address >= limit_address_)
-    return Error::kOutOfBound;
-
-  // Adjusted pointer must be correctly aligned.
-  if (adjusted_address % alignof(T) != 0) return Error::kAlignment;
+  RETURN_IF_RELOCATION_FAILED(ValidateRelocatedAddress<T>(adjusted_address));
 
   ptr = reinterpret_cast<T*>(adjusted_address);
   return Error::kOk;
@@ -55,19 +70,16 @@ SnapRelocator::Error SnapRelocator::AdjustPointer(T*& ptr) {
 template <typename T>
 SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
   if (array.size > 0) {
-    return AdjustPointer(array.elements);
+    RETURN_IF_RELOCATION_FAILED(AdjustPointer(array.elements));
+    // Check that the last element is within bound. The beginning of array
+    // is checked already by AdjustPointer() above.
+    return ValidateRelocatedAddress<T>(
+        reinterpret_cast<uintptr_t>(&array.elements[array.size - 1]));
   } else {
     array.elements = nullptr;
     return Error::kOk;
   }
 }
-
-// Similar to RETURN_IF_NOT_OK() but for SnapRelocator::Error.
-#define RETURN_IF_RELOCATION_FAILED(exp)   \
-  do {                                     \
-    const Error error = (exp);             \
-    if (error != Error::kOk) return error; \
-  } while (0)
 
 SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
     Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {

@@ -49,5 +49,12 @@ TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256273372) {
       51));
 }
 
+TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256297703) {
+  RelocateRandomBytes(std::string(
+      "\007\000\000\000\000\000\000\000\030\000\000\000\000\000\000\000\000\000"
+      "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\020",
+      33));
+}
+
 }  // namespace
 }  // namespace silifuzz
