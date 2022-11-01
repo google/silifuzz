@@ -131,6 +131,7 @@ enum PlatformId {
   AMD_GENOA = 10;
   INTEL_COFFEELAKE = 11;
   INTEL_ALDERLAKE = 12;
+  ARM_NEOVERSE_N1 = 13;
 }
 
 // Describes a specific endstate of executing a snapshot.

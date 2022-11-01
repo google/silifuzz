@@ -652,7 +652,14 @@ cc_test_plus_nolibc(
 
 cc_library(
     name = "platform",
-    srcs = ["platform.cc"],
+    srcs = ["platform.cc"] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/platform.cc",
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/platform.cc",
+        ],
+    }),
     hdrs = ["platform.h"],
     deps = [
         ":checks",

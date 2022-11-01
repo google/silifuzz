@@ -16,7 +16,6 @@
 #define THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
 
 #include "./util/enum_flag.h"
-#include "./util/itoa.h"
 #include "./util/misc_util.h"
 
 namespace silifuzz {
@@ -37,10 +36,11 @@ enum class PlatformId {
   kAmdGenoa = 10,
   kIntelCoffeelake = 11,
   kIntelAlderlake = 12,
+  kArmNeoverseN1 = 13,
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 13,          // any platform for platform selectors
-  kNonExistent = 14,  // for tests only
+  kAny = 14,          // any platform for platform selectors
+  kNonExistent = 15,  // for tests only
 };
 
 DECLARE_ENUM_FLAG(PlatformId);
