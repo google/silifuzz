@@ -809,9 +809,12 @@ bool Snapshot::TryRemoveUndefinedEndStates() {
   if (std::find_if(states.begin(), states.end(), [](const EndState& x) {
         return x.IsComplete(Snapshot::kNormalState).ok();
       }) != states.end()) {
-    std::remove_if(states.begin(), states.end(), [](const EndState& x) {
-      return x.IsComplete(Snapshot::kUndefinedEndState).ok();
-    });
+    states.erase(
+        std::remove_if(states.begin(), states.end(),
+                       [](const EndState& x) {
+                         return x.IsComplete(Snapshot::kUndefinedEndState).ok();
+                       }),
+        states.end());
   }
   return before_size != states.size();
 }
