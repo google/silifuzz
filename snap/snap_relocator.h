@@ -28,7 +28,7 @@ namespace silifuzz {
 class SnapRelocator {
  public:
   // Error codes for corpus relocation operaion.
-  enum class Error {
+  enum class [[nodiscard]] Error {
     kOk = 0,       // No error.
     kEmptyCorpus,  // Cannot relocate an empty corpus.
     kAlignment,    // A pointer is unaligned.

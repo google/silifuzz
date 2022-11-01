@@ -41,5 +41,13 @@ constexpr size_t kMaxRandomCorpusSize = 1 << 16;
 FUZZ_TEST(FuzzDecodedInsn, RelocateRandomBytes)
     .WithDomains(Arbitrary<std::string>().WithMaxSize(kMaxRandomCorpusSize));
 
+TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256273372) {
+  RelocateRandomBytes(std::string(
+      "\020\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+      "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\343\236\236\236"
+      "\236\236\236\236\236\236\236\236\236\236\236\236&&&",
+      51));
+}
+
 }  // namespace
 }  // namespace silifuzz

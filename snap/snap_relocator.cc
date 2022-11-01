@@ -71,7 +71,7 @@ SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
 
 SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
     Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {
-  AdjustArray(memory_bytes_array);
+  RETURN_IF_RELOCATION_FAILED(AdjustArray(memory_bytes_array));
   for (size_t i = 0; i < memory_bytes_array.size; ++i) {
     Snap::MemoryBytes& memory_byte = memory_bytes_array.mutable_elements()[i];
     if (!memory_byte.repeating) {
