@@ -39,6 +39,7 @@
 #include "./util/checks.h"
 #include "./util/enum_flag.h"
 #include "./util/file_util.h"
+#include "./util/platform.h"
 #include "./util/tool_util.h"
 
 namespace silifuzz {  // for ADL
@@ -72,6 +73,9 @@ ABSL_FLAG(int64_t, bytes_limit, 200,
           "-1 means no-limit.");
 ABSL_FLAG(bool, stats, true, "Whether some summary stats are printed.");
 ABSL_FLAG(bool, endpoints_only, false, "Whether to only print the endpoints.");
+ABSL_FLAG(silifuzz::PlatformId, target_platform,
+          silifuzz::PlatformId::kUndefined,
+          "Target platform for commands like generate_corpus");
 
 // ========================================================================= //
 
@@ -111,10 +115,15 @@ void OutputSnapshotOrDie(Snapshot&& snapshot, absl::string_view filename,
   }
 }
 
-// Implements `generate` command.
-absl::Status GenerateCorpus(const std::vector<std::string>& input_protos) {
+// Implements `generate_corpus` command.
+absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
+                            PlatformId platform_id, LinePrinter* line_printer) {
   SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
-  opts.platform_id = CurrentPlatformId();
+  if (platform_id == PlatformId::kUndefined) {
+    return absl::InvalidArgumentError(
+        "generate_corpus requires a valid platform id");
+  }
+  opts.platform_id = platform_id;
   if (opts.platform_id == PlatformId::kUndefined) {
     return absl::InternalError("This platform is not supported by SiliFuzz");
   }
@@ -125,10 +134,19 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos) {
     ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(auto snapshot,
                                     ReadSnapshotFromFile(proto_path),
                                     "Cannot read snapshot");
-    ASSIGN_OR_RETURN_IF_NOT_OK(auto snapified,
-                               SnapGenerator::Snapify(snapshot, opts));
-    snapified_corpus.push_back(std::move(snapified));
+    auto snapified_or = SnapGenerator::Snapify(snapshot, opts);
+    if (!snapified_or.ok()) {
+      line_printer->Line("Skipping ", proto_path, ": ",
+                         snapified_or.status().message());
+      continue;
+    }
+    snapified_corpus.push_back(std::move(snapified_or).value());
   }
+  if (snapified_corpus.empty()) {
+    return absl::InvalidArgumentError("No usable Snapshots found");
+  }
+
+  // TODO(ksteuck): Call PartitionSnapshots() to ensure there are no conflicts.
 
   RelocatableSnapGeneratorOptions options;
   MmappedMemoryPtr<char> buffer =
@@ -146,10 +164,12 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos) {
 // args are the non-flag arguments.
 // Returns success status.
 bool SnapToolMain(std::vector<char*>& args) {
+  LinePrinter line_printer(LinePrinter::StdErrPrinter);
+
   std::string command;
   std::string snapshot_file;
   if (args.size() < 2) {
-    LOG_ERROR(
+    line_printer.Line(
         "Expected one of {print,set_id,set_end,make,play,generate_corpus} and a"
         " snapshot file name(s).");
     return false;
@@ -159,8 +179,6 @@ bool SnapToolMain(std::vector<char*>& args) {
   }
 
   Snapshot snapshot = ReadSnapshotFromFileOrDie(snapshot_file);
-
-  LinePrinter line_printer(LinePrinter::StdOutPrinter);
 
   if (command == "print") {
     if (ExtraArgs(args)) return false;
@@ -281,7 +299,8 @@ bool SnapToolMain(std::vector<char*>& args) {
     for (const auto& a : args) {
       inputs.push_back(a);
     }
-    auto s = GenerateCorpus(inputs);
+    absl::Status s = GenerateCorpus(
+        inputs, absl::GetFlag(FLAGS_target_platform), &line_printer);
     if (!s.ok()) {
       line_printer.Line("Cannot generate corpus: ", s.message());
       return false;

@@ -43,6 +43,7 @@ cc_binary(
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:file_util",
+        "@silifuzz//util:platform",
         "@silifuzz//util:tool_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
