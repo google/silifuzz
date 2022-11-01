@@ -96,6 +96,8 @@ absl::Status ToolMain(std::vector<char*>& args) {
   MmappedMemoryPtr<const Snap::Corpus> corpus =
       LoadCorpusFromFile(corpus_file.data(), /* preload = */ false);
 
+  LinePrinter lp(LinePrinter::StdErrPrinter);
+
   if (command == "extract") {
     if (args.size() < 2) {
       return absl::InvalidArgumentError("Too few arguments");
@@ -139,22 +141,21 @@ absl::Status ToolMain(std::vector<char*>& args) {
     ASSIGN_OR_RETURN_IF_NOT_OK(const Snap* snap,
                                FindSnap(corpus.get(), result.snapshot_id()));
 
-    LinePrinter lp(LinePrinter::StdErrPrinter);
     SnapshotPrinter printer(&lp);
     ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
                                SnapToSnapshot(*snap, CurrentPlatformId()));
     ASSIGN_OR_RETURN_IF_NOT_OK(auto player_result, PlayerResultProto::FromProto(
                                                        result.player_result()));
-    LOG_INFO(
+    lp.Line(
         "Outcome = ",
         result.player_result().Outcome_Name(result.player_result().outcome()),
         " snapshot = ", result.snapshot_id(), " on CPU ", player_result.cpu_id);
     printer.PrintActualEndState(snapshot, *player_result.actual_end_state);
   } else if (command == "list_snaps") {
     for (const Snap* snap : *corpus) {
-      LOG_INFO(snap->id);
+      lp.Line(snap->id);
     }
-    LOG_INFO("Total ", corpus->size);
+    lp.Line("Total ", corpus->size);
   } else {
     return absl::InvalidArgumentError(
         absl::StrCat("Unknown command ", command));
