@@ -24,6 +24,22 @@
 namespace silifuzz {
 namespace {
 
+TEST(UContextTest, Accessors) {
+  UContext uc;
+  memset(&uc, 0xf0, sizeof(uc));
+
+  constexpr uint64_t kInstructionPointer = 0x0123456789abcdef;
+  constexpr uint64_t kStackPointer = 0xfedcba9876543210;
+  SetInstructionPointer(uc.gregs, kInstructionPointer);
+  SetStackPointer(uc.gregs, kStackPointer);
+
+  EXPECT_EQ(GetInstructionPointer(uc.gregs), kInstructionPointer);
+  EXPECT_EQ(uc.gregs.rip, kInstructionPointer);
+
+  EXPECT_EQ(GetStackPointer(uc.gregs), kStackPointer);
+  EXPECT_EQ(uc.gregs.rsp, kStackPointer);
+}
+
 // Check that UContext introduces no padding, and hence the ZeroOutRegsPadding()
 // helper is easy to write.
 TEST(UContextTypes, NoGaps) {

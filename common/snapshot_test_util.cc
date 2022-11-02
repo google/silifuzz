@@ -26,7 +26,7 @@
 #include "./common/snapshot_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/padding.h"
-#include "./util/ucontext/ucontext_types.h"
+#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 
@@ -143,7 +143,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
       (config.normal_end && !options.force_undefined_state)) {
     // Add a full end-state with supposedly matched register values:
     // expected value of rip when reaching `endpoint`
-    ucontext.gregs.rip = endpoint_address;
+    SetInstructionPointer(ucontext.gregs, endpoint_address);
     RegisterState regs = ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     EndState end_state(endpoint, regs);
     if (type == kHasPlatformMismatch) {

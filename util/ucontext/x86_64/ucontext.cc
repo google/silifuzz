@@ -102,8 +102,18 @@ uint64_t GetInstructionPointer(const GRegSet<X86_64>& gregs) {
 }
 
 template <>
+void SetInstructionPointer(GRegSet<X86_64>& gregs, uint64_t value) {
+  gregs.rip = value;
+}
+
+template <>
 uint64_t GetStackPointer(const GRegSet<X86_64>& gregs) {
   return gregs.rsp;
+}
+
+template <>
+void SetStackPointer(GRegSet<X86_64>& gregs, uint64_t value) {
+  gregs.rsp = value;
 }
 
 }  // namespace silifuzz
