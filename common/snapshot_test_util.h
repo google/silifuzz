@@ -44,9 +44,6 @@ class TestSnapshots : private SnapshotTypeNames {
     // Snapshot ending in the expected endpoint.
     kEndsAsExpected,
 
-    // Like kEndsAsExpected but does not have the current PlatformId set.
-    kHasPlatformMismatch,
-
     // Snapshot that does not end in any of its expected endpoints.
     kEndsUnexpectedly,
 

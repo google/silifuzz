@@ -173,10 +173,6 @@ def build_test_snapshots(b):
 nop
 """)
 
-  b.snapshot(name="HasPlatformMismatch", arch=X86_64, src="""
-nop
-""")
-
   b.snapshot(
       name="EndsUnexpectedly",
       arch=X86_64,

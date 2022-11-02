@@ -146,16 +146,8 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
     SetInstructionPointer(ucontext.gregs, endpoint_address);
     RegisterState regs = ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     EndState end_state(endpoint, regs);
-    if (type == kHasPlatformMismatch) {
-      EndState bogus_end_state(Endpoint(endpoint_address + 1), regs);
-      bogus_end_state.add_platform(CurrentPlatformId());
-      snapshot.add_expected_end_state(bogus_end_state);
-      end_state.add_platform(PlatformId::kNonExistent);
-      snapshot.add_expected_end_state(end_state);
-    } else {
-      end_state.add_platform(CurrentPlatformId());
-      snapshot.add_expected_end_state(end_state);
-    }
+    end_state.add_platform(CurrentPlatformId());
+    snapshot.add_expected_end_state(end_state);
     CHECK_STATUS(snapshot.IsComplete(Snapshot::kNormalState));
   } else {
     // Add an endpoint-only end-state:
