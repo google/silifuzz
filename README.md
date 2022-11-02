@@ -337,8 +337,16 @@ Snapshot played successfully.
 
 ### How to convert a single snapshot into a (relocatable) corpus
 
+Note: You will need to specify a target platform in order to generate a corpus.
+In this example, the resulting corpus targets the platform it was generated on.
+
 ```shell
-$ ./tools/snap_tool generate_corpus /tmp/inc_eax.pb > /tmp/inc_eax.corpus
+$ cd "${SILIFUZZ_BIN_DIR}"
+$ PLATFORM_ID=$(./tools/silifuzz_platform_id)
+
+$ ./tools/snap_tool generate_corpus /tmp/inc_eax.pb \
+--target_platform="${PLATFORM_ID}" > /tmp/inc_eax.corpus
+
 # Will play the same "INC EAX" snapshot 1M times
 $ ./runner/reading_runner_main_nolibc /tmp/inc_eax.corpus
 ```
