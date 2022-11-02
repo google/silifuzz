@@ -34,9 +34,14 @@ import subprocess
 import sys
 import tempfile
 
-# These values should match Snapshot::Architecture in snapshot.proto
-X86_64 = 1
-AARCH64 = 2
+
+@dataclasses.dataclass
+class Arch:
+  enum_name: str
+
+
+X86_64 = Arch(enum_name="kX86_64")
+AARCH64 = Arch(enum_name="kAArch64")
 
 # Page number (i.e. address / page size) at the beginning of memory region
 # used by test snapshots.
@@ -103,7 +108,7 @@ class TestSnapshot:
 
   index: int
   name: str
-  arch: int
+  arch: Arch
   normal_end: bool
   stack_bytes_used: int
   code_addr: int
@@ -381,7 +386,7 @@ jmp .
 """)
 
   b.snapshot(
-      name="Splitlock",
+      name="SplitLock",
       arch=X86_64,
       src="""
 // x86 L1 cache line size is 64b typically. Just in
@@ -426,6 +431,8 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
     # Note: using json.dumps to get a double-quoted string.
     out.write(f"""\
     {{
+        .type = TestSnapshots::Type::k{s.name},
+        .arch = Snapshot::Architecture::{s.arch.enum_name},
         .name = {json.dumps("k" + s.name)},
         .code_addr = {hex(s.code_addr)},
         .code_num_bytes = {hex(s.code_num_bytes)},
@@ -449,8 +456,12 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 }  // namespace
 
 const TestSnapshotConfig& GetTestSnapshotConfig(TestSnapshots::Type type) {
-  CHECK_LT(type, sizeof(configs) / sizeof(TestSnapshotConfig));
-  return configs[type];
+  for (size_t i = 0; i < sizeof(configs) / sizeof(TestSnapshotConfig); i++) {
+    if (configs[i].type == type) {
+        return configs[i];
+    }
+  }
+  LOG_FATAL("Could not find test snapshot: ", type);
 }
 
 }  // namespace silifuzz

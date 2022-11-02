@@ -23,6 +23,8 @@ namespace {
 
 const TestSnapshotConfig configs[22] = {
     {
+        .type = TestSnapshots::Type::kEmpty,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kEmpty",
         .code_addr = 0x12345000,
         .code_num_bytes = 0x1000,
@@ -34,6 +36,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kEndsAsExpected,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kEndsAsExpected",
         .code_addr = 0x12355000,
         .code_num_bytes = 0x1000,
@@ -45,6 +49,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kEndsUnexpectedly,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kEndsUnexpectedly",
         .code_addr = 0x12365000,
         .code_num_bytes = 0x1000,
@@ -56,6 +62,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kRegsMismatch,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kRegsMismatch",
         .code_addr = 0x12375000,
         .code_num_bytes = 0x1000,
@@ -67,6 +75,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kMemoryMismatch,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kMemoryMismatch",
         .code_addr = 0x12385000,
         .code_num_bytes = 0x1000,
@@ -86,6 +96,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 24,
     },
     {
+        .type = TestSnapshots::Type::kRegsAndMemoryMismatch,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kRegsAndMemoryMismatch",
         .code_addr = 0x12395000,
         .code_num_bytes = 0x1000,
@@ -101,6 +113,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 8,
     },
     {
+        .type = TestSnapshots::Type::kRegsMismatchRandom,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kRegsMismatchRandom",
         .code_addr = 0x123a5000,
         .code_num_bytes = 0x1000,
@@ -121,6 +135,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kMemoryMismatchRandom,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kMemoryMismatchRandom",
         .code_addr = 0x123b5000,
         .code_num_bytes = 0x1000,
@@ -141,6 +157,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 32,
     },
     {
+        .type = TestSnapshots::Type::kRegsAndMemoryMismatchRandom,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kRegsAndMemoryMismatchRandom",
         .code_addr = 0x123c5000,
         .code_num_bytes = 0x1000,
@@ -153,6 +171,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 8,
     },
     {
+        .type = TestSnapshots::Type::kICEBP,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kICEBP",
         .code_addr = 0x123d5000,
         .code_num_bytes = 0x1000,
@@ -164,6 +184,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kINT3,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kINT3",
         .code_addr = 0x123e5000,
         .code_num_bytes = 0x1000,
@@ -175,6 +197,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kINT3_CD03,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kINT3_CD03",
         .code_addr = 0x123f5000,
         .code_num_bytes = 0x1000,
@@ -186,6 +210,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kSigIll,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kSigIll",
         .code_addr = 0x12405000,
         .code_num_bytes = 0x1000,
@@ -197,6 +223,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kSigSegvWrite,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kSigSegvWrite",
         .code_addr = 0x12415000,
         .code_num_bytes = 0x1000,
@@ -209,6 +237,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kSigSegvRead,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kSigSegvRead",
         .code_addr = 0x12425000,
         .code_num_bytes = 0x1000,
@@ -221,6 +251,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kSigSegvExec,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kSigSegvExec",
         .code_addr = 0x12435000,
         .code_num_bytes = 0x1000,
@@ -233,6 +265,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kSyscall,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kSyscall",
         .code_addr = 0x12445000,
         .code_num_bytes = 0x1000,
@@ -250,6 +284,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kGeneralProtectionFault,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kGeneralProtectionFault",
         .code_addr = 0x12455000,
         .code_num_bytes = 0x1000,
@@ -262,6 +298,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kChangesSegmentReg,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kChangesSegmentReg",
         .code_addr = 0x12465000,
         .code_num_bytes = 0x1000,
@@ -278,6 +316,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kIn,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kIn",
         .code_addr = 0x12475000,
         .code_num_bytes = 0x1000,
@@ -289,6 +329,8 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
+        .type = TestSnapshots::Type::kRunaway,
+        .arch = Snapshot::Architecture::kX86_64,
         .name = "kRunaway",
         .code_addr = 0x12485000,
         .code_num_bytes = 0x1000,
@@ -300,7 +342,9 @@ const TestSnapshotConfig configs[22] = {
         .stack_bytes_used = 0,
     },
     {
-        .name = "kSplitlock",
+        .type = TestSnapshots::Type::kSplitLock,
+        .arch = Snapshot::Architecture::kX86_64,
+        .name = "kSplitLock",
         .code_addr = 0x12495000,
         .code_num_bytes = 0x1000,
         .data_addr = 0x12496000,
@@ -319,8 +363,12 @@ const TestSnapshotConfig configs[22] = {
 }  // namespace
 
 const TestSnapshotConfig& GetTestSnapshotConfig(TestSnapshots::Type type) {
-  CHECK_LT(type, sizeof(configs) / sizeof(TestSnapshotConfig));
-  return configs[type];
+  for (size_t i = 0; i < sizeof(configs) / sizeof(TestSnapshotConfig); i++) {
+    if (configs[i].type == type) {
+      return configs[i];
+    }
+  }
+  LOG_FATAL("Could not find test snapshot: ", type);
 }
 
 }  // namespace silifuzz

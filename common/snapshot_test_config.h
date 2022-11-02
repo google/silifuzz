@@ -20,6 +20,8 @@
 namespace silifuzz {
 
 struct TestSnapshotConfig {
+  TestSnapshots::Type type;
+  Snapshot::Architecture arch;
   const char* name;
   uint64_t code_addr;
   uint64_t code_num_bytes;
