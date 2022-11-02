@@ -18,9 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/base/internal/endian.h"
-#include "./common/snapshot_printer.h"
 #include "./common/snapshot_proto.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_util.h"
@@ -170,26 +168,6 @@ proto::Snapshot TestSnapshots::CreateProto(Type type, Options options) {
   proto::Snapshot proto;
   SnapshotProto::ToProto(snapshot, &proto);
   return proto;
-}
-
-// static
-void TestSnapshots::Log(const Snapshot& snapshot) {
-  LinePrinter error_printer(LinePrinter::LogInfoPrinter);
-  auto opt = SnapshotPrinter::DefaultOptions();
-  opt.fp_regs_mode = SnapshotPrinter::kAllFPRegs;
-  SnapshotPrinter printer(&error_printer, opt);
-  printer.Print(snapshot);
-}
-
-// static
-std::string TestSnapshots::ToString(const Snapshot& snapshot) {
-  std::string result;
-  LinePrinter error_printer(LinePrinter::StringPrinter(&result));
-  auto opt = SnapshotPrinter::DefaultOptions();
-  opt.fp_regs_mode = SnapshotPrinter::kAllFPRegs;
-  SnapshotPrinter printer(&error_printer, opt);
-  printer.Print(snapshot);
-  return result;
 }
 
 }  // namespace silifuzz.

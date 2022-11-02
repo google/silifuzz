@@ -269,7 +269,6 @@ cc_library(
     hdrs = ["snapshot_test_util.h"],
     deps = [
         ":snapshot",
-        ":snapshot_printer",
         ":snapshot_proto",
         ":snapshot_types",
         ":snapshot_util",
@@ -277,7 +276,6 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:padding",
         "@silifuzz//util/ucontext",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/time",
     ],

@@ -148,13 +148,6 @@ class TestSnapshots : private SnapshotTypeNames {
   // Like Create() but returns the snapshot as a proto.
   static proto::Snapshot CreateProto(Type type,
                                      Options options = Options::Default());
-
-  // Logs the contents of `snapshot`.
-  // Helpful when debugging tests that massage snapshots.
-  static void Log(const Snapshot& snapshot);
-
-  // Logs the contents of `snapshot` to string.
-  static std::string ToString(const Snapshot& snapshot);
 };
 
 // EnumStr() works for TestSnapshots::Type.
