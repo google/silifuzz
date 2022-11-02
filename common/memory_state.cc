@@ -14,7 +14,6 @@
 
 #include "./common/memory_state.h"
 
-#include "./common/snapshot_util.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
@@ -520,18 +519,6 @@ MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
     }
   }
   return r;
-}
-
-// static
-MemoryState::MemoryBytes MemoryState::RestoreUContextStackBytes(
-    const Snapshot& snapshot) {
-  GRegSet gregs;
-  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
-  static constexpr auto reg_size = sizeof(gregs.rax);
-  std::string stack_data;
-  stack_data.append(reinterpret_cast<const char*>(&gregs.eflags), reg_size);
-  stack_data.append(reinterpret_cast<const char*>(&gregs.rip), reg_size);
-  return MemoryBytes(gregs.rsp - stack_data.size(), stack_data);
 }
 
 }  // namespace silifuzz

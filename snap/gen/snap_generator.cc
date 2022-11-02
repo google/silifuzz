@@ -32,6 +32,7 @@
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/gen/reserved_memory_mappings.h"
@@ -275,6 +276,20 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
                       name, snap_var_name_list.size(), elements_var_name));
 }
 
+// The bytes that RestoreUContext() will write into the stack of the
+// snapshot as a (presently unavoidable) part of doing its work
+// when jumping-in to start executing `snapshot`.
+static Snapshot::MemoryBytes RestoreUContextStackBytes(
+    const Snapshot &snapshot) {
+  GRegSet gregs;
+  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
+  static constexpr auto reg_size = sizeof(gregs.rax);
+  std::string stack_data;
+  stack_data.append(reinterpret_cast<const char *>(&gregs.eflags), reg_size);
+  stack_data.append(reinterpret_cast<const char *>(&gregs.rip), reg_size);
+  return Snapshot::MemoryBytes(gregs.rsp - stack_data.size(), stack_data);
+}
+
 absl::StatusOr<Snapshot> SnapGenerator::Snapify(const Snapshot &snapshot,
                                                 const Options &opts) {
   RETURN_IF_NOT_OK(CanConvert(snapshot, opts));
@@ -351,7 +366,7 @@ absl::StatusOr<Snapshot> SnapGenerator::Snapify(const Snapshot &snapshot,
 
   // Add RestoreUContext stack bytes, original end state memory delta, and
   // snap exit stack bytes to construct full end state memory bytes.
-  memory_state.SetMemoryBytes(MemoryState::RestoreUContextStackBytes(snapshot));
+  memory_state.SetMemoryBytes(RestoreUContextStackBytes(snapshot));
   memory_state.SetMemoryBytes(end_state.memory_bytes());
 
   // Additionally check that endpoint is kInstruction because the fixup needs

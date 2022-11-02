@@ -240,7 +240,6 @@ cc_library(
         ":mapped_memory_map",
         ":snapshot",
         ":snapshot_types",
-        ":snapshot_util",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",

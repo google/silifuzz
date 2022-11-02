@@ -251,11 +251,6 @@ class MemoryState : private SnapshotTypeNames {
   // The returned MemoryBytes values are disjoint.
   MemoryBytesList DeltaMemoryBytes(const Snapshot& snapshot) const;
 
-  // The bytes that RestoreUContext() will write into the stack of the
-  // snapshot as a (presently unavoidable) part of doing its work
-  // when jumping-in to start executing `snapshot`.
-  static MemoryBytes RestoreUContextStackBytes(const Snapshot& snapshot);
-
  private:
   // Methods to define a RangeMap<> instance (see MemoryBytesMap below)
   // that maps the Address ranges to the ByteData blobs written into those
