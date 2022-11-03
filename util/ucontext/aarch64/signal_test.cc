@@ -36,7 +36,7 @@ TEST(SignalTest, ExtraSignalRegs) {
   // This ensures the test doesn't pass because an uninitialized value is the
   // same.
 
-  UContext uc;
+  UContext<AArch64> uc;
   memset(&uc, 0xa5, sizeof(uc));
   SaveUContext(&uc);
   ZeroOutRegsPadding(&uc);
@@ -54,7 +54,7 @@ TEST(SignalTest, ExtraSignalRegsNoSyscalls) {
   // This ensures the test doesn't pass because an uninitialized value is the
   // same.
 
-  UContext uc;
+  UContext<AArch64> uc;
   memset(&uc, 0xa5, sizeof(uc));
   SaveUContextNoSyscalls(&uc);
   ZeroOutRegsPadding(&uc);
@@ -70,7 +70,7 @@ TEST(SignalTest, ExtraSignalRegsNoSyscalls) {
 TEST(SignalTest, ConvertGRegs) {
   ucontext_t libc_ucontext;
   ExtraSignalRegs eg;
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
 
   pattern_init(&libc_ucontext, sizeof(libc_ucontext), 1000);
   pattern_init(&eg, sizeof(eg), 2000);
@@ -140,11 +140,11 @@ TEST(SignalTest, HandlerWorksAsExpected) {
   // can't say much about the correctness of the values we recive, we can at
   // least make sure we interpret an actual context without crashing or
   // detecting inconsistencies.
-  FPRegSet fpregs;
+  FPRegSet<AArch64> fpregs;
   ConvertFPRegsFromLibC(ctx, &fpregs);
 
   // Capture the current context.
-  UContext uc;
+  UContext<AArch64> uc;
   memset(&uc, 0xf0, sizeof(uc));
   SaveUContext(&uc);
   ZeroOutRegsPadding(&uc);
@@ -191,7 +191,7 @@ TEST(SignalTest, UnmappedRead) {
   EXPECT_FALSE(iss.WriteNotRead());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(UnmappedRead));
@@ -234,7 +234,7 @@ TEST(SignalTest, UnmappedWrite) {
   EXPECT_TRUE(iss.WriteNotRead());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(UnmappedWrite));
@@ -271,7 +271,7 @@ TEST(SignalTest, UnmappedExecute) {
   EXPECT_FALSE(iss.FARNotValid());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(GetInstructionPointer(gregs), reinterpret_cast<uint64_t>(kBadAddr));
 }
@@ -304,7 +304,7 @@ TEST(SignalTest, UnalignedExecute) {
   EXPECT_TRUE(esr.InstructionLength());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(unaligned_func));
@@ -345,7 +345,7 @@ TEST(SignalTest, Unexecutable) {
   EXPECT_FALSE(iss.FARNotValid());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(GetInstructionPointer(gregs),
             reinterpret_cast<uint64_t>(unexecutable_func));
@@ -380,7 +380,7 @@ TEST(SignalTest, UnalignedStack) {
   EXPECT_TRUE(esr.InstructionLength());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // One instruction of setup before the fault.
   // Stack alignment issues are detected on use.
@@ -414,7 +414,7 @@ TEST(SignalTest, IllegalInstruction) {
   EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -447,7 +447,7 @@ TEST(SignalTest, PrivilegedInstruction) {
   EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -480,7 +480,7 @@ TEST(SignalTest, DebugInstruction) {
   EXPECT_TRUE(esr.IsUnknown());
 
   // Check the fault is coming from the expected location.
-  GRegSet gregs;
+  GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points _at_ the debug instruction.
   EXPECT_EQ(GetInstructionPointer(gregs),
@@ -489,7 +489,7 @@ TEST(SignalTest, DebugInstruction) {
 
 TEST(SignalTest, ConvertFPRegs) {
   ucontext_t libc_ucontext;
-  FPRegSet fpregs;
+  FPRegSet<AArch64> fpregs;
 
   pattern_init(&libc_ucontext, sizeof(libc_ucontext), 1000);
 

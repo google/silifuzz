@@ -51,8 +51,8 @@ Snapshot MakeBasicTestSnapshot() {
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(code_page_address, kCodeBytes));
 
-  GRegSet gregs;
-  FPRegSet fpregs;
+  GRegSet<X86_64> gregs;
+  FPRegSet<X86_64> fpregs;
   memset(&gregs, 0, sizeof(gregs));
   gregs.rip = code_page_address;
   gregs.rsp = stack_page_address + page_size;

@@ -24,17 +24,8 @@
 namespace silifuzz {
 
 // Values for all general-purpose CPU registers.
-template <typename = Host>
+template <typename Arch>
 struct GRegSet;
-// Required to satisfy -Wctad-maybe-unsupported
-// The build is configured to warn/error if class template argument deduction
-// (CTAD) occurs without a type expicitly "opting in" by declaring a deduction
-// guide. For UContext-related types, we add deduction guides that say if we try
-// to construct these types without specifying the exact type parameter, assume
-// the parameter is "Host" (whatever arch we are building for.)
-// We could do without CTAD and explicitly parameterize all the types, but for
-// now this keeps refactoring diffs smaller.
-GRegSet(...)->GRegSet<Host>;
 
 // This has the same layout as gregset_t from ucontext_t up to the ss field
 // (our test verifies that), but overall this has the exact structure
@@ -100,10 +91,8 @@ inline bool operator!=(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
 
 // ========================================================================= //
 
-template <typename = Host>
+template <typename Arch>
 struct FPRegSet;
-// Required to satisfy -Wctad-maybe-unsupported
-FPRegSet(...)->FPRegSet<Host>;
 
 // This structure follows the format of fxsave64 / fxrstor64.
 // See:

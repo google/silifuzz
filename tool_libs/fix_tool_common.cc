@@ -105,8 +105,9 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters) {
 }
 
 bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
-  GRegSet gregs;
-  FPRegSet fpregs;
+  // TODO(ncbray): port to AArch64
+  GRegSet<X86_64> gregs;
+  FPRegSet<X86_64> fpregs;
   CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs, &fpregs));
 
   // Non-zero initialization of at least 1 XMM register inhibits init state

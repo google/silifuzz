@@ -281,7 +281,7 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
 // when jumping-in to start executing `snapshot`.
 static Snapshot::MemoryBytes RestoreUContextStackBytes(
     const Snapshot &snapshot) {
-  GRegSet gregs;
+  GRegSet<X86_64> gregs;
   CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
   static constexpr auto reg_size = sizeof(gregs.rax);
   std::string stack_data;
@@ -578,7 +578,7 @@ SnapGenerator::VarName SnapGenerator::GenerateMemoryMappingList(
 
 void SnapGenerator::GenerateGRegs(const Snapshot::ByteData &gregs_byte_data) {
 #ifdef __x86_64__
-  GRegSet gregs = {};
+  GRegSet<X86_64> gregs = {};
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
   // This function does not check if the empty registers is actually permitted
@@ -671,7 +671,7 @@ void SnapGenerator::GenerateXMMRegs(const __uint128_t xmm[16]) {
 
 void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 #ifdef __x86_64__
-  FPRegSet fpregs = {};
+  FPRegSet<X86_64> fpregs = {};
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
   // This function does not check if the empty registers is actually permitted
