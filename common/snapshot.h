@@ -121,6 +121,11 @@ class Snapshot final {
   // i.e. the current host architecture.
   static Architecture CurrentArchitecture();
 
+  template <typename Arch>
+  static Architecture ArchitectureTypeToEnum() {
+    return static_cast<Architecture>(Arch::type_tag);
+  }
+
   // Constructs empty Snapshot with the given id for the given Architecture
   // (must be a supported one).
   Snapshot(Architecture arch, const Id& id = UnsetId());

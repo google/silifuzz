@@ -50,6 +50,15 @@ Snapshot::RegisterState CreateRegState(Snapshot::Address rip,
   return ConvertRegsToSnapshot(gregs, fpregs);
 }
 
+TEST(Snapshot, Architecture) {
+  EXPECT_EQ(Snapshot::Architecture::kX86_64,
+            Snapshot::ArchitectureTypeToEnum<X86_64>());
+  EXPECT_EQ(Snapshot::Architecture::kAArch64,
+            Snapshot::ArchitectureTypeToEnum<AArch64>());
+  EXPECT_EQ(Snapshot::CurrentArchitecture(),
+            Snapshot::ArchitectureTypeToEnum<Host>());
+}
+
 TEST(Snapshot, CanSetRegs) {
   Snapshot s(Snapshot::CurrentArchitecture());
   s.add_memory_mapping(
