@@ -25,16 +25,8 @@ namespace silifuzz {
 SnapshotPartition PartitionCorpus(
     int32_t num_groups, int32_t num_iterations,
     SnapshotGroup::SnapshotSummaryList& ungrouped) {
-  // Helper struct to sort SnapshotSummaries by ids.
-  struct LessThan {
-    bool operator()(const SnapshotGroup::SnapshotSummary& lhs,
-                    const SnapshotGroup::SnapshotSummary& rhs) const {
-      return lhs.id() < rhs.id();
-    }
-  };
-
   // Sort summaries to make output deterministics.
-  absl::c_sort(ungrouped, LessThan());
+  absl::c_sort(ungrouped, SnapshotGroup::SnapshotSummary::LessThan());
 
   VLOG_INFO(1, "Partitioning ", ungrouped.size(), " snapshots into ",
             num_groups);

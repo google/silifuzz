@@ -75,12 +75,7 @@ class SnapshotGroup {
    public:
     using MemoryMappingList = Snapshot::MemoryMappingList;
 
-    // Constructors using both Snap and Snapshot are provided. Existing
-    // corpora uses Snapshot as in-memory format for manipulation.
-    explicit SnapshotSummary(const Snap& snap)
-        : id_(snap.id), memory_mappings_(SnapMemoryMappings(snap)) {}
-    explicit SnapshotSummary(const Snapshot& snapshot)
-        : id_(snapshot.id()), memory_mappings_(snapshot.memory_mappings()) {}
+    explicit SnapshotSummary(const Snapshot& snapshot);
     ~SnapshotSummary() = default;
 
     // Copyable and movable by default.
@@ -90,12 +85,27 @@ class SnapshotGroup {
       return memory_mappings_;
     }
 
+    // Helper struct to sort SnapshotSummaries.
+    struct LessThan {
+      bool operator()(const SnapshotGroup::SnapshotSummary& lhs,
+                      const SnapshotGroup::SnapshotSummary& rhs) const {
+        if (lhs.sort_key_ != rhs.sort_key_) {
+          return lhs.sort_key_ < rhs.sort_key_;
+        }
+        return lhs.id() < rhs.id();
+      }
+    };
+
    private:
+    friend struct LessThan;
     // Id of the Snap of which memory mappings are described by this.
     Id id_;
 
     // Memory mappings of the Snap.
     MemoryMappingList memory_mappings_;
+
+    // Sort key used by LessThan to order snapshots.
+    int sort_key_;
   };
 
   using SnapshotSummaryList = std::vector<SnapshotSummary>;

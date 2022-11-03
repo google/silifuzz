@@ -46,12 +46,22 @@ const std::vector<Snapshot>& TestSnapshots() {
     s1.add_memory_mapping(
         MemoryMapping::MakeSized(0x5678000ULL, 0x1000, MemoryPerms::RW()));
 
+    Snapshot::EndState es1(Snapshot::Endpoint(0x1234000ULL));
+    es1.add_platform(PlatformId::kIntelHaswell);
+    CHECK_STATUS(s1.can_add_expected_end_state(es1));
+    s1.add_expected_end_state(es1);
+
     // No conflict with kSnap1.
     Snapshot s2(Snapshot::Architecture::kX86_64, "snap2");
     s2.add_memory_mapping(
         MemoryMapping::MakeSized(0x3456000ULL, 0x4000, MemoryPerms::XR()));
     s2.add_memory_mapping(
         MemoryMapping::MakeSized(0x789a000ULL, 0x1000, MemoryPerms::RW()));
+    Snapshot::EndState es2(Snapshot::Endpoint(0x3456000ULL));
+    es2.add_platform(PlatformId::kIntelHaswell);
+    es2.add_platform(PlatformId::kIntelBroadwell);
+    CHECK_STATUS(s2.can_add_expected_end_state(es2));
+    s2.add_expected_end_state(es2);
 
     // Read-only mapping conflict with kSnap1
     Snapshot s3(Snapshot::Architecture::kX86_64, "snap3");
@@ -223,6 +233,18 @@ TEST(SnapshotGroup, PartitionTooFewGroupsToFit) {
       partition.PartitionSnapshots(kSnapshotSummaryList);
   // There should be rejected snapshots.
   EXPECT_THAT(rejected, Not(IsEmpty()));
+}
+
+TEST(SnapshotGroup, LessThan) {
+  SnapshotGroup::SnapshotSummary snapshot_summary_1(TestSnapshots()[0]);
+  SnapshotGroup::SnapshotSummary snapshot_summary_2(TestSnapshots()[1]);
+
+  SnapshotGroup::SnapshotSummary::LessThan lt;
+
+  // Test that sort_key (number of end states and platforms) takes precedence
+  // over the ID when sorting according to LessThan.
+  EXPECT_LT(snapshot_summary_1.id(), snapshot_summary_2.id());
+  EXPECT_TRUE(lt(snapshot_summary_2, snapshot_summary_1));
 }
 
 }  // namespace

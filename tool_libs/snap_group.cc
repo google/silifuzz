@@ -133,4 +133,21 @@ SnapshotPartition::SnapshotSummaryList SnapshotPartition::PartitionSnapshots(
   return rejected;
 }
 
+SnapshotGroup::SnapshotSummary::SnapshotSummary(const Snapshot& snapshot)
+    : id_(snapshot.id()),
+      memory_mappings_(snapshot.memory_mappings()),
+      sort_key_(0) {
+  int num_end_states = snapshot.expected_end_states().size();
+  if (num_end_states == 1) {
+    // Bucket by platforms. Empirically, this helps group snapshots that have
+    // the same exact expected end state for all platforms into the same
+    // shard(s).
+    uint64_t bits = 0;
+    for (const auto& p : snapshot.expected_end_states()[0].platforms()) {
+      bits |= 1 << static_cast<int>(p);
+    }
+    sort_key_ = -static_cast<int>(bits);
+  }
+}
+
 }  // namespace silifuzz
