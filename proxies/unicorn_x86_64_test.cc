@@ -113,7 +113,7 @@ TEST(UnicornX86_64, Many) {
   // Execute some random bytes and make sure the basic infra is functioning e.g.
   // all memory can be mapped.
   absl::BitGen gen;
-  for (int i = 0; i < 10000; ++i) {
+  for (int i = 0; i < 1000; ++i) {
     uint64_t bytes =
         absl::Uniform(gen, 0ULL, std::numeric_limits<uint64_t>::max());
     const uint8_t* v = reinterpret_cast<const uint8_t*>(&bytes);
