@@ -106,6 +106,31 @@ constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
         },
 };
 
+// This config is used to accommodate proxies with limited physical memory.
+constexpr FuzzingConfig_AArch64 LIMITED_MEMORY_AARCH64_FUZZING_CONFIG = {
+    .code_range =
+        {
+            .start_address = 0x30000000,
+            .num_bytes = 0x80000000,  // 2 GB
+        },
+    .stack_range =
+        {
+            .start_address = 0x2000000,
+            .num_bytes = 0x1000,
+        },
+
+    .data1_range =
+        {
+            .start_address = 0x700000000,
+            .num_bytes = 0x8000,  // 16 KB
+        },
+    .data2_range =
+        {
+            .start_address = 0x100700000000,
+            .num_bytes = 0x8000,  // 16 KB
+        },
+};
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_PROXY_CONFIG_H_
