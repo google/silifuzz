@@ -32,7 +32,8 @@ struct TestSnapshotConfig {
   uint64_t stack_bytes_used;
 };
 
-const TestSnapshotConfig& GetTestSnapshotConfig(TestSnapshots::Type type);
+const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch,
+                                                TestSnapshots::Type type);
 
 }  // namespace silifuzz
 

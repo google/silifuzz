@@ -71,14 +71,14 @@ static void InitTestSnapshotRegs(const TestSnapshotConfig& config,
   ucontext.fpregs.fcw = 0x37f;
 }
 
+template <typename Arch>
 // static
 Snapshot TestSnapshots::Create(Type type, Options options) {
-  // Currently only x86_64 is supported.
-  CHECK(Snapshot::CurrentArchitecture() == Architecture::kX86_64);
+  Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
 
-  const TestSnapshotConfig& config = GetTestSnapshotConfig(type);
+  const TestSnapshotConfig& config = GetTestSnapshotConfig(arch, type);
 
-  Snapshot snapshot(Snapshot::CurrentArchitecture());
+  Snapshot snapshot(arch);
   snapshot.set_id(config.name);
 
   // Create code mapping
@@ -120,7 +120,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
   const auto bytecode_size = bytecode.size();  // so we can ignore the fix-up
                                                // under the next if
   if (options.define_all_mapped) {
-    PadToSizeWithTraps<X86_64>(bytecode, code_mapping.num_bytes());
+    PadToSizeWithTraps<Arch>(bytecode, code_mapping.num_bytes());
   }
 
   if (!bytecode.empty()) {
@@ -128,7 +128,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
     snapshot.add_memory_bytes(code_bytes);
   }
 
-  UContext ucontext;
+  UContext<Arch> ucontext;
   InitTestSnapshotRegs(config, ucontext);
 
   snapshot.set_registers(
@@ -162,12 +162,18 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
   return snapshot;
 }
 
+template Snapshot TestSnapshots::Create<X86_64>(Type type, Options options);
+
+template <typename Arch>
 // static
 proto::Snapshot TestSnapshots::CreateProto(Type type, Options options) {
-  const Snapshot snapshot = Create(type, options);
+  const Snapshot snapshot = Create<Arch>(type, options);
   proto::Snapshot proto;
   SnapshotProto::ToProto(snapshot, &proto);
   return proto;
 }
+
+template proto::Snapshot TestSnapshots::CreateProto<X86_64>(Type type,
+                                                            Options options);
 
 }  // namespace silifuzz.

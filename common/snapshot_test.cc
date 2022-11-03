@@ -24,7 +24,7 @@
 #include "./util/platform.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
-#include "./util/ucontext/ucontext_types.h"
+#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 namespace {
@@ -36,21 +36,29 @@ using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 using ::testing::UnorderedElementsAre;
 
-// Returns a RegisterState with RIP and RSP set to the specified values.
-// All other registers are set to 0 because the callers don't currently care.
-Snapshot::RegisterState CreateRegState(Snapshot::Address rip,
-                                       Snapshot::Address rsp) {
-  GRegSet gregs;
-  FPRegSet fpregs;
+using arch_typelist = ::testing::Types<X86_64>;
+template <class>
+struct SnapshotTest : ::testing::Test {};
+TYPED_TEST_SUITE(SnapshotTest, arch_typelist);
+
+// Returns a RegisterState with instruction and stack pointers set to the
+// specified values. All other registers are set to 0 because the callers don't
+// currently care.
+template <typename Arch>
+Snapshot::RegisterState CreateRegState(Snapshot::Address instruction_pointer,
+                                       Snapshot::Address stack_pointer) {
+  GRegSet<Arch> gregs;
+  FPRegSet<Arch> fpregs;
   memset(&gregs, 0, sizeof(gregs));
   memset(&fpregs, 0, sizeof(fpregs));
-  gregs.rsp = rsp;
-  gregs.rip = rip;
+
+  SetInstructionPointer(gregs, instruction_pointer);
+  SetStackPointer(gregs, stack_pointer);
 
   return ConvertRegsToSnapshot(gregs, fpregs);
 }
 
-TEST(Snapshot, Architecture) {
+TYPED_TEST(SnapshotTest, Architecture) {
   EXPECT_EQ(Snapshot::Architecture::kX86_64,
             Snapshot::ArchitectureTypeToEnum<X86_64>());
   EXPECT_EQ(Snapshot::Architecture::kAArch64,
@@ -59,21 +67,22 @@ TEST(Snapshot, Architecture) {
             Snapshot::ArchitectureTypeToEnum<Host>());
 }
 
-TEST(Snapshot, CanSetRegs) {
-  Snapshot s(Snapshot::CurrentArchitecture());
+TYPED_TEST(SnapshotTest, CanSetRegs) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>());
   s.add_memory_mapping(
       Snapshot::MemoryMapping::MakeSized(0x100000, 4096, MemoryPerms::All()));
-  EXPECT_OK(s.can_set_registers(CreateRegState(0x100000, 0x100000 + 4096)));
+  EXPECT_OK(s.can_set_registers(
+      CreateRegState<TypeParam>(0x100000, 0x100000 + 4096)));
 
-  auto status = s.can_set_registers(
-      CreateRegState(Snapshot::kUnsetRegisterValue, 0x100000 + 4096));
+  auto status = s.can_set_registers(CreateRegState<TypeParam>(
+      Snapshot::kUnsetRegisterValue, 0x100000 + 4096));
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
                        ContainsRegex("instruction pointer \\(0x.+\\) is not in "
                                      "an existing executable MemoryMapping")));
 
   status = s.can_set_registers(
-      CreateRegState(0x100000, Snapshot::kUnsetRegisterValue));
+      CreateRegState<TypeParam>(0x100000, Snapshot::kUnsetRegisterValue));
   EXPECT_THAT(
       status,
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -81,8 +90,8 @@ TEST(Snapshot, CanSetRegs) {
                              "it must be within a writable MemoryMapping")));
 }
 
-TEST(Snapshot, IsComplete) {
-  Snapshot s = TestSnapshots::Create(TestSnapshots::kSigSegvRead);
+TYPED_TEST(SnapshotTest, IsComplete) {
+  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kSigSegvRead);
   EXPECT_OK(s.IsCompleteSomeState());
   Snapshot::Endpoint ep(Snapshot::Endpoint::kSigSegv,
                         Snapshot::Endpoint::kSegvCantRead, 0x10000,
@@ -103,8 +112,8 @@ TEST(Snapshot, IsComplete) {
                        HasSubstr("Missing negative_memory_mappings")));
 }
 
-TEST(Snapshot, EndStatePlatform) {
-  Snapshot s = TestSnapshots::Create(TestSnapshots::kEndsAsExpected);
+TYPED_TEST(SnapshotTest, EndStatePlatform) {
+  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected);
   Snapshot::EndState es = s.expected_end_states()[0];
   ASSERT_FALSE(s.expected_end_states().empty());
   EXPECT_THAT(es.platforms(), UnorderedElementsAre(CurrentPlatformId()));
@@ -122,16 +131,16 @@ TEST(Snapshot, EndStatePlatform) {
                             PlatformId::kIntelSapphireRapids}));
 }
 
-TEST(Snapshot, UndefinedPlatformAllowed) {
-  Snapshot s = TestSnapshots::Create(TestSnapshots::kEndsAsExpected);
+TYPED_TEST(SnapshotTest, UndefinedPlatformAllowed) {
+  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected);
   ASSERT_FALSE(s.expected_end_states().empty());
   Snapshot::EndState es = s.expected_end_states()[0];
   es.add_platform(PlatformId::kUndefined);
   EXPECT_TRUE(es.has_platform(PlatformId::kUndefined));
 }
 
-TEST(Snapshot, NormalizeMemoryMappings) {
-  Snapshot s(Snapshot::CurrentArchitecture(), "id");
+TYPED_TEST(SnapshotTest, NormalizeMemoryMappings) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
   constexpr Snapshot::Address kBase = 0x80000000;
   const size_t kPageSize = s.page_size();
   // Create 3 adjacent pages with different permissions.
@@ -162,8 +171,8 @@ TEST(Snapshot, NormalizeMemoryMappings) {
   EXPECT_THAT(s.memory_mappings(), ContainerEq(expected));
 }
 
-TEST(Snapshot, NormalizeMemoryBytesMerge) {
-  Snapshot s(Snapshot::CurrentArchitecture(), "id");
+TYPED_TEST(SnapshotTest, NormalizeMemoryBytesMerge) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
   constexpr Snapshot::Address kBase = 0x80000000;
   const size_t kPageSize = s.page_size();
 
@@ -195,8 +204,8 @@ TEST(Snapshot, NormalizeMemoryBytesMerge) {
   EXPECT_EQ(s.memory_bytes()[1].limit_address(), data_bytes_2.limit_address());
 }
 
-TEST(Snapshot, NormalizeMemoryBytesSplit) {
-  Snapshot s(Snapshot::CurrentArchitecture(), "id");
+TYPED_TEST(SnapshotTest, NormalizeMemoryBytesSplit) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
   constexpr Snapshot::Address kBase = 0x80000000;
   const size_t kPageSize = s.page_size();
 

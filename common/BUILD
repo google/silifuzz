@@ -152,7 +152,7 @@ cc_test(
         "@silifuzz//util:platform",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@silifuzz//util/ucontext:ucontext_types",
+        "@silifuzz//util/ucontext",
         "@com_google_googletest//:gtest_main",
     ],
 )

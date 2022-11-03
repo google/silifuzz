@@ -143,9 +143,11 @@ class TestSnapshots : private SnapshotTypeNames {
   };
 
   // Creates a minimal snapshot for testing on the current architecture.
+  template <typename Arch = Host>
   static Snapshot Create(Type type, Options options = Options::Default());
 
   // Like Create() but returns the snapshot as a proto.
+  template <typename Arch = Host>
   static proto::Snapshot CreateProto(Type type,
                                      Options options = Options::Default());
 };
