@@ -37,11 +37,28 @@ import tempfile
 
 @dataclasses.dataclass
 class Arch:
+  # The name in Snapshot::Architecture::* this Arch corresponds to.
   enum_name: str
+  # The target triple you pass to clang to compile.
+  clang_target: str
+  # The arch you pass to objdump when dumping raw instructions.
+  objdump_arch: str
+  # The number of tests defined for this Arch. The memory location of each test
+  # is different and derived from the test_count when the test is defined.
+  # test_count is kept separate for each arch so that adding or removing a test
+  # has a smaller impact on the generated memory layout (it's OK if tests for
+  # different architechtures have the same memory addresses).
+  test_count: int = 0
 
 
-X86_64 = Arch(enum_name="kX86_64")
-AARCH64 = Arch(enum_name="kAArch64")
+X86_64 = Arch(
+    enum_name="kX86_64",
+    clang_target="x86_64-none-eabi",
+    objdump_arch="i386:x86-64")
+AARCH64 = Arch(
+    enum_name="kAArch64",
+    clang_target="aarch64-none-eabi",
+    objdump_arch="aarch64")
 
 # Page number (i.e. address / page size) at the beginning of memory region
 # used by test snapshots.
@@ -60,9 +77,7 @@ def test_snapshot_code_addr(index):
   return (TEST_SNAPSHOTS_REGION_BASE + index * MAX_PAGES_PER_TEST) * PAGE_SIZE
 
 
-def src_to_instructions(src, temp_dir, bin_filename):
-  clang_target_str = "x86_64-none-eabi"
-
+def src_to_instructions(src, arch, temp_dir, bin_filename):
   # Create the source file
   src_filename = os.path.join(temp_dir, "example.S")
   with open(src_filename, "w") as sf:
@@ -73,7 +88,7 @@ def src_to_instructions(src, temp_dir, bin_filename):
 
   # Compile
   subprocess.check_call([
-      "clang", "-target", clang_target_str, "-c", src_filename, "-o",
+      "clang", "-target", arch.clang_target, "-c", src_filename, "-o",
       obj_filename
   ])
 
@@ -81,13 +96,11 @@ def src_to_instructions(src, temp_dir, bin_filename):
   subprocess.check_call(["objcopy", "-O", "binary", obj_filename, bin_filename])
 
 
-def disassemble(bin_filename, code_addr):
-  objdump_arch_str = "i386:x86-64"
-
+def disassemble(bin_filename, arch, code_addr):
   if os.path.getsize(bin_filename) > 0:
     # Objdump the compiled instructions
     disam = subprocess.check_output([
-        "objdump", "-m", objdump_arch_str, "-D", "-b", "binary",
+        "objdump", "-m", arch.objdump_arch, "-D", "-b", "binary",
         f"--adjust-vma={hex(code_addr)}", bin_filename
     ]).decode("utf8")
     disam = disam.rstrip()
@@ -106,7 +119,6 @@ def disassemble(bin_filename, code_addr):
 @dataclasses.dataclass
 class TestSnapshot:
 
-  index: int
   name: str
   arch: Arch
   normal_end: bool
@@ -122,7 +134,6 @@ class TestSnapshot:
 class Builder:
 
   def __init__(self):
-    self.index = 0
     self.snapshots = []
 
   # Build a single test snapshot
@@ -136,10 +147,10 @@ class Builder:
     with tempfile.TemporaryDirectory() as temp_dir:
       bin_filename = os.path.join(temp_dir, "example.bin")
 
-      code_addr = test_snapshot_code_addr(self.index)
+      code_addr = test_snapshot_code_addr(arch.test_count)
 
       if src is not None:
-        src_to_instructions(src, temp_dir, bin_filename)
+        src_to_instructions(src, arch, temp_dir, bin_filename)
       elif raw_bytes is not None:
         # Directly specify the compiled instructions
         with open(bin_filename, "wb") as bf:
@@ -147,14 +158,13 @@ class Builder:
       else:
         raise Exception("Must specify src or raw_bytes")
 
-      disassembly = disassemble(bin_filename, code_addr)
+      disassembly = disassemble(bin_filename, arch, code_addr)
 
       with open(bin_filename, "rb") as bf:
         instruction_bytes = bf.read()
 
       self.snapshots.append(
           TestSnapshot(
-              index=self.index,
               name=name,
               arch=arch,
               normal_end=normal_end,
@@ -167,10 +177,10 @@ class Builder:
               disassembly=disassembly,
           ))
 
-      self.index += 1
+      arch.test_count += 1
 
 
-def build_test_snapshots(b):
+def build_test_snapshots_x86_64(b):
   b.snapshot(name="Empty", arch=X86_64, normal_end=True, src="")
 
   b.snapshot(
@@ -399,6 +409,22 @@ lock incl -1(%rax)
 """)
 
 
+def build_test_snapshots_aarch64(b):
+  b.snapshot(
+      name="EndsAsExpected", arch=AARCH64, normal_end=True, src="""
+nop
+""")
+
+  b.snapshot(
+      name="SigSegvRead",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+ldr x0, [x6, #0]
+ldr x0, [x0]
+""")
+
+
 def generate_source(b, out):
   out.write(f"""\
 // Copyright 2022 The SiliFuzz Authors.
@@ -476,13 +502,12 @@ def main():
   b = Builder()
   # If this is a test, mock the functionality we can't run in CI.
   if not args.test:
-    build_test_snapshots(b)
+    build_test_snapshots_x86_64(b)
+    build_test_snapshots_aarch64(b)
   else:
-    index = 0
-    code_addr = test_snapshot_code_addr(index)
+    code_addr = test_snapshot_code_addr(0)
     b.snapshots.append(
         TestSnapshot(
-            index=0,
             name="Test",
             arch=X86_64,
             normal_end=True,

@@ -439,6 +439,10 @@ absl::Status Snapshot::AddNegativeMemoryMappingsFor(const EndState& x) {
         LOG_FATAL("unreachable");
     }
     switch (architecture()) {
+      case Architecture::kAArch64:
+        // Default to X86_64 behavior - it may not be necessary, but it should
+        // be safe.
+        // TODO(ncbray): should we be more precise with aarch64?
       case Architecture::kX86_64:
         if (endpoint.sig_cause() == Endpoint::kSegvCantRead) {
           // On x86_64 PROT_EXEC and PROT_WRITE each imply PROT_READ

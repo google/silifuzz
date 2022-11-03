@@ -71,6 +71,29 @@ static void InitTestSnapshotRegs(const TestSnapshotConfig& config,
   ucontext.fpregs.fcw = 0x37f;
 }
 
+static void InitTestSnapshotRegs(const TestSnapshotConfig& config,
+                                 UContext<AArch64>& ucontext) {
+  memset(&ucontext, 0, sizeof(ucontext));
+
+  constexpr uint64_t kCanary = 0xBBBBBBBBBBBBBBBB;
+  for (uint64_t* reg = std::begin(ucontext.gregs.x);
+       reg < std::end(ucontext.gregs.x); reg++) {
+    *reg = kCanary;
+  }
+
+  // PC points at the begining of code.
+  ucontext.gregs.pc = config.code_addr;
+  // x30 will be aliased to pc as an artifact of how we jump into the code.
+  ucontext.gregs.x[30] = ucontext.gregs.pc;
+
+  // Stack pointer at the end of the data page.
+  ucontext.gregs.sp = config.data_addr + config.data_num_bytes;
+
+  // Initialize data pointers, similar to raw_insns_util.
+  ucontext.gregs.x[6] = config.data_addr;
+  ucontext.gregs.x[7] = config.data_addr;
+}
+
 template <typename Arch>
 // static
 Snapshot TestSnapshots::Create(Type type, Options options) {
@@ -163,6 +186,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
 }
 
 template Snapshot TestSnapshots::Create<X86_64>(Type type, Options options);
+template Snapshot TestSnapshots::Create<AArch64>(Type type, Options options);
 
 template <typename Arch>
 // static
@@ -175,5 +199,7 @@ proto::Snapshot TestSnapshots::CreateProto(Type type, Options options) {
 
 template proto::Snapshot TestSnapshots::CreateProto<X86_64>(Type type,
                                                             Options options);
+template proto::Snapshot TestSnapshots::CreateProto<AArch64>(Type type,
+                                                             Options options);
 
 }  // namespace silifuzz.
