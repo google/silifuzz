@@ -39,10 +39,10 @@ void RelocateRandomBytes(const std::string& bytes) {
 
 constexpr size_t kMaxRandomCorpusSize = 1 << 16;
 
-FUZZ_TEST(FuzzDecodedInsn, RelocateRandomBytes)
+FUZZ_TEST(SnapRelocatorTest, RelocateRandomBytes)
     .WithDomains(Arbitrary<std::string>().WithMaxSize(kMaxRandomCorpusSize));
 
-TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256273372) {
+TEST(SnapRelocatorTest, RelocateRandomBytesRegression_b256273372) {
   RelocateRandomBytes(std::string(
       "\020\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
       "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\343\236\236\236"
@@ -50,7 +50,7 @@ TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256273372) {
       51));
 }
 
-TEST(FuzzDecodedInsn, RelocateRandomBytesRegression_b256297703) {
+TEST(SnapRelocatorTest, RelocateRandomBytesRegression_b256297703) {
   RelocateRandomBytes(std::string(
       "\007\000\000\000\000\000\000\000\030\000\000\000\000\000\000\000\000\000"
       "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\020",
