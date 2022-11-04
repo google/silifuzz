@@ -433,10 +433,6 @@ class Snapshot final {
   // Returns non-ok status if [addr; addr+size) is not a valid memory mapping.
   absl::StatusOr<bool> IsExecutable(Address addr, ByteSize size) const;
 
-  // Extracts a greg value at the specified `offset`.
-  // Returns kUnsetRegisterValue if registers are empty.
-  Address ExtractGRegAtOffset(const RegisterState& x, int offset) const;
-
   // Returns a list of memory mappings in memory_map in ascending address
   // order.
   static MemoryMappingList SortedMemoryMappingList(
