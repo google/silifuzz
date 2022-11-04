@@ -572,7 +572,29 @@ absl::Status Snapshot::can_set_registers(const RegisterState& x,
   }
 }
 
+template <typename Arch>
+bool Snapshot::registers_match_arch_impl(
+    const Snapshot::RegisterState& x) const {
+  return MayBeSerializedGRegs<Arch>(x.gregs()) &&
+         MayBeSerializedFPRegs<Arch>(x.fpregs());
+}
+
+// Check that the RegisterState matches the architecture of the Snapshot.
+bool Snapshot::registers_match_arch(const Snapshot::RegisterState& x) const {
+  switch (architecture_descr_->id) {
+    case Snapshot::Architecture::kX86_64:
+      return registers_match_arch_impl<X86_64>(x);
+    case Snapshot::Architecture::kAArch64:
+      return registers_match_arch_impl<AArch64>(x);
+    default:
+      LOG_FATAL("Unexpected architecture: ", architecture_descr_->id);
+  }
+}
+
 void Snapshot::set_registers(const RegisterState& x) {
+  // registers_match_arch should always be true if can_set_registers is true,
+  // but it's lighter weight so we can run it all the time.
+  CHECK(registers_match_arch(x));
   DCHECK_STATUS(can_set_registers(x, false /* is_end_state */));
   registers_.reset(new RegisterState(x));
 }

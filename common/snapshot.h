@@ -452,6 +452,12 @@ class Snapshot final {
   absl::Status can_set_registers_impl(const Snapshot::RegisterState& x,
                                       bool is_end_state) const;
 
+  template <typename Arch>
+  bool registers_match_arch_impl(const Snapshot::RegisterState& x) const;
+
+  // Check that the RegisterState matches the architecture of the Snapshot.
+  bool registers_match_arch(const Snapshot::RegisterState& x) const;
+
   // ----------------------------------------------------------------------- //
 
   // See id().
