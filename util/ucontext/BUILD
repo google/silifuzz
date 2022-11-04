@@ -162,7 +162,7 @@ cc_library(
 cc_test(
     name = "ucontext_test",
     size = "small",
-    srcs = select({
+    srcs = ["ucontext_test.cc"] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "aarch64/ucontext_test.cc",
             "aarch64/ucontext_test_widgets.S",

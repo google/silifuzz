@@ -67,6 +67,8 @@ struct GRegSet<X86_64> {
   // On Linux fs_base is typically used to refer to TLS data.
   uint64_t fs_base;
   uint64_t gs_base;
+
+  using Arch = X86_64;
 };
 
 template <>
@@ -77,6 +79,8 @@ struct GRegSet<AArch64> {
   uint64_t pstate;
   uint64_t tpidr;
   uint64_t tpidrro;
+
+  using Arch = AArch64;
 };
 
 // Convenience equality on GRegSet (all bytes are compared).
@@ -121,6 +125,8 @@ struct FPRegSet<X86_64> {
 
   // Not yet defined by spec.
   uint8_t padding[96];
+
+  using Arch = X86_64;
 };
 static_assert(sizeof(FPRegSet<X86_64>) == 512, "FPRegSet has unexpected size.");
 static_assert(alignof(FPRegSet<X86_64>) == 16,
@@ -134,6 +140,8 @@ struct FPRegSet<AArch64> {
   __uint128_t v[32];
   uint64_t fpsr;
   uint64_t fpcr;
+
+  using Arch = AArch64;
 };
 static_assert(alignof(FPRegSet<AArch64>) == 16,
               "FPRegSet has unexpected alignment.");
@@ -160,20 +168,18 @@ inline bool operator!=(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
 // * We guarantee alignment of 16 for FPRegSet field, so that
 //   our context saving/restoring implementations can easily use the fxsave and
 //   fxrstor instructions that require this alignment.
-template <typename Arch = Host>
+template <typename T = Host>
 struct UContext {
-  FPRegSet<Arch> fpregs;
-  GRegSet<Arch> gregs;
+  FPRegSet<T> fpregs;
+  GRegSet<T> gregs;
+
+  using Arch = T;
 };
 
 // Required to satisfy -Wctad-maybe-unsupported
 UContext()->UContext<Host>;
 
-static_assert(sizeof(UContext<Host>) ==
-                  sizeof(FPRegSet<Host>) + sizeof(GRegSet<Host>),
-              "UContext should not have internal padding.");
-static_assert(alignof(UContext<Host>) >= alignof(FPRegSet<Host>),
-              "Aligning fpregs should have aligned UContext.");
+#define ARCH_OF(var) typename decltype(var)::Arch
 
 }  // namespace silifuzz
 

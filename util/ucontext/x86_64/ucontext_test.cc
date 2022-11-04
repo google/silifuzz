@@ -25,7 +25,7 @@ namespace silifuzz {
 namespace {
 
 TEST(UContextTest, Accessors) {
-  UContext uc;
+  UContext<X86_64> uc;
   memset(&uc, 0xf0, sizeof(uc));
 
   constexpr uint64_t kInstructionPointer = 0x0123456789abcdef;
