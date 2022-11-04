@@ -73,6 +73,13 @@ ABSL_MUST_USE_RESULT ssize_t DeserializeGRegs(const void* data,
                                               size_t data_size,
                                               GRegSet<Arch>* gregs);
 
+// Indicates that the data may be serialized registers for the specified
+// architecture. If this function returns true, it may deserialize. If this
+// function returns false, it will certainly not deserialize.
+template <typename Arch>
+ABSL_MUST_USE_RESULT bool MayBeSerializedGRegs(const void* data,
+                                               size_t data_size);
+
 // Convert FPRegsSet into bytes that can be stored in a snapshot proto.
 template <typename Arch>
 ABSL_MUST_USE_RESULT ssize_t SerializeFPRegs(const FPRegSet<Arch>& fpregs,
@@ -83,6 +90,11 @@ template <typename Arch>
 ABSL_MUST_USE_RESULT ssize_t DeserializeFPRegs(const void* data,
                                                size_t data_size,
                                                FPRegSet<Arch>* fpregs);
+
+// See MayBeSerializedGRegs
+template <typename Arch>
+ABSL_MUST_USE_RESULT bool MayBeSerializedFPRegs(const void* data,
+                                                size_t data_size);
 
 #if defined(__x86_64__)
 
@@ -150,6 +162,12 @@ inline ABSL_MUST_USE_RESULT bool DeserializeGRegs(const std::string& src,
          src.size();
 }
 
+// A wrapper converting a string input into a pointer / size pair.
+template <typename Arch>
+inline ABSL_MUST_USE_RESULT bool MayBeSerializedGRegs(const std::string& src) {
+  return serialize_internal::MayBeSerializedGRegs<Arch>(src.data(), src.size());
+}
+
 // See SerializeGRegs
 template <typename Arch>
 inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(const FPRegSet<Arch>& src,
@@ -170,6 +188,14 @@ inline ABSL_MUST_USE_RESULT bool DeserializeFPRegs(const std::string& src,
   return serialize_internal::DeserializeFPRegs(src.data(), src.size(), dst) ==
          src.size();
 }
+
+// See MayBeSerializedGRegs
+template <typename Arch>
+inline ABSL_MUST_USE_RESULT bool MayBeSerializedFPRegs(const std::string& src) {
+  return serialize_internal::MayBeSerializedFPRegs<Arch>(src.data(),
+                                                         src.size());
+}
+
 #endif
 
 }  // namespace silifuzz

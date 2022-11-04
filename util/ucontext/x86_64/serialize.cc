@@ -159,6 +159,10 @@ ssize_t DeserializeLegacyGRegs(const void* data, size_t data_size,
 #endif
 }
 
+bool MayBeLegacySerializedGRegs(const void* data, size_t data_size) {
+  return data_size == kLegacyGRegsSize;
+}
+
 ssize_t SerializeLegacyFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
                               size_t data_size) {
   // Is there enough space?
@@ -177,6 +181,10 @@ ssize_t DeserializeLegacyFPRegs(const void* data, size_t data_size,
   }
   memcpy(fpregs, data, sizeof(*fpregs));
   return sizeof(*fpregs);
+}
+
+bool MayBeLegacySerializedFPRegs(const void* data, size_t data_size) {
+  return data_size == kLegacyFPRegsSize;
 }
 
 static_assert(sizeof(header) == kHeaderSize, "Header struct is wrong size.");
@@ -208,10 +216,17 @@ ssize_t SerializeGRegs(const GRegSet<X86_64>& gregs, void* data,
 template <>
 ssize_t DeserializeGRegs(const void* data, size_t data_size,
                          GRegSet<X86_64>* gregs) {
-  if (data_size == kLegacyGRegsSize) {
+  if (MayBeLegacySerializedGRegs(data, data_size)) {
     return DeserializeLegacyGRegs(data, data_size, gregs);
   }
   return SimpleDeserialize(kX86_64GRegsMagic, data, data_size, gregs);
+}
+
+template <>
+bool MayBeSerializedGRegs<X86_64>(const void* data, size_t data_size) {
+  return MayBeLegacySerializedGRegs(data, data_size) ||
+         MayBeSimpleSerialized<GRegSet<X86_64>>(kX86_64GRegsMagic, data,
+                                                data_size);
 }
 
 template <>
@@ -228,10 +243,17 @@ ssize_t SerializeFPRegs(const FPRegSet<X86_64>& fpregs, void* data,
 template <>
 ssize_t DeserializeFPRegs(const void* data, size_t data_size,
                           FPRegSet<X86_64>* fpregs) {
-  if (data_size == kLegacyFPRegsSize) {
+  if (MayBeLegacySerializedFPRegs(data, data_size)) {
     return DeserializeLegacyFPRegs(data, data_size, fpregs);
   }
   return SimpleDeserialize(kX86_64FPRegsMagic, data, data_size, fpregs);
+}
+
+template <>
+bool MayBeSerializedFPRegs<X86_64>(const void* data, size_t data_size) {
+  return MayBeLegacySerializedFPRegs(data, data_size) ||
+         MayBeSimpleSerialized<FPRegSet<X86_64>>(kX86_64FPRegsMagic, data,
+                                                 data_size);
 }
 
 }  // namespace serialize_internal

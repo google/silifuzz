@@ -54,6 +54,12 @@ ssize_t DeserializeGRegs(const void* data, size_t data_size,
 }
 
 template <>
+bool MayBeSerializedGRegs<AArch64>(const void* data, size_t data_size) {
+  return MayBeSimpleSerialized<GRegSet<AArch64>>(kAarch64GRegsMagic, data,
+                                                 data_size);
+}
+
+template <>
 ssize_t SerializeFPRegs(const FPRegSet<AArch64>& fpregs, void* data,
                         size_t data_size) {
   return SimpleSerialize(fpregs, kAarch64FPRegsMagic, data, data_size);
@@ -63,6 +69,12 @@ template <>
 ssize_t DeserializeFPRegs(const void* data, size_t data_size,
                           FPRegSet<AArch64>* fpregs) {
   return SimpleDeserialize(kAarch64FPRegsMagic, data, data_size, fpregs);
+}
+
+template <>
+bool MayBeSerializedFPRegs<AArch64>(const void* data, size_t data_size) {
+  return MayBeSimpleSerialized<FPRegSet<AArch64>>(kAarch64FPRegsMagic, data,
+                                                  data_size);
 }
 
 }  // namespace serialize_internal

@@ -123,6 +123,39 @@ ssize_t SimpleDeserialize(uint16_t expected_magic, const void* src,
   return current - begin;
 }
 
+template <typename T>
+ssize_t MayBeSimpleSerialized(uint16_t expected_magic, const void* src,
+                              size_t src_size) {
+  const uint8_t* begin = reinterpret_cast<const uint8_t*>(src);
+  const uint8_t* current = begin;
+  const uint8_t* end = current + src_size;
+
+  // Is there enough space for the header?
+  if (end - current < sizeof(header)) {
+    return false;
+  }
+
+  // Deserialize the header.
+  header hdr;
+  memcpy(&hdr, current, sizeof(header));
+  current += sizeof(header);
+
+  if (hdr.magic != expected_magic) {
+    return false;
+  }
+
+  if (hdr.version != 0) {
+    return false;
+  }
+
+  // Is there enough data for this to be a valid payload?
+  if (end - current < sizeof(T)) {
+    return false;
+  }
+
+  return true;
+}
+
 }  // namespace serialize_internal
 }  // namespace silifuzz
 

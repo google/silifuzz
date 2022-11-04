@@ -15,6 +15,7 @@
 #include "./util/ucontext/serialize.h"
 
 #include <string>
+#include <type_traits>
 
 #include "gtest/gtest.h"
 #include "./util/ucontext/ucontext.h"
@@ -49,6 +50,7 @@ TYPED_TEST(SerializeTest, RawGRegs) {
   ssize_t size = serialize_internal::SerializeGRegs(original, tmp, sizeof(tmp));
   ASSERT_GT(size, 0);
   ASSERT_LE(size, sizeof(tmp));
+  ASSERT_TRUE(serialize_internal::MayBeSerializedGRegs<TypeParam>(tmp, size));
 
   // Copy back.
   GRegSet<TypeParam> bounced;
@@ -84,10 +86,37 @@ TYPED_TEST(SerializeTest, StringGRegs) {
 
   std::string tmp;
   ASSERT_TRUE(SerializeGRegs(original, &tmp));
+  ASSERT_TRUE(MayBeSerializedGRegs<TypeParam>(tmp));
 
   GRegSet<TypeParam> bounced;
   ASSERT_TRUE(DeserializeGRegs(tmp, &bounced));
   EXPECT_EQ(original, bounced);
+}
+
+TYPED_TEST(SerializeTest, MayBeGRegs_X86_64) {
+  // Set up a randomized context.
+  GRegSet<X86_64> original;
+  pattern_init(&original, sizeof(original));
+  ZeroOutGRegsPadding(&original);
+
+  std::string tmp;
+  ASSERT_TRUE(SerializeGRegs(original, &tmp));
+
+  constexpr bool expected = std::is_same<ARCH_OF(original), TypeParam>();
+  ASSERT_EQ(MayBeSerializedGRegs<TypeParam>(tmp), expected);
+}
+
+TYPED_TEST(SerializeTest, MayBeGRegs_AArch64) {
+  // Set up a randomized context.
+  GRegSet<AArch64> original;
+  pattern_init(&original, sizeof(original));
+  ZeroOutGRegsPadding(&original);
+
+  std::string tmp;
+  ASSERT_TRUE(SerializeGRegs(original, &tmp));
+
+  constexpr bool expected = std::is_same<ARCH_OF(original), TypeParam>();
+  ASSERT_EQ(MayBeSerializedGRegs<TypeParam>(tmp), expected);
 }
 
 TYPED_TEST(SerializeTest, RawFPRegs) {
@@ -103,6 +132,7 @@ TYPED_TEST(SerializeTest, RawFPRegs) {
       serialize_internal::SerializeFPRegs(original, tmp, sizeof(tmp));
   ASSERT_GT(size, 0);
   ASSERT_LE(size, sizeof(tmp));
+  ASSERT_TRUE(serialize_internal::MayBeSerializedFPRegs<TypeParam>(tmp, size));
 
   // Copy back.
   FPRegSet<TypeParam> bounced;
@@ -137,6 +167,7 @@ TYPED_TEST(SerializeTest, StringFPRegs) {
 
   std::string tmp;
   ASSERT_TRUE(SerializeFPRegs(original, &tmp));
+  ASSERT_TRUE(MayBeSerializedFPRegs<TypeParam>(tmp));
 
   FPRegSet<TypeParam> bounced;
   ASSERT_TRUE(DeserializeFPRegs(tmp, &bounced));
@@ -160,6 +191,7 @@ TEST(SerializeLegacyTest, GRegs) {
       serialize_internal::SerializeLegacyGRegs(original, tmp, sizeof(tmp));
   ASSERT_GT(size, 0);
   ASSERT_LE(size, sizeof(tmp));
+  ASSERT_TRUE(serialize_internal::MayBeSerializedGRegs<X86_64>(tmp, size));
 
   // Copy back.
   GRegSet<X86_64> bounced;
@@ -185,6 +217,7 @@ TEST(SerializeLegacyTest, FPRegs) {
       serialize_internal::SerializeLegacyFPRegs(original, tmp, sizeof(tmp));
   ASSERT_GT(size, 0);
   ASSERT_LE(size, sizeof(tmp));
+  ASSERT_TRUE(serialize_internal::MayBeSerializedFPRegs<X86_64>(tmp, size));
 
   // Copy back.
   FPRegSet<X86_64> bounced;
