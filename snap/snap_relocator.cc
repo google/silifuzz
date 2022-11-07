@@ -86,7 +86,7 @@ SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
   RETURN_IF_RELOCATION_FAILED(AdjustArray(memory_bytes_array));
   for (size_t i = 0; i < memory_bytes_array.size; ++i) {
     Snap::MemoryBytes& memory_byte = memory_bytes_array.mutable_elements()[i];
-    if (!memory_byte.repeating) {
+    if (!memory_byte.repeating()) {
       RETURN_IF_RELOCATION_FAILED(
           AdjustPointer(memory_byte.data.byte_values.elements));
     }

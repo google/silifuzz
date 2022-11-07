@@ -256,7 +256,7 @@ void Traversal::ProcessAllocated(PassType pass,
           Snap::MemoryBytes{
               .start_address = memory_bytes.start_address(),
               .perms = perms.ToMProtect(),
-              .repeating = true,
+              .flags = Snap::MemoryBytes::kRepeating,
               .data{.byte_run{
                   .value = memory_bytes.byte_values()[0],
                   .size = memory_bytes.num_bytes(),
@@ -267,7 +267,7 @@ void Traversal::ProcessAllocated(PassType pass,
           Snap::MemoryBytes{
               .start_address = memory_bytes.start_address(),
               .perms = perms.ToMProtect(),
-              .repeating = false,
+              .flags = 0,
               .data{.byte_values{
                   .size = memory_bytes.num_bytes(),
                   .elements = byte_values_elements_ref

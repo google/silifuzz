@@ -538,9 +538,9 @@ SnapGenerator::VarName SnapGenerator::GenerateMemoryBytesList(
         opts.compress_repeating_bytes &&
         IsRepeatingByteRun(memory_bytes.byte_values());
     PrintLn(absl::StrFormat(
-        "{ .start_address = %s, .perms = 0x%x, .repeating = %s,",
+        "{ .start_address = %s, .perms = 0x%x, .flags = %s,",
         AddressString(start), memory_mapping->perms().ToMProtect(),
-        compress_repeating_bytes ? "true" : "false"));
+        compress_repeating_bytes ? "Snap::MemoryBytes::kRepeating" : "0"));
     if (compress_repeating_bytes) {
       CHECK(byte_values_var_names[i].empty());
       Print(absl::StrFormat(".data{.byte_run{.value = 0x%x, .size = %zd}},",

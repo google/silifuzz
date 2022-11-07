@@ -174,7 +174,7 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   absl::flat_hash_set<const uint8_t*> addresses_seen;
   int times_seen = 0;
   for (const auto& memory_bytes : snap.memory_bytes) {
-    if (!memory_bytes.repeating &&
+    if (!memory_bytes.repeating() &&
         memory_bytes.size() == test_byte_data.size() &&
         memcmp(memory_bytes.data.byte_values.elements, test_byte_data.data(),
                test_byte_data.size()) == 0) {

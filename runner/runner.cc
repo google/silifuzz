@@ -152,7 +152,7 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
 bool VerifyMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
   const void* address = AsPtr(memory_bytes.start_address);
   const size_t size = memory_bytes.size();
-  return memory_bytes.repeating
+  return memory_bytes.repeating()
              ? MemAllEqualTo(address, memory_bytes.data.byte_run.value, size)
              : MemEq(address, memory_bytes.data.byte_values.elements, size);
 }
@@ -160,7 +160,7 @@ bool VerifyMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
 // Copies memory bytes from Snap to runtime address.
 void SetupMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
   void* target_address = AsPtr(memory_bytes.start_address);
-  if (memory_bytes.repeating) {
+  if (memory_bytes.repeating()) {
     MemSet(target_address, memory_bytes.data.byte_run.value,
            memory_bytes.size());
   } else {

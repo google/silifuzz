@@ -89,7 +89,7 @@ void VerifySnapMemoryBytes(const Snapshot::MemoryBytes& memory_bytes,
                                          snap_memory_bytes_limit,
                                          MemoryPerms::kAnd));
   CHECK_EQ(perms.ToMProtect(), snap_memory_bytes.perms);
-  if (snap_memory_bytes.repeating) {
+  if (snap_memory_bytes.repeating()) {
     VerifyByteRun("byte_run", memory_bytes.byte_values(),
                   snap_memory_bytes.data.byte_run);
   } else {

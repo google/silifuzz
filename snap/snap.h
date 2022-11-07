@@ -62,6 +62,12 @@ struct Snap {
   // Describes a single contiguous range of byte values in memory.
   // This is a linker-initialized equivalent of Snapshot::MemoryBytes
   struct MemoryBytes {
+    // Flags
+    enum {
+      kRepeating = 1 << 0,  // If set, memory bytes are repeating. This
+                            // determines how data below are interpreted.
+    };
+
     // If memory bytes are all the same value, they are stored as
     // a run of single value.
     struct ByteRun {
@@ -69,9 +75,12 @@ struct Snap {
       size_t size;    // number of bytes in run.
     };
 
-    // Returns byte size of the Memory Bytes.
+    // Tells if memory bytes are repeating.
+    bool repeating() const { return (flags & kRepeating) != 0; }
+
+    // Returns byte size of the memory bytes.
     size_t size() const {
-      return repeating ? data.byte_run.size : data.byte_values.size;
+      return repeating() ? data.byte_run.size : data.byte_values.size;
     }
 
     // Returns true if memory bytes are writable.
@@ -90,9 +99,8 @@ struct Snap {
     // instead.
     int32_t perms;  // Only stores READ/WRITE/EXEC permssions.
 
-    // If true, memory bytes are repeating. This determines how data below
-    // are interpreted.
-    bool repeating = false;
+    // Flags
+    uint8_t flags = 0;
 
     union {
       // The memory byte values to exist at start_address. This is set only when

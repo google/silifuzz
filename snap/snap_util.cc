@@ -29,7 +29,7 @@ namespace {
 
 // Creates a Snapshot::ByteData from a Snap::MemoryBytes `memory_bytes`.
 Snapshot::ByteData SnapMemoryBytesData(const Snap::MemoryBytes& memory_bytes) {
-  if (memory_bytes.repeating) {
+  if (memory_bytes.repeating()) {
     return Snapshot::ByteData(memory_bytes.size(),
                               memory_bytes.data.byte_run.value);
   } else {
