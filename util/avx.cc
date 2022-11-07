@@ -44,13 +44,6 @@ std::atomic<AVX512Info> avx_512_info{AVX512Info::kUninitialized};
 
 // For details, see 15.2 of Intel SDM vol. 1.
 AVX512Info __attribute__((target("xsave"))) GetAVX512InfoOnce() {
-  // Currently Intel platforms only.
-  // TODO(b/226686202): Add support for Genoa.
-  const X86CPUVendorID vendor_id;
-  if (!vendor_id.IsIntel()) {
-    return AVX512Info::kUnavailable;
-  }
-
   // Check CPU OSXSAVE feature. We need xgetbv instruction to check whether
   // all AVX-512 registers are enabled.
   X86CPUIDResult result;

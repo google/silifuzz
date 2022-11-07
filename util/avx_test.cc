@@ -77,8 +77,8 @@ TEST(AVX, HasAVX512Registers) {
     case PlatformId::kIntelCascadelake:
     case PlatformId::kIntelIcelake:
     case PlatformId::kIntelSapphireRapids:
+    case PlatformId::kAmdGenoa:
       EXPECT_TRUE(HasAVX512Registers());
-
       break;
     default:
       EXPECT_FALSE(HasAVX512Registers());
