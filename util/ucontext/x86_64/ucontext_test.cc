@@ -21,6 +21,18 @@
 #include "./util/ucontext/x86_64/ucontext_offsets.h"
 #include "./util/ucontext/x86_64/ucontext_test_lib.h"
 
+#ifdef UCONTEXT_NO_SYSCALLS
+#define SAVE_UCONTEXT SaveUContextNoSyscalls
+#define RESTORE_UCONTEXT RestoreUContextNoSyscalls
+#else
+#define SAVE_UCONTEXT SaveUContext
+#define RESTORE_UCONTEXT RestoreUContext
+#endif
+
+// Hack for working around quirks of inline asm.
+#define STR_INNER(x) #x
+#define STR(x) STR_INNER(x)
+
 namespace silifuzz {
 namespace {
 
@@ -126,13 +138,13 @@ TEST(UContextTest, Padding) {
   // are back-to-back and no callee-saved register can be altered.
   // Note: the clobber list depends on SaveUContext not modifying any registers.
   asm("movq 0(%%rbx), %%rdi\n"
-      "call SaveUContext\n"
+      "call " STR(SAVE_UCONTEXT) "\n"
       "movq 8(%%rbx), %%rdi\n"
-      "call SaveUContext\n"
+      "call " STR(SAVE_UCONTEXT) "\n"
       "movq 16(%%rbx), %%rdi\n"
-      "call SaveUContext\n"
+      "call " STR(SAVE_UCONTEXT) "\n"
       "movq 24(%%rbx), %%rdi\n"
-      "call SaveUContext\n" ::"b"(ucs)
+      "call " STR(SAVE_UCONTEXT) "\n" ::"b"(ucs)
       : "rdi", "memory");
   ZeroOutRegsPadding(&uc2);
   ZeroOutRegsPadding(&uc4);
@@ -153,6 +165,7 @@ TEST(UContextTest, Padding) {
   EXPECT_TRUE(HasCurrentSegmentRegisters(uc3));
   EXPECT_TRUE(HasCurrentSegmentRegisters(uc4));
 
+#if !defined(UCONTEXT_NO_SYSCALLS)
   // FS_BASE is used for TLS so shouldn't be 0
   EXPECT_NE(uc1.gregs.fs_base, 0);
   EXPECT_NE(uc2.gregs.fs_base, 0);
@@ -165,6 +178,7 @@ TEST(UContextTest, Padding) {
   EXPECT_EQ(uc2.gregs.gs_base, 0);
   EXPECT_EQ(uc3.gregs.gs_base, 0);
   EXPECT_EQ(uc4.gregs.gs_base, 0);
+#endif
 
   // rip and rdi values (but nothing else) are expected to be different.
   uc2.gregs.rip = uc1.gregs.rip;
