@@ -264,5 +264,101 @@ TEST(UContextTest, HasSameSegmentRegisters) {
   TestOneSegmentRegister(es);
 }
 
+constexpr size_t kStackSize = 512;
+// Reserve a little space after the stack pointer so we can detect bad writes.
+constexpr size_t kStackOffset = kStackSize - 64;
+constexpr uint8_t kStackPattern = 0xe1;
+
+void PatternInitStack(uint8_t* stack) {
+  memset(stack, kStackPattern, kStackSize);
+}
+
+void CheckEntryStackBytes(const GRegSet<X86_64>& gregs, const uint8_t* stack) {
+  // Synthesize the expected state of the stack RestoreUContext() switches to.
+  uint8_t expected[kStackSize];
+  PatternInitStack(expected);
+  uint64_t stack_bytes[] = {gregs.eflags, gregs.rip};
+  memcpy(expected + kStackOffset - sizeof(stack_bytes), stack_bytes,
+         sizeof(stack_bytes));
+
+  // Compare.
+  for (size_t i = 0; i < kStackSize; i++) {
+    EXPECT_EQ(stack[i], expected[i]) << i;
+  }
+}
+
+void CheckExitStackBytes(const GRegSet<X86_64>& gregs, const uint8_t* stack) {
+  // The stack usage of x86_64 RestoreUContext is hard to predict because it
+  // calls into C to check for the existence of AVX512 registers. Emperically,
+  // x86_64 RestoreUContext() uses ~152 bytes of stack at the time of writing.
+  // Because part of that is calling into C code, we can't be 100% sure this
+  // won't shift, so be conservative about how much we expect will be clobbered.
+  constexpr size_t stack_bytes_used = 168;
+  ASSERT_GE(kStackOffset, stack_bytes_used);
+
+  for (size_t i = 0; i < kStackOffset - stack_bytes_used; i++) {
+    EXPECT_EQ(stack[i], kStackPattern) << i;
+  }
+
+  // The exit bytes should not be leaking into snapshots, so we care less about
+  // the exact values than the entry bytes. We still care how much space is
+  // used, however.
+
+  for (size_t i = kStackOffset; i < kStackSize; i++) {
+    EXPECT_EQ(stack[i], kStackPattern) << i;
+  }
+}
+
+extern "C" void CaptureStack(silifuzz::UContext<silifuzz::X86_64>* uc,
+                             void* alternate_stack);
+
+// TODO(ncbray): figure out why RestoreUContextNoSyscalls smashing TLS causes
+// problems for this particular test.
+#if !defined(UCONTEXT_NO_SYSCALLS)
+
+TEST(UContextTest, RestoreUContextStackBytes) {
+  UContext<X86_64> test, saved;
+
+  alignas(16) uint8_t entry_stack[kStackSize];
+  PatternInitStack(entry_stack);
+
+  alignas(16) uint8_t exit_stack[kStackSize];
+  PatternInitStack(exit_stack);
+
+  // Start with the existing context so we can keep TLS intact, etc.
+  SAVE_UCONTEXT(&test);
+  ZeroOutRegsPadding(&test);
+
+  // Set up to restore the context into a call to CaptureStack
+  test.gregs.rip = reinterpret_cast<uint64_t>(&CaptureStack);
+  test.gregs.rdi = reinterpret_cast<uint64_t>(&saved);
+  test.gregs.rsi = reinterpret_cast<uint64_t>(&exit_stack[kStackOffset]);
+  test.gregs.rsp = reinterpret_cast<uint64_t>(&entry_stack[kStackOffset]);
+
+  // Execute the CaptureStack function.
+  volatile unsigned int post_save_count = 0;
+  SAVE_UCONTEXT(&saved);
+  post_save_count++;
+  ASSERT_LE(post_save_count, 2);
+  if (post_save_count == 1) {
+    // We just saved the current context.
+    RESTORE_UCONTEXT(&test);
+    __builtin_unreachable();
+  }
+  // We have returned from the restore.
+  ASSERT_EQ(post_save_count, 2);
+
+  // Make MSAN happy.
+  ZeroOutRegsPadding(&saved);
+
+  // This function => RestoreUContext(test) => CaptureStack
+  CheckEntryStackBytes(test.gregs, entry_stack);
+
+  // CaptureStack => RestoreUContext(saved) => this function
+  CheckExitStackBytes(saved.gregs, exit_stack);
+}
+
+#endif
+
 }  // namespace
 }  // namespace silifuzz

@@ -488,5 +488,95 @@ TEST(UContextTest, SaveThenRestore) {
   }
 }
 
+constexpr size_t kStackSize = 512;
+// Reserve a little space after the stack pointer so we can detect bad writes.
+constexpr size_t kStackOffset = kStackSize - 64;
+constexpr uint8_t kStackPattern = 0xe1;
+
+void PatternInitStack(uint8_t* stack) {
+  memset(stack, kStackPattern, kStackSize);
+}
+
+void CheckEntryStackBytes(const GRegSet<AArch64>& gregs, const uint8_t* stack) {
+  // Synthesize the expected state of the stack RestoreUContext() switches to.
+  uint8_t expected[kStackSize];
+  PatternInitStack(expected);
+  uint64_t stack_bytes[] = {0};
+  memcpy(expected + kStackOffset - sizeof(stack_bytes), stack_bytes,
+         sizeof(stack_bytes));
+
+  // Compare.
+  for (size_t i = 0; i < kStackSize; i++) {
+    EXPECT_EQ(stack[i], expected[i]) << i;
+  }
+}
+
+void CheckExitStackBytes(const GRegSet<AArch64>& gregs, const uint8_t* stack) {
+  constexpr size_t stack_bytes_used = 32;
+  ASSERT_GE(kStackOffset, stack_bytes_used);
+
+  for (size_t i = 0; i < kStackOffset - stack_bytes_used; i++) {
+    EXPECT_EQ(stack[i], kStackPattern) << i;
+  }
+
+  // The exit bytes should not be leaking into snapshots, so we care less about
+  // the exact values than the entry bytes. We still care how much space is
+  // used, however.
+
+  for (size_t i = kStackOffset; i < kStackSize; i++) {
+    EXPECT_EQ(stack[i], kStackPattern) << i;
+  }
+}
+
+extern "C" void CaptureStack(silifuzz::UContext<silifuzz::AArch64>* uc,
+                             void* alternate_stack);
+
+TEST(UContextTest, RestoreUContextStackBytes) {
+  UContext<AArch64> test, saved;
+
+  alignas(16) uint8_t entry_stack[kStackSize];
+  PatternInitStack(entry_stack);
+
+  alignas(16) uint8_t exit_stack[kStackSize];
+  PatternInitStack(exit_stack);
+
+  // Start with the existing context so we can keep TLS intact, etc.
+  SAVE_UCONTEXT(&test);
+  ZeroOutRegsPadding(&test);
+
+  // Pattern init the GP registers.
+  for (size_t i = 0; i < sizeof(test.gregs.x) / sizeof(test.gregs.x[0]); i++) {
+    test.gregs.x[i] = (0xacbdefULL << 16) | i;
+  }
+
+  // Set up to restore the context into a call to CaptureStack
+  test.gregs.pc = reinterpret_cast<uint64_t>(&CaptureStack);
+  test.gregs.x[0] = reinterpret_cast<uint64_t>(&saved);
+  test.gregs.x[1] = reinterpret_cast<uint64_t>(&exit_stack[kStackOffset]);
+  test.gregs.sp = reinterpret_cast<uint64_t>(&entry_stack[kStackOffset]);
+
+  // Execute the CaptureStack function.
+  volatile unsigned int post_save_count = 0;
+  SAVE_UCONTEXT(&saved);
+  post_save_count++;
+  ASSERT_LE(post_save_count, 2);
+  if (post_save_count == 1) {
+    // We just saved the current context.
+    RESTORE_UCONTEXT(&test);
+    __builtin_unreachable();
+  }
+  // We have returned from the restore.
+  ASSERT_EQ(post_save_count, 2);
+
+  // Make MSAN happy.
+  ZeroOutRegsPadding(&saved);
+
+  // This function => RestoreUContext(test) => CaptureStack
+  CheckEntryStackBytes(test.gregs, entry_stack);
+
+  // CaptureStack => RestoreUContext(saved) => this function
+  CheckExitStackBytes(saved.gregs, exit_stack);
+}
+
 }  // namespace
 }  // namespace silifuzz

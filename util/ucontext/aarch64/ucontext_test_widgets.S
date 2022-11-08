@@ -222,4 +222,19 @@ SaveThenRestore:
   bl RESTORE_UCONTEXT
   .size   SaveThenRestore, .-SaveThenRestore
 
+
+  // Swap stacks and the restore the context. This lets us see the effects of
+  // RestoreUContext() both on the stack we're restoring in to and the stack
+  // we're restoring out on.
+  .p2align 2
+  .globl  CaptureStack
+  .type   CaptureStack, @function
+CaptureStack:
+  // x0 is the context we will restore.
+  // x1 is alternate stack.
+  mov sp, x1
+  bl RESTORE_UCONTEXT
+
+  .size   CaptureStack, .-CaptureStack
+
   .section        .note.GNU-stack,"",@progbits

@@ -169,6 +169,7 @@ cc_test(
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "x86_64/ucontext_test.cc",
+            "x86_64/ucontext_test_widgets.S",
             "x86_64/ucontext_offsets.h",
         ],
     }),
@@ -200,6 +201,7 @@ cc_test(
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "x86_64/ucontext_test.cc",
+            "x86_64/ucontext_test_widgets.S",
             "x86_64/ucontext_offsets.h",
         ],
     }),

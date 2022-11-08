@@ -99,6 +99,11 @@
   // Restore final x24 from the final sp.
   ldr x24, [sp, #-8]
 
+  // Clean up the scratch space we used on the new stack so that the initial
+  // state can be all zeros. This means a proxy that sets up the execution state
+  // by different means should see the same initial memory state as the runner.
+  str xzr, [sp, #-8]
+
   // There does not appear to be a way to branch to an arbitrary address without
   // holding it in a register. This means there will always be a dirty register
   // that points to the address we're branching to after the branch.
