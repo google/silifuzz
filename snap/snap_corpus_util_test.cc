@@ -56,8 +56,8 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
       SetContents(*tmpfile, {reinterpret_cast<const char*>(buffer.get()),
                              MmappedMemorySize(buffer)}));
   auto loaded_corpus = LoadCorpusFromFile(tmpfile->c_str());
-  EXPECT_EQ(loaded_corpus->size, 1);
-  EXPECT_EQ(loaded_corpus->elements[0]->id, snapified_corpus[0].id());
+  EXPECT_EQ(loaded_corpus->snaps.size, 1);
+  EXPECT_EQ(loaded_corpus->snaps.at(0)->id, snapified_corpus[0].id());
 }
 
 TEST(SnapCorpusUtilTest, LoadEmptyCorpus) {
@@ -68,7 +68,7 @@ TEST(SnapCorpusUtilTest, LoadEmptyCorpus) {
   ASSERT_TRUE(
       SetContents(*tmpfile, {reinterpret_cast<const char*>(buffer.get()),
                              MmappedMemorySize(buffer)}));
-  EXPECT_EQ(LoadCorpusFromFile(tmpfile->c_str())->size, 0);
+  EXPECT_EQ(LoadCorpusFromFile(tmpfile->c_str())->snaps.size, 0);
 }
 
 }  // namespace

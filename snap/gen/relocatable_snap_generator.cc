@@ -345,14 +345,12 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
 }
 
 void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
-  // For compatiblity with an older Silifuzz version, we use corpus type
+  // For compatiblity with an older Silifuzz version, we use a corpus containing
   // Snap::Array<const Snap*>.  We can get rid of the redirection when we
   // change the runner to take Snap::Array<Snap> later.
 
-  // Allocate Snap::Corpus
-  using SnapArrayType = Snap::Corpus;
-  RelocatableDataBlock::Ref snap_array_ref =
-      snap_block_.AllocateObjectsOfType<Snap::Corpus>(1);
+  RelocatableDataBlock::Ref corpus_ref =
+      snap_block_.AllocateObjectsOfType<SnapCorpus>(1);
 
   // Allocate space for element.
   RelocatableDataBlock::Ref snap_array_elements_ref =
@@ -380,10 +378,16 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   main_block_.Allocate(string_block_);
 
   if (pass == PassType::kGeneration) {
-    new (snap_array_ref.contents()) SnapArrayType{
-        .size = snapshots.size(),
-        .elements =
-            snap_array_elements_ref.load_address_as_pointer_of<const Snap*>(),
+    new (corpus_ref.contents()) SnapCorpus{
+        .magic = kSnapCorpusMagic,
+        .corpus_type_size = sizeof(SnapCorpus),
+        .snap_type_size = sizeof(Snap),
+        .snaps =
+            {
+                .size = snapshots.size(),
+                .elements = snap_array_elements_ref
+                                .load_address_as_pointer_of<const Snap*>(),
+            },
     };
 
     // Create const pointer array elements.

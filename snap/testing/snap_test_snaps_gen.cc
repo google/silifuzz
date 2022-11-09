@@ -98,7 +98,7 @@ absl::Status GenerateSource() {
   CHECK_EQ(last_generator_test_type + 1, generator_test_snap_names.size());
 
   // Print SnapArray containing pointers to Snaps generated above.
-  generator.GenerateSnapArray("kSnapGeneratorTestSnaps",
+  generator.GenerateSnapArray("kSnapGeneratorTestCorpus",
                               generator_test_snap_names);
 
   // Generate runner test snaps.
@@ -121,7 +121,7 @@ absl::Status GenerateSource() {
   CHECK_EQ(last_runner_test_type + 1, runner_test_snap_names.size());
 
   // Print SnapArray containing pointers to Snaps generated above.
-  generator.GenerateSnapArray("kSnapRunnerTestSnaps", runner_test_snap_names);
+  generator.GenerateSnapArray("kSnapRunnerTestCorpus", runner_test_snap_names);
 
   // Also use the same runner test snaps to produce the default corpus.
   generator.GenerateSnapArray("kDefaultSnapCorpus", runner_test_snap_names);

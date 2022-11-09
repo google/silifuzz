@@ -27,8 +27,8 @@ namespace silifuzz {
 namespace {
 
 // Convenience function to create a null corpus for errors.
-MmappedMemoryPtr<const Snap::Corpus> make_null_corpus() {
-  return MakeMmappedMemoryPtr<const Snap::Corpus>(nullptr, 0);
+MmappedMemoryPtr<const SnapCorpus> make_null_corpus() {
+  return MakeMmappedMemoryPtr<const SnapCorpus>(nullptr, 0);
 }
 
 }  // namespace
@@ -85,7 +85,8 @@ SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
     Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {
   RETURN_IF_RELOCATION_FAILED(AdjustArray(memory_bytes_array));
   for (size_t i = 0; i < memory_bytes_array.size; ++i) {
-    Snap::MemoryBytes& memory_byte = memory_bytes_array.mutable_elements()[i];
+    Snap::MemoryBytes& memory_byte =
+        const_cast<Snap::MemoryBytes&>(memory_bytes_array[i]);
     if (!memory_byte.repeating()) {
       RETURN_IF_RELOCATION_FAILED(
           AdjustPointer(memory_byte.data.byte_values.elements));
@@ -95,18 +96,32 @@ SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
 }
 
 SnapRelocator::Error SnapRelocator::RelocateCorpus() {
-  // Snap corpus has type Snap::Corpus. Here we pretend that
-  // it has type Snap::Array<Snap*> for convenience.
-  using CorpusType = Snap::Array<Snap*>;
-  if (start_address_ % alignof(CorpusType) != 0) return Error::kAlignment;
-  CorpusType& corpus = *reinterpret_cast<CorpusType*>(start_address_);
+  // We know the pointer is in bounds, but check that the struct fits in memory
+  // and is aligned.
+  RETURN_IF_RELOCATION_FAILED(
+      ValidateRelocatedAddress<SnapCorpus>(start_address_));
 
-  RETURN_IF_RELOCATION_FAILED(AdjustArray(corpus));
-  for (size_t i = 0; i < corpus.size; ++i) {
-    RETURN_IF_RELOCATION_FAILED(AdjustPointer(corpus.mutable_elements()[i]));
+  SnapCorpus& corpus = *reinterpret_cast<SnapCorpus*>(start_address_);
+
+  // If this constant isn't at the start of the file, it's likely not a corpus.
+  if (corpus.magic != kSnapCorpusMagic) {
+    return Error::kBadData;
+  }
+  if (corpus.corpus_type_size != sizeof(SnapCorpus)) {
+    return Error::kBadData;
+  }
+  if (corpus.snap_type_size != sizeof(Snap)) {
+    return Error::kBadData;
+  }
+
+  RETURN_IF_RELOCATION_FAILED(AdjustArray(corpus.snaps));
+  for (size_t i = 0; i < corpus.snaps.size; ++i) {
+    // Adjust the pointer in the array.
+    RETURN_IF_RELOCATION_FAILED(
+        AdjustPointer(const_cast<Snap*&>(corpus.snaps[i])));
 
     // Adjust pointers in this Snap.
-    Snap& snap = *(corpus.mutable_elements()[i]);
+    Snap& snap = *const_cast<Snap*>(corpus.snaps[i]);
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.id));
     RETURN_IF_RELOCATION_FAILED(AdjustArray(snap.memory_mappings));
 
@@ -119,7 +134,7 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
 }
 
 // static
-MmappedMemoryPtr<const Snap::Corpus> SnapRelocator::RelocateCorpus(
+MmappedMemoryPtr<const SnapCorpus> SnapRelocator::RelocateCorpus(
     MmappedMemoryPtr<char> relocatable, Error* error) {
   const size_t byte_size = MmappedMemorySize(relocatable);
   if (byte_size == 0) {
@@ -142,7 +157,7 @@ MmappedMemoryPtr<const Snap::Corpus> SnapRelocator::RelocateCorpus(
     return make_null_corpus();
   }
 
-  auto corpus = reinterpret_cast<const Snap::Corpus*>(relocatable.release());
+  auto corpus = reinterpret_cast<const SnapCorpus*>(relocatable.release());
 
   *error = Error::kOk;
   return MakeMmappedMemoryPtr(corpus, byte_size);

@@ -171,10 +171,10 @@ TEST(SimpleFixTool, FixCorpus) {
         reinterpret_cast<char*>(relocatable), file_size);
     EXPECT_EQ(close(fd), 0);
     SnapRelocator::Error error;
-    MmappedMemoryPtr<const Snap::Corpus> corpus =
+    MmappedMemoryPtr<const SnapCorpus> corpus =
         SnapRelocator::RelocateCorpus(std::move(mapped), &error);
     ASSERT_TRUE(error == SnapRelocator::Error::kOk);
-    num_snaps += corpus->size;
+    num_snaps += corpus->snaps.size;
   }
 
   // Snapshots are NOP sequences of different lengths.  There should not be any

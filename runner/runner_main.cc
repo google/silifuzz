@@ -52,7 +52,7 @@ int Main(int argc, char* argv[]) {
 
   RunnerMainOptions options;
   options.corpus = LoadCorpus(flags_end < argc ? argv[flags_end] : nullptr);
-  if (options.corpus == nullptr || options.corpus->size == 0) {
+  if (options.corpus == nullptr || options.corpus->snaps.size == 0) {
     LOG_ERROR("Empty baked in corpus or no corpus file name was specified");
     return EXIT_FAILURE;
   }

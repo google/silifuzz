@@ -64,9 +64,9 @@ absl::string_view ConsumeArg(std::vector<char*>& args) {
   return rv;
 }
 
-absl::StatusOr<const Snap*> FindSnap(const Snap::Corpus* corpus,
+absl::StatusOr<const Snap*> FindSnap(const SnapCorpus* corpus,
                                      absl::string_view snap_id) {
-  for (const Snap* snap : *corpus) {
+  for (const Snap* snap : corpus->snaps) {
     if (snap->id == snap_id) {
       return snap;
     }
@@ -74,9 +74,9 @@ absl::StatusOr<const Snap*> FindSnap(const Snap::Corpus* corpus,
   return absl::NotFoundError(absl::StrCat("Snap ", snap_id, " not found"));
 }
 
-absl::StatusOr<const Snap*> FindSnapByCodeAddress(const Snap::Corpus* corpus,
+absl::StatusOr<const Snap*> FindSnapByCodeAddress(const SnapCorpus* corpus,
                                                   uint64_t address) {
-  for (const Snap* snap : *corpus) {
+  for (const Snap* snap : corpus->snaps) {
     for (const auto& mapping : snap->memory_mappings) {
       if (address >= mapping.start_address &&
           address < mapping.start_address + mapping.num_bytes &&
@@ -93,7 +93,7 @@ absl::Status ToolMain(std::vector<char*>& args) {
   ConsumeArg(args);  // consume argv[0]
   std::string command = std::string(ConsumeArg(args));
   absl::string_view corpus_file = ConsumeArg(args);
-  MmappedMemoryPtr<const Snap::Corpus> corpus =
+  MmappedMemoryPtr<const SnapCorpus> corpus =
       LoadCorpusFromFile(corpus_file.data(), /* preload = */ false);
 
   LinePrinter lp(LinePrinter::StdErrPrinter);
@@ -152,10 +152,10 @@ absl::Status ToolMain(std::vector<char*>& args) {
         " snapshot = ", result.snapshot_id(), " on CPU ", player_result.cpu_id);
     printer.PrintActualEndState(snapshot, *player_result.actual_end_state);
   } else if (command == "list_snaps") {
-    for (const Snap* snap : *corpus) {
+    for (const Snap* snap : corpus->snaps) {
       lp.Line(snap->id);
     }
-    lp.Line("Total ", corpus->size);
+    lp.Line("Total ", corpus->snaps.size);
   } else {
     return absl::InvalidArgumentError(
         absl::StrCat("Unknown command ", command));

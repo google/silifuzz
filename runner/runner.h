@@ -62,7 +62,7 @@ struct RunSnapResult {
 // Options passed to RunnerMain().
 struct RunnerMainOptions {
   // A corpus of Snaps to be executed.
-  const Snap::Corpus* corpus;
+  const SnapCorpus* corpus;
 
   // Number of main loop iterations, in each of which a Snap from the corpus is
   // picked an executed. In sequential mode, this is ignored.
@@ -129,7 +129,7 @@ struct RunnerMainOptions {
 };
 
 // Establishes memory mappings in 'corpus'.
-void MapCorpus(const Snap::Corpus& corpus);
+void MapCorpus(const SnapCorpus& corpus);
 
 // Executes 'snap' and returns the execution result.
 // REQUIRES: the runtime environment, including memory mapping used by 'snap'

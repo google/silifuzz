@@ -34,6 +34,7 @@ class SnapRelocator {
     kAlignment,    // A pointer is unaligned.
     kOutOfBound,   // A pointer points outside of the relocatable.
     kMprotect,     // Error in setting up memory protection.
+    kBadData,      // This is either not a corpus file or it is out of date.
   };
 
   // Relocates a relocatable Snap corpus pointed by `relocatable` and then
@@ -42,7 +43,7 @@ class SnapRelocator {
   // RETURNS: A mmapped memory pointer to the relocated corpus and an error
   // code indicating if relocation succeeded. If relocation failed, the return
   // contents are undefined.
-  static MmappedMemoryPtr<const Snap::Corpus> RelocateCorpus(
+  static MmappedMemoryPtr<const SnapCorpus> RelocateCorpus(
       MmappedMemoryPtr<char> relocatable, Error* error);
 
  private:

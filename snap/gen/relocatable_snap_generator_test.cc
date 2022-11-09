@@ -48,14 +48,14 @@ namespace {
 
 // Generates a relocatable corpus from source `snapshots` and relocates it
 // to the mmap buffer address.
-MmappedMemoryPtr<const Snap::Corpus> GenerateRelocatedCorpus(
+MmappedMemoryPtr<const SnapCorpus> GenerateRelocatedCorpus(
     const std::vector<Snapshot>& snapshots) {
   auto relocatable = GenerateRelocatableSnaps(snapshots);
   SnapRelocator::Error error;
   auto relocated_corpus =
       SnapRelocator::RelocateCorpus(std::move(relocatable), &error);
   CHECK(error == SnapRelocator::Error::kOk);
-  CHECK_EQ(relocated_corpus->size, snapshots.size());
+  CHECK_EQ(relocated_corpus->snaps.size, snapshots.size());
   return relocated_corpus;
 }
 
@@ -75,7 +75,7 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   std::vector<Snapshot> corpus;
   corpus.push_back(std::move(snapified));
   auto relocated_corpus = GenerateRelocatedCorpus(corpus);
-  EXPECT_EQ(relocated_corpus->elements[0]->id, snapshot.id());
+  EXPECT_EQ(relocated_corpus->snaps.at(0)->id, snapshot.id());
 }
 
 TEST(RelocatableSnapGenerator, RoundTrip) {
@@ -93,7 +93,7 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
 
   auto relocated_corpus = GenerateRelocatedCorpus(corpus);
   auto snapshotFromSnap =
-      SnapToSnapshot(*relocated_corpus->elements[0], CurrentPlatformId());
+      SnapToSnapshot(*relocated_corpus->snaps.at(0), CurrentPlatformId());
   ASSERT_OK(snapshotFromSnap);
   ASSERT_EQ(corpus[0], *snapshotFromSnap);
 }
@@ -118,10 +118,10 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
   auto relocated_corpus = GenerateRelocatedCorpus(snapified_corpus);
 
   // Verify relocated Snap corpus is equivalent to the original Snapshots.
-  ASSERT_EQ(snapified_corpus.size(), relocated_corpus->size);
+  ASSERT_EQ(snapified_corpus.size(), relocated_corpus->snaps.size);
   for (size_t i = 0; i < snapified_corpus.size(); ++i) {
     const Snapshot& snapshot = snapified_corpus[i];
-    const Snap& snap = *relocated_corpus->elements[i];
+    const Snap& snap = *relocated_corpus->snaps.at(i);
     VerifyTestSnap(snapshot, snap, opts);
   }
 }
@@ -169,8 +169,8 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
 
   // Test byte data should appear twice in two MemoryBytes objects but
   // the array element addresses should be the same.
-  ASSERT_EQ(relocated_corpus->size, 1);
-  const Snap& snap = *relocated_corpus->elements[0];
+  ASSERT_EQ(relocated_corpus->snaps.size, 1);
+  const Snap& snap = *relocated_corpus->snaps.at(0);
   absl::flat_hash_set<const uint8_t*> addresses_seen;
   int times_seen = 0;
   for (const auto& memory_bytes : snap.memory_bytes) {

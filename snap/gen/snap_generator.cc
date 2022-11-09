@@ -36,6 +36,7 @@
 #include "./snap/exit_sequence.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/gen/reserved_memory_mappings.h"
+#include "./snap/snap.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
@@ -270,10 +271,11 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
   }
   PrintLn("};");
 
-  PrintLn(
-      absl::StrFormat("extern const Snap::Corpus %s = { .size = "
-                      "%zd, .elements = %s };",
-                      name, snap_var_name_list.size(), elements_var_name));
+  PrintLn(absl::StrFormat(
+      "extern const SnapCorpus %s = { .magic = 0x%lx, .corpus_type_size = "
+      "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), .snaps = { .size = "
+      "%zd, .elements = %s }};",
+      name, kSnapCorpusMagic, snap_var_name_list.size(), elements_var_name));
 }
 
 // The bytes that RestoreUContext() will write into the stack of the

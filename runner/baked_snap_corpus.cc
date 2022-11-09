@@ -22,9 +22,9 @@ namespace silifuzz {
 // generates a Snap::Corpus of the same name. The array is then linked into the
 // snap runner binary.
 // See snap_examples.cc for an example usage.
-extern const Snap::Corpus kDefaultSnapCorpus;
+extern const SnapCorpus kDefaultSnapCorpus;
 
-const Snap::Corpus* LoadCorpus(const char* filename) {
+const SnapCorpus* LoadCorpus(const char* filename) {
   return &kDefaultSnapCorpus;
 }
 

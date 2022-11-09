@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -46,18 +47,18 @@ struct Snap {
     const_iterator begin() const { return &elements[0]; }
     const_iterator end() const { return &elements[size]; }
 
-    // Returns a non-const elements pointer.
-    // This is only used by the snap relocator.
-    // BEWARE: Caller must ascertain writability of the elements.
-    T* mutable_elements() const { return const_cast<T*>(elements); }
+    const T& operator[](size_t idx) const { return elements[idx]; }
+
+    const T& at(size_t idx) const {
+      CHECK(idx < size);
+      return elements[idx];
+    }
   };
 
   // Describe register state of a Snapshot. This is stored in UContext/
   // and can be used directly as the context for running a Snap without any
   // conversion or copying.
   using RegisterState = UContext<Host>;
-
-  using Corpus = Array<const Snap*>;
 
   // Describes a single contiguous range of byte values in memory.
   // This is a linker-initialized equivalent of Snapshot::MemoryBytes
@@ -167,6 +168,38 @@ struct Snap {
   // TODO(dougkwan): [as-needed] We may support other modes of memory checking
   // like just checking only the memory that a snapshot changes.
   Array<MemoryBytes> end_state_memory_bytes;
+};
+
+namespace snap_internal {
+
+template <typename T>
+constexpr T MakeMagic(const char (&data)[sizeof(T)]) {
+  T magic = 0;
+  for (size_t i = 0; i < sizeof(T); i++) {
+    magic |= ((T)data[i]) << (i * 8);
+  }
+  return magic;
+}
+
+}  // namespace snap_internal
+
+constexpr uint64_t kSnapCorpusMagic = snap_internal::MakeMagic<uint64_t>(
+    {'S', 'n', 'a', 'p', 'C', 'o', 'r', 'p'});
+
+struct SnapCorpus {
+  // For checking this is actually a snap corpus.
+  uint64_t magic;
+
+  // The expected sizeof(SnapCorpus), for checking the data is in sync with the
+  // code. This should always be located just after the magic, and be checked
+  // just after the magic.
+  uint32_t corpus_type_size;
+
+  // The expected sizeof(Snap), for checking the data is in sync with the code.
+  uint32_t snap_type_size;
+
+  // The corpus data.
+  Snap::Array<const Snap*> snaps;
 };
 
 }  // namespace silifuzz

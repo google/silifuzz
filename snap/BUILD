@@ -49,6 +49,7 @@ cc_library_plus_nolibc(
     name = "snap",
     hdrs = ["snap.h"],
     deps = [
+        "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
     ],
 )

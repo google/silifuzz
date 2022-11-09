@@ -172,6 +172,7 @@ cc_library(
         "@silifuzz//common:memory_state",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//snap",
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
