@@ -25,9 +25,11 @@
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
+#include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/arm64.h"
 #include "third_party/unicorn/unicorn.h"
 
@@ -83,8 +85,19 @@ void SetupMemory(const Snapshot &snapshot, uc_engine *uc, bool log = false) {
                mb.num_bytes());
     }
     const Snapshot::ByteData &data = mb.byte_values();
-    uc_mem_write(uc, mb.start_address(), data.data(), data.size());
+    UNICORN_CHECK(
+        uc_mem_write(uc, mb.start_address(), data.data(), data.size()));
   }
+
+  // Simulate the effect RestoreUContext could have on the stack.
+  GRegSet<AArch64> gregs;
+  absl::Status status = ConvertRegsFromSnapshot(snapshot.registers(), &gregs);
+  if (!status.ok()) {
+    LOG_FATAL("Failed to deserialize registers - ", status.message());
+  }
+  std::string stack_bytes = RestoreUContextStackBytes(gregs);
+  UNICORN_CHECK(uc_mem_write(uc, GetStackPointer(gregs) - stack_bytes.size(),
+                             stack_bytes.data(), stack_bytes.size()));
 }
 
 uint64_t SetupRegisters(const Snapshot &snapshot, uc_engine *uc,

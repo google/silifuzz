@@ -25,8 +25,9 @@
 #include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch_mem.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext_types.h"
+#include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"
 #include "third_party/unicorn/x86.h"
 
@@ -138,6 +139,11 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
   UNICORN_CHECK(uc_mem_map(uc, config.data2_range.start_address,
                            config.data2_range.num_bytes,
                            UC_PROT_READ | UC_PROT_WRITE));
+
+  // Simulate the effect RestoreUContext could have on the stack.
+  std::string stack_bytes = RestoreUContextStackBytes(gregs);
+  UNICORN_CHECK(uc_mem_write(uc, GetStackPointer(gregs) - stack_bytes.size(),
+                             stack_bytes.data(), stack_bytes.size()));
 
   // Emulate up to kMaxInstExecuted instructions.
   uint64_t end_of_code = code_addr + insns.size();
