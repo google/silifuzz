@@ -18,6 +18,7 @@
 #include <sys/mman.h>
 
 #include "gtest/gtest.h"
+#include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -501,9 +502,10 @@ void CheckEntryStackBytes(const GRegSet<AArch64>& gregs, const uint8_t* stack) {
   // Synthesize the expected state of the stack RestoreUContext() switches to.
   uint8_t expected[kStackSize];
   PatternInitStack(expected);
-  uint64_t stack_bytes[] = {0};
-  memcpy(expected + kStackOffset - sizeof(stack_bytes), stack_bytes,
-         sizeof(stack_bytes));
+
+  std::string stack_bytes = RestoreUContextStackBytes(gregs);
+  memcpy(expected + kStackOffset - stack_bytes.size(), stack_bytes.data(),
+         stack_bytes.size());
 
   // Compare.
   for (size_t i = 0; i < kStackSize; i++) {

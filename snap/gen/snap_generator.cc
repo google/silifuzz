@@ -37,11 +37,12 @@
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/snap.h"
+#include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
 #include "./util/ucontext/serialize.h"
-#include "./util/ucontext/ucontext_types.h"
+#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 
@@ -278,18 +279,29 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
       name, kSnapCorpusMagic, snap_var_name_list.size(), elements_var_name));
 }
 
+template <typename Arch>
+static Snapshot::MemoryBytes RestoreUContextStackBytesImpl(
+    const Snapshot &snapshot) {
+  GRegSet<Arch> gregs;
+  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
+  std::string stack_data = RestoreUContextStackBytes(gregs);
+  return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
+                               stack_data);
+}
+
 // The bytes that RestoreUContext() will write into the stack of the
 // snapshot as a (presently unavoidable) part of doing its work
 // when jumping-in to start executing `snapshot`.
 static Snapshot::MemoryBytes RestoreUContextStackBytes(
     const Snapshot &snapshot) {
-  GRegSet<X86_64> gregs;
-  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
-  static constexpr auto reg_size = sizeof(gregs.rax);
-  std::string stack_data;
-  stack_data.append(reinterpret_cast<const char *>(&gregs.eflags), reg_size);
-  stack_data.append(reinterpret_cast<const char *>(&gregs.rip), reg_size);
-  return Snapshot::MemoryBytes(gregs.rsp - stack_data.size(), stack_data);
+  switch (snapshot.architecture()) {
+    case Snapshot::Architecture::kX86_64:
+      return RestoreUContextStackBytesImpl<X86_64>(snapshot);
+    case Snapshot::Architecture::kAArch64:
+      return RestoreUContextStackBytesImpl<AArch64>(snapshot);
+    default:
+      LOG_FATAL("Unexpected architecture: ", snapshot.architecture());
+  }
 }
 
 absl::StatusOr<Snapshot> SnapGenerator::Snapify(const Snapshot &snapshot,

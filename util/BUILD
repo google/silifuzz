@@ -865,10 +865,12 @@ cc_library_plus_nolibc(
 )
 
 cc_library(
-    name = "padding",
-    hdrs = ["padding.h"],
+    name = "arch_mem",
+    srcs = ["arch_mem.cc"],
+    hdrs = ["arch_mem.h"],
     deps = [
         ":arch",
         ":checks",
+        "@silifuzz//util/ucontext:ucontext_types",
     ],
 )

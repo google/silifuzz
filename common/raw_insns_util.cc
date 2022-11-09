@@ -28,7 +28,7 @@
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
-#include "./util/padding.h"
+#include "./util/arch_mem.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {

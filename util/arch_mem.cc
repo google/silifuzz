@@ -12,37 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_UTIL_PADDING_H_
-#define THIRD_PARTY_SILIFUZZ_UTIL_PADDING_H_
+#include "./util/arch_mem.h"
 
-#include <string>
-
-#include "./util/arch.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
 
-// Pad `code` with architecture-specific trap instructions until `code` is
-// exactly `target_size` bytes long.
-// `target_size` - `code`.size() must not be negative and must also be a
-// multiple of the trap instruction size.
-template <typename Arch>
-inline void PadToSizeWithTraps(std::string &code, size_t target_size);
-
 template <>
-inline void PadToSizeWithTraps<X86_64>(std::string &code, size_t target_size) {
+void PadToSizeWithTraps<X86_64>(std::string& code, size_t target_size) {
   CHECK_LE(code.size(), target_size);
   code.resize(target_size, 0xcc);
 }
 
 template <>
-inline void PadToSizeWithTraps<AArch64>(std::string &code, size_t target_size) {
+void PadToSizeWithTraps<AArch64>(std::string& code, size_t target_size) {
   CHECK_LE(code.size(), target_size);
   CHECK_EQ(code.size() % 4, 0);
   CHECK_EQ(target_size % 4, 0);
   code.resize(target_size, 0);
 }
 
-}  // namespace silifuzz
+template <>
+std::string RestoreUContextStackBytes(const GRegSet<X86_64>& gregs) {
+  std::string stack_bytes;
+  stack_bytes.append(reinterpret_cast<const char*>(&gregs.eflags), 8);
+  stack_bytes.append(reinterpret_cast<const char*>(&gregs.rip), 8);
+  return stack_bytes;
+}
 
-#endif  // THIRD_PARTY_SILIFUZZ_UTIL_PADDING_H_
+template <>
+std::string RestoreUContextStackBytes(const GRegSet<AArch64>& gregs) {
+  std::string stack_bytes;
+  // aarch64 RestoreUContext currently zeros out the memory it uses
+  stack_bytes.append(8, 0);
+  return stack_bytes;
+}
+
+}  // namespace silifuzz

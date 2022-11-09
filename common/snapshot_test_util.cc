@@ -23,7 +23,7 @@
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_util.h"
 #include "./proto/snapshot.pb.h"
-#include "./util/padding.h"
+#include "./util/arch_mem.h"
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {

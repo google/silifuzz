@@ -179,6 +179,7 @@ cc_test(
         ":ucontext",
         ":ucontext_types",
         "@com_google_googletest//:gtest_main",
+        "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
@@ -214,6 +215,7 @@ cc_test(
         ":ucontext",
         ":ucontext_types",
         "@com_google_googletest//:gtest_main",
+        "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
