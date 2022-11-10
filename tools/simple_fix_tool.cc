@@ -15,8 +15,10 @@
 #include "./tools/simple_fix_tool.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <fstream>
+#include <iostream>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
@@ -25,6 +27,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "external/centipede/blob_file.h"
 #include "./common/raw_insns_util.h"
@@ -34,12 +37,17 @@
 #include "./tool_libs/fix_tool_common.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 #include "./tool_libs/snap_group.h"
-#include "./util/checks.h"
 #include "./util/span_util.h"
 
 namespace silifuzz {
 namespace fix_tool_internal {
 namespace {
+
+// Counter the number of blobs processed by workers, including ones that are
+// rejected. This is used for tracking progress of simple fix tool. This is a
+// global atomic variable so accessing it can create cache contention among
+// workers. Contention is alleviated by updating this infrequently.
+std::atomic<size_t> num_blobs_processed = 0;
 
 // Arguments for a make worker thread.
 // This is used for both input and output.
@@ -57,8 +65,18 @@ void FixToolWorker(FixToolWorkerArgs& args) {
   CHECK(current_platform != PlatformId::kUndefined);
   PlatformFixToolCounters platform_counters(ShortPlatformName(current_platform),
                                             &args.counters);
+  // To reduce contention of the global blob count, we batch the update.
+  // We update the global count for at least this amount.
+  constexpr size_t kMinCountUpdateSize = 100;
+  size_t count_update = 0;
 
   for (const std::string& blob : args.blobs) {
+    // Update global blobs count.
+    if (++count_update >= kMinCountUpdateSize) {
+      num_blobs_processed.fetch_add(count_update);
+      count_update = 0;
+    }
+
     absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64(blob);
     if (!snapshot.ok()) {
       args.counters.Increment(
@@ -79,7 +97,32 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     args.good_snapshots.push_back(std::move(remade_snapshot_or.value()));
     args.counters.Increment("silifuzz-INFO-FixToolWorker:success");
   }
+
+  num_blobs_processed.fetch_add(count_update);
 }
+
+void MakeProgressMonitor(size_t num_blobs, std::atomic<bool>& stop) {
+  absl::Time start = absl::Now();
+  absl::Duration interval = absl::Seconds(1);
+  absl::Time next_checkpoint = start + interval;
+  const absl::Duration kMaxInterval = absl::Minutes(5);
+  while (true) {
+    const bool stop_monitoring = stop.load();
+    // Print progress at checkpoint or exit.
+    if (stop_monitoring || absl::Now() >= next_checkpoint) {
+      std::cout << "Make snapshot count: " << num_blobs_processed.load()
+                << " of " << num_blobs << std::endl;
+      if (stop_monitoring) {
+        break;  // exit progress monitor.
+      } else {
+        next_checkpoint += interval;
+        interval = std::min(interval * 2, kMaxInterval);
+      }
+    }
+    absl::SleepFor(absl::Seconds(1));
+  }
+}
+
 }  // namespace
 
 std::vector<std::string> ReadUniqueCentipedeBlobs(
@@ -134,6 +177,11 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
   const std::vector<absl::Span<const std::string>> blob_spans =
       PartitionEvenly(blobs, num_workers);
 
+  // Start progress monitor.
+  std::atomic<bool> stop_progress_monitor = false;
+  std::thread progress_monitor = std::thread(MakeProgressMonitor, blobs.size(),
+                                             std::ref(stop_progress_monitor));
+
   // Prepare args.
   std::vector<FixToolWorkerArgs> worker_args;
   worker_args.reserve(num_workers);
@@ -168,6 +216,10 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
               std::back_inserter(made_snapshots));
     work_arg.good_snapshots.clear();
   }
+
+  stop_progress_monitor.store(true);
+  progress_monitor.join();
+
   return made_snapshots;
 }
 

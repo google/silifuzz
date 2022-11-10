@@ -137,7 +137,6 @@ cc_library(
         "@silifuzz//tool_libs:fix_tool_common",
         "@silifuzz//tool_libs:simple_fix_tool_counters",
         "@silifuzz//tool_libs:snap_group",
-        "@silifuzz//util:checks",
         "@silifuzz//util:span_util",
         "@centipede//:blob_file",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -145,6 +144,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
     ],
 )
