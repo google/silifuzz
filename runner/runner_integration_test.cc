@@ -78,7 +78,7 @@ TEST(RunnerTest, SigSegvSnap) {
   const snapshot_types::Endpoint& ep = end_state.endpoint();
   // The two magic addresses are snapshot-dependent but should be stable.
   // See TestSnapshots::Create() for the actual code sequence.
-  const uint64_t start_address = sigSegvReadSnap.registers.gregs.rip;
+  const uint64_t start_address = sigSegvReadSnap.registers->gregs.rip;
   EXPECT_EQ(ep.sig_instruction_address(), start_address + 4);
   EXPECT_EQ(ep.sig_address(), 0x1000000);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigSegv);
@@ -101,7 +101,7 @@ TEST(RunnerTest, INT3Snap) {
   const snapshot_types::Endpoint& ep =
       result.player_result().actual_end_state->endpoint();
   // See TestSnapshots::Create() for the actual code sequence.
-  const uint64_t start_address = int3Snap.registers.gregs.rip;
+  const uint64_t start_address = int3Snap.registers->gregs.rip;
   EXPECT_EQ(ep.sig_instruction_address(), start_address);
   EXPECT_EQ(ep.sig_address(), 0x0);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigTrap);

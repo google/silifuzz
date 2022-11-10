@@ -113,6 +113,9 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
   if (corpus.snap_type_size != sizeof(Snap)) {
     return Error::kBadData;
   }
+  if (corpus.register_state_type_size != sizeof(Snap::RegisterState)) {
+    return Error::kBadData;
+  }
 
   RETURN_IF_RELOCATION_FAILED(AdjustArray(corpus.snaps));
   for (size_t i = 0; i < corpus.snaps.size; ++i) {
@@ -124,6 +127,10 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
     Snap& snap = *const_cast<Snap*>(corpus.snaps[i]);
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.id));
     RETURN_IF_RELOCATION_FAILED(AdjustArray(snap.memory_mappings));
+
+    // Adjust register pointers.
+    RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.registers));
+    RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.end_state_registers));
 
     // Adjust memory bytes arrays.
     RETURN_IF_RELOCATION_FAILED(RelocateMemoryBytesArray(snap.memory_bytes));

@@ -226,7 +226,7 @@ class SnapGenerator {
   void GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data);
 
   // Generates code for the contents of 'registers'.
-  void GenerateRegisters(const Snapshot::RegisterState &registers);
+  VarName GenerateRegisters(const Snapshot::RegisterState &registers);
 
   // Output stream for the generator.
   std::ostream &output_stream_;

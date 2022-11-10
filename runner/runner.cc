@@ -360,9 +360,9 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
     return RunSnapOutcome::kExecutionMisbehave;
   }
   // Verify register state.
-  if (!MemEq(&end_spot.gregs, &snap.end_state_registers.gregs,
+  if (!MemEq(&end_spot.gregs, &snap.end_state_registers->gregs,
              sizeof(end_spot.gregs)) ||
-      !MemEq(&end_spot.fpregs, &snap.end_state_registers.fpregs,
+      !MemEq(&end_spot.fpregs, &snap.end_state_registers->fpregs,
              sizeof(end_spot.fpregs))) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
@@ -392,7 +392,7 @@ void PrepareSnapMemory(const Snap& snap) {
 RunSnapResult RunSnap(const Snap& snap) {
   PrepareSnapMemory(snap);
   int64_t cpu_id = GetCPUIdNoSyscall();
-  EndSpot end_spot = RunSnap(snap.registers);
+  EndSpot end_spot = RunSnap(*snap.registers);
   if (cpu_id != GetCPUIdNoSyscall()) {
     cpu_id = kUnknownCPUId;
   }
@@ -445,12 +445,12 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
       // state.
       // See SnapGenerator::Options::allow_undefined_end_state for details.
       bool log_diff =
-          GetInstructionPointer(snap.end_state_registers.gregs) != 0;
-      LogGRegs(run_result.end_spot.gregs, &snap.end_state_registers.gregs,
+          GetInstructionPointer(snap.end_state_registers->gregs) != 0;
+      LogGRegs(run_result.end_spot.gregs, &snap.end_state_registers->gregs,
                log_diff);
       LOG_INFO("  fpregs (modified only):");
       LogFPRegs(run_result.end_spot.fpregs, true,
-                &snap.end_state_registers.fpregs, log_diff);
+                &snap.end_state_registers->fpregs, log_diff);
     } else if (run_result.outcome == RunSnapOutcome::kMemoryMismatch) {
       LOG_INFO("Memory state mismatch (details omitted)");
     } else if (run_result.outcome == RunSnapOutcome::kExecutionMisbehave) {

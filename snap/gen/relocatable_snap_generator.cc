@@ -178,6 +178,7 @@ class Traversal {
   RelocatableDataBlock memory_mapping_block_;
   RelocatableDataBlock byte_data_block_;
   RelocatableDataBlock string_block_;
+  RelocatableDataBlock register_state_block_;
 
   // Hash map for de-duping byte data.
   ByteDataRefMap byte_data_ref_map_;
@@ -307,6 +308,11 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
   RelocatableDataBlock::Ref end_state_memory_bytes_elements_ref =
       Process(pass, end_state.memory_bytes(), snapshot.mapped_memory_map());
 
+  RelocatableDataBlock::Ref registers_ref =
+      register_state_block_.AllocateObjectsOfType<Snap::RegisterState>(1);
+  RelocatableDataBlock::Ref end_state_registers_ref =
+      register_state_block_.AllocateObjectsOfType<Snap::RegisterState>(1);
+
   if (pass == PassType::kGeneration) {
     memcpy(id_ref.contents(), snapshot.id().c_str(), snapshot.id().size() + 1);
 
@@ -327,8 +333,13 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                 memory_bytes_elements_ref
                     .load_address_as_pointer_of<const Snap::MemoryBytes>(),
         },
+        .registers =
+            registers_ref.load_address_as_pointer_of<Snap::RegisterState>(),
         .end_state_instruction_address =
             end_state.endpoint().instruction_address(),
+        .end_state_registers =
+            end_state_registers_ref
+                .load_address_as_pointer_of<Snap::RegisterState>(),
         .end_state_memory_bytes{
             .size = end_state.memory_bytes().size(),
             .elements =
@@ -336,11 +347,15 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                     .load_address_as_pointer_of<const Snap::MemoryBytes>(),
         },
     };
-    SetRegisterState(snapshot.registers(), &snap->registers,
-                     /*allow_empty_register_state=*/false);
+    SetRegisterState(
+        snapshot.registers(),
+        registers_ref.contents_as_pointer_of<Snap::RegisterState>(),
+        /*allow_empty_register_state=*/false);
     // End state may be undefined initially in the making process.
-    SetRegisterState(end_state.registers(), &snap->end_state_registers,
-                     /*allow_empty_register_state=*/true);
+    SetRegisterState(
+        end_state.registers(),
+        end_state_registers_ref.contents_as_pointer_of<Snap::RegisterState>(),
+        /*allow_empty_register_state=*/true);
   }
 }
 
@@ -376,12 +391,15 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   main_block_.Allocate(memory_mapping_block_);
   main_block_.Allocate(byte_data_block_);
   main_block_.Allocate(string_block_);
+  main_block_.Allocate(register_state_block_);
 
   if (pass == PassType::kGeneration) {
     new (corpus_ref.contents()) SnapCorpus{
         .magic = kSnapCorpusMagic,
         .corpus_type_size = sizeof(SnapCorpus),
         .snap_type_size = sizeof(Snap),
+        .register_state_type_size = sizeof(Snap::RegisterState),
+        .padding0 = 0,
         .snaps =
             {
                 .size = snapshots.size(),
@@ -422,6 +440,7 @@ void Traversal::PrepareSnapGeneration(char* content_buffer,
   prepare_sub_data_block(memory_mapping_block_);
   prepare_sub_data_block(byte_data_block_);
   prepare_sub_data_block(string_block_);
+  prepare_sub_data_block(register_state_block_);
 
   // Reset main block again for generation pass.
   main_block_.ResetSizeAndAlignment();

@@ -149,7 +149,7 @@ struct Snap {
   Array<MemoryBytes> memory_bytes;
 
   // The state of the registers at the start of the snapshot.
-  RegisterState registers;
+  RegisterState* registers;
 
   // The only possible expected end-state of executing the snapshot.
   // We do not allow multiple end states.
@@ -158,7 +158,7 @@ struct Snap {
   uint64_t end_state_instruction_address;
 
   // The expected state of the registers to exist at `endpoint`.
-  RegisterState end_state_registers;
+  RegisterState* end_state_registers;
 
   // The expected memory state to exist at `endpoint`.
   // These must cover all writable memory bytes not just deltas compared to
@@ -197,6 +197,12 @@ struct SnapCorpus {
 
   // The expected sizeof(Snap), for checking the data is in sync with the code.
   uint32_t snap_type_size;
+
+  // The expected size of the register state.
+  uint32_t register_state_type_size;
+
+  // Make the unused space in this struct explicit.
+  uint32_t padding0;
 
   // The corpus data.
   Snap::Array<const Snap*> snaps;

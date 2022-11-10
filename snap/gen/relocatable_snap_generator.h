@@ -55,6 +55,8 @@ namespace silifuzz {
 // +---------------------------+
 // | string array              |
 // +---------------------------+
+// | Snap::RegisterState array |
+// +---------------------------+
 //
 // The parts are aligned with respect to their individual requirements and the
 // whole corpus is loaded with alignment not smaller than the maximum alignment
@@ -87,6 +89,11 @@ namespace silifuzz {
 //
 // 7. String array.
 // Snapshot IDs.
+//
+// 8. Snap::RegisterState array.
+// These are the registers that specify the entry and exit state of each Snap.
+// This data is stored out-of-line from the Snap structure so that relocating
+// the Snap doesn't dirty the pages containg register data.
 
 // Options passed to relocatable Snap corpus generator.
 struct RelocatableSnapGeneratorOptions {

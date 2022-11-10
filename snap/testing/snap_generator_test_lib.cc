@@ -159,7 +159,7 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
   VerifySnapMemoryBytesArray("memory_bytes", snapified_snapshot.memory_bytes(),
                              snap.memory_bytes,
                              snapified_snapshot.mapped_memory_map());
-  VerifySnapRegisterState(snapified_snapshot.registers(), snap.registers);
+  VerifySnapRegisterState(snapified_snapshot.registers(), *snap.registers);
   CHECK_EQ(snapified_snapshot.expected_end_states().size(), 1);
   const Snapshot::EndState& end_state =
       snapified_snapshot.expected_end_states()[0];
@@ -168,7 +168,7 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
   VerifySnapField("end_state_instruction_address",
                   endpoint.instruction_address(),
                   snap.end_state_instruction_address);
-  VerifySnapRegisterState(end_state.registers(), snap.end_state_registers);
+  VerifySnapRegisterState(end_state.registers(), *snap.end_state_registers);
   VerifySnapMemoryBytesArray("memory_bytes", end_state.memory_bytes(),
                              snap.end_state_memory_bytes,
                              snapified_snapshot.mapped_memory_map());

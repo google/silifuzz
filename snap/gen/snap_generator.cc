@@ -234,6 +234,11 @@ absl::Status SnapGenerator::GenerateSnap(const VarName &name,
   const VarName memory_mappings_var_name =
       GenerateMemoryMappingList(snapified.memory_mappings());
 
+  const VarName registers_name = GenerateRegisters(snapified.registers());
+
+  const VarName end_state_registers_name =
+      GenerateRegisters(end_state.registers());
+
   // Generate code for Snap
   PrintLn("static const Snap ", name, " {");
 
@@ -245,14 +250,10 @@ absl::Status SnapGenerator::GenerateSnap(const VarName &name,
   PrintLn(".memory_bytes=",
           ArrayString(snapified.memory_bytes().size(), memory_bytes_var_name),
           ",");
-  Print(".registers = ");
-  GenerateRegisters(snapified.registers());
-  PrintLn(",");
+  PrintLn(".registers=&", registers_name, ",");
   PrintLn(".end_state_instruction_address=",
           AddressString(endpoint.instruction_address()), ",");
-  Print(".end_state_registers = ");
-  GenerateRegisters(end_state.registers());
-  PrintLn(",");
+  PrintLn(".end_state_registers=&", end_state_registers_name, ",");
   PrintLn(".end_state_memory_bytes=",
           ArrayString(end_state.memory_bytes().size(),
                       end_state_memory_bytes_var_name),
@@ -274,7 +275,9 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
 
   PrintLn(absl::StrFormat(
       "extern const SnapCorpus %s = { .magic = 0x%lx, .corpus_type_size = "
-      "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), .snaps = { .size = "
+      "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), "
+      ".register_state_type_size = sizeof(Snap::RegisterState), .padding0 = 0, "
+      ".snaps = { .size = "
       "%zd, .elements = %s }};",
       name, kSnapCorpusMagic, snap_var_name_list.size(), elements_var_name));
 }
@@ -724,16 +727,18 @@ void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 #endif  // __x86_64__
 }
 
-void SnapGenerator::GenerateRegisters(
+SnapGenerator::VarName SnapGenerator::GenerateRegisters(
     const Snapshot::RegisterState &registers) {
-  // RegisterState is not a POD class and we need to use a special
-  // constructor that converts ConstexprRegisterState in order to
-  // make it linker initialized.
-  Print("{ .fpregs = ");
+  VarName var_name = LocalVarName("local_registers");
+  PrintLn("Snap::RegisterState ", var_name, " = {");
+  Print("  .fpregs = ");
   GenerateFPRegs(registers.fpregs());
-  Print(", .gregs = ");
+  PrintLn(",");
+  Print("  .gregs = ");
   GenerateGRegs(registers.gregs());
-  Print("}");
+  PrintLn(",");
+  PrintLn("};");
+  return var_name;
 }
 
 }  // namespace silifuzz
