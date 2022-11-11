@@ -19,11 +19,11 @@ The generated source code describes how to build Snapshots that will be used for
 testing.
 
 If you are running on x86_64, you may need to install GCC for AArch64.
-sudo apt-get -y install gcc-aarch64-linux-gnu
+sudo apt-get -y install gcc-aarch64-linux-gnu binutils-multiarch
 
 To run:
-./third_party/silifuzz/common/generate_tests.py > \
-third_party/silifuzz/common/snapshot_test_config.cc && hg fix
+./third_party/silifuzz/common/generate_tests.py | clang-format > \
+third_party/silifuzz/common/snapshot_test_config.cc
 """
 
 import argparse
