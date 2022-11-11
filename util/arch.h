@@ -17,21 +17,23 @@
 
 namespace silifuzz {
 
-// Arch::type_tag is a value that should be distinct for each Arch, allowing the
-// type to be turned into a value when needed.
 // By convention these values match Snapshot::Architecture::* so that it can be
 // easily converted to that enum.
-// Note that zero is not used as a type tag to make it easier to detect
+// Note that zero is an invalid architecture to make it easier to detect
 // uninitialized values.
 
+enum class ArchitectureId {
+  kUndefined = 0,
+  kX86_64 = 1,
+  kAArch64 = 2,
+};
+
 struct X86_64 {
-  // Should be equal to Snapshot::Architecture::kX86_64
-  static constexpr int type_tag = 1;
+  static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;
 };
 
 struct AArch64 {
-  // Should be equal to Snapshot::Architecture::kAArch64
-  static constexpr int type_tag = 2;
+  static constexpr ArchitectureId architecture_id = ArchitectureId::kAArch64;
 };
 
 #if defined(__x86_64__)

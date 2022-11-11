@@ -123,7 +123,7 @@ class Snapshot final {
 
   template <typename Arch>
   static Architecture ArchitectureTypeToEnum() {
-    return static_cast<Architecture>(Arch::type_tag);
+    return static_cast<Architecture>(Arch::architecture_id);
   }
 
   // Constructs empty Snapshot with the given id for the given Architecture
