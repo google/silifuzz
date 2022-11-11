@@ -129,6 +129,7 @@ class TestSnapshot:
   data_num_bytes: int
   instruction_bytes: bytes
   disassembly: str
+  oss_strip: bool
 
 
 class Builder:
@@ -143,7 +144,8 @@ class Builder:
                normal_end=True,
                stack_bytes_used=0,
                src=None,
-               raw_bytes=None):
+               raw_bytes=None,
+               oss_strip=False):
     with tempfile.TemporaryDirectory() as temp_dir:
       bin_filename = os.path.join(temp_dir, "example.bin")
 
@@ -175,6 +177,7 @@ class Builder:
               data_num_bytes=PAGE_SIZE,
               instruction_bytes=instruction_bytes,
               disassembly=disassembly,
+              oss_strip=oss_strip,
           ))
 
       arch.test_count += 1
@@ -454,6 +457,11 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 """)
 
   for s in b.snapshots:
+    if s.oss_strip:
+      # String literal is broken in the middle intentionally to avoid confusing
+      # OSS export tool.
+      out.write("// oss" + ":strip-begin\n")
+
     # Note: using json.dumps to get a double-quoted string.
     out.write(f"""\
     {{
@@ -476,6 +484,11 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
         .stack_bytes_used = {s.stack_bytes_used},
     }},
 """)
+
+    if s.oss_strip:
+      # String literal is broken in the middle intentionally to avoid confusing
+      # OSS export tool.
+      out.write("// oss" + ":strip-end\n")
 
   out.write("""};
 
@@ -518,6 +531,7 @@ def main():
             data_num_bytes=PAGE_SIZE,
             instruction_bytes=bytes([1, 2, 3, 4]),
             disassembly="Mock disassembly",
+            oss_strip=False,
         ))
   generate_source(b, sys.stdout)
 
