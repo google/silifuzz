@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
 
+#include "./util/arch.h"
 #include "./util/enum_flag.h"
 #include "./util/misc_util.h"
 
@@ -58,6 +59,8 @@ const char* ShortPlatformName(PlatformId platform);
 // Returns the PlatformId of where this code runs on or kUndefined if
 // we don't have a needed PlatformId value defined or it can't be determined.
 PlatformId CurrentPlatformId();
+
+ArchitectureId PlatformArchitecture(PlatformId platform);
 
 }  // namespace silifuzz
 

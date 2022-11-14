@@ -28,6 +28,8 @@ TEST(PlatformTest, CurrentPlatformId) {
   ASSERT_NE(CurrentPlatformId(), PlatformId::kUndefined)
       << "New platform was added to the fleet. Look at the error log and update"
       << " PlatformId enum accordingly";
+
+  ASSERT_EQ(PlatformArchitecture(CurrentPlatformId()), Host::architecture_id);
 }
 
 }  // namespace

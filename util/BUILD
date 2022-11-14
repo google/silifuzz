@@ -662,6 +662,7 @@ cc_library(
     }),
     hdrs = ["platform.h"],
     deps = [
+        ":arch",
         ":checks",
         ":enum_flag",
         ":itoa",

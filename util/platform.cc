@@ -14,7 +14,9 @@
 
 #include "./util/platform.h"
 
+#include "./util/checks.h"
 #include "./util/enum_flag.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -42,6 +44,35 @@ ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
 
 const char* ShortPlatformName(PlatformId platform) {
   return kShortPlatformNames[ToInt(platform)];
+}
+
+ArchitectureId PlatformArchitecture(PlatformId platform) {
+  switch (platform) {
+    case PlatformId::kIntelSkylake:
+    case PlatformId::kIntelHaswell:
+    case PlatformId::kIntelBroadwell:
+    case PlatformId::kIntelIvybridge:
+    case PlatformId::kIntelCascadelake:
+    case PlatformId::kAmdRome:
+    case PlatformId::kIntelIcelake:
+    case PlatformId::kAmdMilan:
+    case PlatformId::kIntelSapphireRapids:
+    case PlatformId::kAmdGenoa:
+    case PlatformId::kIntelCoffeelake:
+    case PlatformId::kIntelAlderlake:
+      return ArchitectureId::kX86_64;
+    case PlatformId::kArmNeoverseN1:
+      return ArchitectureId::kAArch64;
+    case PlatformId::kUndefined:
+    case PlatformId::kAny:
+    case PlatformId::kNonExistent:
+      LOG_FATAL("Tried to get architecture for meta-platform ID: ",
+                EnumStr(platform));
+  }
+
+  // Doing this here instead of as a default: case so -Werror,-Wswitch can catch
+  // missing platforms at compile time.
+  LOG_FATAL("Architecture not listed for platform ID: ", EnumStr(platform));
 }
 
 }  // namespace silifuzz
