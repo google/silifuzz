@@ -146,9 +146,6 @@ TEST_F(BinaryLogChannelTest, ConsumerShutdown) {
 
 // Check that we got expected error status when the channel is created with
 // back descriptor.
-// TODO(ksteuck) Fix this test under Bazel. Internally, InitGoogle ignores
-// SIGPIPE and allows EPIPE to be delivered. We need to figure out a way to
-// similarly ignore SIGPIPE in OSS.
 TEST_F(BinaryLogChannelTest, BadDescriptor) {
   absl::Status producer_status;
   std::thread producer_thread([&producer_status]() {
