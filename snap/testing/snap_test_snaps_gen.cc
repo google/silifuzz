@@ -44,14 +44,16 @@ namespace silifuzz {
 namespace {
 
 absl::Status GenerateRelocatableRunnerCorpus() {
+  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+  opts.compress_repeating_bytes = true;
+
+  // Build the test Snapshot corpus.
   SnapGenerator::VarNameList runner_test_snap_names;
   const int first_runner_test_type =
       ToInt(SnapRunnerTestType::kFirstSnapRunnerTest);
   const int last_runner_test_type =
       ToInt(SnapRunnerTestType::kLastSnapRunnerTest);
   std::vector<Snapshot> snapified_corpus;
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
-  opts.compress_repeating_bytes = true;
   for (int type = first_runner_test_type; type <= last_runner_test_type;
        ++type) {
     Snapshot snapshot =
@@ -60,10 +62,14 @@ absl::Status GenerateRelocatableRunnerCorpus() {
                                SnapGenerator::Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
+
+  // Generate the SnapCorpus data.
   RelocatableSnapGeneratorOptions options;
   options.compress_repeating_bytes = opts.compress_repeating_bytes;
-  MmappedMemoryPtr<char> buffer =
-      GenerateRelocatableSnaps(snapified_corpus, options);
+  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(
+      X86_64::architecture_id, snapified_corpus, options);
+
+  // Output.
   absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
   if (!WriteToFileDescriptor(STDOUT_FILENO, buf)) {
     return absl::InternalError("WriteToFileDescriptor failed");
@@ -99,6 +105,7 @@ absl::Status GenerateSource() {
 
   // Print SnapArray containing pointers to Snaps generated above.
   generator.GenerateSnapArray("kSnapGeneratorTestCorpus",
+                              X86_64::architecture_id,
                               generator_test_snap_names);
 
   // Generate runner test snaps.
@@ -121,10 +128,12 @@ absl::Status GenerateSource() {
   CHECK_EQ(last_runner_test_type + 1, runner_test_snap_names.size());
 
   // Print SnapArray containing pointers to Snaps generated above.
-  generator.GenerateSnapArray("kSnapRunnerTestCorpus", runner_test_snap_names);
+  generator.GenerateSnapArray("kSnapRunnerTestCorpus", X86_64::architecture_id,
+                              runner_test_snap_names);
 
   // Also use the same runner test snaps to produce the default corpus.
-  generator.GenerateSnapArray("kDefaultSnapCorpus", runner_test_snap_names);
+  generator.GenerateSnapArray("kDefaultSnapCorpus", X86_64::architecture_id,
+                              runner_test_snap_names);
 
   generator.FileEnd();
 

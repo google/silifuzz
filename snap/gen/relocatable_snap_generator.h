@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "./common/snapshot.h"
+#include "./util/arch.h"
 #include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
@@ -101,15 +102,17 @@ struct RelocatableSnapGeneratorOptions {
   bool compress_repeating_bytes = true;
 };
 
-// Generates a relocatable Snap corpus from `snapshots` with `options`.
+// Generates a relocatable Snap corpus for `architecture_id` from `snapshots`
+// with `options`.
 //
 // RETURNS a MmappedMemoryPtr to a buffer containing the relocatable corpus.
 //
 // REQUIRES: `snapshots` are snapified.
+// REQUIRES: the architecture of each snapshot matches `architecture_id`.
 //
 // This function is thread-safe.
 MmappedMemoryPtr<char> GenerateRelocatableSnaps(
-    const std::vector<Snapshot>& snapshots,
+    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots,
     const RelocatableSnapGeneratorOptions& options = {});
 
 }  // namespace silifuzz

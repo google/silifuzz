@@ -49,7 +49,8 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
     snapified_corpus.emplace_back(std::move(snapified));
   }
 
-  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(snapified_corpus);
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(Host::architecture_id, snapified_corpus);
   auto tmpfile = CreateTempFile(
       UnitTest::GetInstance()->current_test_info()->test_case_name());
   ASSERT_TRUE(
@@ -62,7 +63,8 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
 
 TEST(SnapCorpusUtilTest, LoadEmptyCorpus) {
   std::vector<Snapshot> snapified_corpus;
-  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(snapified_corpus);
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(Host::architecture_id, snapified_corpus);
   auto tmpfile = CreateTempFile(
       UnitTest::GetInstance()->current_test_info()->test_case_name());
   ASSERT_TRUE(

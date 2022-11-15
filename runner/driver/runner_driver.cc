@@ -215,7 +215,8 @@ absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
   std::vector<Snapshot> corpus;
   corpus.push_back(snapshot.Copy());
 
-  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(corpus);
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(Host::architecture_id, corpus);
   size_t buffer_size = MmappedMemorySize(buffer);
 
   // Allocate an anonymous memfile, copy the relocatable buffer contents there,

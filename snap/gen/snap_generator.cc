@@ -264,6 +264,7 @@ absl::Status SnapGenerator::GenerateSnap(const VarName &name,
 }
 
 void SnapGenerator::GenerateSnapArray(const VarName &name,
+                                      ArchitectureId architecture_id,
                                       const VarNameList &snap_var_name_list) {
   const VarName elements_var_name = absl::StrCat("elements_of_", name);
   Print(absl::StrFormat("static const Snap* const %s[%zd] = {",
@@ -276,10 +277,11 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
   PrintLn(absl::StrFormat(
       "extern const SnapCorpus %s = { .magic = 0x%lx, .corpus_type_size = "
       "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), "
-      ".register_state_type_size = sizeof(Snap::RegisterState), .padding0 = 0, "
-      ".snaps = { .size = "
-      "%zd, .elements = %s }};",
-      name, kSnapCorpusMagic, snap_var_name_list.size(), elements_var_name));
+      ".register_state_type_size = sizeof(Snap::RegisterState), "
+      ".architecture_id = %d, .padding = {}, .snaps = { .size = %zd, .elements "
+      "= %s }};",
+      name, kSnapCorpusMagic, architecture_id, snap_var_name_list.size(),
+      elements_var_name));
 }
 
 template <typename Arch>

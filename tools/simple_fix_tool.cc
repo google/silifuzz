@@ -275,7 +275,8 @@ void WriteOutputFiles(const std::vector<std::vector<Snapshot>>& shards,
                       absl::string_view output_path_prefix,
                       SimpleFixToolCounters* counters) {
   for (int i = 0; i < shards.size(); ++i) {
-    auto relocatable = GenerateRelocatableSnaps(shards[i]);
+    auto relocatable =
+        GenerateRelocatableSnaps(Host::architecture_id, shards[i]);
     const std::string file_name =
         absl::StrFormat("%s.%05d", output_path_prefix, i);
     std::ofstream os(file_name);

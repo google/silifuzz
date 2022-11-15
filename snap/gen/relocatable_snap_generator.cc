@@ -32,6 +32,7 @@
 #include "./snap/gen/relocatable_data_block.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/ucontext/serialize.h"
@@ -69,8 +70,9 @@ void SetRegisterState(const Snapshot::RegisterState& src,
 // This class is not thread-safe.
 class Traversal {
  public:
-  explicit Traversal(const RelocatableSnapGeneratorOptions& options)
-      : options_(options) {}
+  Traversal(ArchitectureId architecture_id,
+            const RelocatableSnapGeneratorOptions& options)
+      : architecture_id_(architecture_id), options_(options) {}
   ~Traversal() = default;
 
   // Not copyable or moveable.
@@ -164,6 +166,9 @@ class Traversal {
   using ByteDataRefMap =
       absl::flat_hash_map<const Snapshot::ByteData*, RelocatableDataBlock::Ref,
                           HashByteData, ByteDataEq>;
+
+  // The architecture of the SnapCorpus under construction.
+  ArchitectureId architecture_id_;
 
   // Options.
   RelocatableSnapGeneratorOptions options_;
@@ -298,6 +303,8 @@ RelocatableDataBlock::Ref Traversal::Process(
 
 void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                                  RelocatableDataBlock::Ref snapshot_ref) {
+  CHECK_EQ(static_cast<int>(snapshot.architecture()),
+           static_cast<int>(architecture_id_));
   size_t id_size = snapshot.id().size() + 1;  // NUL character terminator.
   RelocatableDataBlock::Ref id_ref = string_block_.Allocate(id_size, 1);
   RelocatableDataBlock::Ref memory_mappings_elements_ref =
@@ -399,7 +406,8 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
         .corpus_type_size = sizeof(SnapCorpus),
         .snap_type_size = sizeof(Snap),
         .register_state_type_size = sizeof(Snap::RegisterState),
-        .padding0 = 0,
+        .architecture_id = static_cast<uint8_t>(architecture_id_),
+        .padding = {},
         .snaps =
             {
                 .size = snapshots.size(),
@@ -452,9 +460,11 @@ void Traversal::PrepareSnapGeneration(char* content_buffer,
 }  // namespace
 
 MmappedMemoryPtr<char> GenerateRelocatableSnaps(
-    const std::vector<Snapshot>& snapshots,
+    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots,
     const RelocatableSnapGeneratorOptions& options) {
-  Traversal traversal(options);
+  CHECK(architecture_id != ArchitectureId::kUndefined);
+
+  Traversal traversal(architecture_id, options);
   traversal.Process(Traversal::PassType::kLayout, snapshots);
 
   // Check that the whole corpus has alignment requirement not exceeding page

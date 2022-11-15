@@ -49,8 +49,8 @@ namespace {
 // Generates a relocatable corpus from source `snapshots` and relocates it
 // to the mmap buffer address.
 MmappedMemoryPtr<const SnapCorpus> GenerateRelocatedCorpus(
-    const std::vector<Snapshot>& snapshots) {
-  auto relocatable = GenerateRelocatableSnaps(snapshots);
+    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots) {
+  auto relocatable = GenerateRelocatableSnaps(architecture_id, snapshots);
   SnapRelocator::Error error;
   auto relocated_corpus =
       SnapRelocator::RelocateCorpus(std::move(relocatable), &error);
@@ -65,7 +65,7 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   TestSnapshots::Options create_options = TestSnapshots::Options::Default();
   create_options.force_undefined_state = true;
   Snapshot snapshot =
-      TestSnapshots::Create(TestSnapshots::Type::kEmpty, create_options);
+      TestSnapshots::Create<Host>(TestSnapshots::Type::kEmpty, create_options);
 
   SnapGenerator::Options snapify_options =
       SnapGenerator::Options::V2InputRunOpts();
@@ -74,7 +74,8 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
                        SnapGenerator::Snapify(snapshot, snapify_options));
   std::vector<Snapshot> corpus;
   corpus.push_back(std::move(snapified));
-  auto relocated_corpus = GenerateRelocatedCorpus(corpus);
+  auto relocated_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, corpus);
   EXPECT_EQ(relocated_corpus->snaps.at(0)->id, snapshot.id());
 }
 
@@ -91,7 +92,8 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
     corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_corpus = GenerateRelocatedCorpus(corpus);
+  auto relocated_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, corpus);
   auto snapshotFromSnap =
       SnapToSnapshot(*relocated_corpus->snaps.at(0), CurrentPlatformId());
   ASSERT_OK(snapshotFromSnap);
@@ -115,7 +117,8 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
     snapified_corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_corpus = GenerateRelocatedCorpus(snapified_corpus);
+  auto relocated_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, snapified_corpus);
 
   // Verify relocated Snap corpus is equivalent to the original Snapshots.
   ASSERT_EQ(snapified_corpus.size(), relocated_corpus->snaps.size);
@@ -165,7 +168,8 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   std::vector<Snapshot> snapified_corpus;
   snapified_corpus.push_back(std::move(snapified));
 
-  auto relocated_corpus = GenerateRelocatedCorpus(snapified_corpus);
+  auto relocated_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, snapified_corpus);
 
   // Test byte data should appear twice in two MemoryBytes objects but
   // the array element addresses should be the same.

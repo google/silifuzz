@@ -73,6 +73,7 @@ cc_library(
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//snap",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util/ucontext:serialize",

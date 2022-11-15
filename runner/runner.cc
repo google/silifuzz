@@ -290,6 +290,8 @@ void ApplyProcMapsFixups(ProcMapsEntry proc_maps_entries[],
 // range checks before adding memory mappings into the runners address
 // space and dies if a conflict is detected.
 void MapCorpus(const SnapCorpus& corpus) {
+  CHECK(corpus.IsArch<Host>());
+
   // On x86_64, we should only need 8 entries to describe all memory ranges when
   // running a fully static runner. 20 is more than enough to avoid overflow.
   constexpr size_t kMaxProcMapsEntries = 20;

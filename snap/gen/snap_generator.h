@@ -118,10 +118,10 @@ class SnapGenerator {
   absl::Status GenerateSnap(const VarName &name, const Snapshot &snapshot,
                             const Options &opts = Options::Default());
 
-  // Generate C++ source code to define a Snap::Corpus variable
+  // Generate C++ source code to define a SnapCorpus variable
   // called 'name' using a VarNameList containing variable names of previously
   // generated Snaps.
-  void GenerateSnapArray(const VarName &name,
+  void GenerateSnapArray(const VarName &name, ArchitectureId architecture_id,
                          const VarNameList &snap_var_name_list);
 
   // Convert 'snapshot' into a form that GenerateSnap() can convert into a

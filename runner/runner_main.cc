@@ -32,6 +32,7 @@
 #include "./runner/default_snap_corpus.h"
 #include "./runner/runner.h"
 #include "./runner/runner_flags.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
@@ -56,6 +57,13 @@ int Main(int argc, char* argv[]) {
     LOG_ERROR("Empty baked in corpus or no corpus file name was specified");
     return EXIT_FAILURE;
   }
+
+  if (!options.corpus->IsArch<Host>()) {
+    LOG_ERROR("Corpus has architecture ", options.corpus->architecture_id,
+              " but expected ", Host::architecture_id);
+    return EXIT_FAILURE;
+  }
+
   options.cpu = FLAGS_cpu;
   options.snap_id = FLAGS_snap_id;
   options.num_iterations = FLAGS_num_iterations;

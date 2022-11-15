@@ -149,8 +149,8 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
   // TODO(ksteuck): Call PartitionSnapshots() to ensure there are no conflicts.
 
   RelocatableSnapGeneratorOptions options;
-  MmappedMemoryPtr<char> buffer =
-      GenerateRelocatableSnaps(snapified_corpus, options);
+  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(
+      PlatformArchitecture(platform_id), snapified_corpus, options);
   absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
   if (!WriteToFileDescriptor(STDOUT_FILENO, buf)) {
     return absl::InternalError("WriteToFileDescriptor failed");

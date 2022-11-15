@@ -350,6 +350,7 @@ cc_library_nolibc(
         ":runner",
         ":runner_flags",
         "@silifuzz//snap",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
     ],
 )
