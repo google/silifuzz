@@ -23,7 +23,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
-#include "third_party/libxed/xed-reg-enum.h"
 #include "./util/testing/status_matchers.h"
 
 extern "C" {
@@ -341,6 +340,115 @@ TEST(DecodedInsn, ConstructWithAddress) {
   DecodedInsn insn("\x74\x02", 0x123000);
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "jz 0x123004");
+}
+
+TEST(DecodedInsn, IsStringOp) {
+  struct TestCase {
+    const char* raw_bytes = nullptr;   // insturction bytes.
+    const char* diassembly = nullptr;  // expected value for DebugString().
+    bool is_string_op = false;         // expected value for is_string_op().
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {
+          .raw_bytes = "\x67\xa4",
+          .diassembly = "movsb byte ptr [edi], byte ptr [esi]",
+          .is_string_op = true,
+      },
+      {
+          .raw_bytes = "\x67\xa6",
+          .diassembly = "cmpsb byte ptr [esi], byte ptr [edi]",
+          .is_string_op = true,
+      },
+      {
+          .raw_bytes = "\xf3\xa4",
+          .diassembly = "rep movsb byte ptr [rdi], byte ptr [rsi]",
+          .is_string_op = true,
+      },
+      {
+          // Not a string operation.
+          .raw_bytes = "\x90",
+          .diassembly = "nop",
+          .is_string_op = false,
+      },
+      {
+          // I/O string operations are a separate category.
+          .raw_bytes = "\x6e",
+          .diassembly = "outsb",
+          .is_string_op = false,
+      },
+  };
+
+  for (const auto& test_case : test_cases) {
+    DecodedInsn insn(test_case.raw_bytes);
+    ASSERT_TRUE(insn.is_valid());
+    EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+              test_case.diassembly);
+    EXPECT_EQ(test_case.is_string_op, insn.is_string_op());
+  }
+}
+
+TEST(DecodedInsn, RexBits) {
+  struct TestCase {
+    const char* raw_bytes = nullptr;
+    const char* diassembly = nullptr;
+    uint8_t rex_bits = 0;
+  };
+
+  const std::vector<TestCase> test_cases = {
+      {
+          // rex.B
+          .raw_bytes = "\x41\x89\xc1",
+          .diassembly = "mov r9d, eax",
+          .rex_bits = DecodedInsn::kRexB,
+      },
+      {
+          // rex.X
+          .raw_bytes = "\x67\x42\x89\x04\x09",
+          .diassembly = "mov dword ptr [ecx+r9d*1], eax",
+          .rex_bits = DecodedInsn::kRexX,
+      },
+      {
+          // rex.R
+          .raw_bytes = "\x44\x89\xc1",
+          .diassembly = "mov ecx, r8d",
+          .rex_bits = DecodedInsn::kRexR,
+      },
+      {
+          // rex.W
+          .raw_bytes = "\x48\x89\xc3",
+          .diassembly = "mov rbx, rax",
+          .rex_bits = DecodedInsn::kRexW,
+      },
+      {
+          // No rex prefix
+          .raw_bytes = "\x90",
+          .diassembly = "nop",
+          .rex_bits = 0,
+      },
+      {
+          // All rex bits set.
+          .raw_bytes = "\x4f\x89\04\x11",
+          .diassembly = "mov qword ptr [r9+r10*1], r8",
+          .rex_bits = DecodedInsn::kRexB | DecodedInsn::kRexX |
+                      DecodedInsn::kRexR | DecodedInsn::kRexW,
+      },
+      {
+          // Multiple conflicting rex prefixes. Only the one before opcode
+          // takes effect.
+          .raw_bytes = "\x41\x89\xc1",
+          .diassembly = "mov r9d, eax",
+          .rex_bits = DecodedInsn::kRexB,
+      },
+  };
+
+  for (const auto& test_case : test_cases) {
+    DecodedInsn insn(test_case.raw_bytes);
+    ASSERT_TRUE(insn.is_valid());
+    EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+              test_case.diassembly);
+    EXPECT_EQ(insn.rex_bits(), test_case.rex_bits);
+  }
 }
 
 }  // namespace

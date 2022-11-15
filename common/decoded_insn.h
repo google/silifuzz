@@ -35,6 +35,14 @@ namespace silifuzz {
 // This class is thread-compatible.
 class DecodedInsn {
  public:
+  // x86 REX prefix bits.
+  enum {
+    kRexB = 1 << 0,
+    kRexX = 1 << 1,
+    kRexR = 1 << 2,
+    kRexW = 1 << 3,
+  };
+
   // Constructs an instance from MemoryBytes.
   explicit DecodedInsn(const Snapshot::MemoryBytes& data);
 
@@ -76,6 +84,16 @@ class DecodedInsn {
   // If address computation fails internally in XED, this return false. So this
   // can have false negatives in theory. REQUIRES: is_valid().
   absl::StatusOr<bool> may_have_split_lock(const struct user_regs_struct& regs);
+
+  // Tells if this is a non-I/O string operation.
+  // REQUIRES: is_valid().
+  bool is_string_op() const;
+
+  // Returns a bit vector of REX prefix bits when processor is in 64-bit mode.
+  // These are the lower 4 bits of the REX prefix byte in the decoded
+  // instruction. If instruction does not have a REX prefix, this returns 0.
+  // REQUIRES: is_valid().
+  uint8_t rex_bits() const;
 
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
