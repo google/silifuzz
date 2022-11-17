@@ -75,6 +75,23 @@ cc_library_plus_nolibc(
 )
 
 cc_test(
+    name = "snap_relocator_test",
+    srcs = ["snap_relocator_test.cc"],
+    deps = [
+        ":snap",
+        ":snap_relocator",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//snap/gen:relocatable_snap_generator",
+        "@silifuzz//snap/gen:snap_generator",
+        "@silifuzz//snap/testing:snap_test_snapshots",
+        "@silifuzz//snap/testing:snap_test_types",
+        "@silifuzz//util:mmapped_memory_ptr",
+        "@silifuzz//util/testing:status_macros",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
     name = "snap_relocator_fuzz_test",
     srcs = ["snap_relocator_fuzz_test.cc"],
     deps = [
