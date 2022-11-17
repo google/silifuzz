@@ -44,7 +44,13 @@ template <typename T>
 SnapRelocator::Error SnapRelocator::ValidateRelocatedAddress(
     uintptr_t address) {
   // The whole object must be within corpus bounds.
-  if (address < start_address_ || address + sizeof(T) > limit_address_)
+  // If address + sizeof(T) is exactly numeric_limits<uintptr_t>::max() + 1,
+  // this rejects address even the whole object is within 64-bit address space.
+  // This is fine as user mode address space size is much less than 64-bit.
+  uintptr_t address_after_last_byte;
+  if (address < start_address_ ||
+      __builtin_add_overflow(address, sizeof(T), &address_after_last_byte) ||
+      address_after_last_byte > limit_address_)
     return Error::kOutOfBound;
 
   // Address be correctly aligned.
@@ -58,9 +64,11 @@ SnapRelocator::Error SnapRelocator::AdjustPointer(T*& ptr) {
   // A pointer in a relocatable Snap corpus offset is just offset from the
   // start of the corpus. The actual run time address of the pointed object
   // is recovered by simply adding the start address of the corpus.
-  uintptr_t adjusted_address =
-      reinterpret_cast<uintptr_t>(ptr) + start_address_;
-
+  uintptr_t adjusted_address;
+  if (__builtin_add_overflow(start_address_, reinterpret_cast<uintptr_t>(ptr),
+                             &adjusted_address)) {
+    return Error::kOutOfBound;
+  }
   RETURN_IF_RELOCATION_FAILED(ValidateRelocatedAddress<T>(adjusted_address));
 
   ptr = reinterpret_cast<T*>(adjusted_address);
@@ -71,10 +79,23 @@ template <typename T>
 SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
   if (array.size > 0) {
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(array.elements));
+
+    // Check array size for pointer overflow.
+    uintptr_t elements_byte_size;
+    if (__builtin_mul_overflow(array.size, sizeof(T), &elements_byte_size)) {
+      return Error::kOutOfBound;
+    }
+
     // Check that the last element is within bound. The beginning of array
     // is checked already by AdjustPointer() above.
-    return ValidateRelocatedAddress<T>(
-        reinterpret_cast<uintptr_t>(&array.elements[array.size - 1]));
+    uintptr_t address_after_last_byte;
+    if (__builtin_add_overflow(reinterpret_cast<uintptr_t>(array.elements),
+                               elements_byte_size, &address_after_last_byte) ||
+        address_after_last_byte > limit_address_) {
+      return Error::kOutOfBound;
+    }
+
+    return Error::kOk;
   } else {
     array.elements = nullptr;
     return Error::kOk;
