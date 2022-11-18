@@ -149,11 +149,6 @@ class TestSnapshots : private SnapshotTypeNames {
                                      Options options = Options::Default());
 };
 
-// EnumStr() works for TestSnapshots::Type.
-template <>
-extern const char*
-    EnumNameMap<TestSnapshots::Type>[ToInt(TestSnapshots::kSplitLock) + 1];
-
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_UTIL_H_
