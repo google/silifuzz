@@ -63,9 +63,10 @@ MmappedMemoryPtr<const SnapCorpus> GenerateRelocatedCorpus(
 TEST(RelocatableSnapGenerator, UndefinedEndState) {
   // Create an empty snapshot with no end state.
   TestSnapshots::Options create_options = TestSnapshots::Options::Default();
-  create_options.force_undefined_state = true;
-  Snapshot snapshot =
-      TestSnapshots::Create<Host>(TestSnapshots::Type::kEmpty, create_options);
+  Snapshot snapshot = TestSnapshots::Create<Host>(
+      TestSnapshots::Type::kSigSegvWrite, create_options);
+  ASSERT_TRUE(snapshot.IsComplete(Snapshot::kUndefinedEndState).ok())
+      << "Expected that this snapshot has an undefined end state";
 
   SnapGenerator::Options snapify_options =
       SnapGenerator::Options::V2InputRunOpts();

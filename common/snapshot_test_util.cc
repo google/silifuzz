@@ -158,16 +158,15 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
       ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs));
 
   // We are expecting `bytecode` to execute fully:
-  const uintptr_t endpoint_address = config.code_addr + bytecode_size;
-  Endpoint endpoint(endpoint_address);
-  if (options.force_normal_state ||
-      (config.normal_end && !options.force_undefined_state)) {
+  Endpoint endpoint(config.code_addr + bytecode_size);
+  if (options.force_normal_state || config.normal_end) {
     // Add a full end-state with supposedly matched register values:
     // expected value of rip when reaching `endpoint`
-    SetInstructionPointer(ucontext.gregs, endpoint_address);
+    SetInstructionPointer(ucontext.gregs, endpoint.instruction_address());
     RegisterState regs = ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     EndState end_state(endpoint, regs);
     end_state.add_platform(CurrentPlatformId());
+    CHECK_STATUS(snapshot.can_add_expected_end_state(end_state));
     snapshot.add_expected_end_state(end_state);
     CHECK_STATUS(snapshot.IsComplete(Snapshot::kNormalState));
   } else {

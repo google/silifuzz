@@ -123,9 +123,6 @@ class TestSnapshots : private SnapshotTypeNames {
    public:
     static Options Default() { return Options(); }
 
-    // If set, the returned snapshot will always have an undefined state.
-    bool force_undefined_state = false;
-
     // If set, the returned snapshot will always have a normal state. This
     // is only useful for Snap/Runner testing.
     bool force_normal_state = false;
