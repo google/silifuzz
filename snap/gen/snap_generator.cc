@@ -106,7 +106,7 @@ void SnapGenerator::Comment(absl::string_view comment) {
   PrintLn("// ", comment);
 }
 
-absl::Status SnapGenerator::GenerateSnap(const VarName &name,
+absl::Status SnapGenerator::GenerateSnap(const std::string &name,
                                          const Snapshot &snapshot,
                                          const SnapifyOptions &opts) {
   const absl::StatusOr<Snapshot> snapified_or = Snapify(snapshot, opts);
@@ -120,26 +120,26 @@ absl::Status SnapGenerator::GenerateSnap(const VarName &name,
   // components that cannot be placed inside the fix-sized Snap struct.
 
   // Generate all out-of-line ByteData.
-  const VarNameList memory_byte_values_var_names =
+  const std::vector<std::string> memory_byte_values_var_names =
       GenerateMemoryBytesByteData(snapified.memory_bytes(), opts);
-  const VarNameList end_state_memory_byte_values_var_names =
+  const std::vector<std::string> end_state_memory_byte_values_var_names =
       GenerateMemoryBytesByteData(end_state.memory_bytes(), opts);
 
   // Generate all out-of-line MemoryBytes
-  const VarName memory_bytes_var_name = GenerateMemoryBytesList(
+  const std::string memory_bytes_var_name = GenerateMemoryBytesList(
       snapified.memory_bytes(), memory_byte_values_var_names,
       snapified.mapped_memory_map(), opts);
-  const VarName end_state_memory_bytes_var_name = GenerateMemoryBytesList(
+  const std::string end_state_memory_bytes_var_name = GenerateMemoryBytesList(
       end_state.memory_bytes(), end_state_memory_byte_values_var_names,
       snapified.mapped_memory_map(), opts);
 
   // Generate all out-of-line MemoryMappings
-  const VarName memory_mappings_var_name =
+  const std::string memory_mappings_var_name =
       GenerateMemoryMappingList(snapified.memory_mappings());
 
-  const VarName registers_name = GenerateRegisters(snapified.registers());
+  const std::string registers_name = GenerateRegisters(snapified.registers());
 
-  const VarName end_state_registers_name =
+  const std::string end_state_registers_name =
       GenerateRegisters(end_state.registers());
 
   // Generate code for Snap
@@ -166,10 +166,10 @@ absl::Status SnapGenerator::GenerateSnap(const VarName &name,
   return absl::OkStatus();
 }
 
-void SnapGenerator::GenerateSnapArray(const VarName &name,
-                                      ArchitectureId architecture_id,
-                                      const VarNameList &snap_var_name_list) {
-  const VarName elements_var_name = absl::StrCat("elements_of_", name);
+void SnapGenerator::GenerateSnapArray(
+    const std::string &name, ArchitectureId architecture_id,
+    const std::vector<std::string> &snap_var_name_list) {
+  const std::string elements_var_name = absl::StrCat("elements_of_", name);
   Print(absl::StrFormat("static const Snap* const %s[%zd] = {",
                         elements_var_name, snap_var_name_list.size()));
   for (const auto &var_name : snap_var_name_list) {
@@ -189,7 +189,7 @@ void SnapGenerator::GenerateSnapArray(const VarName &name,
 
 // ========================================================================= //
 
-SnapGenerator::VarName SnapGenerator::LocalVarName(absl::string_view prefix) {
+std::string SnapGenerator::LocalVarName(absl::string_view prefix) {
   return absl::StrCat(prefix, "_", local_object_name_counter_++);
 }
 
@@ -225,19 +225,19 @@ void SnapGenerator::GenerateNonZeroValue(absl::string_view name,
   }
 }
 
-SnapGenerator::VarName SnapGenerator::GenerateByteData(
-    const Snapshot::ByteData &byte_data, const SnapifyOptions &opts,
-    size_t alignment) {
+std::string SnapGenerator::GenerateByteData(const Snapshot::ByteData &byte_data,
+                                            const SnapifyOptions &opts,
+                                            size_t alignment) {
   // If byte data are repeating, return empty name.
   if (opts.compress_repeating_bytes && IsRepeatingByteRun(byte_data)) {
-    return VarName();
+    return std::string();
   }
 
   // TODO(dougkwan): [impl] We want to use more descriptive names for the
   // file local object. This will require passing the name of parent object
   // to figure out the correct context, for example:
   // code_memory_bytes_2_of_snap_foo.
-  VarName var_name = LocalVarName("local_uint8");
+  std::string var_name = LocalVarName("local_uint8");
   const std::string optional_alignment =
       alignment > 1 ? absl::StrCat(" __attribute__((aligned(", alignment, ")))")
                     : "";
@@ -256,22 +256,22 @@ SnapGenerator::VarName SnapGenerator::GenerateByteData(
   return var_name;
 }
 
-SnapGenerator::VarNameList SnapGenerator::GenerateMemoryBytesByteData(
+std::vector<std::string> SnapGenerator::GenerateMemoryBytesByteData(
     const Snapshot::MemoryBytesList &memory_bytes_list,
     const SnapifyOptions &opts) {
-  VarNameList var_names;
+  std::vector<std::string> var_names;
   for (const auto &memory_bytes : memory_bytes_list) {
     var_names.push_back(GenerateByteData(memory_bytes.byte_values(), opts));
   }
   return var_names;
 }
 
-SnapGenerator::VarName SnapGenerator::GenerateMemoryBytesList(
+std::string SnapGenerator::GenerateMemoryBytesList(
     const Snapshot::MemoryBytesList &memory_bytes_list,
-    const VarNameList &byte_values_var_names,
+    const std::vector<std::string> &byte_values_var_names,
     const MappedMemoryMap &mapped_memory_map, const SnapifyOptions &opts) {
   CHECK_EQ(memory_bytes_list.size(), byte_values_var_names.size());
-  VarName memory_bytes_list_var_name = LocalVarName("local_memory_bytes");
+  std::string memory_bytes_list_var_name = LocalVarName("local_memory_bytes");
 
   PrintLn(absl::StrFormat("static const Snap::MemoryBytes %s[%zd] = {",
                           memory_bytes_list_var_name,
@@ -310,9 +310,10 @@ SnapGenerator::VarName SnapGenerator::GenerateMemoryBytesList(
   return memory_bytes_list_var_name;
 }
 
-SnapGenerator::VarName SnapGenerator::GenerateMemoryMappingList(
+std::string SnapGenerator::GenerateMemoryMappingList(
     const Snapshot::MemoryMappingList &memory_mapping_list) {
-  VarName memory_mapping_list_var_name = LocalVarName("local_memory_mapping");
+  std::string memory_mapping_list_var_name =
+      LocalVarName("local_memory_mapping");
 
   PrintLn(absl::StrFormat("static const Snap::MemoryMapping %s[%zd] = {",
                           memory_mapping_list_var_name,
@@ -462,9 +463,9 @@ void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 #endif  // __x86_64__
 }
 
-SnapGenerator::VarName SnapGenerator::GenerateRegisters(
+std::string SnapGenerator::GenerateRegisters(
     const Snapshot::RegisterState &registers) {
-  VarName var_name = LocalVarName("local_registers");
+  std::string var_name = LocalVarName("local_registers");
   PrintLn("Snap::RegisterState ", var_name, " = {");
   Print("  .fpregs = ");
   GenerateFPRegs(registers.fpregs());

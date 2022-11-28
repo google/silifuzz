@@ -48,7 +48,7 @@ absl::Status GenerateRelocatableRunnerCorpus() {
   opts.compress_repeating_bytes = true;
 
   // Build the test Snapshot corpus.
-  SnapGenerator::VarNameList runner_test_snap_names;
+  std::vector<std::string> runner_test_snap_names;
   const int first_runner_test_type =
       ToInt(SnapRunnerTestType::kFirstSnapRunnerTest);
   const int last_runner_test_type =
@@ -83,7 +83,7 @@ absl::Status GenerateSource() {
   generator.FileStart();
 
   // Generate generator test snaps.
-  SnapGenerator::VarNameList generator_test_snap_names;
+  std::vector<std::string> generator_test_snap_names;
   const int first_generator_test_type =
       ToInt(SnapGeneratorTestType::kFirstSnapGeneratorTest);
   const int last_generator_test_type =
@@ -108,7 +108,7 @@ absl::Status GenerateSource() {
                               generator_test_snap_names);
 
   // Generate runner test snaps.
-  SnapGenerator::VarNameList runner_test_snap_names;
+  std::vector<std::string> runner_test_snap_names;
   const int first_runner_test_type =
       ToInt(SnapRunnerTestType::kFirstSnapRunnerTest);
   const int last_runner_test_type =
