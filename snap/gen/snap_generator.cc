@@ -47,26 +47,26 @@ std::string AddressString(Snapshot::Address address) {
 }
 
 // Returns 'value' as a uint8_t literal in C++ source code.
-std::string UInt8String(uint8_t value) {
+std::string UIntString(uint8_t value) {
   return absl::StrFormat("0x%xU", value);
 }
 
 // Returns 'value' as a uint16_t literal in C++ source code.
-std::string UInt16String(uint16_t value) {
+std::string UIntString(uint16_t value) {
   return absl::StrFormat("0x%xU", value);
 }
 
 // Returns 'value' as a uint32_t literal in C++ source code.
-std::string UInt32String(uint32_t value) {
+std::string UIntString(uint32_t value) {
   return absl::StrFormat("0x%xU", value);
 }
 
 // Returns 'value' as a uint64_t literal in C++ source code.
-std::string UInt64String(uint64_t value) {
+std::string UIntString(uint64_t value) {
   return absl::StrFormat("0x%llxULL", value);
 }
 
-std::string UInt128String(__uint128_t value) {
+std::string UIntString(__uint128_t value) {
   // There's no such thing as an 128-bit literal, so we need to synthesize it
   // out of two 64-bit literals.
   uint64_t upper = value >> 64;
@@ -75,7 +75,7 @@ std::string UInt128String(__uint128_t value) {
     return absl::StrFormat("(((__uint128_t)0x%llxULL) << 64 | 0x%llxULL)",
                            upper, lower);
   } else {
-    return UInt64String(lower);
+    return UIntString(lower);
   }
 }
 
@@ -193,35 +193,11 @@ std::string SnapGenerator::LocalVarName(absl::string_view prefix) {
   return absl::StrCat(prefix, "_", local_object_name_counter_++);
 }
 
-template <>
-void SnapGenerator::GenerateNonZeroValue<uint8_t>(absl::string_view name,
-                                                  const uint8_t &value) {
-  if (value != 0) {
-    Print(".", name, " = ", UInt8String(value), ",");
-  }
-}
-
-template <>
-void SnapGenerator::GenerateNonZeroValue<uint16_t>(absl::string_view name,
-                                                   const uint16_t &value) {
-  if (value != 0) {
-    Print(".", name, " = ", UInt16String(value), ",");
-  }
-}
-
-template <>
+template <typename T>
 void SnapGenerator::GenerateNonZeroValue(absl::string_view name,
-                                         const uint32_t &value) {
+                                         const T &value) {
   if (value != 0) {
-    Print(".", name, " = ", UInt32String(value), ",");
-  }
-}
-
-template <>
-void SnapGenerator::GenerateNonZeroValue(absl::string_view name,
-                                         const uint64_t &value) {
-  if (value != 0) {
-    Print(".", name, " = ", UInt64String(value), ",");
+    Print(".", name, " = ", UIntString(value), ",");
   }
 }
 
@@ -401,7 +377,7 @@ void SnapGenerator::GenerateX87Stack(const __uint128_t st[8]) {
   }
 
   for (size_t i = 0; i < print_size; ++i) {
-    Print(UInt128String(st[i]), ",");
+    Print(UIntString(st[i]), ",");
   }
   Print("}");
 }
@@ -416,7 +392,7 @@ void SnapGenerator::GenerateXMMRegs(const __uint128_t xmm[16]) {
   }
 
   for (size_t i = 0; i < print_size; ++i) {
-    Print(UInt128String(xmm[i]), ",");
+    Print(UIntString(xmm[i]), ",");
   }
   Print("}");
 }

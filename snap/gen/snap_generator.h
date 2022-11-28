@@ -156,19 +156,6 @@ class SnapGenerator {
   template <typename T>
   void GenerateNonZeroValue(absl::string_view name, const T &value);
 
-  // Specializations of above for uint16_t, uint32_t and uint64_t
-  template <>
-  void GenerateNonZeroValue<uint16_t>(absl::string_view name,
-                                      const uint16_t &value);
-
-  template <>
-  void GenerateNonZeroValue<uint32_t>(absl::string_view name,
-                                      const uint32_t &value);
-
-  template <>
-  void GenerateNonZeroValue<uint64_t>(absl::string_view name,
-                                      const uint64_t &value);
-
   // Generates code to assign a variable of type Snap::Array<uint8_t> containing
   // data from 'byte_data' using `opts`.  Optionally aligns the uint8_t data to
   // the given alignment. Returns variable name. If run-lengh compression is
