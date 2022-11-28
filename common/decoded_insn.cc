@@ -138,9 +138,10 @@ bool DecodedInsn::is_locking() const {
   return xed_decoded_inst_get_attribute(&xed_insn_, XED_ATTRIBUTE_LOCKED) != 0;
 }
 
-bool DecodedInsn::is_string_op() const {
+bool DecodedInsn::is_rep_byte_store() const {
   DCHECK_STATUS(status_);
-  return xed_decoded_inst_get_category(&xed_insn_) == XED_CATEGORY_STRINGOP;
+  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
+  return iclass == XED_ICLASS_REP_MOVSB || iclass == XED_ICLASS_REP_STOSB;
 }
 
 uint8_t DecodedInsn::rex_bits() const {

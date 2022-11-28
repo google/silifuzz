@@ -85,9 +85,9 @@ class DecodedInsn {
   // can have false negatives in theory. REQUIRES: is_valid().
   absl::StatusOr<bool> may_have_split_lock(const struct user_regs_struct& regs);
 
-  // Tells if this is a non-I/O string operation.
+  // Tells if this is a rep byte store (movsb or stosb).
   // REQUIRES: is_valid().
-  bool is_string_op() const;
+  bool is_rep_byte_store() const;
 
   // Returns a bit vector of REX prefix bits when processor is in 64-bit mode.
   // These are the lower 4 bits of the REX prefix byte in the decoded

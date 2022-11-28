@@ -342,40 +342,53 @@ TEST(DecodedInsn, ConstructWithAddress) {
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "jz 0x123004");
 }
 
-TEST(DecodedInsn, IsStringOp) {
+TEST(DecodedInsn, IsRepByteStore) {
   struct TestCase {
     const char* raw_bytes = nullptr;   // insturction bytes.
-    const char* diassembly = nullptr;  // expected value for DebugString().
-    bool is_string_op = false;         // expected value for is_string_op().
+    const char* disassembly = nullptr;  // expected value for DebugString().
+    bool is_rep_byte_store = false;  // expected value for is_rep_byte_store().
   };
 
   const std::vector<TestCase> test_cases = {
       {
+          .raw_bytes = "\x67\xf3\xa4",
+          .disassembly = "rep movsb byte ptr [edi], byte ptr [esi]",
+          .is_rep_byte_store = true,
+      },
+      {
+          .raw_bytes = "\xf3\x67\xaa",
+          .disassembly = "rep stosb byte ptr [edi]",
+          .is_rep_byte_store = true,
+      },
+      {
+          // Without REP prefix
           .raw_bytes = "\x67\xa4",
-          .diassembly = "movsb byte ptr [edi], byte ptr [esi]",
-          .is_string_op = true,
+          .disassembly = "movsb byte ptr [edi], byte ptr [esi]",
+          .is_rep_byte_store = false,
       },
       {
-          .raw_bytes = "\x67\xa6",
-          .diassembly = "cmpsb byte ptr [esi], byte ptr [edi]",
-          .is_string_op = true,
+          // Store size not byte
+          .raw_bytes = "\x67\x66\xf3\xa5",
+          .disassembly = "rep movsw word ptr [edi], word ptr [esi]",
+          .is_rep_byte_store = false,
       },
       {
-          .raw_bytes = "\xf3\xa4",
-          .diassembly = "rep movsb byte ptr [rdi], byte ptr [rsi]",
-          .is_string_op = true,
+          // Not a rep store.
+          .raw_bytes = "\x67\xf3\xae",
+          .disassembly = "rep scasb byte ptr [edi]",
+          .is_rep_byte_store = false,
       },
       {
           // Not a string operation.
           .raw_bytes = "\x90",
-          .diassembly = "nop",
-          .is_string_op = false,
+          .disassembly = "nop",
+          .is_rep_byte_store = false,
       },
       {
           // I/O string operations are a separate category.
           .raw_bytes = "\x6e",
-          .diassembly = "outsb",
-          .is_string_op = false,
+          .disassembly = "outsb",
+          .is_rep_byte_store = false,
       },
   };
 
@@ -383,8 +396,8 @@ TEST(DecodedInsn, IsStringOp) {
     DecodedInsn insn(test_case.raw_bytes);
     ASSERT_TRUE(insn.is_valid());
     EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
-              test_case.diassembly);
-    EXPECT_EQ(test_case.is_string_op, insn.is_string_op());
+              test_case.disassembly);
+    EXPECT_EQ(test_case.is_rep_byte_store, insn.is_rep_byte_store());
   }
 }
 
