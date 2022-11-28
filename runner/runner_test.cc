@@ -63,7 +63,4 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(Runner, EndsAsExpected);
   RUN_TEST(Runner, RegsMismatch);
   RUN_TEST(Runner, MemoryMismatch);
-
-  LOG_INFO("[ PASSED ]");
-  return EXIT_SUCCESS;
 })
