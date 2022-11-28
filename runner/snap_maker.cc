@@ -176,8 +176,8 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
   }
 
   // Single-step flags snapshots with non-deterministic instructions and
-  // snapshots that execute to many instructions. No attempt is made to fix such
-  // snapshots.
+  // snapshots that execute too many instructions. No attempt is made to fix
+  // such snapshots.
   TraceOptions trace_options = TraceOptions::Default();
   trace_options.x86_trap_on_split_lock = opts_.x86_filter_split_lock;
   DisassemblingSnapTracer tracer(snapified, trace_options);
