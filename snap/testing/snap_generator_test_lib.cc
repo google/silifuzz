@@ -146,9 +146,9 @@ void VerifySnapMemoryMappingArray(
 
 // Verifies that 'snapshot' is correctly converted into 'snap'.
 void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
-                    const SnapGenerator::Options& generator_options) {
+                    const SnapifyOptions& generator_options) {
   absl::StatusOr<Snapshot> snapified_snapshot_or =
-      SnapGenerator::Snapify(snapshot, generator_options);
+      Snapify(snapshot, generator_options);
   CHECK_STATUS(snapified_snapshot_or.status());
   const Snapshot& snapified_snapshot = snapified_snapshot_or.value();
 

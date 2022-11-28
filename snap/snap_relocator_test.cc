@@ -34,10 +34,10 @@ namespace {
 
 absl::StatusOr<MmappedMemoryPtr<char>> GetTestRelocatableCorpus() {
   // Generate relocatable snaps from runner test snaps.
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   Snapshot snapshot =
       MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
-  auto snapified_or = SnapGenerator::Snapify(snapshot, opts);
+  auto snapified_or = Snapify(snapshot, opts);
   RETURN_IF_NOT_OK(snapified_or.status());
 
   std::vector<Snapshot> snapified_corpus;

@@ -44,7 +44,7 @@ namespace silifuzz {
 namespace {
 
 absl::Status GenerateRelocatableRunnerCorpus() {
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   opts.compress_repeating_bytes = true;
 
   // Build the test Snapshot corpus.
@@ -58,8 +58,7 @@ absl::Status GenerateRelocatableRunnerCorpus() {
        ++type) {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(static_cast<SnapRunnerTestType>(type));
-    ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified,
-                               SnapGenerator::Snapify(snapshot, opts));
+    ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
 

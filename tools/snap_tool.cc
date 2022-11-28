@@ -118,7 +118,7 @@ void OutputSnapshotOrDie(Snapshot&& snapshot, absl::string_view filename,
 // Implements `generate_corpus` command.
 absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
                             PlatformId platform_id, LinePrinter* line_printer) {
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   if (platform_id == PlatformId::kUndefined) {
     return absl::InvalidArgumentError(
         "generate_corpus requires a valid platform id");
@@ -134,7 +134,7 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
     ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(auto snapshot,
                                     ReadSnapshotFromFile(proto_path),
                                     "Cannot read snapshot");
-    auto snapified_or = SnapGenerator::Snapify(snapshot, opts);
+    auto snapified_or = Snapify(snapshot, opts);
     if (!snapified_or.ok()) {
       line_printer->Line("Skipping ", proto_path, ": ",
                          snapified_or.status().message());

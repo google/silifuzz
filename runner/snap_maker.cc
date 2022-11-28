@@ -119,9 +119,7 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
 
 absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapified,
-      SnapGenerator::Snapify(snapshot,
-                             SnapGenerator::Options::V2InputMakeOpts()));
+      Snapshot snapified, Snapify(snapshot, SnapifyOptions::V2InputMakeOpts()));
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
@@ -154,9 +152,7 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
 
 absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapified,
-      SnapGenerator::Snapify(snapshot,
-                             SnapGenerator::Options::V2InputRunOpts()));
+      Snapshot snapified, Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver verifier,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
@@ -221,8 +217,7 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
 
   while (true) {
     ASSIGN_OR_RETURN_IF_NOT_OK(
-        *snapshot, SnapGenerator::Snapify(
-                       *snapshot, SnapGenerator::Options::V2InputMakeOpts()));
+        *snapshot, Snapify(*snapshot, SnapifyOptions::V2InputMakeOpts()));
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver runner_driver,
         RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));

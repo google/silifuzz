@@ -23,9 +23,9 @@ namespace silifuzz {
 
 // Verifies that 'snap' is correctly generated from 'snapshot' using
 // 'generator_options'. Die if any error is found.
-void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
-                    const SnapGenerator::Options& generator_options =
-                        SnapGenerator::Options::Default());
+void VerifyTestSnap(
+    const Snapshot& snapshot, const Snap& snap,
+    const SnapifyOptions& generator_options = SnapifyOptions::Default());
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_GENERATOR_TEST_LIB_H_

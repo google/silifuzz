@@ -46,8 +46,8 @@ namespace silifuzz {
 
 namespace {
 
-SnapGenerator::Options TestSnapGeneratorOptions() {
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+SnapifyOptions TestSnapifyOptions() {
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   return opts;
 }
 
@@ -56,7 +56,7 @@ TEST(SnapGenerator, BasicSnapGeneratorTest) {
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  VerifyTestSnap(snapshot, snap, TestSnapGeneratorOptions());
+  VerifyTestSnap(snapshot, snap, TestSnapifyOptions());
 }
 
 TEST(SnapGenerator, MemoryBytesAttributesTest) {
@@ -64,7 +64,7 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
       SnapGeneratorTestType::kMemoryBytesPermsTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
-  VerifyTestSnap(snapshot, snap, TestSnapGeneratorOptions());
+  VerifyTestSnap(snapshot, snap, TestSnapifyOptions());
 
   // Check that there is a code page and it is read-only.
   MappedMemoryMap code_mappings;
@@ -112,9 +112,8 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
 TEST(SnapGenerator, Snapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  SnapGenerator::Options options = TestSnapGeneratorOptions();
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
-                       SnapGenerator::Snapify(snapshot, options));
+  SnapifyOptions options = TestSnapifyOptions();
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot, options));
 
   for (const auto& mapping : snapified.memory_mappings()) {
     MemoryPerms original_perms = snapshot.PermsAt(mapping.start_address());
@@ -175,12 +174,10 @@ TEST(SnapGenerator, Snapify) {
 TEST(SnapGenerator, SnapifyIdempotent) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
-                       SnapGenerator::Snapify(snapshot));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
   // snapified is now a v2-format
-  auto opts = SnapGenerator::Options::V2InputRunOpts();
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2,
-                       SnapGenerator::Snapify(snapified, opts));
+  auto opts = SnapifyOptions::V2InputRunOpts();
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified, opts));
   ASSERT_EQ(snapified, snapified2);
 }
 

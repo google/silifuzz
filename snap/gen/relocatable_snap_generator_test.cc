@@ -68,11 +68,9 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   ASSERT_TRUE(snapshot.IsComplete(Snapshot::kUndefinedEndState).ok())
       << "Expected that this snapshot has an undefined end state";
 
-  SnapGenerator::Options snapify_options =
-      SnapGenerator::Options::V2InputRunOpts();
+  SnapifyOptions snapify_options = SnapifyOptions::V2InputRunOpts();
   snapify_options.allow_undefined_end_state = true;
-  ASSERT_OK_AND_ASSIGN(Snapshot snapified,
-                       SnapGenerator::Snapify(snapshot, snapify_options));
+  ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, snapify_options));
   std::vector<Snapshot> corpus;
   corpus.push_back(std::move(snapified));
   auto relocated_corpus =
@@ -86,10 +84,8 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
 
-    ASSERT_OK_AND_ASSIGN(
-        Snapshot snapified,
-        SnapGenerator::Snapify(snapshot,
-                               SnapGenerator::Options::V2InputRunOpts()));
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                         Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
     corpus.push_back(std::move(snapified));
   }
 
@@ -108,13 +104,12 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
       ToInt(SnapRunnerTestType::kFirstSnapRunnerTest);
   const int last_runner_test_type =
       ToInt(SnapRunnerTestType::kLastSnapRunnerTest);
-  SnapGenerator::Options opts = SnapGenerator::Options::V2InputRunOpts();
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   for (int type = first_runner_test_type; type <= last_runner_test_type;
        ++type) {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(static_cast<SnapRunnerTestType>(type));
-    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
-                         SnapGenerator::Snapify(snapshot, opts));
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
 
@@ -163,8 +158,7 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   add_test_byte_data(addr2);
 
   ASSERT_OK_AND_ASSIGN(auto snapified,
-                       SnapGenerator::Snapify(
-                           snapshot, SnapGenerator::Options::V2InputRunOpts()));
+                       Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
 
   std::vector<Snapshot> snapified_corpus;
   snapified_corpus.push_back(std::move(snapified));

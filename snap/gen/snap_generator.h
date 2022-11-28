@@ -31,6 +31,41 @@
 
 namespace silifuzz {
 
+// Per-snap generation options.
+struct SnapifyOptions {
+  // If true, allows the only expected endstate of the _input_ snapshot(s) to
+  // be Snapshot::State::kUndefinedEndState.
+  bool allow_undefined_end_state = false;
+
+  // Use the end state for this platform.
+  PlatformId platform_id = PlatformId::kAny;
+
+  // Use run-length compression for memory byte data.
+  bool compress_repeating_bytes = true;
+
+  // Returns Options for running snapshots produced by V2-style Maker.
+  static constexpr SnapifyOptions V2InputRunOpts() {
+    return SnapifyOptions{.allow_undefined_end_state = false};
+  }
+
+  // Returns Options for making V2-style snapshots.
+  static constexpr SnapifyOptions V2InputMakeOpts() {
+    return SnapifyOptions{.allow_undefined_end_state = true};
+  }
+
+  static constexpr SnapifyOptions Default() { return V2InputRunOpts(); }
+};
+
+// Convert 'snapshot' into a form that GenerateSnap() can convert into a
+// Snap that produces the same result as the 'snapshot'. The conversion
+// includes adding an exit sequence at the end state instruction
+// address, modifying the end state stack contents to reflect effect of
+// the exit sequence and including all the mapping memory bytes in the end
+// state.
+absl::StatusOr<Snapshot> Snapify(
+    const Snapshot &snapshot,
+    const SnapifyOptions &opts = SnapifyOptions::Default());
+
 // SnapGenerator takes a silifuzz::Snapshot and generates a Snap representation
 // of it as C++ source code. The generated C++ source code is not formatted
 // properly for human readabily but the generator may do rudimentary formatting
@@ -55,31 +90,6 @@ class SnapGenerator {
  public:
   using VarName = std::string;
   using VarNameList = std::vector<VarName>;
-
-  // Per-snap generation options.
-  struct Options {
-    // If true, allows the only expected endstate of the _input_ snapshot(s) to
-    // be Snapshot::State::kUndefinedEndState.
-    bool allow_undefined_end_state = false;
-
-    // Use the end state for this platform.
-    PlatformId platform_id = PlatformId::kAny;
-
-    // Use run-length compression for memory byte data.
-    bool compress_repeating_bytes = true;
-
-    // Returns Options for running snapshots produced by V2-style Maker.
-    static constexpr Options V2InputRunOpts() {
-      return Options{.allow_undefined_end_state = false};
-    }
-
-    // Returns Options for making V2-style snapshots.
-    static constexpr Options V2InputMakeOpts() {
-      return Options{.allow_undefined_end_state = true};
-    }
-
-    static constexpr Options Default() { return V2InputRunOpts(); }
-  };
 
   // Construct a SnapGenerator. Generated C++ code is sent to 'output_stream'.
   SnapGenerator(std::ostream &output_stream) : output_stream_(output_stream) {
@@ -115,23 +125,15 @@ class SnapGenerator {
 
   // Generates C++ source code to define a Snap variable called
   // `name` using a normalized version of `snapshot`.
-  absl::Status GenerateSnap(const VarName &name, const Snapshot &snapshot,
-                            const Options &opts = Options::Default());
+  absl::Status GenerateSnap(
+      const VarName &name, const Snapshot &snapshot,
+      const SnapifyOptions &opts = SnapifyOptions::Default());
 
   // Generate C++ source code to define a SnapCorpus variable
   // called 'name' using a VarNameList containing variable names of previously
   // generated Snaps.
   void GenerateSnapArray(const VarName &name, ArchitectureId architecture_id,
                          const VarNameList &snap_var_name_list);
-
-  // Convert 'snapshot' into a form that GenerateSnap() can convert into a
-  // Snap that produces the same result as the 'snapshot'. The conversion
-  // includes adding an exit sequence at the end state instruction
-  // address, modifying the end state stack contents to reflect effect of
-  // the exit sequence and including all the mapping memory bytes in the end
-  // state.
-  static absl::StatusOr<Snapshot> Snapify(
-      const Snapshot &snapshot, const Options &opts = Options::Default());
 
  private:
   // Returns a unique name for a file local object, with an optional prefix.
@@ -179,7 +181,7 @@ class SnapGenerator {
   // Byte data are by default aligned to 8-byte boundaries. Copying memory and
   // comparing memory are less efficienct with narrower alignments than this.
   VarName GenerateByteData(const Snapshot::ByteData &byte_data,
-                           const Options &opts,
+                           const SnapifyOptions &opts,
                            size_t alignment = sizeof(uint64_t));
 
   // Generates code for ByteData inside a list of Snapshot::MemoryBytes using
@@ -188,7 +190,8 @@ class SnapGenerator {
   // such variable names, one for each MemoryBytes and in the same order as
   // 'memory_bytes_list'.
   VarNameList GenerateMemoryBytesByteData(
-      const Snapshot::MemoryBytesList &memory_bytes_list, const Options &opts);
+      const Snapshot::MemoryBytesList &memory_bytes_list,
+      const SnapifyOptions &opts);
 
   // Generates code to assign a variable with an array of Snap::MemoryByte
   // for 'memory_bytes_list' using `opts`. 'byte_values_var_names' is a list of
@@ -198,7 +201,7 @@ class SnapGenerator {
   VarName GenerateMemoryBytesList(
       const Snapshot::MemoryBytesList &memory_bytes_list,
       const VarNameList &byte_values_var_names,
-      const MappedMemoryMap &mapped_memory_map, const Options &opts);
+      const MappedMemoryMap &mapped_memory_map, const SnapifyOptions &opts);
 
   // Generates code to assign a variable with an array of Snap::MemoryMapping
   // for 'memory_mapping_list'. Returns variable name of the Snap::MemoryMapping

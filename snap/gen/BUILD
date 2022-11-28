@@ -163,8 +163,13 @@ cc_test(
 
 cc_library(
     name = "snap_generator",
-    srcs = ["snap_generator.cc"],
-    hdrs = ["snap_generator.h"],
+    srcs = [
+        "snap_generator.cc",
+        "snapify.cc",
+    ],
+    hdrs = [
+        "snap_generator.h",
+    ],
     deps = [
         ":repeating_byte_runs",
         ":reserved_memory_mappings",
