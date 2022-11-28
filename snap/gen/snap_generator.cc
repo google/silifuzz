@@ -22,6 +22,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -362,41 +363,21 @@ void SnapGenerator::GenerateGRegs(const Snapshot::ByteData &gregs_byte_data) {
 #endif  // __x86_64__
 }
 
-#ifdef __x86_64__
-// x86_64 specific helpers for GenerateFPRegs() below.
-// TODO(dougkwan): [test] These helpers need testing. Either refactor
-// them into a separate library for easier testing or change to use
-// generator specific tests in snap_generator_test_lib.
-void SnapGenerator::GenerateX87Stack(const __uint128_t st[8]) {
+template <typename T>
+void SnapGenerator::GenerateArray(const T *data, size_t size) {
   Print("{");
 
-  // Find the last non-zero x87 stack entry
-  size_t print_size = 8;
-  while (print_size > 0 && st[print_size - 1] == 0) {
+  // Find the last non-zero entry
+  size_t print_size = size;
+  while (print_size > 0 && data[print_size - 1] == 0) {
     print_size--;
   }
 
   for (size_t i = 0; i < print_size; ++i) {
-    Print(UIntString(st[i]), ",");
+    Print(UIntString(data[i]), ",");
   }
   Print("}");
 }
-
-void SnapGenerator::GenerateXMMRegs(const __uint128_t xmm[16]) {
-  Print("{");
-
-  // Find the last non-zero XMM reg
-  size_t print_size = 16;
-  while (print_size > 0 && xmm[print_size - 1] == 0) {
-    print_size--;
-  }
-
-  for (size_t i = 0; i < print_size; ++i) {
-    Print(UIntString(xmm[i]), ",");
-  }
-  Print("}");
-}
-#endif  // __x86_64__
 
 void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 #ifdef __x86_64__
@@ -424,12 +405,12 @@ void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 
   // x87 FP stack
   Print(".st = ");
-  GenerateX87Stack(fpregs.st);
+  GenerateArray(fpregs.st, ABSL_ARRAYSIZE(fpregs.st));
   PrintLn(",");
 
   // XMM register.
   Print(".xmm = ");
-  GenerateXMMRegs(fpregs.xmm);
+  GenerateArray(fpregs.xmm, ABSL_ARRAYSIZE(fpregs.xmm));
   Print(",");
 
   Print("}");

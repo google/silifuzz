@@ -198,15 +198,9 @@ class SnapGenerator {
   // is in the same format as returned by Snapshot::ReigsterState::gregs().
   void GenerateGRegs(const Snapshot::ByteData &gregs_byte_data);
 
-#ifdef __x86_64__
-  // Generates a C++ expression for a __libc_fxreg array containing contents of
-  // '_st'.
-  void GenerateX87Stack(const __uint128_t st[8]);
-
-  // Generates a C++ expression for a __libc_xmmreg array containing contents of
-  // '_xmm'.
-  void GenerateXMMRegs(const __uint128_t xmm[16]);
-#endif
+  // Generate an array of scalar values.
+  template <typename T>
+  void GenerateArray(const T *data, size_t size);
 
   // Generates a FPRegSet expression correspoding to the 'fpregs_byte_data',
   // which is in the same format as returned by
