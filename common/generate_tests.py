@@ -465,7 +465,7 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
     # Note: using json.dumps to get a double-quoted string.
     out.write(f"""\
     {{
-        .type = TestSnapshots::Type::k{s.name},
+        .type = TestSnapshot::k{s.name},
         .arch = Snapshot::Architecture::{s.arch.enum_name},
         .name = {json.dumps("k" + s.name)},
         .code_addr = {hex(s.code_addr)},
@@ -494,7 +494,7 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 
 }  // namespace
 
-const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch, TestSnapshots::Type type) {
+const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch, TestSnapshot type) {
   for (size_t i = 0; i < sizeof(configs) / sizeof(TestSnapshotConfig); i++) {
     if (configs[i].arch == arch && configs[i].type == type) {
         return configs[i];

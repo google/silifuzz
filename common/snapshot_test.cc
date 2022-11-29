@@ -92,7 +92,7 @@ TYPED_TEST(SnapshotTest, CanSetRegs) {
 }
 
 TYPED_TEST(SnapshotTest, IsComplete) {
-  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kSigSegvRead);
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kSigSegvRead);
   EXPECT_OK(s.IsCompleteSomeState());
   Snapshot::Endpoint ep(Snapshot::Endpoint::kSigSegv,
                         Snapshot::Endpoint::kSegvCantRead, 0x10000,
@@ -114,7 +114,7 @@ TYPED_TEST(SnapshotTest, IsComplete) {
 }
 
 TYPED_TEST(SnapshotTest, EndStatePlatform) {
-  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected);
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected);
   Snapshot::EndState es = s.expected_end_states()[0];
   ASSERT_FALSE(s.expected_end_states().empty());
   EXPECT_THAT(es.platforms(), UnorderedElementsAre(CurrentPlatformId()));
@@ -133,7 +133,7 @@ TYPED_TEST(SnapshotTest, EndStatePlatform) {
 }
 
 TYPED_TEST(SnapshotTest, UndefinedPlatformAllowed) {
-  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected);
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected);
   ASSERT_FALSE(s.expected_end_states().empty());
   Snapshot::EndState es = s.expected_end_states()[0];
   es.add_platform(PlatformId::kUndefined);
@@ -245,8 +245,8 @@ TYPED_TEST(SnapshotTest, NormalizeMemoryBytesSplit) {
 }
 
 TYPED_TEST(SnapshotTest, ReplaceMemoryBytes) {
-  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected,
-                                                {.define_all_mapped = true});
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected,
+                                             {.define_all_mapped = true});
   EXPECT_OK(s.IsComplete());
   EXPECT_TRUE(s.MappedMemoryIsDefined());
 

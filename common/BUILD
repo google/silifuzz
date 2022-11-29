@@ -272,7 +272,6 @@ cc_library(
         ":memory_state",
         ":snapshot",
         ":snapshot_proto",
-        ":snapshot_types",
         ":snapshot_util",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//snap:exit_sequence",
@@ -283,7 +282,6 @@ cc_library(
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/time",
     ],
 )
 

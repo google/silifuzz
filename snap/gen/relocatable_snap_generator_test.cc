@@ -62,9 +62,7 @@ MmappedMemoryPtr<const SnapCorpus> GenerateRelocatedCorpus(
 // Test that undefined end state does not crash the generator.
 TEST(RelocatableSnapGenerator, UndefinedEndState) {
   // Create an empty snapshot with no end state.
-  TestSnapshots::Options create_options = TestSnapshots::Options::Default();
-  Snapshot snapshot = TestSnapshots::Create<Host>(
-      TestSnapshots::Type::kSigSegvWrite, create_options);
+  Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kSigSegvWrite);
   ASSERT_TRUE(snapshot.IsComplete(Snapshot::kUndefinedEndState).ok())
       << "Expected that this snapshot has an undefined end state";
 
@@ -127,8 +125,7 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
 
 // Test that duplicated byte data are merged to a single copy.
 TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
-  Snapshot snapshot =
-      TestSnapshots::Create(TestSnapshots::Type::kEndsAsExpected);
+  Snapshot snapshot = CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
 
   const size_t page_size = getpagesize();
   Snapshot::ByteData test_byte_data("This is a test");

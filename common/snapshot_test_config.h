@@ -20,7 +20,7 @@
 namespace silifuzz {
 
 struct TestSnapshotConfig {
-  TestSnapshots::Type type;
+  TestSnapshot type;
   Snapshot::Architecture arch;
   const char* name;
   uint64_t code_addr;
@@ -33,7 +33,7 @@ struct TestSnapshotConfig {
 };
 
 const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch,
-                                                TestSnapshots::Type type);
+                                                TestSnapshot type);
 
 }  // namespace silifuzz
 

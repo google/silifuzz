@@ -187,9 +187,9 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects<AArch64>(
 }  // namespace
 
 template <typename Arch>
-// static
-Snapshot TestSnapshots::Create(Type type, Options options) {
-  Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
+Snapshot CreateTestSnapshot(TestSnapshot type,
+                            CreateTestSnapshotOptions options) {
+  Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
 
   const TestSnapshotConfig& config = GetTestSnapshotConfig(arch, type);
 
@@ -207,27 +207,30 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
 
   // Populate the data page with the 3 user-defined data pieces. These can be
   // addressed relative to RBP by the snapshots.
-  ByteData addresses_data = ByteData(8 * 3, '\0');
+  Snapshot::ByteData addresses_data = Snapshot::ByteData(8 * 3, '\0');
   absl::little_endian::Store64(addresses_data.data(), options.read_address);
   absl::little_endian::Store64(addresses_data.data() + 8,
                                options.write_address);
   absl::little_endian::Store64(addresses_data.data() + 16,
                                options.exec_address);
   snapshot.add_memory_bytes(
-      MemoryBytes(data_mapping.start_address(), addresses_data));
+      Snapshot::MemoryBytes(data_mapping.start_address(), addresses_data));
 
   // Define the rest of memory (if needed)
   if (options.define_all_mapped) {
     // Define the rest of the data mapping.
-    Address start = data_mapping.start_address() + addresses_data.size();
+    Snapshot::Address start =
+        data_mapping.start_address() + addresses_data.size();
     int size = data_mapping.num_bytes() - addresses_data.size();
-    snapshot.add_memory_bytes(MemoryBytes(start, ByteData(size, '\0')));
+    snapshot.add_memory_bytes(
+        Snapshot::MemoryBytes(start, Snapshot::ByteData(size, '\0')));
   } else if (config.stack_bytes_used) {
     // Only define the stack memory that will be used.
-    const Address stack_top_address = config.data_addr + config.data_num_bytes;
-    snapshot.add_memory_bytes(
-        MemoryBytes(stack_top_address - config.stack_bytes_used,
-                    ByteData(config.stack_bytes_used, '\0')));
+    const Snapshot::Address stack_top_address =
+        config.data_addr + config.data_num_bytes;
+    snapshot.add_memory_bytes(Snapshot::MemoryBytes(
+        stack_top_address - config.stack_bytes_used,
+        Snapshot::ByteData(config.stack_bytes_used, '\0')));
   }
 
   std::string bytecode = config.instruction_bytes;
@@ -238,7 +241,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
   }
 
   if (!bytecode.empty()) {
-    MemoryBytes code_bytes(config.code_addr, bytecode);
+    Snapshot::MemoryBytes code_bytes(config.code_addr, bytecode);
     snapshot.add_memory_bytes(code_bytes);
   }
 
@@ -249,13 +252,14 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
       ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs));
 
   // We are expecting `bytecode` to execute fully:
-  Endpoint endpoint(config.code_addr + bytecode_size);
+  Snapshot::Endpoint endpoint(config.code_addr + bytecode_size);
   if (options.force_normal_state || config.normal_end) {
     // Add a full end-state with supposedly matched register values:
     // expected value of rip when reaching `endpoint`
     SetInstructionPointer(ucontext.gregs, endpoint.instruction_address());
-    RegisterState regs = ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
-    EndState end_state(endpoint, regs);
+    Snapshot::RegisterState regs =
+        ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
+    Snapshot::EndState end_state(endpoint, regs);
     end_state.add_platform(CurrentPlatformId());
     auto end_state_with_sideeffects =
         ApplySideEffects<Arch>(snapshot, end_state);
@@ -265,7 +269,7 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
     snapshot.add_expected_end_state(*end_state_with_sideeffects);
   } else {
     // Add an endpoint-only end-state:
-    snapshot.add_expected_end_state(EndState(endpoint));
+    snapshot.add_expected_end_state(Snapshot::EndState(endpoint));
     // Self-check what we made:
     CHECK_STATUS(snapshot.IsComplete(Snapshot::kUndefinedEndState));
   }
@@ -278,21 +282,23 @@ Snapshot TestSnapshots::Create(Type type, Options options) {
   return snapshot;
 }
 
-template Snapshot TestSnapshots::Create<X86_64>(Type type, Options options);
-template Snapshot TestSnapshots::Create<AArch64>(Type type, Options options);
+template Snapshot CreateTestSnapshot<X86_64>(TestSnapshot type,
+                                             CreateTestSnapshotOptions options);
+template Snapshot CreateTestSnapshot<AArch64>(
+    TestSnapshot type, CreateTestSnapshotOptions options);
 
 template <typename Arch>
-// static
-proto::Snapshot TestSnapshots::CreateProto(Type type, Options options) {
-  const Snapshot snapshot = Create<Arch>(type, options);
+proto::Snapshot CreateTestSnapshotProto(TestSnapshot type,
+                                        CreateTestSnapshotOptions options) {
+  const Snapshot snapshot = CreateTestSnapshot<Arch>(type, options);
   proto::Snapshot proto;
   SnapshotProto::ToProto(snapshot, &proto);
   return proto;
 }
 
-template proto::Snapshot TestSnapshots::CreateProto<X86_64>(Type type,
-                                                            Options options);
-template proto::Snapshot TestSnapshots::CreateProto<AArch64>(Type type,
-                                                             Options options);
+template proto::Snapshot CreateTestSnapshotProto<X86_64>(
+    TestSnapshot type, CreateTestSnapshotOptions options);
+template proto::Snapshot CreateTestSnapshotProto<AArch64>(
+    TestSnapshot type, CreateTestSnapshotOptions options);
 
 }  // namespace silifuzz.

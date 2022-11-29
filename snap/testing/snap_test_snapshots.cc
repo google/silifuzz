@@ -104,7 +104,7 @@ Snapshot MakeSnapGeneratorTestSnapshot(SnapGeneratorTestType type) {
 }
 
 Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type) {
-  TestSnapshots::Options opts;
+  CreateTestSnapshotOptions opts;
   // Need to force the normal (i.e. with registers) end state to confirm
   // to Snapify() contract.
   opts.force_normal_state = true;
@@ -113,30 +113,29 @@ Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type) {
 
   switch (type) {
     case SnapRunnerTestType::kEndsAsExpected:
-      return TestSnapshots::Create(TestSnapshots::kEndsAsExpected);
+      return CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
     case SnapRunnerTestType::kRegsMismatch:
-      return TestSnapshots::Create(TestSnapshots::kRegsMismatch);
+      return CreateTestSnapshot(TestSnapshot::kRegsMismatch);
     case SnapRunnerTestType::kMemoryMismatch:
-      return TestSnapshots::Create(TestSnapshots::kMemoryMismatch);
+      return CreateTestSnapshot(TestSnapshot::kMemoryMismatch);
     case SnapRunnerTestType::kRegsAndMemoryMismatch:
-      return TestSnapshots::Create(TestSnapshots::kRegsAndMemoryMismatch);
+      return CreateTestSnapshot(TestSnapshot::kRegsAndMemoryMismatch);
     case SnapRunnerTestType::kRunaway:
-      return TestSnapshots::Create(TestSnapshots::kRunaway, opts);
+      return CreateTestSnapshot(TestSnapshot::kRunaway, opts);
     case SnapRunnerTestType::kSyscall:
-      return TestSnapshots::Create(TestSnapshots::kSyscall, opts);
+      return CreateTestSnapshot(TestSnapshot::kSyscall, opts);
     case SnapRunnerTestType::kSigSegvRead:
-      return TestSnapshots::Create(TestSnapshots::kSigSegvRead, opts);
+      return CreateTestSnapshot(TestSnapshot::kSigSegvRead, opts);
     case SnapRunnerTestType::kGeneralProtectionFault:
-      return TestSnapshots::Create(TestSnapshots::kGeneralProtectionFault,
-                                   opts);
+      return CreateTestSnapshot(TestSnapshot::kGeneralProtectionFault, opts);
     case SnapRunnerTestType::kSigIll:
-      return TestSnapshots::Create(TestSnapshots::kSigIll, opts);
+      return CreateTestSnapshot(TestSnapshot::kSigIll, opts);
     case SnapRunnerTestType::kRegsMismatchRandom:
-      return TestSnapshots::Create(TestSnapshots::kRegsMismatchRandom, opts);
+      return CreateTestSnapshot(TestSnapshot::kRegsMismatchRandom, opts);
     case SnapRunnerTestType::kINT3:
-      return TestSnapshots::Create(TestSnapshots::kINT3, opts);
+      return CreateTestSnapshot(TestSnapshot::kINT3, opts);
     case SnapRunnerTestType::kSplitLock:
-      return TestSnapshots::Create(TestSnapshots::kSplitLock, opts);
+      return CreateTestSnapshot(TestSnapshot::kSplitLock, opts);
   }
 }
 
