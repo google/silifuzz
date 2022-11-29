@@ -18,6 +18,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot_test_util.h"
 #include "./common/snapshot_util.h"
@@ -241,6 +242,24 @@ TYPED_TEST(SnapshotTest, NormalizeMemoryBytesSplit) {
   // This should split the memory bytes above.
   s.NormalizeMemoryBytes();
   EXPECT_EQ(s.memory_bytes().size(), 3);
+}
+
+TYPED_TEST(SnapshotTest, ReplaceMemoryBytes) {
+  Snapshot s = TestSnapshots::Create<TypeParam>(TestSnapshots::kEndsAsExpected,
+                                                {.define_all_mapped = true});
+  EXPECT_OK(s.IsComplete());
+  EXPECT_TRUE(s.MappedMemoryIsDefined());
+
+  Snapshot::MemoryBytesList bytes = s.memory_bytes();
+
+  ASSERT_OK(s.ReplaceMemoryBytes({}));
+  EXPECT_FALSE(s.MappedMemoryIsDefined());
+
+  ASSERT_OK(s.ReplaceMemoryBytes(std::move(bytes)));
+  EXPECT_TRUE(s.MappedMemoryIsDefined());
+
+  ASSERT_THAT(s.ReplaceMemoryBytes({Snapshot::MemoryBytes(0x10000, {42})}),
+              StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 TEST(MemoryBytes, Range) {

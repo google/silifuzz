@@ -270,6 +270,12 @@ class Snapshot final {
   void add_memory_bytes(const MemoryBytes& x);
   void add_memory_bytes(MemoryBytes&& x);
 
+  // Replaces all MemoryBytes of the snapshot with items from the list.
+  // REQUIRES: can_add_memory_bytes(x) for all x <- xs.
+  // Returns a status if the precondition was not satisfied. When a status
+  // is returned leaves *this in an undefined state.
+  absl::Status ReplaceMemoryBytes(MemoryBytesList&& xs);
+
   // Tells iff memory_bytes() covers all of memory_mappings().
   bool MappedMemoryIsDefined() const;
 
@@ -641,6 +647,12 @@ class Snapshot::EndState final {
   // Overloads for a list of MemoryBytes.
   void add_memory_bytes(const MemoryBytesList& xs);
   void add_memory_bytes(MemoryBytesList&& xs);
+
+  // Replaces all MemoryBytes of the EndState with items from the list.
+  // REQUIRES: can_add_memory_bytes(x) for all x <- xs.
+  // Returns a status if the precondition was not satisfied. When a status
+  // is returned leaves *this in an undefined state.
+  absl::Status ReplaceMemoryBytes(MemoryBytesList&& xs);
 
   // Tells if this EndState is known-to-be-compatible with `platform`.
   bool has_platform(PlatformId platform) const;

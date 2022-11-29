@@ -501,6 +501,16 @@ void Snapshot::add_memory_bytes(MemoryBytes&& x) {
   memory_bytes_.emplace_back(std::move(x));
 }
 
+absl::Status Snapshot::ReplaceMemoryBytes(MemoryBytesList&& xs) {
+  written_memory_set_.clear();
+  memory_bytes_.clear();
+  for (auto&& x : xs) {
+    RETURN_IF_NOT_OK(can_add_memory_bytes(x));
+    add_memory_bytes(x);
+  }
+  return absl::OkStatus();
+}
+
 bool Snapshot::MappedMemoryIsDefined() const {
   auto copy = mapped_memory_map_.Copy();
   for (const auto& b : memory_bytes_) {
@@ -1084,6 +1094,16 @@ void Snapshot::EndState::add_memory_bytes(MemoryBytesList&& xs) {
   for (MemoryBytes& x : xs) {
     add_memory_bytes(std::move(x));
   }
+}
+
+absl::Status Snapshot::EndState::ReplaceMemoryBytes(MemoryBytesList&& xs) {
+  changed_memory_set_.clear();
+  memory_bytes_.clear();
+  for (auto&& x : xs) {
+    RETURN_IF_NOT_OK(can_add_memory_bytes(x));
+    add_memory_bytes(x);
+  }
+  return absl::OkStatus();
 }
 
 bool Snapshot::EndState::has_platform(PlatformId platform) const {
