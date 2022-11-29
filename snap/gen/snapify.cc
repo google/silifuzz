@@ -12,18 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./snap/gen/snap_generator.h"
-
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
-#include "./common/snapshot_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/gen/reserved_memory_mappings.h"
-#include "./util/arch_mem.h"
+#include "./snap/gen/snap_generator.h"
+#include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/platform.h"
 
 namespace silifuzz {
 
@@ -40,27 +39,25 @@ absl::StatusOr<const Snapshot::EndState *> PickEndState(
     }
     RETURN_IF_NOT_OK(snapshot.IsCompleteSomeState());
     return &snapshot.expected_end_states()[0];
-  } else {
-    // Must have an expected end state for the requested platform.
-    for (const auto &es : snapshot.expected_end_states()) {
-      if (es.has_platform(options.platform_id) ||
-          options.platform_id == PlatformId::kAny) {
-        RETURN_IF_NOT_OK(es.IsComplete());
-        return &es;
-      }
-    }
-    return absl::InvalidArgumentError(absl::StrCat(
-        "no expected end state for platform ", EnumStr(options.platform_id)));
   }
+
+  // Must have an expected end state for the requested platform.
+  for (const auto &es : snapshot.expected_end_states()) {
+    if (es.has_platform(options.platform_id) ||
+        options.platform_id == PlatformId::kAny) {
+      RETURN_IF_NOT_OK(es.IsComplete());
+      return &es;
+    }
+  }
+  return absl::InvalidArgumentError(absl::StrCat(
+      "no expected end state for platform ", EnumStr(options.platform_id)));
 }
 
 absl::Status CanConvert(const Snapshot &snapshot, const SnapifyOptions &opts) {
-  absl::StatusOr<const Snapshot::EndState *> end_state_or =
-      PickEndState(snapshot, opts);
-  RETURN_IF_NOT_OK(end_state_or.status());
-  const Snapshot::EndState &end_state = *end_state_or.value();
+  ASSIGN_OR_RETURN_IF_NOT_OK(const Snapshot::EndState *end_state,
+                             PickEndState(snapshot, opts));
   // Must end at an instruction, not a signal.
-  const Snapshot::Endpoint &endpoint = end_state.endpoint();
+  const Snapshot::Endpoint &endpoint = end_state->endpoint();
   if (endpoint.type() != Snapshot::Endpoint::kInstruction) {
     return absl::InvalidArgumentError("endpoint isn't kInstruction");
   }
@@ -82,13 +79,13 @@ absl::Status CanConvert(const Snapshot &snapshot, const SnapifyOptions &opts) {
   // Skip the rest of checks if this is an undefined state. We don't know the
   // expected values of the registers so inspecting RSP is not possible.
   if (opts.allow_undefined_end_state &&
-      end_state.IsComplete(Snapshot::kUndefinedEndState).ok()) {
+      end_state->IsComplete(Snapshot::kUndefinedEndState).ok()) {
     return absl::OkStatus();
   }
 
   // We need 8 bytes of stack to exit (the return address pushed by call)
   // Check that [rsp-8, rsp) is mapped. Also check that RSP=0 is handled.
-  Snapshot::Address ending_rsp = snapshot.ExtractRsp(end_state.registers());
+  Snapshot::Address ending_rsp = snapshot.ExtractRsp(end_state->registers());
   if (ending_rsp < 8 ||
       !mapped_memory_map.Contains(ending_rsp - 8, ending_rsp)) {
     return absl::InvalidArgumentError("need at least 8 bytes on stack");
@@ -101,46 +98,100 @@ absl::Status CanConvert(const Snapshot &snapshot, const SnapifyOptions &opts) {
 // breaks list elements into smaller MemoryBytes objects if necessary for
 // run-length compression. Optionally apply run-length compression on byte data.
 // Returns a status to report any errors.
-absl::Status SnapifyMemoryByteList(
-    const MappedMemoryMap &memory_map, const SnapifyOptions &opts,
-    Snapshot::MemoryBytesList *memory_byte_list) {
+absl::StatusOr<Snapshot::MemoryBytesList> SnapifyMemoryByteList(
+    const MemoryState &memory_state, const SnapifyOptions &opts) {
   // Normalize memory bytes to ensure all bytes in a MemoryBytes have identical
   // permissions
-  Snapshot::NormalizeMemoryBytes(memory_map, memory_byte_list);
+  Snapshot::MemoryBytesList memory_bytes_list =
+      memory_state.memory_bytes_list(memory_state.written_memory());
+  Snapshot::NormalizeMemoryBytes(memory_state.mapped_memory(),
+                                 &memory_bytes_list);
 
   // Prepare memory byte list for run-length compression.
   if (opts.compress_repeating_bytes) {
-    ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot::MemoryBytesList runs,
-                               GetRepeatingByteRuns(*memory_byte_list));
-    memory_byte_list->swap(runs);
+    return GetRepeatingByteRuns(memory_bytes_list);
+  } else {
+    return memory_bytes_list;
+  }
+}
+
+// Transforms the snapshot's MemoryBytes into Snap-compatible format.
+// Specifically, ensures that all MemoryBytes are fragmented according to `opts`
+// in both the Snapshot and all EndStates. Populates all EndStates with all
+// writable bytes from the parent Snapshot.
+absl::Status SnapifyMemoryBytes(Snapshot &snapshot,
+                                const SnapifyOptions &opts) {
+  MemoryState memory_state =
+      MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
+
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      Snapshot::MemoryBytesList snapified_memory_bytes_list,
+      SnapifyMemoryByteList(memory_state, opts));
+  RETURN_IF_NOT_OK(
+      snapshot.ReplaceMemoryBytes(std::move(snapified_memory_bytes_list)));
+
+  Snapshot::EndStateList end_states = snapshot.expected_end_states();
+  snapshot.set_expected_end_states({});
+
+  for (Snapshot::EndState &end_state : end_states) {
+    if (end_state.IsComplete().ok()) {
+      MemoryState memory_state =
+          MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
+      // Apply deltas from the current end state.
+      memory_state.SetMemoryBytes(end_state.memory_bytes());
+
+      // Keep just the writable pages in memory_state.
+      snapshot.mapped_memory_map().Iterate(
+          [&memory_state](auto start, auto limit, MemoryPerms perms) {
+            if (!perms.Has(MemoryPerms::kWritable)) {
+              // Remove all non-writable mappings (and bytes) from the memory
+              // state.
+              memory_state.RemoveMemoryMapping(start, limit);
+            }
+          });
+      ASSIGN_OR_RETURN_IF_NOT_OK(
+          Snapshot::MemoryBytesList snapified_end_state_memory_bytes_list,
+          SnapifyMemoryByteList(memory_state, opts));
+      RETURN_IF_NOT_OK(end_state.ReplaceMemoryBytes(
+          std::move(snapified_end_state_memory_bytes_list)));
+    } else {
+      DCHECK(opts.allow_undefined_end_state);
+    }
+    RETURN_IF_NOT_OK(snapshot.can_add_expected_end_state(end_state));
+    snapshot.add_expected_end_state(end_state);
   }
 
   return absl::OkStatus();
 }
 
-template <typename Arch>
-static Snapshot::MemoryBytes RestoreUContextStackBytesImpl(
-    const Snapshot &snapshot) {
-  GRegSet<Arch> gregs;
-  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
-  std::string stack_data = RestoreUContextStackBytes(gregs);
-  return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
-                               stack_data);
-}
-
-// The bytes that RestoreUContext() will write into the stack of the
-// snapshot as a (presently unavoidable) part of doing its work
-// when jumping-in to start executing `snapshot`.
-static Snapshot::MemoryBytes RestoreUContextStackBytes(
-    const Snapshot &snapshot) {
-  switch (snapshot.architecture()) {
-    case Snapshot::Architecture::kX86_64:
-      return RestoreUContextStackBytesImpl<X86_64>(snapshot);
-    case Snapshot::Architecture::kAArch64:
-      return RestoreUContextStackBytesImpl<AArch64>(snapshot);
-    default:
-      LOG_FATAL("Unexpected architecture: ", snapshot.architecture());
+// Overwrites any bytes at `address` with the Snap exit sequence. Does not
+// add any new memory mappings.
+// NOTE: this transformation likely invalidates any expected end states.
+absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
+  // Add a snap exit sequence to initial memory bytes at the end point
+  // instruction address.
+  Snapshot::ByteData snap_exit_byte_data(kSnapExitSequenceSize, 0);
+  RETURN_IF_NOT_OK(
+      Snapshot::MemoryBytes::CanConstruct(address, snap_exit_byte_data));
+  WriteSnapExitSequence(
+      reinterpret_cast<uint8_t *>(snap_exit_byte_data.data()));
+  Snapshot::MemoryBytes snap_exit_memory_bytes(address, snap_exit_byte_data);
+  if (!snapshot.mapped_memory_map().Contains(
+          snap_exit_memory_bytes.start_address(),
+          snap_exit_memory_bytes.limit_address())) {
+    return absl::InvalidArgumentError(
+        "InsertExitSequence(): no room for the exit sequence");
   }
+  // Construct initial memory state by copying the original.
+  MemoryState memory_state =
+      MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
+  // Overwrite bytes at `address` with the exit sequence.
+  memory_state.SetMemoryBytes(snap_exit_memory_bytes);
+
+  Snapshot::MemoryBytesList memory_bytes_list =
+      memory_state.memory_bytes_list(memory_state.written_memory());
+  RETURN_IF_NOT_OK(snapshot.ReplaceMemoryBytes(std::move(memory_bytes_list)));
+  return absl::OkStatus();
 }
 
 }  // namespace
@@ -148,145 +199,20 @@ static Snapshot::MemoryBytes RestoreUContextStackBytes(
 absl::StatusOr<Snapshot> Snapify(const Snapshot &snapshot,
                                  const SnapifyOptions &opts) {
   RETURN_IF_NOT_OK(CanConvert(snapshot, opts));
-  // Copy Id and Architecture.
-  Snapshot snapified(snapshot.architecture(), snapshot.id());
-  snapified.set_metadata(snapshot.metadata());
 
-  // Copy memory mappings and optionally force mapping to be writable if
-  // requested in options.
-  for (const auto &memory_mapping : snapshot.memory_mappings()) {
-    RETURN_IF_NOT_OK(Snapshot::MemoryMapping::CanMakeSized(
-        memory_mapping.start_address(), memory_mapping.num_bytes()));
-    Snapshot::MemoryMapping snapfied_memory_mapping =
-        Snapshot::MemoryMapping::MakeSized(memory_mapping.start_address(),
-                                           memory_mapping.num_bytes(),
-                                           memory_mapping.perms());
-    RETURN_IF_NOT_OK(snapified.can_add_memory_mapping(snapfied_memory_mapping));
-    snapified.add_memory_mapping(snapfied_memory_mapping);
-  }
+  ASSIGN_OR_RETURN_IF_NOT_OK(const Snapshot::EndState *end_state,
+                             PickEndState(snapshot, opts));
+  const Snapshot::Endpoint &endpoint = end_state->endpoint();
 
-  // Copy registers. This must be done after setting memory mappings as
-  // program counter must point to a valid executable address.
-  snapified.set_registers(snapshot.registers());
+  Snapshot snapified = snapshot.Copy();
+  // Replace potentially multiple expected end states with just the one for the
+  // requested platform.
+  snapified.set_expected_end_states({*end_state});
 
-  // Construct initial memory state of the snapified snaphsot.
-  MemoryState memory_state =
-      MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
+  RETURN_IF_NOT_OK(
+      MergeExitSequence(snapified, endpoint.instruction_address()));
 
-  // Add a snap exit sequence to initial memory bytes at the end point
-  // instruction address.
-  Snapshot::ByteData snap_exit_byte_data(kSnapExitSequenceSize, 0);
-  WriteSnapExitSequence(
-      reinterpret_cast<uint8_t *>(snap_exit_byte_data.data()));
-
-  absl::StatusOr<const Snapshot::EndState *> end_state_or =
-      PickEndState(snapshot, opts);
-  RETURN_IF_NOT_OK(end_state_or.status());
-  const Snapshot::EndState &end_state = *end_state_or.value();
-  const Snapshot::Endpoint &endpoint = end_state.endpoint();
-  RETURN_IF_NOT_OK(Snapshot::MemoryBytes::CanConstruct(
-      endpoint.instruction_address(), snap_exit_byte_data));
-  Snapshot::MemoryBytes snap_exit_memory_bytes(endpoint.instruction_address(),
-                                               snap_exit_byte_data);
-
-  // We need to make sure that this does not overwrite code that a snapshot
-  // cares about. In theory, a snapshot can read memory in the region we
-  // write the exit sequence so that the snapshot can end differently depending
-  // on where the exit sequence is present or not. Right now there is no easy
-  // way to detect this. We can run the resultant Snap to filter out these
-  // cases.
-  //
-  // A different but related problem is that some snapshot ends with instruction
-  // prefixes, which affect the first instruction of the exit sequence. We tried
-  // patching different NOPs in the front of the exit sequence but could not
-  // find a NOP instruction variant that is immune to all prefixes. We may look
-  // at the byte before the ending instruction address and see if that matches
-  // one of the instruction prefixes but doing that may over estimate the
-  // issue and filter out more snapshots than necessary.
-  if (!memory_state.mapped_memory().Contains(
-          snap_exit_memory_bytes.start_address(),
-          snap_exit_memory_bytes.limit_address())) {
-    return absl::InvalidArgumentError("Snapify: no room for the exit sequence");
-  }
-  memory_state.SetMemoryBytes(snap_exit_memory_bytes);
-
-  Snapshot::MemoryBytesList initial_memory_bytes_list =
-      memory_state.memory_bytes_list(memory_state.written_memory());
-  RETURN_IF_NOT_OK(SnapifyMemoryByteList(snapified.mapped_memory_map(), opts,
-                                         &initial_memory_bytes_list));
-  for (const auto &memory_bytes : initial_memory_bytes_list) {
-    RETURN_IF_NOT_OK(snapified.can_add_memory_bytes(memory_bytes));
-    snapified.add_memory_bytes(memory_bytes);
-  }
-
-  // Add RestoreUContext stack bytes, original end state memory delta, and
-  // snap exit stack bytes to construct full end state memory bytes.
-  memory_state.SetMemoryBytes(RestoreUContextStackBytes(snapshot));
-  memory_state.SetMemoryBytes(end_state.memory_bytes());
-
-  // Additionally check that endpoint is kInstruction because the fixup needs
-  // to be applied only for this type of endpoints.
-  CHECK(endpoint.type() == Snapshot::Endpoint::kInstruction);
-  Snapshot::RegisterState snapified_end_state_regs = end_state.registers();
-
-  // Construct a snapified end state from the original.
-  Snapshot::EndState snapified_end_state(endpoint, snapified_end_state_regs);
-  snapified_end_state.set_platforms(end_state.platforms());
-
-  if (end_state.IsComplete().ok()) {
-    // Apply the memory mappings and the exit sequence fixup only when we have
-    // a normal endstate.
-    // The snap exit sequence written above consists of a call instruction
-    // followed by a 64-bit address. The length of an exit sequence is thus the
-    // length of a call instruction plus 8 bytes. When the exit call is
-    // executed, it leaves the address after the call instruction on stack.
-    constexpr size_t kCallInsnSize = kSnapExitSequenceSize - sizeof(uint64_t);
-    Snapshot::Address return_address =
-        endpoint.instruction_address() + kCallInsnSize;
-    Snapshot::ByteData return_address_byte_data(
-        reinterpret_cast<Snapshot::ByteData::value_type *>(&return_address),
-        sizeof(return_address));
-    // On x86_64, a stack push is done by decrementing the stack point first
-    // and then writing to location pointed to by the new stack pointer.
-    //
-    // before call
-    //   RSP-> 20000000: XX XX ....
-    //         1ffffff8: XX XX ....
-    //
-    // after call
-    //         20000000: XX XX ....
-    //   RSP-> 1ffffff8: <return address>
-    //
-    const Snapshot::Address end_point_stack_pointer =
-        snapshot.ExtractRsp(end_state.registers());
-    RETURN_IF_NOT_OK(Snapshot::MemoryBytes::CanConstruct(
-        end_point_stack_pointer - sizeof(return_address),
-        return_address_byte_data));
-    Snapshot::MemoryBytes return_address_memory_bytes(
-        end_point_stack_pointer - sizeof(return_address),
-        return_address_byte_data);
-    memory_state.SetMemoryBytes(return_address_memory_bytes);
-    Snapshot::MemoryBytesList end_state_memory_bytes_list =
-        memory_state.memory_bytes_list(memory_state.written_memory());
-    RETURN_IF_NOT_OK(SnapifyMemoryByteList(snapified.mapped_memory_map(), opts,
-                                           &end_state_memory_bytes_list));
-    for (const auto &memory_bytes : end_state_memory_bytes_list) {
-      // Include only writable memory in the endstate.
-      if (snapified.mapped_memory_map()
-              .Perms(memory_bytes.start_address(), memory_bytes.limit_address(),
-                     MemoryPerms::kOr)
-              .Has(MemoryPerms::kWritable)) {
-        RETURN_IF_NOT_OK(
-            snapified_end_state.can_add_memory_bytes(memory_bytes));
-        snapified_end_state.add_memory_bytes(memory_bytes);
-      }
-    }
-  } else {
-    // Ensure that an undefined endstate is expected.
-    DCHECK(opts.allow_undefined_end_state);
-  }
-  RETURN_IF_NOT_OK(snapified.can_add_expected_end_state(snapified_end_state));
-  snapified.add_expected_end_state(snapified_end_state);
+  RETURN_IF_NOT_OK(SnapifyMemoryBytes(snapified, opts));
 
   return snapified;
 }

@@ -36,7 +36,6 @@
 #include "./snap/snap.h"
 #include "./util/checks.h"
 #include "./util/ucontext/serialize.h"
-#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 

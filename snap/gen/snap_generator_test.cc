@@ -140,28 +140,6 @@ TEST(SnapGenerator, Snapify) {
                   kSnapExitSequenceSize),
            0);
 
-  // Check that we have the exit sequence stack artifact.
-  const Snapshot::Address snapfied_end_state_rsp =
-      snapified.ExtractRsp(snapified_end_state.registers());
-
-  MemoryState end_memory_state =
-      MemoryState::MakeEnd(snapified, 0, MemoryState::kZeroMappedBytes);
-  const uint64_t expected_return_address =
-      snapified_end_state_rip + kSnapExitSequenceSize - 8;
-
-  // Snapify() does not correct the end state rsp to account for a return
-  // address pushed by the exiting call.  So we check [rsp-8, rsp) here
-  // instead of [rsp, rsp+8).
-  //
-  // TODO(dougkwan): [cleanup] Fix Snapify(), RunnerReentry() and this test
-  // together so that snapified end state rsp is origin rsp + 8, which is
-  // what we expect when an extra 8 bytes are pushed.
-  CHECK(end_memory_state.mapped_memory().Contains(snapfied_end_state_rsp - 8,
-                                                  snapfied_end_state_rsp));
-  const Snapshot::ByteData return_address_bytes =
-      end_memory_state.memory_bytes(snapfied_end_state_rsp - 8, 8);
-  CHECK_EQ(memcmp(return_address_bytes.data(), &expected_return_address, 8), 0);
-
   // All end state memory bytes must be writable as in the original snapshot.
   // There should not be read-only memory bytes.
   for (const auto& memory_bytes : snapified_end_state.memory_bytes()) {

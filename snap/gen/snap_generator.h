@@ -59,8 +59,7 @@ struct SnapifyOptions {
 // Convert 'snapshot' into a form that GenerateSnap() can convert into a
 // Snap that produces the same result as the 'snapshot'. The conversion
 // includes adding an exit sequence at the end state instruction
-// address, modifying the end state stack contents to reflect effect of
-// the exit sequence and including all the mapping memory bytes in the end
+// address and including all writable mapping memory bytes in the end
 // state.
 absl::StatusOr<Snapshot> Snapify(
     const Snapshot &snapshot,
