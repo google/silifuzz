@@ -206,7 +206,6 @@ cc_test(
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util/testing:status_macros",
-        "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],

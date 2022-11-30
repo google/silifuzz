@@ -14,7 +14,6 @@
 
 #include "./snap/gen/snap_generator.h"
 
-#include <string.h>
 #include <sys/mman.h>
 
 #include <cstdint>
@@ -34,7 +33,6 @@
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 // Snap generator test.
 // Test(s) below use pre-compiled Snaps in a SnapArray kSnapGeneratorTestSnaps,
@@ -46,17 +44,12 @@ namespace silifuzz {
 
 namespace {
 
-SnapifyOptions TestSnapifyOptions() {
-  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
-  return opts;
-}
-
 TEST(SnapGenerator, BasicSnapGeneratorTest) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  VerifyTestSnap(snapshot, snap, TestSnapifyOptions());
+  VerifyTestSnap(snapshot, snap, SnapifyOptions::Default());
 }
 
 TEST(SnapGenerator, MemoryBytesAttributesTest) {
@@ -64,7 +57,7 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
       SnapGeneratorTestType::kMemoryBytesPermsTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
-  VerifyTestSnap(snapshot, snap, TestSnapifyOptions());
+  VerifyTestSnap(snapshot, snap, SnapifyOptions::Default());
 
   // Check that there is a code page and it is read-only.
   MappedMemoryMap code_mappings;
@@ -112,13 +105,11 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
 TEST(SnapGenerator, Snapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  SnapifyOptions options = TestSnapifyOptions();
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot, options));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
 
   for (const auto& mapping : snapified.memory_mappings()) {
-    MemoryPerms original_perms = snapshot.PermsAt(mapping.start_address());
-    const MemoryPerms expected = original_perms;
-    EXPECT_EQ(mapping.perms().DebugString(), expected.DebugString());
+    MemoryPerms expected_perms = snapshot.PermsAt(mapping.start_address());
+    EXPECT_EQ(mapping.perms().DebugString(), expected_perms.DebugString());
   }
 
   // Check that we have the exit sequence in the initial memory bytes.
@@ -129,16 +120,15 @@ TEST(SnapGenerator, Snapify) {
       snapified.expected_end_states()[0];
   const Snapshot::Address snapified_end_state_rip =
       snapified_end_state.endpoint().instruction_address();
-  CHECK(initial_memory_state.mapped_memory().Contains(
+  ASSERT_TRUE(initial_memory_state.mapped_memory().Contains(
       snapified_end_state_rip,
       snapified_end_state_rip + kSnapExitSequenceSize));
   const Snapshot::ByteData exit_sequence = initial_memory_state.memory_bytes(
       snapified_end_state_rip, kSnapExitSequenceSize);
-  uint8_t expected_exit_sequence[kSnapExitSequenceSize];
+  char expected_exit_sequence[kSnapExitSequenceSize];
   WriteSnapExitSequence(expected_exit_sequence);
-  CHECK_EQ(memcmp(exit_sequence.data(), expected_exit_sequence,
-                  kSnapExitSequenceSize),
-           0);
+  EXPECT_EQ(exit_sequence,
+            std::string(expected_exit_sequence, kSnapExitSequenceSize));
 
   // All end state memory bytes must be writable as in the original snapshot.
   // There should not be read-only memory bytes.
@@ -153,9 +143,7 @@ TEST(SnapGenerator, SnapifyIdempotent) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
-  // snapified is now a v2-format
-  auto opts = SnapifyOptions::V2InputRunOpts();
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified, opts));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified));
   ASSERT_EQ(snapified, snapified2);
 }
 
