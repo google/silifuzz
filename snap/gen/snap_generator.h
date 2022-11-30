@@ -56,6 +56,10 @@ struct SnapifyOptions {
   static constexpr SnapifyOptions Default() { return V2InputRunOpts(); }
 };
 
+// Tests if snapshot can be converted to Snap.
+absl::Status CanSnapify(const Snapshot &snapshot,
+                        const SnapifyOptions &opts = SnapifyOptions::Default());
+
 // Convert 'snapshot' into a form that GenerateSnap() can convert into a
 // Snap that produces the same result as the 'snapshot'. The conversion
 // includes adding an exit sequence at the end state instruction

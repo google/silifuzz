@@ -53,47 +53,6 @@ absl::StatusOr<const Snapshot::EndState *> PickEndState(
       "no expected end state for platform ", EnumStr(options.platform_id)));
 }
 
-absl::Status CanConvert(const Snapshot &snapshot, const SnapifyOptions &opts) {
-  ASSIGN_OR_RETURN_IF_NOT_OK(const Snapshot::EndState *end_state,
-                             PickEndState(snapshot, opts));
-  // Must end at an instruction, not a signal.
-  const Snapshot::Endpoint &endpoint = end_state->endpoint();
-  if (endpoint.type() != Snapshot::Endpoint::kInstruction) {
-    return absl::InvalidArgumentError("endpoint isn't kInstruction");
-  }
-
-  if (OverlapReservedMemoryMappings(snapshot.memory_mappings())) {
-    return absl::InvalidArgumentError(
-        "memory mappings overlap reserved memory mappings");
-  }
-
-  // There should be code space to append an exit sequence.
-  const MappedMemoryMap &mapped_memory_map = snapshot.mapped_memory_map();
-  const Snapshot::Address ending_rip = endpoint.instruction_address();
-  if (!mapped_memory_map.Contains(ending_rip,
-                                  ending_rip + kSnapExitSequenceSize)) {
-    return absl::InvalidArgumentError(
-        "CanConvert: no room for the exit sequence");
-  }
-
-  // Skip the rest of checks if this is an undefined state. We don't know the
-  // expected values of the registers so inspecting RSP is not possible.
-  if (opts.allow_undefined_end_state &&
-      end_state->IsComplete(Snapshot::kUndefinedEndState).ok()) {
-    return absl::OkStatus();
-  }
-
-  // We need 8 bytes of stack to exit (the return address pushed by call)
-  // Check that [rsp-8, rsp) is mapped. Also check that RSP=0 is handled.
-  Snapshot::Address ending_rsp = snapshot.ExtractRsp(end_state->registers());
-  if (ending_rsp < 8 ||
-      !mapped_memory_map.Contains(ending_rsp - 8, ending_rsp)) {
-    return absl::InvalidArgumentError("need at least 8 bytes on stack");
-  }
-
-  return absl::OkStatus();
-}
-
 // Helper for Snapify(). This normalizes `memory_byte_list` and then
 // breaks list elements into smaller MemoryBytes objects if necessary for
 // run-length compression. Optionally apply run-length compression on byte data.
@@ -196,9 +155,50 @@ absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
 
 }  // namespace
 
+absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(const Snapshot::EndState *end_state,
+                             PickEndState(snapshot, opts));
+  // Must end at an instruction, not a signal.
+  const Snapshot::Endpoint &endpoint = end_state->endpoint();
+  if (endpoint.type() != Snapshot::Endpoint::kInstruction) {
+    return absl::InvalidArgumentError("endpoint isn't kInstruction");
+  }
+
+  if (OverlapReservedMemoryMappings(snapshot.memory_mappings())) {
+    return absl::InvalidArgumentError(
+        "memory mappings overlap reserved memory mappings");
+  }
+
+  // There should be code space to append an exit sequence.
+  const MappedMemoryMap &mapped_memory_map = snapshot.mapped_memory_map();
+  const Snapshot::Address ending_rip = endpoint.instruction_address();
+  if (!mapped_memory_map.Contains(ending_rip,
+                                  ending_rip + kSnapExitSequenceSize)) {
+    return absl::InvalidArgumentError(
+        "CanSnapify: no room for the exit sequence");
+  }
+
+  // Skip the rest of checks if this is an undefined state. We don't know the
+  // expected values of the registers so inspecting RSP is not possible.
+  if (opts.allow_undefined_end_state &&
+      end_state->IsComplete(Snapshot::kUndefinedEndState).ok()) {
+    return absl::OkStatus();
+  }
+
+  // We need 8 bytes of stack to exit (the return address pushed by call)
+  // Check that [rsp-8, rsp) is mapped. Also check that RSP=0 is handled.
+  Snapshot::Address ending_rsp = snapshot.ExtractRsp(end_state->registers());
+  if (ending_rsp < 8 ||
+      !mapped_memory_map.Contains(ending_rsp - 8, ending_rsp)) {
+    return absl::InvalidArgumentError("need at least 8 bytes on stack");
+  }
+
+  return absl::OkStatus();
+}
+
 absl::StatusOr<Snapshot> Snapify(const Snapshot &snapshot,
                                  const SnapifyOptions &opts) {
-  RETURN_IF_NOT_OK(CanConvert(snapshot, opts));
+  RETURN_IF_NOT_OK(CanSnapify(snapshot, opts));
 
   ASSIGN_OR_RETURN_IF_NOT_OK(const Snapshot::EndState *end_state,
                              PickEndState(snapshot, opts));
