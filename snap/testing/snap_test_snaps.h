@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPS_H_
 #define THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPS_H_
 
+#include "./common/snapshot_test_enum.h"
 #include "./snap/snap.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/checks.h"
@@ -31,7 +32,7 @@ inline const Snap& GetSnapGeneratorTestSnap(SnapGeneratorTestType type) {
 }
 
 // Returns a Snap runner test Snap of the given type.
-inline const Snap& GetSnapRunnerTestSnap(SnapRunnerTestType type) {
+inline const Snap& GetSnapRunnerTestSnap(TestSnapshot type) {
   return *kSnapRunnerTestCorpus.snaps.at((size_t)type);
 }
 

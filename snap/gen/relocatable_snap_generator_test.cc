@@ -36,7 +36,6 @@
 #include "./snap/snap_util.h"
 #include "./snap/testing/snap_generator_test_lib.h"
 #include "./snap/testing/snap_test_snapshots.h"
-#include "./snap/testing/snap_test_types.h"
 #include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/platform.h"
@@ -68,6 +67,9 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
 
   SnapifyOptions snapify_options = SnapifyOptions::V2InputRunOpts();
   snapify_options.allow_undefined_end_state = true;
+  // Note: it isn't guarenteed that all the test snaps will be snap
+  // compatible. If this becomes an issue, we can add a query function and
+  // filter them out here.
   ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, snapify_options));
   std::vector<Snapshot> corpus;
   corpus.push_back(std::move(snapified));
@@ -80,7 +82,7 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
   std::vector<Snapshot> corpus;
   {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
+        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
 
     ASSERT_OK_AND_ASSIGN(Snapshot snapified,
                          Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
@@ -98,15 +100,11 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
 TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
   // Generate relocatable snaps from runner test snaps.
   std::vector<Snapshot> snapified_corpus;
-  const int first_runner_test_type =
-      ToInt(SnapRunnerTestType::kFirstSnapRunnerTest);
-  const int last_runner_test_type =
-      ToInt(SnapRunnerTestType::kLastSnapRunnerTest);
   SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
-  for (int type = first_runner_test_type; type <= last_runner_test_type;
+  for (int type = 0; type < static_cast<int>(TestSnapshot::kNumTestSnapshot);
        ++type) {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(static_cast<SnapRunnerTestType>(type));
+        MakeSnapRunnerTestSnapshot(static_cast<TestSnapshot>(type));
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }

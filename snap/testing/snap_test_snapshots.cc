@@ -103,7 +103,7 @@ Snapshot MakeSnapGeneratorTestSnapshot(SnapGeneratorTestType type) {
   }
 }
 
-Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type) {
+Snapshot MakeSnapRunnerTestSnapshot(TestSnapshot type) {
   CreateTestSnapshotOptions opts;
   // Need to force the normal (i.e. with registers) end state to confirm
   // to Snapify() contract.
@@ -111,32 +111,7 @@ Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type) {
   opts.read_address = 0x1000000;   // some mappable address
   opts.write_address = 0x1000000;  // some mappable address
 
-  switch (type) {
-    case SnapRunnerTestType::kEndsAsExpected:
-      return CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
-    case SnapRunnerTestType::kRegsMismatch:
-      return CreateTestSnapshot(TestSnapshot::kRegsMismatch);
-    case SnapRunnerTestType::kMemoryMismatch:
-      return CreateTestSnapshot(TestSnapshot::kMemoryMismatch);
-    case SnapRunnerTestType::kRegsAndMemoryMismatch:
-      return CreateTestSnapshot(TestSnapshot::kRegsAndMemoryMismatch);
-    case SnapRunnerTestType::kRunaway:
-      return CreateTestSnapshot(TestSnapshot::kRunaway, opts);
-    case SnapRunnerTestType::kSyscall:
-      return CreateTestSnapshot(TestSnapshot::kSyscall, opts);
-    case SnapRunnerTestType::kSigSegvRead:
-      return CreateTestSnapshot(TestSnapshot::kSigSegvRead, opts);
-    case SnapRunnerTestType::kGeneralProtectionFault:
-      return CreateTestSnapshot(TestSnapshot::kGeneralProtectionFault, opts);
-    case SnapRunnerTestType::kSigIll:
-      return CreateTestSnapshot(TestSnapshot::kSigIll, opts);
-    case SnapRunnerTestType::kRegsMismatchRandom:
-      return CreateTestSnapshot(TestSnapshot::kRegsMismatchRandom, opts);
-    case SnapRunnerTestType::kINT3:
-      return CreateTestSnapshot(TestSnapshot::kINT3, opts);
-    case SnapRunnerTestType::kSplitLock:
-      return CreateTestSnapshot(TestSnapshot::kSplitLock, opts);
-  }
+  return CreateTestSnapshot(type, opts);
 }
 
 }  // namespace silifuzz

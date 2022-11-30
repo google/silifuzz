@@ -15,7 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
 
-#include "./common/snapshot_test_util.h"
+#include "./common/snapshot.h"
+#include "./common/snapshot_test_enum.h"
 
 namespace silifuzz {
 

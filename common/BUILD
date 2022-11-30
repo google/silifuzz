@@ -259,6 +259,12 @@ cc_test(
     ],
 )
 
+cc_library_plus_nolibc(
+    name = "snapshot_test_enum",
+    testonly = True,
+    hdrs = ["snapshot_test_enum.h"],
+)
+
 cc_library(
     name = "snapshot_test_util",
     testonly = True,
@@ -272,6 +278,7 @@ cc_library(
         ":memory_state",
         ":snapshot",
         ":snapshot_proto",
+        ":snapshot_test_enum",
         ":snapshot_util",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//snap:exit_sequence",

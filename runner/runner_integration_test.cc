@@ -55,7 +55,7 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
 // TODO(ksteuck): [test] Add tests for different snaps.
 TEST(RunnerTest, MemoryMismatchSnap) {
   Snap memoryMismatchSnap =
-      GetSnapRunnerTestSnap(SnapRunnerTestType::kMemoryMismatch);
+      GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(memoryMismatchSnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kMemoryMismatch);
@@ -66,8 +66,7 @@ TEST(RunnerTest, MemoryMismatchSnap) {
 }
 
 TEST(RunnerTest, SigSegvSnap) {
-  Snap sigSegvReadSnap =
-      GetSnapRunnerTestSnap(SnapRunnerTestType::kSigSegvRead);
+  Snap sigSegvReadSnap = GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(sigSegvReadSnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
@@ -86,14 +85,14 @@ TEST(RunnerTest, SigSegvSnap) {
 }
 
 TEST(RunnerTest, SyscallSnap) {
-  Snap syscallSnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kSyscall);
+  Snap syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
   auto result = RunOneSnap(syscallSnap);
   ASSERT_THAT(result,
               StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
 }
 
 TEST(RunnerTest, INT3Snap) {
-  Snap int3Snap = GetSnapRunnerTestSnap(SnapRunnerTestType::kINT3);
+  Snap int3Snap = GetSnapRunnerTestSnap(TestSnapshot::kINT3);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(int3Snap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
@@ -108,14 +107,14 @@ TEST(RunnerTest, INT3Snap) {
 }
 
 TEST(RunnerTest, RunawaySnap) {
-  Snap runawaySnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kRunaway);
+  Snap runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kExecutionRunaway);
 }
 
 TEST(RunnerTest, Deadline) {
-  Snap runawaySnap = GetSnapRunnerTestSnap(SnapRunnerTestType::kRunaway);
+  Snap runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap, absl::Seconds(2)));
   ASSERT_TRUE(result.success());
 }

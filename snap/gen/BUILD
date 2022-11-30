@@ -96,7 +96,6 @@ cc_test(
         "@silifuzz//snap:snap_util",
         "@silifuzz//snap/testing:snap_generator_test_lib",
         "@silifuzz//snap/testing:snap_test_snapshots",
-        "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:platform",

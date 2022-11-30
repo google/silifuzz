@@ -34,29 +34,6 @@ enum class SnapGeneratorTestType {
   kLastSnapGeneratorTest = kMemoryBytesPermsTest,
 };
 
-// Types of Snap runner tests.
-enum class SnapRunnerTestType {
-  // We uses some snapshots from silifuzz::TestSnapshots that can be converted
-  // to Snap. Note that we cannot reference enums in TestSnapshots here as due
-  // to nolibc usage for this header.
-  kEndsAsExpected = 0,  // See TestSnapshots::kEndsAsExpected,
-  kFirstSnapRunnerTest = kEndsAsExpected,
-  // See corresponding TestSnapshots::* snapshots
-  kRegsMismatch,
-  kMemoryMismatch,
-  kRegsAndMemoryMismatch,
-  kSigSegvRead,
-  kRunaway,
-  kGeneralProtectionFault,
-  kSigIll,
-  kRegsMismatchRandom,
-  kINT3,
-  kSyscall,
-  kSplitLock,
-
-  kLastSnapRunnerTest = kSplitLock,
-};
-
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_TYPES_H_

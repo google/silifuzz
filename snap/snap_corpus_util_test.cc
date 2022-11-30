@@ -43,7 +43,7 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
   {
     SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kFirstSnapRunnerTest);
+        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.emplace_back(std::move(snapified));
   }

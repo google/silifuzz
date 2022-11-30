@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPSHOTS_H_
 #define THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPSHOTS_H_
 #include "./common/snapshot.h"
+#include "./common/snapshot_test_enum.h"
 #include "./snap/testing/snap_test_types.h"
 
 namespace silifuzz {
@@ -23,7 +24,7 @@ namespace silifuzz {
 Snapshot MakeSnapGeneratorTestSnapshot(SnapGeneratorTestType type);
 
 // Returns a silifuzz::Snapshot of the given Snap runner test type.
-Snapshot MakeSnapRunnerTestSnapshot(SnapRunnerTestType type);
+Snapshot MakeSnapRunnerTestSnapshot(TestSnapshot type);
 
 }  // namespace silifuzz
 

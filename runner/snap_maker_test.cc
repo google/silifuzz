@@ -58,27 +58,26 @@ absl::StatusOr<Snapshot> Fix(
 
 TEST(SnapMaker, AsExpected) {
   auto endsAsExpectedSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kEndsAsExpected);
+      MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
   ASSERT_OK(Fix(endsAsExpectedSnap));
 }
 
 TEST(SnapMaker, MemoryMismatchSnap) {
   auto memoryMismatchSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kMemoryMismatch);
+      MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
   ASSERT_OK(Fix(memoryMismatchSnap));
 }
 
 TEST(SnapMaker, RandomRegsMismatch) {
   auto regsMismatchRandomSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kRegsMismatchRandom);
+      MakeSnapRunnerTestSnapshot(TestSnapshot::kRegsMismatchRandom);
   auto result_or = Fix(regsMismatchRandomSnap);
   ASSERT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("non-deterministic")));
 }
 
 TEST(SnapMaker, SigSegvRead) {
-  auto sigSegvReadSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSigSegvRead);
+  auto sigSegvReadSnap = MakeSnapRunnerTestSnapshot(TestSnapshot::kSigSegvRead);
   ASSERT_OK_AND_ASSIGN(auto result, Fix(sigSegvReadSnap));
   ASSERT_EQ(result.memory_mappings().size(),
             sigSegvReadSnap.memory_mappings().size() + 1)
@@ -88,7 +87,7 @@ TEST(SnapMaker, SigSegvRead) {
 
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kMemoryMismatch);
+      MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
   ASSERT_OK_AND_ASSIGN(auto result, Fix(memoryMismatchSnap));
   ASSERT_OK_AND_ASSIGN(auto result2, Fix(result));
   ASSERT_EQ(result2, result);
@@ -96,7 +95,7 @@ TEST(SnapMaker, Idempotent) {
 
 TEST(SnapMake, SplitLock) {
   const auto splitLockSnap =
-      MakeSnapRunnerTestSnapshot(SnapRunnerTestType::kSplitLock);
+      MakeSnapRunnerTestSnapshot(TestSnapshot::kSplitLock);
   SnapMaker::Options options = DefaultSnapMakerOptions();
   options.x86_filter_split_lock = false;
   ASSERT_OK(Fix(splitLockSnap, options));

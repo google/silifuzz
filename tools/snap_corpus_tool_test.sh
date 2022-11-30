@@ -25,7 +25,7 @@ readonly TOOL="${TEST_SRCDIR}/silifuzz/tools/snap_corpus_tool"
 readonly CORPUS="${TEST_SRCDIR}/silifuzz/tools/testdata/runnable_corpus-fake-platform-00000"
 
 function snap_corpus_tool_test() {
- "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 12' \
+ "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 22' \
    || die "snap_corpus_tool test failed"
 }
 

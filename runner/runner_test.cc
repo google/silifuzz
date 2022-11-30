@@ -33,21 +33,20 @@ namespace {
 // to be used.
 
 TEST(Runner, EndsAsExpected) {
-  CHECK_EQ(RunSnap(GetSnapRunnerTestSnap(SnapRunnerTestType::kEndsAsExpected))
-               .outcome,
-           RunSnapOutcome::kAsExpected);
+  CHECK_EQ(
+      RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected)).outcome,
+      RunSnapOutcome::kAsExpected);
 }
 
 TEST(Runner, RegsMismatch) {
-  CHECK_EQ(
-      RunSnap(GetSnapRunnerTestSnap(SnapRunnerTestType::kRegsMismatch)).outcome,
-      RunSnapOutcome::kRegisterStateMismatch);
+  CHECK_EQ(RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch)).outcome,
+           RunSnapOutcome::kRegisterStateMismatch);
 }
 
 TEST(Runner, MemoryMismatch) {
-  CHECK_EQ(RunSnap(GetSnapRunnerTestSnap(SnapRunnerTestType::kMemoryMismatch))
-               .outcome,
-           RunSnapOutcome::kMemoryMismatch);
+  CHECK_EQ(
+      RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch)).outcome,
+      RunSnapOutcome::kMemoryMismatch);
 }
 
 }  // namespace
