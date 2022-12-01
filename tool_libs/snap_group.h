@@ -22,8 +22,6 @@
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/snapshot.h"
-#include "./snap/snap.h"
-#include "./snap/snap_util.h"
 
 namespace silifuzz {
 
