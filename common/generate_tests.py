@@ -491,13 +491,14 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 
 }  // namespace
 
-const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch, TestSnapshot type) {
+const TestSnapshotConfig* GetTestSnapshotConfig(Snapshot::Architecture arch,
+                                                TestSnapshot type) {
   for (size_t i = 0; i < sizeof(configs) / sizeof(TestSnapshotConfig); i++) {
     if (configs[i].arch == arch && configs[i].type == type) {
-        return configs[i];
+        return &configs[i];
     }
   }
-  LOG_FATAL("Could not find test snapshot ", type, " with arch ", arch);
+  return nullptr;
 }
 
 }  // namespace silifuzz

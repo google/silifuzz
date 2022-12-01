@@ -28,6 +28,7 @@
 #include "absl/strings/string_view.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
+#include "./common/snapshot_test_util.h"
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/gen/snap_generator.h"
 #include "./snap/testing/snap_test_snapshots.h"
@@ -51,9 +52,12 @@ absl::Status GenerateRelocatableRunnerCorpus() {
   // Build the test Snapshot corpus.
   std::vector<std::string> runner_test_snap_names;
   std::vector<Snapshot> snapified_corpus;
-  for (int type = 0; type < ToInt(TestSnapshot::kNumTestSnapshot); ++type) {
-    Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(static_cast<TestSnapshot>(type));
+  for (int index = 0; index < ToInt(TestSnapshot::kNumTestSnapshot); ++index) {
+    TestSnapshot type = static_cast<TestSnapshot>(index);
+    if (!TestSnapshotExists<X86_64>(type)) {
+      continue;
+    }
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
     // Note: it isn't guarenteed that all the test snaps will be snap
     // compatible. If this becomes an issue, we can add a query function and
     // filter them out here.
@@ -108,10 +112,13 @@ absl::Status GenerateSource() {
 
   // Generate runner test snaps.
   std::vector<std::string> runner_test_snap_names;
-  for (int type = 0; type < ToInt(TestSnapshot::kNumTestSnapshot); ++type) {
-    Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(static_cast<TestSnapshot>(type));
-    std::string name = absl::StrCat("kRunnerTestSnap_", type);
+  for (int index = 0; index < ToInt(TestSnapshot::kNumTestSnapshot); ++index) {
+    TestSnapshot type = static_cast<TestSnapshot>(index);
+    if (!TestSnapshotExists<X86_64>(type)) {
+      continue;
+    }
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
+    std::string name = absl::StrCat("kRunnerTestSnap_", index);
     runner_test_snap_names.push_back(name);
     CHECK_STATUS(generator.GenerateSnap(name, snapshot));
   }

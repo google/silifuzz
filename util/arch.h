@@ -30,10 +30,12 @@ enum class ArchitectureId {
 
 struct X86_64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;
+  static constexpr const char* arch_name = "x86_64";
 };
 
 struct AArch64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kAArch64;
+  static constexpr const char* arch_name = "aarch64";
 };
 
 #if defined(__x86_64__)

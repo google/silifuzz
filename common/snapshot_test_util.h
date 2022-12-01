@@ -44,7 +44,12 @@ class CreateTestSnapshotOptions {
   Snapshot::Address exec_address = 0x300;
 };
 
-  // Creates a minimal snapshot for testing on the current architecture.
+// Not every test snapshot exists for every architecture.
+// Check if this test snapshot exists for this architecture.
+template <typename Arch = Host>
+bool TestSnapshotExists(TestSnapshot type);
+
+// Creates a minimal snapshot for testing on the current architecture.
 template <typename Arch = Host>
 Snapshot CreateTestSnapshot(
     TestSnapshot type,

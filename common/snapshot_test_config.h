@@ -32,7 +32,11 @@ struct TestSnapshotConfig {
   uint64_t stack_bytes_used;
 };
 
-const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch,
+// Return a configuration that describes how to construct the Snapshot for a
+// particular TestSnapshot. The configuration may vary across different target
+// architectures. Some configurations may not exist for a some target
+// architectures. If the configuration does not exist, nullptr will be returned.
+const TestSnapshotConfig* GetTestSnapshotConfig(Snapshot::Architecture arch,
                                                 TestSnapshot type);
 
 }  // namespace silifuzz

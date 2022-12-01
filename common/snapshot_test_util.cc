@@ -188,11 +188,25 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects<AArch64>(
 }  // namespace
 
 template <typename Arch>
+bool TestSnapshotExists(TestSnapshot type) {
+  Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
+  return GetTestSnapshotConfig(arch, type) != nullptr;
+}
+
+template bool TestSnapshotExists<X86_64>(TestSnapshot type);
+template bool TestSnapshotExists<AArch64>(TestSnapshot type);
+
+template <typename Arch>
 Snapshot CreateTestSnapshot(TestSnapshot type,
                             CreateTestSnapshotOptions options) {
   Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
 
-  const TestSnapshotConfig& config = GetTestSnapshotConfig(arch, type);
+  const TestSnapshotConfig* maybe_config = GetTestSnapshotConfig(arch, type);
+  if (maybe_config == nullptr) {
+    LOG_FATAL("Could not find config for test snapshot ", EnumStr(type),
+              " for arch ", Arch::arch_name);
+  }
+  const TestSnapshotConfig& config = *maybe_config;
 
   Snapshot snapshot(arch, EnumStr(type));
 

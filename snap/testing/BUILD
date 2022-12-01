@@ -68,6 +68,7 @@ cc_binary(
         ":snap_test_types",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_test_enum",
+        "@silifuzz//common:snapshot_test_util",
         "@silifuzz//snap/gen:relocatable_snap_generator",
         "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//util:checks",

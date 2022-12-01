@@ -101,10 +101,13 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
   // Generate relocatable snaps from runner test snaps.
   std::vector<Snapshot> snapified_corpus;
   SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
-  for (int type = 0; type < static_cast<int>(TestSnapshot::kNumTestSnapshot);
-       ++type) {
-    Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(static_cast<TestSnapshot>(type));
+  for (int index = 0; index < static_cast<int>(TestSnapshot::kNumTestSnapshot);
+       ++index) {
+    TestSnapshot type = static_cast<TestSnapshot>(index);
+    if (!TestSnapshotExists(type)) {
+      continue;
+    }
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
