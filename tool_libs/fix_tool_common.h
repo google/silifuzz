@@ -106,16 +106,6 @@ absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
                                        const FixupSnapshotOptions& options,
                                        PlatformFixToolCounters* counters);
 
-// Old interface of FixupSnapshot.
-// TODO(dougkwan): Remove this once all clients are updated.
-inline absl::StatusOr<Snapshot> FixupSnapshot(
-    const Snapshot& input, PlatformFixToolCounters* counters,
-    bool x86_filter_split_lock = false) {
-  FixupSnapshotOptions options;
-  options.x86_filter_split_lock = x86_filter_split_lock;
-  return FixupSnapshot(input, options, counters);
-}
-
 }  // namespace fix_tool_internal
 }  // namespace silifuzz
 
