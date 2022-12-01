@@ -19,66 +19,42 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
-#include "./runner/runner_provider.h"
+#include "./runner/snap_maker_test_util.h"
 #include "./snap/testing/snap_test_snapshots.h"
-#include "./snap/testing/snap_test_types.h"
-#include "./util/checks.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
+using silifuzz::DefaultSnapMakerOptionsForTest;
+using silifuzz::FixSnapshotInTest;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
-SnapMaker::Options DefaultSnapMakerOptions() {
-  SnapMaker::Options opts;
-  opts.runner_path = RunnerLocation();
-  return opts;
-}
-
-// Applies Make(), Record() and Verify() to the snapshot and returns either
-// the fixed Snapshot or an error.
-absl::StatusOr<Snapshot> Fix(
-    const Snapshot& snapshot,
-    const SnapMaker::Options& options = DefaultSnapMakerOptions()) {
-  SnapMaker snap_maker(options);
-  auto made_snapshot_or = snap_maker.Make(snapshot);
-  RETURN_IF_NOT_OK(made_snapshot_or.status());
-  auto recorded_snap_or = snap_maker.RecordEndState(made_snapshot_or.value());
-  RETURN_IF_NOT_OK(recorded_snap_or.status());
-  auto verify_status = snap_maker.Verify(recorded_snap_or.value());
-  if (!verify_status.ok()) {
-    return verify_status;
-  }
-  return recorded_snap_or;
-}
-
 TEST(SnapMaker, AsExpected) {
   auto endsAsExpectedSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
-  ASSERT_OK(Fix(endsAsExpectedSnap));
+  ASSERT_OK(FixSnapshotInTest(endsAsExpectedSnap));
 }
 
 TEST(SnapMaker, MemoryMismatchSnap) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
-  ASSERT_OK(Fix(memoryMismatchSnap));
+  ASSERT_OK(FixSnapshotInTest(memoryMismatchSnap));
 }
 
 TEST(SnapMaker, RandomRegsMismatch) {
   auto regsMismatchRandomSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kRegsMismatchRandom);
-  auto result_or = Fix(regsMismatchRandomSnap);
+  auto result_or = FixSnapshotInTest(regsMismatchRandomSnap);
   ASSERT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("non-deterministic")));
 }
 
 TEST(SnapMaker, SigSegvRead) {
   auto sigSegvReadSnap = MakeSnapRunnerTestSnapshot(TestSnapshot::kSigSegvRead);
-  ASSERT_OK_AND_ASSIGN(auto result, Fix(sigSegvReadSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, FixSnapshotInTest(sigSegvReadSnap));
   ASSERT_EQ(result.memory_mappings().size(),
             sigSegvReadSnap.memory_mappings().size() + 1)
       << "Expected Make to add 1 extra memory mapping";
@@ -88,20 +64,20 @@ TEST(SnapMaker, SigSegvRead) {
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
-  ASSERT_OK_AND_ASSIGN(auto result, Fix(memoryMismatchSnap));
-  ASSERT_OK_AND_ASSIGN(auto result2, Fix(result));
+  ASSERT_OK_AND_ASSIGN(auto result, FixSnapshotInTest(memoryMismatchSnap));
+  ASSERT_OK_AND_ASSIGN(auto result2, FixSnapshotInTest(result));
   ASSERT_EQ(result2, result);
 }
 
 TEST(SnapMake, SplitLock) {
   const auto splitLockSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kSplitLock);
-  SnapMaker::Options options = DefaultSnapMakerOptions();
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
   options.x86_filter_split_lock = false;
-  ASSERT_OK(Fix(splitLockSnap, options));
+  ASSERT_OK(FixSnapshotInTest(splitLockSnap, options));
 
   options.x86_filter_split_lock = true;
-  auto result_or = Fix(splitLockSnap, options);
+  auto result_or = FixSnapshotInTest(splitLockSnap, options);
   EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("Split-lock insn")));
 }

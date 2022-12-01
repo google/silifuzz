@@ -313,23 +313,34 @@ cc_library(
     ],
 )
 
-cc_test(
-    name = "snap_maker_test",
-    size = "medium",
-    srcs = ["snap_maker_test.cc"],
+cc_library(
+    name = "snap_maker_test_util",
+    testonly = True,
+    srcs = ["snap_maker_test_util.cc"],
+    hdrs = ["snap_maker_test_util.h"],
     data = [
         ":sanless_reading_runner_main_nolibc",
     ],
     deps = [
+        ":runner_provider",
         ":snap_maker",
-        "@silifuzz//runner:runner_provider",
+        "@silifuzz//common:snapshot",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_test(
+    name = "snap_maker_test",
+    size = "medium",
+    srcs = ["snap_maker_test.cc"],
+    deps = [
+        ":snap_maker",
+        ":snap_maker_test_util",
         "@silifuzz//snap/testing:snap_test_snapshots",
-        "@silifuzz//snap/testing:snap_test_types",
-        "@silifuzz//util:checks",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
