@@ -46,11 +46,11 @@ snapshot_types::Address PageAddress(snapshot_types::Address addr,
 // instruction that accesses memory across a cache line boundary is rejected.
 // Returns the remade snapshot or an error status.
 absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
-                                         bool x86_filter_split_lock) {
-  SnapMaker::Options opts;
-  opts.runner_path = RunnerLocation();
-  opts.x86_filter_split_lock = x86_filter_split_lock;
-  SnapMaker maker = SnapMaker(opts);
+                                         const FixupSnapshotOptions& options) {
+  SnapMaker::Options snap_maker_options;
+  snap_maker_options.runner_path = RunnerLocation();
+  snap_maker_options.x86_filter_split_lock = options.x86_filter_split_lock;
+  SnapMaker maker = SnapMaker(snap_maker_options);
   absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(snapshot);
   RETURN_IF_NOT_OK(made_snapshot_or.status());
   absl::StatusOr<Snapshot> recorded_snapshot =
@@ -142,10 +142,9 @@ bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
 }
 
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
-                                       PlatformFixToolCounters* counters,
-                                       bool x86_filter_split_lock) {
-  absl::StatusOr<Snapshot> remade_snapshot_or =
-      RemakeAndVerify(input, x86_filter_split_lock);
+                                       const FixupSnapshotOptions& options,
+                                       PlatformFixToolCounters* counters) {
+  absl::StatusOr<Snapshot> remade_snapshot_or = RemakeAndVerify(input, options);
   if (!remade_snapshot_or.ok()) {
     counters->IncCounter("ERROR-Make:", remade_snapshot_or.status().message());
     return remade_snapshot_or.status();

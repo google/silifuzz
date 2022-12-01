@@ -89,14 +89,32 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters);
 // https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf
 bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters);
 
+// Options for FixupSnapshot() below.
+struct FixupSnapshotOptions {
+  // If true, snapshots containing instructions that access memory across cache
+  // line boundaries are filtered by FixupSnapshot. This option is
+  // x86-only and has no effect on other platforms.
+  bool x86_filter_split_lock = false;
+};
+
 // Fixes up `input` and updates fix tool statistics in `*counters`.
 // If `x86_filter_split_lock` is true, snapshots containing instructions that
 // access memory across cache line boundaries are filtered. This option is
 // x86-only and has no effect on other platforms.
 // Returns the fixed-up snapshot or an error status.
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
-                                       PlatformFixToolCounters* counters,
-                                       bool x86_filter_split_lock = false);
+                                       const FixupSnapshotOptions& options,
+                                       PlatformFixToolCounters* counters);
+
+// Old interface of FixupSnapshot.
+// TODO(dougkwan): Remove this once all clients are updated.
+inline absl::StatusOr<Snapshot> FixupSnapshot(
+    const Snapshot& input, PlatformFixToolCounters* counters,
+    bool x86_filter_split_lock = false) {
+  FixupSnapshotOptions options;
+  options.x86_filter_split_lock = x86_filter_split_lock;
+  return FixupSnapshot(input, options, counters);
+}
 
 }  // namespace fix_tool_internal
 }  // namespace silifuzz
