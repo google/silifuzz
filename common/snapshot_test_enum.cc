@@ -12,29 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
-#define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
-
-#include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
+
+#include "absl/base/attributes.h"
 
 namespace silifuzz {
 
-struct TestSnapshotConfig {
-  TestSnapshot type;
-  Snapshot::Architecture arch;
-  uint64_t code_addr;
-  uint64_t code_num_bytes;
-  uint64_t data_addr;
-  uint64_t data_num_bytes;
-  std::string instruction_bytes;
-  bool normal_end;
-  uint64_t stack_bytes_used;
+template <>
+ABSL_CONST_INIT const char* EnumNameMap<TestSnapshot>[static_cast<int>(
+    TestSnapshot::kNumTestSnapshot)] = {
+    "kEmpty", "kEndsAsExpected", "kEndsUnexpectedly", "kRegsMismatch",
+    "kMemoryMismatch", "kRegsAndMemoryMismatch", "kRegsMismatchRandom",
+    "kMemoryMismatchRandom", "kRegsAndMemoryMismatchRandom", "kICEBP", "kINT3",
+    "kINT3_CD03", "kSigIll", "kSigSegvWrite", "kSigSegvRead", "kSigSegvExec",
+    "kSyscall", "kGeneralProtectionFault", "kChangesSegmentReg", "kIn",
+    "kRunaway", "kSplitLock",
 };
 
-const TestSnapshotConfig& GetTestSnapshotConfig(Snapshot::Architecture arch,
-                                                TestSnapshot type);
-
 }  // namespace silifuzz
-
-#endif  // THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_

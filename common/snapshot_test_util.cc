@@ -29,6 +29,7 @@
 #include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/platform.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -193,7 +194,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
 
   const TestSnapshotConfig& config = GetTestSnapshotConfig(arch, type);
 
-  Snapshot snapshot(arch, config.name);
+  Snapshot snapshot(arch, EnumStr(type));
 
   // Create code mapping
   auto code_mapping = MemoryMapping::MakeSized(

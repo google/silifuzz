@@ -28,7 +28,6 @@ third_party/silifuzz/common/snapshot_test_config.cc
 
 import argparse
 import dataclasses
-import json
 import os.path
 import subprocess
 import sys
@@ -462,12 +461,10 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
       # OSS export tool.
       out.write("// oss" + ":strip-begin\n")
 
-    # Note: using json.dumps to get a double-quoted string.
     out.write(f"""\
     {{
         .type = TestSnapshot::k{s.name},
         .arch = Snapshot::Architecture::{s.arch.enum_name},
-        .name = {json.dumps("k" + s.name)},
         .code_addr = {hex(s.code_addr)},
         .code_num_bytes = {hex(s.code_num_bytes)},
         .data_addr = {hex(s.data_addr)},

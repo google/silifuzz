@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_TYPES_H_
 #define THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_TYPES_H_
 
+#include "./util/itoa.h"
+
 namespace silifuzz {
 
 // For each type of generator and runner tests below, a Snapshot is defined.
@@ -33,6 +35,9 @@ enum class SnapGeneratorTestType {
   // capability of Snap or when we need regression tests.
   kLastSnapGeneratorTest = kMemoryBytesPermsTest,
 };
+
+template <>
+extern const char* EnumNameMap<SnapGeneratorTestType>[2];
 
 }  // namespace silifuzz
 

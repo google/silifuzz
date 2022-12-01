@@ -30,7 +30,14 @@ licenses(["notice"])
 cc_library_plus_nolibc(
     name = "snap_test_types",
     testonly = 1,
+    srcs = ["snap_test_types.cc"],
     hdrs = ["snap_test_types.h"],
+    as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
+    ],
+    deps = [
+        "@silifuzz//util:itoa",
+    ],
 )
 
 cc_library(
@@ -46,6 +53,7 @@ cc_library(
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//common:snapshot_util",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
         "@silifuzz//util/ucontext:ucontext_types",
     ],
@@ -92,6 +100,7 @@ cc_library_plus_nolibc(
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//snap",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
     ],
 )

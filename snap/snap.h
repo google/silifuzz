@@ -26,6 +26,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -214,6 +215,17 @@ struct SnapCorpus {
   template <typename Arch>
   bool IsArch() const {
     return architecture_id == static_cast<int>(Arch::architecture_id);
+  }
+
+  // Find a Snap with the specified id.
+  // Returns nullptr if not found.
+  const Snap* Find(const char* id) const {
+    for (const Snap* snap : snaps) {
+      if (strcmp(snap->id, id) == 0) {
+        return snap;
+      }
+    }
+    return nullptr;
   }
 };
 

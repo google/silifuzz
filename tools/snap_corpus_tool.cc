@@ -66,12 +66,11 @@ absl::string_view ConsumeArg(std::vector<char*>& args) {
 
 absl::StatusOr<const Snap*> FindSnap(const SnapCorpus* corpus,
                                      absl::string_view snap_id) {
-  for (const Snap* snap : corpus->snaps) {
-    if (snap->id == snap_id) {
-      return snap;
-    }
+  const Snap* snap = corpus->Find(snap_id.data());
+  if (snap == nullptr) {
+    return absl::NotFoundError(absl::StrCat("Snap ", snap_id, " not found"));
   }
-  return absl::NotFoundError(absl::StrCat("Snap ", snap_id, " not found"));
+  return snap;
 }
 
 absl::StatusOr<const Snap*> FindSnapByCodeAddress(const SnapCorpus* corpus,

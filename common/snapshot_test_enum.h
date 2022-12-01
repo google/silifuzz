@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_ENUM_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_ENUM_H_
 
+#include "./util/itoa.h"
+
 namespace silifuzz {
 
 enum class TestSnapshot {
@@ -98,6 +100,11 @@ enum class TestSnapshot {
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };
+
+// EnumStr() works for TestSnapshot.
+template <>
+extern const char*
+    EnumNameMap<TestSnapshot>[static_cast<int>(TestSnapshot::kNumTestSnapshot)];
 
 }  // namespace silifuzz
 

@@ -262,7 +262,25 @@ cc_test(
 cc_library_plus_nolibc(
     name = "snapshot_test_enum",
     testonly = True,
+    srcs = ["snapshot_test_enum.cc"],
     hdrs = ["snapshot_test_enum.h"],
+    as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
+    ],
+    deps = [
+        "@silifuzz//util:itoa",
+    ],
+)
+
+cc_test(
+    name = "snapshot_test_enum_test",
+    srcs = ["snapshot_test_enum_test.cc"],
+    deps = [
+        ":snapshot_test_enum",
+        "@silifuzz//util:itoa",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
@@ -285,6 +303,7 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:endian",

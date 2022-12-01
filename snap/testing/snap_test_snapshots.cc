@@ -25,15 +25,16 @@
 #include "./common/snapshot_util.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/misc_util.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
 
-Snapshot MakeBasicTestSnapshot() {
-  Snapshot snapshot(Snapshot::CurrentArchitecture());
-  snapshot.set_id("BasicTest");
+Snapshot MakeBasicTestSnapshot(SnapGeneratorTestType type) {
+  Snapshot snapshot(Snapshot::CurrentArchitecture(), EnumStr(type));
+
   const size_t page_size = snapshot.page_size();
   Snapshot::Address code_page_address = 0x20000000ULL;
   Snapshot::Address data_page_address = code_page_address + page_size * 2;
@@ -90,16 +91,14 @@ Snapshot MakeBasicTestSnapshot() {
 Snapshot MakeSnapGeneratorTestSnapshot(SnapGeneratorTestType type) {
   switch (type) {
     case SnapGeneratorTestType::kBasicSnapGeneratorTest:
-      return MakeBasicTestSnapshot();
+      return MakeBasicTestSnapshot(type);
     case SnapGeneratorTestType::kMemoryBytesPermsTest: {
-      Snapshot snapshot = MakeBasicTestSnapshot();
       // This test uses the same snapshot as basic test but generates code
       // with non-default options.
-      snapshot.set_id("MemoryBytesAttributesTest");
-      return snapshot;
+      return MakeBasicTestSnapshot(type);
     }
     default:
-      LOG_FATAL("Unexpected type ", ToInt(type));
+      LOG_FATAL("Unexpected type ", EnumStr(type));
   }
 }
 

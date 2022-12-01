@@ -15,10 +15,13 @@
 #ifndef THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPS_H_
 #define THIRD_PARTY_SILIFUZZ_SNAP_TESTING_SNAP_TEST_SNAPS_H_
 
+#include <cstddef>
+
 #include "./common/snapshot_test_enum.h"
 #include "./snap/snap.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -28,12 +31,20 @@ extern const SnapCorpus kSnapRunnerTestCorpus;
 
 // Returns a Snap generator test Snap of the given type.
 inline const Snap& GetSnapGeneratorTestSnap(SnapGeneratorTestType type) {
-  return *kSnapGeneratorTestCorpus.snaps.at((size_t)type);
+  const Snap* snap = kSnapGeneratorTestCorpus.Find(EnumStr(type));
+  if (snap == nullptr) {
+    LOG_FATAL("Cannot find snap with ID: ", EnumStr(type));
+  }
+  return *snap;
 }
 
 // Returns a Snap runner test Snap of the given type.
 inline const Snap& GetSnapRunnerTestSnap(TestSnapshot type) {
-  return *kSnapRunnerTestCorpus.snaps.at((size_t)type);
+  const Snap* snap = kSnapRunnerTestCorpus.Find(EnumStr(type));
+  if (snap == nullptr) {
+    LOG_FATAL("Cannot find snap with ID: ", EnumStr(type));
+  }
+  return *snap;
 }
 
 }  // namespace silifuzz
