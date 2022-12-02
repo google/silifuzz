@@ -121,7 +121,6 @@ class TestSnapshot:
   name: str
   arch: Arch
   normal_end: bool
-  stack_bytes_used: int
   code_addr: int
   code_num_bytes: int
   data_addr: int
@@ -141,7 +140,6 @@ class Builder:
                name,
                arch,
                normal_end=True,
-               stack_bytes_used=0,
                src=None,
                raw_bytes=None,
                oss_strip=False):
@@ -169,7 +167,6 @@ class Builder:
               name=name,
               arch=arch,
               normal_end=normal_end,
-              stack_bytes_used=stack_bytes_used,
               code_addr=code_addr,
               code_num_bytes=PAGE_SIZE,
               data_addr=code_addr + PAGE_SIZE,
@@ -217,7 +214,6 @@ xor %rsp, %rax
   b.snapshot(
       name="MemoryMismatch",
       arch=X86_64,
-      stack_bytes_used=8 * 3,
       src="""
 // save flags
 pushfq
@@ -240,7 +236,6 @@ popfq
   b.snapshot(
       name="RegsAndMemoryMismatch",
       arch=X86_64,
-      stack_bytes_used=8,
       src="""
 // deterministically mutate regs and memory
 xor %rsp, %rbx
@@ -272,7 +267,6 @@ jmp 2f
   b.snapshot(
       name="MemoryMismatchRandom",
       arch=X86_64,
-      stack_bytes_used=8 * 4,
       src="""
 // save flags and registers
 pushfq
@@ -297,7 +291,6 @@ popfq
   b.snapshot(
       name="RegsAndMemoryMismatchRandom",
       arch=X86_64,
-      stack_bytes_used=8,
       src="""
 // place a random number in EAX:EDX and stack
 rdtsc
@@ -478,7 +471,6 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
     out.write(f"""\
         .instruction_bytes = {{{byte_list}}},
         .normal_end = {repr(bool(s.normal_end)).lower()},
-        .stack_bytes_used = {s.stack_bytes_used},
     }},
 """)
 
@@ -522,7 +514,6 @@ def main():
             name="Test",
             arch=X86_64,
             normal_end=True,
-            stack_bytes_used=0,
             code_addr=code_addr,
             code_num_bytes=PAGE_SIZE,
             data_addr=code_addr + PAGE_SIZE,

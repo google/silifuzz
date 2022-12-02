@@ -32,7 +32,6 @@ struct TestSnapshotConfig {
   // processed by SnapMaker::Make. Snapshots where normal_end=false are
   // always expected to cause an exception (SIGILL, SIGSEGV, etc).
   bool normal_end;
-  uint64_t stack_bytes_used;
 };
 
 // Return a configuration that describes how to construct the Snapshot for a

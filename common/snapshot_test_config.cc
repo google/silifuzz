@@ -31,7 +31,6 @@ const TestSnapshotConfig configs[25] = {
         //     12345000:   <empty>
         .instruction_bytes = {},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kEndsAsExpected,
@@ -43,7 +42,6 @@ const TestSnapshotConfig configs[25] = {
         //     12355000:   90                      nop
         .instruction_bytes = {0x90},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kEndsUnexpectedly,
@@ -55,7 +53,6 @@ const TestSnapshotConfig configs[25] = {
         //     12365000:   cc                      int3
         .instruction_bytes = {0xcc},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kRegsMismatch,
@@ -67,7 +64,6 @@ const TestSnapshotConfig configs[25] = {
         //     12375000:   48 31 e0                xor    %rsp,%rax
         .instruction_bytes = {0x48, 0x31, 0xe0},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kMemoryMismatch,
@@ -87,7 +83,6 @@ const TestSnapshotConfig configs[25] = {
         .instruction_bytes = {0x9c, 0x50, 0x48, 0x31, 0xc0, 0x48, 0xf7, 0xd0,
                               0x50, 0x58, 0x58, 0x9d},
         .normal_end = true,
-        .stack_bytes_used = 24,
     },
     {
         .type = TestSnapshot::kRegsAndMemoryMismatch,
@@ -103,7 +98,6 @@ const TestSnapshotConfig configs[25] = {
         .instruction_bytes = {0x48, 0x31, 0xe3, 0x48, 0x31, 0xc0, 0x48, 0xf7,
                               0xd0, 0x50},
         .normal_end = true,
-        .stack_bytes_used = 8,
     },
     {
         .type = TestSnapshot::kRegsMismatchRandom,
@@ -124,7 +118,6 @@ const TestSnapshotConfig configs[25] = {
                               0x40, 0x74, 0x6,  0x48, 0xf, 0xc7, 0xf0,
                               0xeb, 0x2,  0xf,  0x31},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kMemoryMismatchRandom,
@@ -145,7 +138,6 @@ const TestSnapshotConfig configs[25] = {
         .instruction_bytes = {0x9c, 0x50, 0x52, 0xf, 0x31, 0x50, 0x58, 0x5a,
                               0x58, 0x9d},
         .normal_end = true,
-        .stack_bytes_used = 32,
     },
     {
         .type = TestSnapshot::kRegsAndMemoryMismatchRandom,
@@ -158,7 +150,6 @@ const TestSnapshotConfig configs[25] = {
         //     123c5002:   50                      push   %rax
         .instruction_bytes = {0xf, 0x31, 0x50},
         .normal_end = true,
-        .stack_bytes_used = 8,
     },
     {
         .type = TestSnapshot::kICEBP,
@@ -170,7 +161,6 @@ const TestSnapshotConfig configs[25] = {
         //     123d5000:   f1                      int1
         .instruction_bytes = {0xf1},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kINT3,
@@ -182,7 +172,6 @@ const TestSnapshotConfig configs[25] = {
         //     123e5000:   cc                      int3
         .instruction_bytes = {0xcc},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kINT3_CD03,
@@ -194,7 +183,6 @@ const TestSnapshotConfig configs[25] = {
         //     123f5000:   cd 03                   int    $0x3
         .instruction_bytes = {0xcd, 0x3},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSigIll,
@@ -206,7 +194,6 @@ const TestSnapshotConfig configs[25] = {
         //     12405000:   0f 0b                   ud2
         .instruction_bytes = {0xf, 0xb},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSigSegvWrite,
@@ -219,7 +206,6 @@ const TestSnapshotConfig configs[25] = {
         //     12415004:   48 89 18                mov    %rbx,(%rax)
         .instruction_bytes = {0x48, 0x8b, 0x45, 0x8, 0x48, 0x89, 0x18},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSigSegvRead,
@@ -232,7 +218,6 @@ const TestSnapshotConfig configs[25] = {
         //     12425004:   48 8b 18                mov    (%rax),%rbx
         .instruction_bytes = {0x48, 0x8b, 0x45, 0x0, 0x48, 0x8b, 0x18},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSigSegvExec,
@@ -245,7 +230,6 @@ const TestSnapshotConfig configs[25] = {
         //     12435004:   ff e0                   jmp    *%rax
         .instruction_bytes = {0x48, 0x8b, 0x45, 0x10, 0xff, 0xe0},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSyscall,
@@ -263,7 +247,6 @@ const TestSnapshotConfig configs[25] = {
                               0xc0, 0x35, 0x1, 0x0, 0x0, 0xf, 0x5, 0x48, 0x31,
                               0xc0},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kGeneralProtectionFault,
@@ -276,7 +259,6 @@ const TestSnapshotConfig configs[25] = {
         //     0x12455008
         .instruction_bytes = {0xf, 0xae, 0x5, 0x1, 0x0, 0x0, 0x0},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kChangesSegmentReg,
@@ -293,7 +275,6 @@ const TestSnapshotConfig configs[25] = {
         .instruction_bytes = {0x66, 0xb8, 0x3, 0x0, 0x8e, 0xc0, 0x8e, 0xd8,
                               0x8e, 0xe8, 0x8e, 0xe0},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kIn,
@@ -305,7 +286,6 @@ const TestSnapshotConfig configs[25] = {
         //     12475000:   ed                      in     (%dx),%eax
         .instruction_bytes = {0xed},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kRunaway,
@@ -317,7 +297,6 @@ const TestSnapshotConfig configs[25] = {
         //     12485000:   eb fe                   jmp    0x12485000
         .instruction_bytes = {0xeb, 0xfe},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSplitLock,
@@ -333,7 +312,6 @@ const TestSnapshotConfig configs[25] = {
         .instruction_bytes = {0x48, 0x89, 0xe0, 0x48, 0xff, 0xc8, 0x30, 0xc0,
                               0xf0, 0xff, 0x40, 0xff},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kEndsAsExpected,
@@ -345,7 +323,6 @@ const TestSnapshotConfig configs[25] = {
         //     12345000:   d503201f        nop
         .instruction_bytes = {0x1f, 0x20, 0x3, 0xd5},
         .normal_end = true,
-        .stack_bytes_used = 0,
     },
     {
         .type = TestSnapshot::kSigSegvRead,
@@ -358,7 +335,6 @@ const TestSnapshotConfig configs[25] = {
         //     12355004:   f9400000        ldr     x0, [x0]
         .instruction_bytes = {0xc0, 0x0, 0x40, 0xf9, 0x0, 0x0, 0x40, 0xf9},
         .normal_end = false,
-        .stack_bytes_used = 0,
     },
 };
 
