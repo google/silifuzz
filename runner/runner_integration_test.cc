@@ -25,7 +25,6 @@
 #include "./runner/driver/runner_driver.h"
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snaps.h"
-#include "./snap/testing/snap_test_types.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -52,7 +51,20 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
   return driver.Run(opts);
 }
 
-// TODO(ksteuck): [test] Add tests for different snaps.
+TEST(RunnerTest, AsExpectedSnap) {
+  Snap asExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(asExpectedSnap));
+  ASSERT_TRUE(result.success());
+}
+
+TEST(RunnerTest, RegisterMismatchSnap) {
+  Snap regsMismatchSnap = GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch);
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(regsMismatchSnap));
+  ASSERT_FALSE(result.success());
+  EXPECT_EQ(result.player_result().outcome,
+            PlaybackOutcome::kRegisterStateMismatch);
+}
+
 TEST(RunnerTest, MemoryMismatchSnap) {
   Snap memoryMismatchSnap =
       GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch);

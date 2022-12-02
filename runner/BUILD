@@ -239,7 +239,6 @@ cc_test(
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snaps",
-        "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
