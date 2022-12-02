@@ -126,13 +126,15 @@ absl::Status SnapifyMemoryBytes(Snapshot &snapshot,
 // Overwrites any bytes at `address` with the Snap exit sequence. Does not
 // add any new memory mappings.
 // NOTE: this transformation likely invalidates any expected end states.
-absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
+template <typename Arch>
+absl::Status MergeExitSequenceImpl(Snapshot &snapshot,
+                                   Snapshot::Address address) {
   // Add a snap exit sequence to initial memory bytes at the end point
   // instruction address.
-  Snapshot::ByteData snap_exit_byte_data(kSnapExitSequenceSize, 0);
+  Snapshot::ByteData snap_exit_byte_data(GetSnapExitSequenceSize<Arch>(), 0);
   RETURN_IF_NOT_OK(
       Snapshot::MemoryBytes::CanConstruct(address, snap_exit_byte_data));
-  WriteSnapExitSequence(
+  WriteSnapExitSequence<Arch>(
       reinterpret_cast<uint8_t *>(snap_exit_byte_data.data()));
   Snapshot::MemoryBytes snap_exit_memory_bytes(address, snap_exit_byte_data);
   if (!snapshot.mapped_memory_map().Contains(
@@ -151,6 +153,28 @@ absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
       memory_state.memory_bytes_list(memory_state.written_memory());
   RETURN_IF_NOT_OK(snapshot.ReplaceMemoryBytes(std::move(memory_bytes_list)));
   return absl::OkStatus();
+}
+
+absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
+  switch (snapshot.architecture()) {
+    case Snapshot::Architecture::kX86_64:
+      return MergeExitSequenceImpl<X86_64>(snapshot, address);
+    case Snapshot::Architecture::kAArch64:
+      return MergeExitSequenceImpl<AArch64>(snapshot, address);
+    default:
+      LOG_FATAL("Unexpected architecture: ", snapshot.architecture());
+  }
+}
+
+size_t GetSnapExitSequenceSizeForArch(Snapshot::Architecture arch) {
+  switch (arch) {
+    case Snapshot::Architecture::kX86_64:
+      return GetSnapExitSequenceSize<X86_64>();
+    case Snapshot::Architecture::kAArch64:
+      return GetSnapExitSequenceSize<AArch64>();
+    default:
+      LOG_FATAL("Unexpected architecture: ", arch);
+  }
 }
 
 }  // namespace
@@ -173,7 +197,8 @@ absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts) {
   const MappedMemoryMap &mapped_memory_map = snapshot.mapped_memory_map();
   const Snapshot::Address ending_rip = endpoint.instruction_address();
   if (!mapped_memory_map.Contains(ending_rip,
-                                  ending_rip + kSnapExitSequenceSize)) {
+                                  ending_rip + GetSnapExitSequenceSizeForArch(
+                                                   snapshot.architecture()))) {
     return absl::InvalidArgumentError(
         "CanSnapify: no room for the exit sequence");
   }

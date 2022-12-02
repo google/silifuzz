@@ -76,8 +76,6 @@ SnapSignalContext snap_signal_context(SnapSignalContext::LINKER_INITIALIZED);
 
 }  // namespace
 
-// uint64_t FixUpReturnAddress(uint64_t return_address);
-
 bool IsInsideSnap() { return enter_snap_context; }
 
 // Assembly implementation of the exit point.
@@ -100,8 +98,8 @@ extern "C" void SnapExitImpl();
 #if defined(__x86_64__)
 extern "C" void RunnerReentry(uint64_t arg1, uint64_t stack_pointer) {
   // Fix up registers not saved in snap_exit_context.
-  snap_exit_context.gregs.rip =
-      FixUpReturnAddress(*reinterpret_cast<const uint64_t*>(stack_pointer));
+  snap_exit_context.gregs.rip = FixUpReturnAddress<X86_64>(
+      *reinterpret_cast<const uint64_t*>(stack_pointer));
 
   // Pop return address to get stack_pointer (%rsp) value before snap exit
   // sequence.
@@ -126,7 +124,7 @@ extern "C" void RunnerReentry(uint64_t x0, uint64_t x30, uint64_t pc,
   // Fix up registers not saved in snap_exit_context.
   snap_exit_context.gregs.x[0] = x0;
   snap_exit_context.gregs.x[30] = x30;
-  snap_exit_context.gregs.pc = FixUpReturnAddress(pc);
+  snap_exit_context.gregs.pc = FixUpReturnAddress<AArch64>(pc);
   snap_exit_context.gregs.sp = sp;
 
   FixUpRegsPadding(&snap_exit_context);

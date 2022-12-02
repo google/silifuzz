@@ -27,24 +27,19 @@ namespace silifuzz {
 constexpr inline uint64_t kSnapExitAddress = 0xABCD0000;
 
 // Size of Snap exit sequence.
-#if defined(__x86_64__)
-// On x86_64, 14 bytes are required to hold a PC-relative indirect call followed
-// by a 64-bit target address.
-constexpr inline size_t kSnapExitSequenceSize = 14;
-#elif defined(__aarch64__)
-constexpr inline size_t kSnapExitSequenceSize = 12;
-#else
-#error "Unsupported architecture".
-#endif
+template <typename Arch>
+size_t GetSnapExitSequenceSize();
 
 // Writes a snap exit sequence in 'buffer', which has capacity of at least
 // kSnapExitSequenceSize bytes.
 // This function is thread-safe.
 // Returns the number of bytes written, which should be kSnapExitSequenceSize.
+template <typename Arch>
 size_t WriteSnapExitSequence(void* buffer);
 
 // Writes an instruction sequence into `buffer` that jumps to `reentry_address`.
 // This function is thread-safe.
+template <typename Arch>
 size_t WriteSnapExitThunk(void (*reentry_address)(), void* buffer);
 
 // Initializes Snap exit handling. This sets up the exit point at
@@ -59,6 +54,7 @@ void InitSnapExit(void (*reentry_address)());
 // The exiting call left a return address on the stack but it was the address
 // after the call instruction. To get the correct address we need to do
 // subtract the size of call instruction.
+template <typename Arch>
 uint64_t FixUpReturnAddress(uint64_t return_address);
 
 }  // namespace silifuzz

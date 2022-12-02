@@ -120,15 +120,14 @@ TEST(SnapGenerator, Snapify) {
       snapified.expected_end_states()[0];
   const Snapshot::Address snapified_end_state_rip =
       snapified_end_state.endpoint().instruction_address();
+  const size_t exit_sequence_size = GetSnapExitSequenceSize<Host>();
   ASSERT_TRUE(initial_memory_state.mapped_memory().Contains(
-      snapified_end_state_rip,
-      snapified_end_state_rip + kSnapExitSequenceSize));
+      snapified_end_state_rip, snapified_end_state_rip + exit_sequence_size));
   const Snapshot::ByteData exit_sequence = initial_memory_state.memory_bytes(
-      snapified_end_state_rip, kSnapExitSequenceSize);
-  char expected_exit_sequence[kSnapExitSequenceSize];
-  WriteSnapExitSequence(expected_exit_sequence);
-  EXPECT_EQ(exit_sequence,
-            std::string(expected_exit_sequence, kSnapExitSequenceSize));
+      snapified_end_state_rip, exit_sequence_size);
+  std::string expected_exit_sequence(exit_sequence_size, 0);
+  WriteSnapExitSequence<Host>(expected_exit_sequence.data());
+  EXPECT_EQ(exit_sequence, expected_exit_sequence);
 
   // All end state memory bytes must be writable as in the original snapshot.
   // There should not be read-only memory bytes.

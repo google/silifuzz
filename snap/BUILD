@@ -29,16 +29,14 @@ licenses(["notice"])
 
 cc_library_plus_nolibc(
     name = "exit_sequence",
-    srcs = ["exit_sequence.cc"] + select({
-        "@silifuzz//build_defs/platform:aarch64": [
-            "aarch64/exit_sequence.cc",
-        ],
-        "@silifuzz//build_defs/platform:x86_64": [
-            "x86_64/exit_sequence.cc",
-        ],
-    }),
+    srcs = [
+        "aarch64/exit_sequence.cc",
+        "exit_sequence.cc",
+        "x86_64/exit_sequence.cc",
+    ],
     hdrs = ["exit_sequence.h"],
     deps = [
+        "@silifuzz//util:arch",
         "@silifuzz//util:cache",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",

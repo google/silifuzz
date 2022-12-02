@@ -50,9 +50,9 @@ TEST(SnapRunnerUtil, BasicTest) {
 
   size_t code_size = sizeof(kBasicSnap);
   memcpy(code_page, kBasicSnap, code_size);
-  size_t exit_sequence_size =
-      WriteSnapExitSequence(reinterpret_cast<uint8_t*>(code_page) + code_size);
-  CHECK_EQ(exit_sequence_size, kSnapExitSequenceSize);
+  size_t exit_sequence_size = WriteSnapExitSequence<AArch64>(
+      reinterpret_cast<uint8_t*>(code_page) + code_size);
+  CHECK_EQ(exit_sequence_size, GetSnapExitSequenceSize<AArch64>());
   sync_instruction_cache(code_page, code_size + exit_sequence_size);
   CHECK_EQ(mprotect(code_page, kPageSize, PROT_EXEC | PROT_READ), 0);
 

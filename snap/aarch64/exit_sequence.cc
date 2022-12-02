@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
 
@@ -53,12 +54,15 @@ constexpr uint32_t kExitThunk[] = {
                  // MSW of address
 };
 
-static_assert(sizeof(kExitSequence) == kSnapExitSequenceSize,
-              "kSnapExitSequenceSize is wrong.");
-
 }  // namespace
 
-size_t WriteSnapExitThunk(void (*reentry_address)(), void* buffer) {
+template <>
+size_t GetSnapExitSequenceSize<AArch64>() {
+  return sizeof(kExitSequence);
+}
+
+template <>
+size_t WriteSnapExitThunk<AArch64>(void (*reentry_address)(), void* buffer) {
   uint8_t* bytes = reinterpret_cast<uint8_t*>(buffer);
 
   // The instructions.
@@ -70,12 +74,14 @@ size_t WriteSnapExitThunk(void (*reentry_address)(), void* buffer) {
   return sizeof(kExitThunk) + sizeof(reentry_address);
 }
 
-size_t WriteSnapExitSequence(void* buffer) {
+template <>
+size_t WriteSnapExitSequence<AArch64>(void* buffer) {
   memcpy(buffer, kExitSequence, sizeof(kExitSequence));
   return sizeof(kExitSequence);
 }
 
-uint64_t FixUpReturnAddress(uint64_t return_address) {
+template <>
+uint64_t FixUpReturnAddress<AArch64>(uint64_t return_address) {
   return return_address - sizeof(kExitSequence);
 }
 

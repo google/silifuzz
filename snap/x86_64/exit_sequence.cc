@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/arch.h"
 #include "./util/cache.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
@@ -64,16 +65,24 @@ size_t WriteJumpOrCall(bool is_call, uint64_t target, void* buffer) {
 
 }  // namespace
 
-size_t WriteSnapExitThunk(void (*reentry_address)(), void* buffer) {
+template <>
+size_t GetSnapExitSequenceSize<X86_64>() {
+  return sizeof(kCallnsnBytes) + sizeof(uint64_t);
+}
+
+template <>
+size_t WriteSnapExitThunk<X86_64>(void (*reentry_address)(), void* buffer) {
   return WriteJumpOrCall(false /* is_call */,
                          reinterpret_cast<uint64_t>(reentry_address), buffer);
 }
 
-size_t WriteSnapExitSequence(void* buffer) {
+template <>
+size_t WriteSnapExitSequence<X86_64>(void* buffer) {
   return WriteJumpOrCall(true /* is_call */, kSnapExitAddress, buffer);
 }
 
-uint64_t FixUpReturnAddress(uint64_t return_address) {
+template <>
+uint64_t FixUpReturnAddress<X86_64>(uint64_t return_address) {
   return return_address - sizeof(kCallnsnBytes);
 }
 

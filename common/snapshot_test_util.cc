@@ -151,8 +151,9 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects<X86_64>(
   // The length of the exit sequence is thus the length of a call instruction
   // plus 8 bytes. When the exit call is executed, it leaves the address after
   // the call instruction on stack.
-  Snapshot::Address snap_exit_addr =
-      endpoint.instruction_address() + kSnapExitSequenceSize - sizeof(uint64_t);
+  Snapshot::Address snap_exit_addr = endpoint.instruction_address() +
+                                     GetSnapExitSequenceSize<X86_64>() -
+                                     sizeof(uint64_t);
   Snapshot::ByteData snap_exit_addr_data(
       reinterpret_cast<Snapshot::ByteData::value_type*>(&snap_exit_addr),
       sizeof(snap_exit_addr));
