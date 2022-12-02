@@ -83,13 +83,14 @@ std::string UIntString(__uint128_t value) {
 //  'size' and  whose elements are stored out-of-line in variable
 //  'elements_var'.
 std::string ArrayString(size_t size, absl::string_view elements_var) {
-  return absl::StrFormat("{ .size = %zdULL, .elements = %s }", size,
+  return absl::StrFormat("{ .size = %zdULL, .elements = %s, }", size,
                          elements_var);
 }
 
 }  // namespace
 
-void SnapGenerator::FileStart() {
+template <typename Arch>
+void SnapGenerator<Arch>::FileStart() {
   for (const auto &header : system_headers_) {
     PrintLn("#include <", header, ">");
   }
@@ -99,16 +100,22 @@ void SnapGenerator::FileStart() {
   PrintLn("namespace silifuzz {");
 }
 
-void SnapGenerator::FileEnd() { PrintLn("}  // namespace silifuzz"); }
+template <typename Arch>
+void SnapGenerator<Arch>::FileEnd() {
+  PrintLn("}  // namespace silifuzz");
+}
 
-void SnapGenerator::Comment(absl::string_view comment) {
+template <typename Arch>
+void SnapGenerator<Arch>::Comment(absl::string_view comment) {
   CHECK(!absl::StrContains(comment, "\n"));
   PrintLn("// ", comment);
 }
 
-absl::Status SnapGenerator::GenerateSnap(const std::string &name,
-                                         const Snapshot &snapshot,
-                                         const SnapifyOptions &opts) {
+template <typename Arch>
+absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
+                                               const Snapshot &snapshot,
+                                               const SnapifyOptions &opts) {
+  CHECK_EQ((int)snapshot.architecture(), (int)Arch::architecture_id);
   const absl::StatusOr<Snapshot> snapified_or = Snapify(snapshot, opts);
   RETURN_IF_NOT_OK(snapified_or.status());
   const Snapshot &snapified = snapified_or.value();
@@ -166,8 +173,9 @@ absl::Status SnapGenerator::GenerateSnap(const std::string &name,
   return absl::OkStatus();
 }
 
-void SnapGenerator::GenerateSnapArray(
-    const std::string &name, ArchitectureId architecture_id,
+template <typename Arch>
+void SnapGenerator<Arch>::GenerateSnapArray(
+    const std::string &name,
     const std::vector<std::string> &snap_var_name_list) {
   const std::string elements_var_name = absl::StrCat("elements_of_", name);
   Print(absl::StrFormat("static const Snap* const %s[%zd] = {",
@@ -182,28 +190,48 @@ void SnapGenerator::GenerateSnapArray(
       "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), "
       ".register_state_type_size = sizeof(Snap::RegisterState), "
       ".architecture_id = %d, .padding = {}, .snaps = { .size = %zd, .elements "
-      "= %s }};",
-      name, kSnapCorpusMagic, architecture_id, snap_var_name_list.size(),
+      "= %s, }, };",
+      name, kSnapCorpusMagic, Arch::architecture_id, snap_var_name_list.size(),
       elements_var_name));
 }
 
 // ========================================================================= //
 
-std::string SnapGenerator::LocalVarName(absl::string_view prefix) {
+template <typename Arch>
+std::string SnapGenerator<Arch>::LocalVarName(absl::string_view prefix) {
   return absl::StrCat(prefix, "_", local_object_name_counter_++);
 }
 
+template <typename Arch>
 template <typename T>
-void SnapGenerator::GenerateNonZeroValue(absl::string_view name,
-                                         const T &value) {
+void SnapGenerator<Arch>::GenerateNonZeroValue(absl::string_view name,
+                                               const T &value) {
   if (value != 0) {
     Print(".", name, " = ", UIntString(value), ",");
   }
 }
 
-std::string SnapGenerator::GenerateByteData(const Snapshot::ByteData &byte_data,
-                                            const SnapifyOptions &opts,
-                                            size_t alignment) {
+template <typename Arch>
+template <typename T>
+void SnapGenerator<Arch>::GenerateArray(const T *data, size_t size) {
+  Print("{");
+
+  // Find the last non-zero entry
+  size_t print_size = size;
+  while (print_size > 0 && data[print_size - 1] == 0) {
+    print_size--;
+  }
+
+  for (size_t i = 0; i < print_size; ++i) {
+    Print(UIntString(data[i]), ",");
+  }
+  Print("}");
+}
+
+template <typename Arch>
+std::string SnapGenerator<Arch>::GenerateByteData(
+    const Snapshot::ByteData &byte_data, const SnapifyOptions &opts,
+    size_t alignment) {
   // If byte data are repeating, return empty name.
   if (opts.compress_repeating_bytes && IsRepeatingByteRun(byte_data)) {
     return std::string();
@@ -232,7 +260,8 @@ std::string SnapGenerator::GenerateByteData(const Snapshot::ByteData &byte_data,
   return var_name;
 }
 
-std::vector<std::string> SnapGenerator::GenerateMemoryBytesByteData(
+template <typename Arch>
+std::vector<std::string> SnapGenerator<Arch>::GenerateMemoryBytesByteData(
     const Snapshot::MemoryBytesList &memory_bytes_list,
     const SnapifyOptions &opts) {
   std::vector<std::string> var_names;
@@ -242,7 +271,8 @@ std::vector<std::string> SnapGenerator::GenerateMemoryBytesByteData(
   return var_names;
 }
 
-std::string SnapGenerator::GenerateMemoryBytesList(
+template <typename Arch>
+std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
     const Snapshot::MemoryBytesList &memory_bytes_list,
     const std::vector<std::string> &byte_values_var_names,
     const MappedMemoryMap &mapped_memory_map, const SnapifyOptions &opts) {
@@ -271,12 +301,12 @@ std::string SnapGenerator::GenerateMemoryBytesList(
         compress_repeating_bytes ? "Snap::MemoryBytes::kRepeating" : "0"));
     if (compress_repeating_bytes) {
       CHECK(byte_values_var_names[i].empty());
-      Print(absl::StrFormat(".data{.byte_run{.value = 0x%x, .size = %zd}},",
-                            memory_bytes.byte_values()[0],
-                            memory_bytes.num_bytes()));
+      Print(absl::StrFormat(
+          ".data{.byte_run = {.value = 0x%x, .size = %zd,},},",
+          memory_bytes.byte_values()[0], memory_bytes.num_bytes()));
     } else {
       CHECK(!byte_values_var_names[i].empty());
-      Print(absl::StrFormat(".data{.byte_values = %s},",
+      Print(absl::StrFormat(".data{.byte_values = %s,},",
                             ArrayString(memory_bytes.byte_values().size(),
                                         byte_values_var_names[i])));
     }
@@ -286,7 +316,8 @@ std::string SnapGenerator::GenerateMemoryBytesList(
   return memory_bytes_list_var_name;
 }
 
-std::string SnapGenerator::GenerateMemoryMappingList(
+template <typename Arch>
+std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
     const Snapshot::MemoryMappingList &memory_mapping_list) {
   std::string memory_mapping_list_var_name =
       LocalVarName("local_memory_mapping");
@@ -298,15 +329,16 @@ std::string SnapGenerator::GenerateMemoryMappingList(
     Print("{ .start_address=", AddressString(memory_mapping.start_address()),
           ",");
     Print(absl::StrFormat(".num_bytes = %lluULL,", memory_mapping.num_bytes()));
-    PrintLn(absl::StrFormat(".perms = 0x%x },",
+    PrintLn(absl::StrFormat(".perms = 0x%x, },",
                             memory_mapping.perms().ToMProtect()));
   }
   PrintLn("};");
   return memory_mapping_list_var_name;
 }
 
-void SnapGenerator::GenerateGRegs(const Snapshot::ByteData &gregs_byte_data) {
-#ifdef __x86_64__
+template <>
+void SnapGenerator<X86_64>::GenerateGRegs(
+    const Snapshot::ByteData &gregs_byte_data) {
   GRegSet<X86_64> gregs = {};
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
@@ -357,29 +389,11 @@ void SnapGenerator::GenerateGRegs(const Snapshot::ByteData &gregs_byte_data) {
   Print("}");
 
 #undef GEN_GREG
-#else  // __x86_64__
-#error "Unsupported architecture"
-#endif  // __x86_64__
 }
 
-template <typename T>
-void SnapGenerator::GenerateArray(const T *data, size_t size) {
-  Print("{");
-
-  // Find the last non-zero entry
-  size_t print_size = size;
-  while (print_size > 0 && data[print_size - 1] == 0) {
-    print_size--;
-  }
-
-  for (size_t i = 0; i < print_size; ++i) {
-    Print(UIntString(data[i]), ",");
-  }
-  Print("}");
-}
-
-void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
-#ifdef __x86_64__
+template <>
+void SnapGenerator<X86_64>::GenerateFPRegs(
+    const Snapshot::ByteData &fpregs_byte_data) {
   FPRegSet<X86_64> fpregs = {};
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
@@ -414,12 +428,62 @@ void SnapGenerator::GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data) {
 
   Print("}");
 #undef GEN_FPREG
-#else  // __x86_64__
-#error "Unsupported architecture"
-#endif  // __x86_64__
 }
 
-std::string SnapGenerator::GenerateRegisters(
+template <>
+void SnapGenerator<AArch64>::GenerateGRegs(
+    const Snapshot::ByteData &gregs_byte_data) {
+  GRegSet<AArch64> gregs = {};
+
+  if (!gregs_byte_data.empty()) {
+    CHECK(DeserializeGRegs(gregs_byte_data, &gregs));
+  }
+
+#define GEN_GREG(reg) GenerateNonZeroValue(#reg, gregs.reg)
+
+  Print("{");
+
+  Print(".x = ");
+  GenerateArray(gregs.x, ABSL_ARRAYSIZE(gregs.x));
+  PrintLn(",");
+
+  GEN_GREG(sp);
+  GEN_GREG(pc);
+  GEN_GREG(pstate);
+  GEN_GREG(tpidr);
+  GEN_GREG(tpidrro);
+
+  Print("}");
+
+#undef GEN_GREG
+}
+
+template <>
+void SnapGenerator<AArch64>::GenerateFPRegs(
+    const Snapshot::ByteData &fpregs_byte_data) {
+  FPRegSet<AArch64> fpregs = {};
+
+  if (!fpregs_byte_data.empty()) {
+    CHECK(DeserializeFPRegs(fpregs_byte_data, &fpregs));
+  }
+
+#define GEN_FPREG(reg) GenerateNonZeroValue(#reg, fpregs.reg)
+
+  Print("{");
+
+  Print(".v = ");
+  GenerateArray(fpregs.v, ABSL_ARRAYSIZE(fpregs.v));
+  PrintLn(",");
+
+  GEN_FPREG(fpsr);
+  GEN_FPREG(fpcr);
+
+  Print("}");
+#undef GEN_FPREG
+}
+
+template <typename Arch>
+std::string SnapGenerator<Arch>::GenerateRegisters(
     const Snapshot::RegisterState &registers) {
   std::string var_name = LocalVarName("local_registers");
   PrintLn("Snap::RegisterState ", var_name, " = {");
@@ -432,5 +496,8 @@ std::string SnapGenerator::GenerateRegisters(
   PrintLn("};");
   return var_name;
 }
+
+template class SnapGenerator<X86_64>;
+template class SnapGenerator<AArch64>;
 
 }  // namespace silifuzz

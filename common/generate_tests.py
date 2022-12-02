@@ -411,6 +411,29 @@ nop
 """)
 
   b.snapshot(
+      name="RegsMismatch", arch=AARCH64, src="""
+// x0 = ~x0
+mvn x0, x0
+""")
+
+  b.snapshot(
+      name="MemoryMismatch",
+      arch=AARCH64,
+      src="""
+// Save x0
+str x0, [sp, #-8]
+
+// Load -1 into x0
+mvn x0, xzr
+
+// Write to the stack in a place the exit sequence shouldn't clobber
+str x0, [sp, #-64]
+
+// Restore x0
+ldr x0, [sp, #-8]
+""")
+
+  b.snapshot(
       name="SigSegvRead",
       arch=AARCH64,
       normal_end=False,

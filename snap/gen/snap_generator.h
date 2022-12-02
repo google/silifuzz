@@ -89,6 +89,7 @@ absl::StatusOr<Snapshot> Snapify(
 //    gen.FileEnd();
 //
 // This class is thread-compatible.
+template <typename Arch>
 class SnapGenerator {
  public:
   // Construct a SnapGenerator. Generated C++ code is sent to 'output_stream'.
@@ -133,7 +134,6 @@ class SnapGenerator {
   // called 'name' using a list containing variable names of previously
   // generated Snaps.
   void GenerateSnapArray(const std::string &name,
-                         ArchitectureId architecture_id,
                          const std::vector<std::string> &snap_var_name_list);
 
  private:

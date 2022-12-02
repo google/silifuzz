@@ -55,7 +55,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
-        "@silifuzz//util/ucontext:ucontext_types",
+        "@silifuzz//util/ucontext",
     ],
 )
 
@@ -84,10 +84,24 @@ cc_binary(
 )
 
 genrule(
+    name = "relocatable_snap_test_snaps",
+    testonly = 1,
+    outs = ["test_corpus"],
+    cmd = select({
+        "@silifuzz//build_defs/platform:aarch64": "$(location :snap_test_snaps_gen) --arch=aarch64 --output_mode=relocatable_runner_corpus > $@",
+        "@silifuzz//build_defs/platform:x86_64": "$(location :snap_test_snaps_gen) --arch=x86_64 --output_mode=relocatable_runner_corpus > $@",
+    }),
+    tools = [":snap_test_snaps_gen"],
+)
+
+genrule(
     name = "snap_test_snaps_cc",
     testonly = 1,
     outs = ["snap_test_snaps.cc"],
-    cmd = "$(location :snap_test_snaps_gen) > $@",
+    cmd = select({
+        "@silifuzz//build_defs/platform:aarch64": "$(location :snap_test_snaps_gen) --arch=aarch64 --output_mode=c++source > $@",
+        "@silifuzz//build_defs/platform:x86_64": "$(location :snap_test_snaps_gen) --arch=x86_64 --output_mode=c++source > $@",
+    }),
     tools = [":snap_test_snaps_gen"],
 )
 

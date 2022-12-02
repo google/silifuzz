@@ -38,6 +38,9 @@
 #include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 
+ABSL_FLAG(std::string, arch, "",
+          "Architecture to target. One of x86_64, aarch64.");
+
 ABSL_FLAG(
     std::string, output_mode, "c++source",
     "Kind of output to generate. One of c++source, relocatable_runner_corpus");
@@ -45,6 +48,7 @@ ABSL_FLAG(
 namespace silifuzz {
 namespace {
 
+template <typename Arch>
 absl::Status GenerateRelocatableRunnerCorpus() {
   SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   opts.compress_repeating_bytes = true;
@@ -54,10 +58,10 @@ absl::Status GenerateRelocatableRunnerCorpus() {
   std::vector<Snapshot> snapified_corpus;
   for (int index = 0; index < ToInt(TestSnapshot::kNumTestSnapshot); ++index) {
     TestSnapshot type = static_cast<TestSnapshot>(index);
-    if (!TestSnapshotExists<X86_64>(type)) {
+    if (!TestSnapshotExists<Arch>(type)) {
       continue;
     }
-    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot<Arch>(type);
     // Note: it isn't guarenteed that all the test snaps will be snap
     // compatible. If this becomes an issue, we can add a query function and
     // filter them out here.
@@ -65,11 +69,14 @@ absl::Status GenerateRelocatableRunnerCorpus() {
     snapified_corpus.push_back(std::move(snapified));
   }
 
+  // TODO(ncbray): do host/arch split for Snap data structure.
+  CHECK_EQ((int)Arch::architecture_id, (int)Host::architecture_id);
+
   // Generate the SnapCorpus data.
   RelocatableSnapGeneratorOptions options;
   options.compress_repeating_bytes = opts.compress_repeating_bytes;
   MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(
-      X86_64::architecture_id, snapified_corpus, options);
+      Arch::architecture_id, snapified_corpus, options);
 
   // Output.
   absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
@@ -80,8 +87,9 @@ absl::Status GenerateRelocatableRunnerCorpus() {
   return absl::OkStatus();
 }
 
+template <typename Arch>
 absl::Status GenerateSource() {
-  SnapGenerator generator(std::cout);
+  SnapGenerator<Arch> generator(std::cout);
   generator.IncludeLocalHeader("./snap/testing/snap_test_snaps.h");
   generator.FileStart();
 
@@ -95,7 +103,8 @@ absl::Status GenerateSource() {
        ++type) {
     SnapGeneratorTestType snap_generator_test_type =
         static_cast<SnapGeneratorTestType>(type);
-    Snapshot snapshot = MakeSnapGeneratorTestSnapshot(snap_generator_test_type);
+    Snapshot snapshot =
+        MakeSnapGeneratorTestSnapshot<Arch>(snap_generator_test_type);
     std::string name = absl::StrCat("kGeneratorTestSnap_", type);
     generator_test_snap_names.push_back(name);
     CHECK_STATUS(generator.GenerateSnap(name, snapshot));
@@ -107,33 +116,53 @@ absl::Status GenerateSource() {
 
   // Print SnapArray containing pointers to Snaps generated above.
   generator.GenerateSnapArray("kSnapGeneratorTestCorpus",
-                              X86_64::architecture_id,
                               generator_test_snap_names);
 
   // Generate runner test snaps.
   std::vector<std::string> runner_test_snap_names;
   for (int index = 0; index < ToInt(TestSnapshot::kNumTestSnapshot); ++index) {
     TestSnapshot type = static_cast<TestSnapshot>(index);
-    if (!TestSnapshotExists<X86_64>(type)) {
+    if (!TestSnapshotExists<Arch>(type)) {
       continue;
     }
-    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot<Arch>(type);
     std::string name = absl::StrCat("kRunnerTestSnap_", index);
     runner_test_snap_names.push_back(name);
     CHECK_STATUS(generator.GenerateSnap(name, snapshot));
   }
 
   // Print SnapArray containing pointers to Snaps generated above.
-  generator.GenerateSnapArray("kSnapRunnerTestCorpus", X86_64::architecture_id,
-                              runner_test_snap_names);
+  generator.GenerateSnapArray("kSnapRunnerTestCorpus", runner_test_snap_names);
 
   // Also use the same runner test snaps to produce the default corpus.
-  generator.GenerateSnapArray("kDefaultSnapCorpus", X86_64::architecture_id,
-                              runner_test_snap_names);
+  generator.GenerateSnapArray("kDefaultSnapCorpus", runner_test_snap_names);
 
   generator.FileEnd();
 
   return absl::OkStatus();
+}
+
+template <typename Arch>
+absl::Status MainImpl(const std::string& mode) {
+  if (mode == "c++source") {
+    return GenerateSource<Arch>();
+  } else if (mode == "relocatable_runner_corpus") {
+    return GenerateRelocatableRunnerCorpus<Arch>();
+  } else {
+    return absl::InvalidArgumentError("Unsupported mode");
+  }
+}
+
+absl::Status Main(const std::string& arch, const std::string& mode) {
+  if (arch == "x86_64") {
+    return MainImpl<X86_64>(mode);
+  } else if (arch == "aarch64") {
+    return MainImpl<AArch64>(mode);
+  } else if (arch.empty()) {
+    return absl::InvalidArgumentError("--arch is required");
+  } else {
+    return absl::InvalidArgumentError("Unsupported arch");
+  }
 }
 
 }  // namespace
@@ -141,16 +170,9 @@ absl::Status GenerateSource() {
 
 int main(int argc, char* argv[]) {
   absl::ParseCommandLine(argc, argv);
+  std::string arch = absl::GetFlag(FLAGS_arch);
   std::string mode = absl::GetFlag(FLAGS_output_mode);
-  absl::Status result = [&mode]() {
-    if (mode == "c++source") {
-      return silifuzz::GenerateSource();
-    } else if (mode == "relocatable_runner_corpus") {
-      return silifuzz::GenerateRelocatableRunnerCorpus();
-    } else {
-      return absl::InvalidArgumentError("Unsupported mode");
-    }
-  }();
+  absl::Status result = silifuzz::Main(arch, mode);
   if (!result.ok()) {
     LOG_ERROR(result.message());
     return EXIT_FAILURE;

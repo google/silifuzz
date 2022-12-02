@@ -21,9 +21,11 @@
 namespace silifuzz {
 
 // Returns a silifuzz::Snapshot of the given Snap generator test type.
+template <typename Arch = Host>
 Snapshot MakeSnapGeneratorTestSnapshot(SnapGeneratorTestType type);
 
 // Returns a silifuzz::Snapshot of the given Snap runner test type.
+template <typename Arch = Host>
 Snapshot MakeSnapRunnerTestSnapshot(TestSnapshot type);
 
 }  // namespace silifuzz

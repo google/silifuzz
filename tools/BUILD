@@ -121,7 +121,7 @@ sh_test(
     srcs = ["snap_corpus_tool_test.sh"],
     data = [
         ":snap_corpus_tool",
-        "@silifuzz//tools/testdata:runnable_corpus-fake-platform-00000",
+        "@silifuzz//snap/testing:test_corpus",
     ],
 )
 

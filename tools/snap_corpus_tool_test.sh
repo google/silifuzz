@@ -22,7 +22,7 @@ function die() {
 }
 
 readonly TOOL="${TEST_SRCDIR}/silifuzz/tools/snap_corpus_tool"
-readonly CORPUS="${TEST_SRCDIR}/silifuzz/tools/testdata/runnable_corpus-fake-platform-00000"
+readonly CORPUS="${TEST_SRCDIR}/silifuzz/snap/testing/test_corpus"
 
 function snap_corpus_tool_test() {
  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q 'Total 22' \
