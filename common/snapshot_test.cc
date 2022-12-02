@@ -250,6 +250,21 @@ TYPED_TEST(SnapshotTest, ReplaceMemoryBytes) {
   EXPECT_OK(s.IsComplete());
   EXPECT_TRUE(s.MappedMemoryIsDefined());
 
+  {
+    auto es = s.expected_end_states()[0];
+    ASSERT_OK(s.IsComplete());
+    const Snapshot::MemoryBytesList end_state_bytes = es.memory_bytes();
+    ASSERT_THAT(es.ReplaceMemoryBytes({Snapshot::MemoryBytes(0x10000, {42}),
+                                       Snapshot::MemoryBytes(0x10000, {42})}),
+                StatusIs(absl::StatusCode::kInvalidArgument));
+    ASSERT_OK(es.ReplaceMemoryBytes({}));
+    EXPECT_EQ(es.changed_memory_set().byte_size(), 0);
+    ASSERT_OK(
+        es.ReplaceMemoryBytes(Snapshot::MemoryBytesList(end_state_bytes)));
+    EXPECT_EQ(es.memory_bytes(), end_state_bytes);
+    ASSERT_OK(s.IsComplete());
+  }
+
   Snapshot::MemoryBytesList bytes = s.memory_bytes();
 
   ASSERT_OK(s.ReplaceMemoryBytes({}));

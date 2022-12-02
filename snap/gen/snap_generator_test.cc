@@ -135,7 +135,16 @@ TEST(SnapGenerator, Snapify) {
     EXPECT_TRUE(snapshot.mapped_memory_map()
                     .PermsAt(memory_bytes.start_address())
                     .Has(MemoryPerms::kWritable));
+    initial_memory_state.RemoveMemoryMapping(memory_bytes.start_address(),
+                                             memory_bytes.limit_address());
   }
+  initial_memory_state.mapped_memory().Iterate(
+      [&initial_memory_state](auto start, auto limit, auto p) {
+        EXPECT_FALSE(p.Has(MemoryPerms::kWritable))
+            << "Expected that all writable pages are present in the end state. "
+            << "Snapshot mappings missing from end state: "
+            << initial_memory_state.mapped_memory().DebugString();
+      });
 }
 
 TEST(SnapGenerator, SnapifyIdempotent) {
