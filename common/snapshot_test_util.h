@@ -32,10 +32,6 @@ class CreateTestSnapshotOptions {
   // is only useful for Snap/Runner testing.
   bool force_normal_state = false;
 
-  // If set, the returned snapshot satisfies
-  // Snapshot::MappedMemoryIsDefined().
-  bool define_all_mapped = false;
-
   // Addresses from which to read/write/execute. The values can be accessed
   // by the snapshot as 0(%rbp), 8(%rbp) and 16(%rbp).
   // Used by some snapshots only.

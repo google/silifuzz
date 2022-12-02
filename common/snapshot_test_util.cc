@@ -232,29 +232,17 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(data_mapping.start_address(), addresses_data));
 
-  // Define the rest of memory (if needed)
-  if (options.define_all_mapped) {
-    // Define the rest of the data mapping.
-    Snapshot::Address start =
-        data_mapping.start_address() + addresses_data.size();
-    int size = data_mapping.num_bytes() - addresses_data.size();
-    snapshot.add_memory_bytes(
-        Snapshot::MemoryBytes(start, Snapshot::ByteData(size, '\0')));
-  } else if (config.stack_bytes_used) {
-    // Only define the stack memory that will be used.
-    const Snapshot::Address stack_top_address =
-        config.data_addr + config.data_num_bytes;
-    snapshot.add_memory_bytes(Snapshot::MemoryBytes(
-        stack_top_address - config.stack_bytes_used,
-        Snapshot::ByteData(config.stack_bytes_used, '\0')));
-  }
+  // Define the rest of the data mapping.
+  Snapshot::Address start =
+      data_mapping.start_address() + addresses_data.size();
+  int size = data_mapping.num_bytes() - addresses_data.size();
+  snapshot.add_memory_bytes(
+      Snapshot::MemoryBytes(start, Snapshot::ByteData(size, '\0')));
 
   std::string bytecode = config.instruction_bytes;
   const auto bytecode_size = bytecode.size();  // so we can ignore the fix-up
                                                // under the next if
-  if (options.define_all_mapped) {
-    PadToSizeWithTraps<Arch>(bytecode, code_mapping.num_bytes());
-  }
+  PadToSizeWithTraps<Arch>(bytecode, code_mapping.num_bytes());
 
   if (!bytecode.empty()) {
     Snapshot::MemoryBytes code_bytes(config.code_addr, bytecode);
@@ -291,10 +279,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
   }
 
   snapshot.NormalizeAll();
-
-  if (options.define_all_mapped) {
-    CHECK(snapshot.MappedMemoryIsDefined());
-  }
+  CHECK(snapshot.MappedMemoryIsDefined());
   return snapshot;
 }
 

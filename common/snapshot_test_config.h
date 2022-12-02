@@ -28,6 +28,9 @@ struct TestSnapshotConfig {
   uint64_t data_addr;
   uint64_t data_num_bytes;
   std::string instruction_bytes;
+  // If true, this snapshot has an instruction-only expected EndState when
+  // processed by SnapMaker::Make. Snapshots where normal_end=false are
+  // always expected to cause an exception (SIGILL, SIGSEGV, etc).
   bool normal_end;
   uint64_t stack_bytes_used;
 };

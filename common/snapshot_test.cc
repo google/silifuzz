@@ -245,8 +245,7 @@ TYPED_TEST(SnapshotTest, NormalizeMemoryBytesSplit) {
 }
 
 TYPED_TEST(SnapshotTest, ReplaceMemoryBytes) {
-  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected,
-                                             {.define_all_mapped = true});
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected);
   EXPECT_OK(s.IsComplete());
   EXPECT_TRUE(s.MappedMemoryIsDefined());
 
