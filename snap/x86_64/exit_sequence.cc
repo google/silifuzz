@@ -24,6 +24,7 @@
 #include "./util/cache.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -84,6 +85,22 @@ size_t WriteSnapExitSequence<X86_64>(void* buffer) {
 template <>
 uint64_t FixUpReturnAddress<X86_64>(uint64_t return_address) {
   return return_address - sizeof(kCallnsnBytes);
+}
+
+template <>
+size_t ExitSequenceStackBytesSize<X86_64>() {
+  return sizeof(uint64_t);
+}
+
+template <>
+void WriteExitSequenceStackBytes(const GRegSet<X86_64>& gregs, void* buffer) {
+  uint8_t* bytes = reinterpret_cast<uint8_t*>(buffer);
+
+  // The exit sequence contains a call that will push an adddress inside the
+  // exit sequence onto the stack.
+  uint64_t actual_exit_address = gregs.rip + sizeof(kCallnsnBytes);
+
+  memcpy(bytes, &actual_exit_address, sizeof(actual_exit_address));
 }
 
 }  // namespace silifuzz

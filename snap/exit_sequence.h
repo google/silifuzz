@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/ucontext/ucontext_types.h"
+
 namespace silifuzz {
 
 // A pre-defined address for transfer control from a Snap back to the runner.
@@ -56,6 +58,17 @@ void InitSnapExit(void (*reentry_address)());
 // subtract the size of call instruction.
 template <typename Arch>
 uint64_t FixUpReturnAddress(uint64_t return_address);
+
+// Provides the bytes that the Snap exit sequence will write to the stack of the
+// context it is exiting from. These bytes may depend on the register state of
+// the context it is exiting from. These bytes are written immediately below the
+// stack pointer. `buffer` must be at least ExitSequenceStackBytesSize()
+// bytes.
+template <typename Arch>
+void WriteExitSequenceStackBytes(const GRegSet<Arch>& gregs, void* buffer);
+
+template <typename Arch>
+size_t ExitSequenceStackBytesSize();
 
 }  // namespace silifuzz
 

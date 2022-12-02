@@ -23,6 +23,7 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -83,6 +84,18 @@ size_t WriteSnapExitSequence<AArch64>(void* buffer) {
 template <>
 uint64_t FixUpReturnAddress<AArch64>(uint64_t return_address) {
   return return_address - sizeof(kExitSequence);
+}
+
+template <>
+size_t ExitSequenceStackBytesSize<AArch64>() {
+  return sizeof(uint64_t) * 2;
+}
+
+template <>
+void WriteExitSequenceStackBytes(const GRegSet<AArch64>& gregs, void* buffer) {
+  uint8_t* bytes = reinterpret_cast<uint8_t*>(buffer);
+  memcpy(bytes, &gregs.x[0], sizeof(gregs.x[0]));
+  memcpy(bytes + sizeof(gregs.x[0]), &gregs.x[30], sizeof(gregs.x[30]));
 }
 
 }  // namespace silifuzz

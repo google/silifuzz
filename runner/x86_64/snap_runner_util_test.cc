@@ -86,6 +86,18 @@ TEST(SnapRunnerUtil, BasicTest) {
   // A snapshot's ending rip is 1 after the ending instruction address.
   CHECK_EQ(snap_exit_context.gregs.rip,
            reinterpret_cast<uint64_t>(code_page) + code_size);
+
+  // Check that the exit sequence wrote to the stack in the way we expected.
+  uint8_t exit_sequence_stack_bytes[8];
+  CHECK_EQ(ExitSequenceStackBytesSize<Host>(),
+           sizeof(exit_sequence_stack_bytes));
+  WriteExitSequenceStackBytes(snap_exit_context.gregs,
+                              exit_sequence_stack_bytes);
+  CHECK_EQ(
+      memcmp(reinterpret_cast<const void*>(snap_exit_context.gregs.rsp -
+                                           sizeof(exit_sequence_stack_bytes)),
+             exit_sequence_stack_bytes, sizeof(exit_sequence_stack_bytes)),
+      0);
 }
 
 }  // namespace

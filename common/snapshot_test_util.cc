@@ -107,10 +107,22 @@ void InitTestSnapshotRegs(const TestSnapshotConfig& config,
 // snapshot as a (presently unavoidable) part of doing its work
 // when jumping-in to start executing `snapshot`.
 template <typename Arch>
-Snapshot::MemoryBytes RestoreUContextStackBytes(const Snapshot& snapshot) {
+Snapshot::MemoryBytes RestoreUContextStackBytes(
+    const Snapshot::RegisterState& registers) {
   GRegSet<Arch> gregs;
-  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs));
-  std::string stack_data = RestoreUContextStackBytes(gregs);
+  CHECK_STATUS(ConvertRegsFromSnapshot(registers, &gregs));
+  std::string stack_data = RestoreUContextStackBytes<Arch>(gregs);
+  return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
+                               stack_data);
+}
+
+template <typename Arch>
+Snapshot::MemoryBytes ExitSequenceStackBytes(
+    const Snapshot::RegisterState& registers) {
+  GRegSet<Arch> gregs;
+  CHECK_STATUS(ConvertRegsFromSnapshot(registers, &gregs));
+  std::string stack_data(ExitSequenceStackBytesSize<Arch>(), 0);
+  WriteExitSequenceStackBytes<Arch>(gregs, stack_data.data());
   return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
                                stack_data);
 }
@@ -119,10 +131,6 @@ Snapshot::MemoryBytes RestoreUContextStackBytes(const Snapshot& snapshot) {
 // to the given snapshot/end_state pair.
 template <typename Arch>
 absl::StatusOr<Snapshot::EndState> ApplySideEffects(
-    const Snapshot& snapshot, const Snapshot::EndState& end_state);
-
-template <>
-absl::StatusOr<Snapshot::EndState> ApplySideEffects<X86_64>(
     const Snapshot& snapshot, const Snapshot::EndState& end_state) {
   // Construct initial memory state of the snaphsot modulo non-writable
   // mappings.
@@ -136,7 +144,8 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects<X86_64>(
 
   // Add RestoreUContext stack bytes, original end state memory delta, and
   // snap exit stack bytes to construct full end state memory bytes.
-  memory_state.SetMemoryBytes(RestoreUContextStackBytes<X86_64>(snapshot));
+  memory_state.SetMemoryBytes(
+      RestoreUContextStackBytes<Arch>(snapshot.registers()));
   memory_state.SetMemoryBytes(end_state.memory_bytes());
 
   const auto& endpoint = end_state.endpoint();
@@ -144,46 +153,12 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects<X86_64>(
       Snapshot::EndState(endpoint, end_state.registers());
   es_with_sideeffects.set_platforms(end_state.platforms());
 
-  // The snap exit consists of a call instruction followed by a 64-bit address.
-  // The call instruction is rip-relative and the address is not part of the
-  // instruction but rather situated right after it in the insns stream.
-  // See exit_sequence.h for details.
-  // The length of the exit sequence is thus the length of a call instruction
-  // plus 8 bytes. When the exit call is executed, it leaves the address after
-  // the call instruction on stack.
-  Snapshot::Address snap_exit_addr = endpoint.instruction_address() +
-                                     GetSnapExitSequenceSize<X86_64>() -
-                                     sizeof(uint64_t);
-  Snapshot::ByteData snap_exit_addr_data(
-      reinterpret_cast<Snapshot::ByteData::value_type*>(&snap_exit_addr),
-      sizeof(snap_exit_addr));
-  // On x86_64, a stack push is done by decrementing the stack point first
-  // and then writing to location pointed to by the new stack pointer.
-  //
-  // before call
-  //   RSP-> 20000000: XX XX ....
-  //         1ffffff8: XX XX ....
-  //
-  // after call
-  //         20000000: XX XX ....
-  //   RSP-> 1ffffff8: <return address>
-  //
-  const Snapshot::Address end_point_stack_pointer =
-      snapshot.ExtractRsp(end_state.registers());
-  RETURN_IF_NOT_OK(Snapshot::MemoryBytes::CanConstruct(
-      end_point_stack_pointer - sizeof(snap_exit_addr), snap_exit_addr_data));
-  Snapshot::MemoryBytes return_address_memory_bytes(
-      end_point_stack_pointer - sizeof(snap_exit_addr), snap_exit_addr_data);
-  memory_state.SetMemoryBytes(return_address_memory_bytes);
+  // The exit sequence will modify the stack on the way out.
+  memory_state.SetMemoryBytes(
+      ExitSequenceStackBytes<Arch>(end_state.registers()));
   RETURN_IF_NOT_OK(es_with_sideeffects.ReplaceMemoryBytes(
       memory_state.memory_bytes_list(memory_state.written_memory())));
   return es_with_sideeffects;
-}
-
-template <>
-absl::StatusOr<Snapshot::EndState> ApplySideEffects<AArch64>(
-    const Snapshot& snapshot, const Snapshot::EndState& end_state) {
-  return end_state;
 }
 
 }  // namespace

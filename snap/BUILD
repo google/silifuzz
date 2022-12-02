@@ -40,6 +40,7 @@ cc_library_plus_nolibc(
         "@silifuzz//util:cache",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",
+        "@silifuzz//util/ucontext:ucontext_types",
     ],
 )
 
