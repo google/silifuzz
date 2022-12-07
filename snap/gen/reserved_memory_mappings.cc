@@ -37,13 +37,21 @@ const MappedMemoryMap& ReservedMemoryMappings() {
     mapped_memory_map.Add(SILIFUZZ_RUNNER_BASE_ADDRESS,
                           SILIFUZZ_RUNNER_BASE_ADDRESS + (1ULL << 32), perms);
 
-#ifdef __x86_64__
+#if defined(__x86_64__)
     // Stack and VDSO near end of user space.
     mapped_memory_map.Add(0x7f0000000000ULL, 0x800000000000ULL, perms);
 
     // From end of user space to end of address space minus the last byte,
     // which cannot be specified in and address range.
     mapped_memory_map.Add(0x800000000000ULL, 0xffffffffffffffffULL, perms);
+#elif defined(__aarch64__)
+    // Stack and VDSO near end of user space.
+    // 19 bits of entropy and 12 bits of page size.
+    mapped_memory_map.Add(0x0000ffff80000000ULL, 0x0001000000000000ULL, perms);
+
+    // User addresses have bits 63:48 set to 0.
+    // See: https://docs.kernel.org/arm64/memory.html
+    mapped_memory_map.Add(0x0001000000000000ULL, 0xffffffffffffffffULL, perms);
 #else
 #error "need to define architecture specific reserved memory mappings".
 #endif

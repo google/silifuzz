@@ -34,7 +34,7 @@ TEST(ReservedMemoryMappings, MustInclude) {
   EXPECT_TRUE(reserved_memory_mappings.Contains(
       SILIFUZZ_RUNNER_BASE_ADDRESS,
       SILIFUZZ_RUNNER_BASE_ADDRESS + (1ULL << 32)));
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(__aarch64__)
   constexpr uint64_t kUserSpaceLimit = 1ULL << 48;
 #else
 #error "need to define user space limit for this architecture"
