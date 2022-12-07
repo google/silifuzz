@@ -53,13 +53,13 @@ enum class TestSnapshot {
   kRegsAndMemoryMismatchRandom,
 
   // Snapshot with a single ICEBP instruction.
-  // kICEBP, kINT3, and kINT3_CD03 (as well as INT3 that models an
+  // kICEBP, kBreakpoint, and kINT3_CD03 (as well as INT3 that models an
   // Endpoint::kInstruction) produce very similar behavior (SIGTRAP)
   // with slight variations that we want to regression-test for.
   kICEBP,
 
-  // Snapshot with a single INT3 instruction.
-  kINT3,
+  // Snapshot with a single breakpoint instruction.
+  kBreakpoint,
 
   // Snapshot with a single INT3 instruction encoded as 0xCD 0x03.
   kINT3_CD03,

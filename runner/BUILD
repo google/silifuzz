@@ -241,6 +241,7 @@ cc_test(
         "@silifuzz//snap/testing:snap_test_snaps",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@silifuzz//util/ucontext",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/time",

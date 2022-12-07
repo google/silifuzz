@@ -197,9 +197,9 @@ nop
 // we guarantee that the actual endpoint instruction address will not
 // match the expected one.
 //
-// Currently this is the same `bytecode` as for kINT3 below because of
+// Currently this is the same `bytecode` as for kBreakpoint below because of
 // how we implement endpoint detection. However, the intentions
-// behind kINT3 and kEndsUnexpectedly are different.
+// behind kBreakpoint and kEndsUnexpectedly are different.
 int3
 """)
 
@@ -300,7 +300,7 @@ push %rax
   b.snapshot(name="ICEBP", arch=X86_64, normal_end=False, raw_bytes=[0xf1])
 
   # Note that this is the same `bytecode` as snapshot.trap_instruction().
-  b.snapshot(name="INT3", arch=X86_64, normal_end=False, raw_bytes=[0xcc])
+  b.snapshot(name="Breakpoint", arch=X86_64, normal_end=False, raw_bytes=[0xcc])
 
   b.snapshot(
       name="INT3_CD03", arch=X86_64, normal_end=False, raw_bytes=[0xcd, 0x03])
@@ -411,6 +411,15 @@ nop
 """)
 
   b.snapshot(
+      name="EndsUnexpectedly",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+// The same invalid instruction we use to pad executable memory in Snaps.
+udf 0
+""")
+
+  b.snapshot(
       name="RegsMismatch", arch=AARCH64, src="""
 // x0 = ~x0
 mvn x0, x0
@@ -434,12 +443,41 @@ ldr x0, [sp, #-8]
 """)
 
   b.snapshot(
+      name="Breakpoint", arch=AARCH64, normal_end=False, src="""
+brk 0
+""")
+
+  b.snapshot(
       name="SigSegvRead",
       arch=AARCH64,
       normal_end=False,
       src="""
 ldr x0, [x6, #0]
 ldr x0, [x0]
+""")
+
+  b.snapshot(
+      name="Syscall",
+      arch=AARCH64,
+      src="""
+mov x0, xzr
+mov x1, xzr
+mov x2, xzr
+// 0x135 == 309 == SYS_getcpu
+mov x8, #0x135
+svc 0
+// erases any result whatever it may be so that
+// the snapshot always ends deterministically
+mov x0, xzr
+""")
+
+  b.snapshot(
+      name="Runaway",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+// A trivial infinite loop (can only have one end-point value when interrupted):
+b .
 """)
 
 
@@ -488,6 +526,9 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 """)
 
     for line in s.disassembly.splitlines():
+      # Strip out comments from the disassembly because clang-format deals badly
+      # with comments inside of comments.
+      line = line.split("//", 1)[0].rstrip()
       out.write(f"        // {line}\n")
 
     byte_list = ", ".join([hex(byte) for byte in s.instruction_bytes])
