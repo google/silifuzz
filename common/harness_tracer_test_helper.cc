@@ -40,6 +40,7 @@ namespace {
 void ToggleActive() { sys_raise(SIGSTOP); }
 
 void DoWork(int n) {
+#if defined(__x86_64__)
   // Regular 0x90 nops don't work under various compile modes due to compiler-
   // inserted NOPs, loop unrolling, etc. Instead, we resort to hardcoding this
   // loop to run exactly `n` xchg instructions.
@@ -47,6 +48,15 @@ void DoWork(int n) {
       "dec %%rcx;\n"
       "jnz 1b;\n" ::"c"(n)
       :);
+
+#elif defined(__aarch64__)
+  register uint64_t x10 asm("x10") = n;
+  asm("loop_head%=: subs x10, x10, #1;\n"
+      "bne loop_head%=;\n" ::"r"(x10)
+      :);
+#else
+#error "Unsupported architecture"
+#endif
 }
 
 // Verifies that the tracer can single-step through the tracee
@@ -81,6 +91,7 @@ void SyscallHelper() {
   ToggleActive();
 }
 
+#if defined(__x86_64__)
 uint64_t volatile num_sigtrap_raised = 0;
 // Counts the number of SIGTRAPs received by the binary.
 void SigtrapHandler(int sig, siginfo_t* info, void* ucontext) {
@@ -134,6 +145,23 @@ int SignalInjectionHelper() {
   // Should never make it here when under tracer.
   return 0;
 }
+
+#elif defined(__aarch64__)
+// TODO(ncbray): port sys_sigaction to aarch64. Currently it doesn't restore the
+// stack correctly.
+
+int SignalHelper() {
+  assert(false);
+  return -1;
+}
+
+int SignalInjectionHelper() {
+  assert(false);
+  return -1;
+}
+#else
+#error "Unsupported architecture"
+#endif
 
 };  // namespace
 

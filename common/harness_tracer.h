@@ -29,6 +29,27 @@
 
 namespace silifuzz {
 
+#if defined(__x86_64__)
+inline uint64_t GetInstructionPointer(const user_regs_struct& regs) {
+  return regs.rip;
+}
+
+inline uint64_t GetSyscallNumber(const user_regs_struct& regs) {
+  // Some syscalls clobber rax but orig_rax preserves the value.
+  return regs.orig_rax;
+}
+#elif defined(__aarch64__)
+inline uint64_t GetInstructionPointer(const user_regs_struct& regs) {
+  return regs.pc;
+}
+
+inline uint64_t GetSyscallNumber(const user_regs_struct& regs) {
+  return regs.regs[8];
+}
+#else
+#error "Unsupported architecture"
+#endif
+
 // HarnessTracer is a ptrace-based tracing facility for the subprocess harness.
 // The typical usage looks like this:
 //
@@ -180,6 +201,9 @@ class HarnessTracer {
   // signal into the tracee.
   // REQUIRES: The tracee must be in one of the stopped states.
   void ContinueTraceeWithSignal(int signal = 0) const;
+
+  // Gets the register state of the tracee.
+  void GetRegSet(struct user_regs_struct& regs) const;
 
   // c-tor parameters
   pid_t pid_;

@@ -79,21 +79,32 @@ TEST(HarnessTracerTest, SingleStep) {
   std::unique_ptr<Subprocess> helper_process =
       StartHelperProcess("test-singlestep");
 
-  int n_xchg_seen = 0;
+  int n_loop_head_seen = 0;
   HarnessTracer tracer(
       helper_process->pid(), HarnessTracer::kSingleStep,
-      [&n_xchg_seen](pid_t pid, const struct user_regs_struct& regs,
-                     HarnessTracer::CallbackReason reason) {
-        uint64_t data = ptrace(PTRACE_PEEKTEXT, pid, regs.rip, nullptr);
+      [&n_loop_head_seen](pid_t pid, const struct user_regs_struct& regs,
+                          HarnessTracer::CallbackReason reason) {
+        uint64_t data =
+            ptrace(PTRACE_PEEKTEXT, pid, GetInstructionPointer(regs), nullptr);
         CHECK_EQ(errno, 0);
-        // PEEKTEXT reads a word from the tracee. x86 is little-endian so bytes
-        // are in reverse order
+    // PEEKTEXT reads a word from the tracee. x86 is little-endian so bytes
+    // are in reverse order
+    // The n_loop_head_seen counts the number of time a particular
+    // instruction instructions inside the loop in DoWork() in
+    // harness_tracer_test_helper.cc is executed
+#if defined(__x86_64__)
         // 48 87 db     xchg   rbx,rbx
-        // The n_xchg_seen counts the number of time a particular xchg
-        // instructions inside the loop in DoWork() in
-        // harness_tracer_test_helper.cc is executed
-        if ((data & 0xFFFFFF) == 0xDB8748) {
-          ++n_xchg_seen;
+        const uint32_t kLoopHeadInstruction = 0xdb8748;
+        const uint64_t kLoopHeadMask = 0xffffff;
+#elif defined(__aarch64__)
+        // f100054a        subs    x10, x10, #0x1
+        const uint32_t kLoopHeadInstruction = 0xf100054a;
+        const uint64_t kLoopHeadMask = 0xffffffff;
+#else
+#error "Unsupported architecture"
+#endif
+        if ((data & kLoopHeadMask) == kLoopHeadInstruction) {
+          ++n_loop_head_seen;
         }
         return HarnessTracer::kKeepTracing;
       });
@@ -102,8 +113,8 @@ TEST(HarnessTracerTest, SingleStep) {
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
   LOG(INFO) << "Helper stdout:\n" << stdout_str;
-  // Expecting exactly 100 (50+50) xchg ops executed while the tracer is active.
-  EXPECT_EQ(n_xchg_seen, 100);
+  // Expecting exactly 100 (50+50) loops executed while the tracer is active.
+  EXPECT_EQ(n_loop_head_seen, 100);
 }
 
 TEST(HarnessTracerTest, Syscall) {
@@ -118,10 +129,7 @@ TEST(HarnessTracerTest, Syscall) {
       helper_process->pid(), HarnessTracer::kSyscall,
       [&num_seen_getcpu](pid_t pid, const struct user_regs_struct& regs,
                          HarnessTracer::CallbackReason reason) {
-        // regs.orig_rax is the syscall number. The whole reason this is used
-        // instead of regs.rax is because some syscalls clobber rax but orig_rax
-        // preserves the value.
-        if (regs.orig_rax == SYS_getcpu) {
+        if (GetSyscallNumber(regs) == SYS_getcpu) {
           ++num_seen_getcpu;
         }
         return HarnessTracer::kKeepTracing;
@@ -135,6 +143,10 @@ TEST(HarnessTracerTest, Syscall) {
 }
 
 TEST(HarnessTracerTest, Signal) {
+#if defined(__aarch64__)
+  // TODO(ncbray): enable when sys_sigaction works on aarch64.
+  GTEST_SKIP() << "Test requires fully functional sys_sigaction.";
+#endif
   for (auto mode : {HarnessTracer::kSyscall, HarnessTracer::kSingleStep}) {
     std::unique_ptr<Subprocess> helper_process =
         StartHelperProcess("test-signal");
@@ -164,13 +176,18 @@ TEST(HarnessTracerTest, Signal) {
 }
 
 TEST(HarnessTracerTest, SignalInjection) {
+#if defined(__aarch64__)
+  // TODO(ncbray): enable when sys_sigaction works on aarch64.
+  GTEST_SKIP() << "Test requires fully functional sys_sigaction.";
+#endif
+
   std::unique_ptr<Subprocess> helper_process =
       StartHelperProcess("test-signal-injection");
 
   HarnessTracer tracer(helper_process->pid(), HarnessTracer::kSyscall,
                        [](pid_t pid, const struct user_regs_struct& regs,
                           HarnessTracer::CallbackReason reason) {
-                         if (regs.orig_rax == SYS_getcpu) {
+                         if (GetSyscallNumber(regs) == SYS_getcpu) {
                            // asks the tracer to inject SIGUSR1 when it sees
                            // getcpu syscall
                            return HarnessTracer::kInjectSigusr1;

@@ -14,7 +14,9 @@
 
 #include "./common/harness_tracer.h"
 
+#include <linux/elf.h>
 #include <sys/ptrace.h>
+#include <sys/uio.h>
 #include <sys/user.h>
 
 #include <csignal>
@@ -32,6 +34,25 @@
 #include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
+
+namespace {
+
+inline bool LooksLikeBogusTrap(const siginfo_t& info) {
+#if defined(__aarch64__)
+  // When single stepping on aarch64, we've seen ptrace sometimes catch strange
+  // traps after syscalls.
+  // If this is a real kill, raise, abort, or alarm then pid and uid should be
+  // set. If they are not set, this doesn't look like a normal SI_USER event.
+  return info.si_signo == SIGTRAP && info.si_code == SI_USER &&
+         info.si_pid == 0 && info.si_uid == 0;
+#else
+  // In theory the same logic should be safe on x86_64, but since we haven't
+  // seen the problem don't enable the workaround.
+  return false;
+#endif
+}
+
+}  // namespace
 
 HarnessTracer::HarnessTracer(pid_t pid, Mode mode, Callback callback)
     : pid_(pid),
@@ -76,6 +97,17 @@ void HarnessTracer::ContinueTraceeWithSignal(int signal) const {
   PTraceOrDie(PTRACE_CONT, pid_, 0, signal);
 }
 
+void HarnessTracer::GetRegSet(struct user_regs_struct& regs) const {
+  // Note: PTRACE_GETREGS is not supported on all platforms, so we must use the
+  // newer PTRACE_GETREGSET API.
+  struct iovec io;
+  io.iov_base = &regs;
+  io.iov_len = sizeof(regs);
+  // NT_PRSTATUS means read the general purpose registers.
+  PTraceOrDie(PTRACE_GETREGSET, pid_, (void*)NT_PRSTATUS, &io);
+  CHECK_EQ(io.iov_len, sizeof(regs));
+}
+
 bool HarnessTracer::Trace(int status, bool is_active) const {
   VLOG_INFO(2, "Trace: ", HexStr(status), " active = ", is_active);
   if (WSTOPSIG(status) == SIGSTOP) {
@@ -90,6 +122,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       // but won't receive syscall/singlestep events only signals until the
       // next SIGSTOP.
 
+#if defined(__x86_64__)
       // Suppress trap flag.
       // For reasons that are not clear the final popfq in RestoreUContext()
       // erroneously raises TF meaning that despite PTRACE_CONT the tracee will
@@ -105,7 +138,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       // single-stepping but the kernel hides this from user-space except when
       // pushf leaks the value.
       struct user_regs_struct regs;
-      PTraceOrDie(PTRACE_GETREGS, pid_, 0, &regs);
+      GetRegSet(regs);
       regs.eflags &= ~kX86TrapFlag;
       // Use POKEUSER instead of more readable SETREGS because the former allows
       // updating just the one register. SETREGS can return unexpected EIO when
@@ -114,6 +147,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       PTraceOrDie(PTRACE_POKEUSER, pid_,
                   (void*)offsetof(struct user_regs_struct, eflags),
                   regs.eflags);
+#endif
       ContinueTraceeWithSignal();
     }
     return !is_active;
@@ -128,21 +162,25 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
   }
 
   struct user_regs_struct regs;
-  PTraceOrDie(PTRACE_GETREGS, pid_, 0, &regs);
+  GetRegSet(regs);
+
   siginfo_t info;
   PTraceOrDie(PTRACE_GETSIGINFO, pid_, 0, &info);
 
   // The tracee is now in ptrace-stopped state and the tracer is active.
   CallbackReason reason = [&]() {
     if (WSTOPSIG(status) == (SI_KERNEL | SIGTRAP)) {
-      VLOG_INFO(2, "system call at ", HexStr(regs.rip),
-                ", orig_rax = ", regs.orig_rax);
+      VLOG_INFO(2, "system call at ", HexStr(GetInstructionPointer(regs)),
+                ", number = ", GetSyscallNumber(regs));
       return kSyscallStop;
     }
     switch (info.si_signo) {
       case SIGTRAP:
-        if (info.si_code == SI_KERNEL || info.si_code == 0 /* raise */
-            || mode_ == kSyscall /* tracing syscalls but got a trap */) {
+        if (mode_ == kSingleStep && LooksLikeBogusTrap(info)) {
+          // TODO(ncbray): suppress the callback for this trap.
+          return kSingleStepStop;
+        } else if (info.si_code == SI_KERNEL || info.si_code == 0 /* raise */
+                   || mode_ == kSyscall /* tracing syscalls but got a trap */) {
           // The SIGTRAP occurred in the code (e.g. int3), this is either an
           // endpoint or an embedded trap. Inject it and continue tracing.
           return kSignalStop;
@@ -178,7 +216,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       break;
     case kInjectSigusr1:
       VLOG_INFO(2, "callback requested to inject SIGUSR1 at ",
-                HexStr(regs.rip));
+                HexStr(GetInstructionPointer(regs)));
       callback_(pid_, regs, kBecomingInactive);
       ContinueTraceeWithSignal(SIGUSR1);
       break;
