@@ -207,6 +207,9 @@ absl::Status SnapMaker::AddWritableMemoryForAddress(
   // NOTE: just because the mapping can be added to the snapshot does not
   // mean it can actually be mapped when run (e.g. 0x0 address).
   snapshot->add_memory_mapping(m);
+  Snapshot::MemoryBytes mb(page_address, std::string(kPageSizeBytes, '\0'));
+  RETURN_IF_NOT_OK(snapshot->can_add_memory_bytes(mb));
+  snapshot->add_memory_bytes(std::move(mb));
   return absl::OkStatus();
 }
 
