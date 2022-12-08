@@ -14,22 +14,27 @@
 
 #include "./util/data_dependency.h"
 
-#include <filesystem>
+#include <filesystem>  // NOLINT(build/c++17)
 #include <string>
 
 #include "absl/strings/string_view.h"
+#include "./util/checks.h"
 
 namespace silifuzz {
 
 std::string GetDataDependencyFilepath(absl::string_view relative_path) {
-  // https://bazel.build/concepts/dependencies#data-dependencies
-  // https://bazel.build/reference/test-encyclopedia
-  auto test_dir = std::getenv("TEST_SRCDIR");
-  if (test_dir == nullptr) {
-    return std::filesystem::current_path() / relative_path;
+  return GetDataDependencyFilepathBazel(relative_path);
+}
+
+std::string GetDataDependencyFilepathBazel(absl::string_view relative_path) {
+  std::filesystem::path p;
+  if (auto test_dir = std::getenv("TEST_SRCDIR"); test_dir == nullptr) {
+    p = std::filesystem::current_path() / relative_path;
+  } else {
+    p = std::filesystem::path(test_dir) / "silifuzz" / relative_path;
   }
-  return std::string(test_dir) +
-         std::string("/silifuzz/").append(relative_path);
+  CHECK(std::filesystem::exists(p));
+  return p;
 }
 
 }  // namespace silifuzz

@@ -21,11 +21,17 @@
 namespace silifuzz {
 namespace {
 
-TEST(DataDependency, DataDependenciesExist) {
+TEST(DataDependency, GetDataDependencyFilepath) {
   std::string filepath =
       GetDataDependencyFilepath("util/testdata/data_dependency_testdata");
   struct stat s;
   ASSERT_EQ(stat(filepath.c_str(), &s), 0);
+}
+
+TEST(DataDependency, GetDataDependencyFilepathBazel_NoFile) {
+  EXPECT_DEATH_IF_SUPPORTED(
+      GetDataDependencyFilepathBazel("util/testdata/bogus"),
+      "std::filesystem::exists");
 }
 
 }  // namespace

@@ -24,6 +24,13 @@ namespace silifuzz {
 // Get the silifuzz-relative filepath for a data dependency.
 std::string GetDataDependencyFilepath(absl::string_view relative_path);
 
+// Same as above but specifically targeting Bazel environment.
+// CHECKs if the path does not exist.
+//
+// See https://bazel.build/concepts/dependencies#data-dependencies and
+// https://bazel.build/reference/test-encyclopedia for details.
+std::string GetDataDependencyFilepathBazel(absl::string_view relative_path);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_DATA_DEPENDENCY_H_

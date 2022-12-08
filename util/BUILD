@@ -158,6 +158,7 @@ cc_library(
     srcs = ["data_dependency.cc"],
     hdrs = ["data_dependency.h"],
     deps = [
+        ":checks",
         "@com_google_absl//absl/strings",
     ],
 )
