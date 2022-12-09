@@ -449,6 +449,39 @@ ldr x0, [sp, #-8]
 """)
 
   b.snapshot(
+      name="RegsMismatchRandom",
+      arch=AARCH64,
+      src="""
+// CNTVCT_EL0 is a timer that should tick every ~1-100ns (depends on the system)
+// and is not tied to the lifetime of the process. Strictly speaking this
+// instruction is not "random" but will behave non-deterministically as long as
+// there are 1000-ish instructions between invocations. This should be true for
+// the snap maker because it uses execv when looking for non-determinism.
+// Using this as a source of non-determinism may be tempting fate, but it's the
+// best we have right now.
+// Use x1 since it won't get spilled onto the stack by the exit sequence.
+mrs x1, CNTVCT_EL0
+""")
+
+  b.snapshot(
+      name="MemoryMismatchRandom",
+      arch=AARCH64,
+      src="""
+str x1, [sp]
+mrs x1, CNTVCT_EL0
+str x1, [sp, #-64]
+ldr x1, [sp]
+""")
+
+  b.snapshot(
+      name="RegsAndMemoryMismatchRandom",
+      arch=AARCH64,
+      src="""
+mrs x1, CNTVCT_EL0
+stp x1, x1, [sp, #-16]!
+""")
+
+  b.snapshot(
       name="Breakpoint", arch=AARCH64, normal_end=False, src="""
 brk 0
 """)

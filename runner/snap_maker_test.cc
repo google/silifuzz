@@ -69,7 +69,11 @@ TEST(SnapMaker, Idempotent) {
   ASSERT_EQ(result2, result);
 }
 
-TEST(SnapMake, SplitLock) {
+TEST(SnapMaker, SplitLock) {
+#if !defined(__x86_64__)
+  GTEST_SKIP() << "Splitlock detection implemented only on x86_64.";
+#endif
+
   const auto splitLockSnap =
       MakeSnapRunnerTestSnapshot(TestSnapshot::kSplitLock);
   SnapMaker::Options options = DefaultSnapMakerOptionsForTest();

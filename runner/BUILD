@@ -295,7 +295,10 @@ cc_library(
     srcs = ["snap_maker.cc"],
     hdrs = ["snap_maker.h"],
     deps = [
-        ":disassembling_snap_tracer",
+        "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
@@ -306,11 +309,13 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:platform",
-        "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-    ],
+    ] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            ":disassembling_snap_tracer",
+        ],
+    }),
 )
 
 cc_library(

@@ -30,12 +30,15 @@
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
 #include "./player/trace_options.h"
-#include "./runner/disassembling_snap_tracer.h"
 #include "./runner/driver/runner_driver.h"
 #include "./snap/gen/snap_generator.h"
 #include "./util/checks.h"
 #include "./util/line_printer.h"
 #include "./util/platform.h"
+
+#if defined(__x86_64__)
+#include "./runner/disassembling_snap_tracer.h"
+#endif
 
 namespace silifuzz {
 
@@ -175,6 +178,9 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
     return absl::InternalError("Verify() failed, non-deterministic snapshot?");
   }
 
+// TODO(ncbray): instruction filtering on aarch64. This will likely involve
+// static decompilation rather than dynamic tracing.
+#if defined(__x86_64__)
   // Single-step flags snapshots with non-deterministic instructions and
   // snapshots that execute too many instructions. No attempt is made to fix
   // such snapshots.
@@ -189,6 +195,7 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
     return absl::InternalError(absl::StrCat(
         "Tracing failed: ", trace_result.early_termination_reason));
   }
+#endif
   return absl::OkStatus();
 }
 
