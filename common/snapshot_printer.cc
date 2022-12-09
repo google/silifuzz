@@ -20,12 +20,15 @@
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
-#include "./common/decoded_insn.h"
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
+
+#if defined(__x86_64__)
+#include "./common/decoded_insn.h"
+#endif
 
 namespace silifuzz {
 
@@ -346,19 +349,42 @@ void SnapshotPrinter::PrintExecutableMemoryBytes(
     size_t repeat_count = 1;
 
     while (i < mb.num_bytes()) {
-      DecodedInsn insn(byte_view, mb.start_address() + i);
       std::string current_insn;
       size_t len;
 
-      // Skip to next byte if this cannot be disassembled.
-      if (!insn.is_valid()) {
-        CHECK(i < mb.num_bytes());
+      if (snapshot.architecture() == Snapshot::Architecture::kX86_64) {
+        // TODO(ncbray): decouple DecodedInsn from user_regs_struct so that it
+        // can be used on non-x86_64 hosts.
+#if defined(__x86_64__)
+        DecodedInsn insn(byte_view, mb.start_address() + i);
+        // Skip to next byte if this cannot be disassembled.
+        if (!insn.is_valid()) {
+          CHECK(i < mb.num_bytes());
+          const uint8_t b = byte_view[0];
+          current_insn = absl::StrCat(".byte ", HexStr(b));
+          len = 1;
+        } else {
+          current_insn = insn.DebugString();
+          len = insn.length();
+        }
+#else
         const uint8_t b = byte_view[0];
         current_insn = absl::StrCat(".byte ", HexStr(b));
         len = 1;
+#endif
+      } else if (snapshot.architecture() == Snapshot::Architecture::kAArch64) {
+        // TODO(ncbray): disassemble.
+        if (byte_view.size() >= 4) {
+          uint32_t insn = *reinterpret_cast<const uint32_t*>(byte_view.data());
+          current_insn = HexStr(insn);
+          len = 4;
+        } else {
+          current_insn = HexStr(byte_view[0]);
+          len = 1;
+        }
       } else {
-        current_insn = insn.DebugString();
-        len = insn.length();
+        LOG_FATAL("Unexpected arch: ",
+                  IntStr(static_cast<int>(snapshot.architecture())));
       }
 
       if (current_insn == last_insn) {

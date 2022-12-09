@@ -218,19 +218,24 @@ cc_library(
     srcs = ["snapshot_printer.cc"],
     hdrs = ["snapshot_printer.h"],
     deps = [
-        ":decoded_insn",
         ":memory_perms",
         ":memory_state",
         ":snapshot",
         ":snapshot_types",
         ":snapshot_util",
+        "@com_google_absl//absl/strings",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/strings",
-    ],
+    ] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            ":decoded_insn",
+        ],
+    }),
 )
 
 cc_library(
