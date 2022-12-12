@@ -53,9 +53,14 @@ int Main(int argc, char* argv[]) {
 
   RunnerMainOptions options;
   options.corpus = LoadCorpus(flags_end < argc ? argv[flags_end] : nullptr);
-  if (options.corpus == nullptr || options.corpus->snaps.size == 0) {
-    LOG_ERROR("Empty baked in corpus or no corpus file name was specified");
+  if (options.corpus == nullptr) {
+    LOG_ERROR("No corpus file name was specified");
     return EXIT_FAILURE;
+  }
+  if (options.corpus->snaps.size == 0) {
+    // Treat an empty corpus file as valid an exit immediately.
+    LOG_INFO("The corpus is empty, exiting");
+    return EXIT_SUCCESS;
   }
 
   if (!options.corpus->IsArch<Host>()) {

@@ -12,19 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <fcntl.h>
+
 #include <cstdint>
-#include <optional>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "./common/snapshot_enums.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/runner_provider.h"
+#include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/testing/snap_test_snaps.h"
+#include "./util/file_util.h"
+#include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
@@ -138,6 +143,25 @@ TEST(RunnerTest, Deadline) {
   Snap runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap, absl::Seconds(2)));
   ASSERT_TRUE(result.success());
+}
+
+TEST(RunnerTest, EmptyCorpus) {
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(Host::architecture_id, {});
+  ASSERT_OK_AND_ASSIGN(auto path, CreateTempFile("EmptyCorpus", ""));
+
+  int fd = open(path.c_str(), O_WRONLY);
+  ASSERT_NE(fd, -1);
+  absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
+  ASSERT_TRUE(WriteToFileDescriptor(fd, buf));
+  close(fd);
+
+  RunnerDriver driver = RunnerDriver::ReadingRunner(
+      RunnerLocation(), path, [&path] { unlink(path.c_str()); });
+  auto opts = RunnerOptions::Default();
+  ASSERT_OK(driver.Run(opts));
+  opts.set_sequential_mode(true);
+  ASSERT_OK(driver.Run(opts));
 }
 
 }  // namespace

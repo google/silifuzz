@@ -574,12 +574,12 @@ int MakerMain(const RunnerMainOptions& options) {
 int RunnerMain(const RunnerMainOptions& options) {
   CHECK(!options.sequential_mode);
   const SnapCorpus* corpus = CommonMain(options);
+  CHECK_GT(corpus->snaps.size, 0);
 
   EnterSeccompStrictMode(options.enable_tracer);
 
   std::mt19937_64 gen(options.seed);  // 64-bit Mersenne Twister engine
   VLOG_INFO(1, "Seed = ", IntStr(options.seed));
-
   size_t snap_execution_count = 0;
   while (snap_execution_count < options.num_iterations) {
     // Generate Snap batch
