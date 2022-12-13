@@ -45,7 +45,13 @@ namespace silifuzz {
 
 namespace {
 std::string GetNOP() {
-  return std::string("\x90");  // x86 NOP.
+#if defined(__x86_64__)
+  return std::string("\x90");
+#elif defined(__aarch64__)
+  return std::string("\x1f\x20\x3\xd5");
+#else
+#error "Please define NOP for this arch"
+#endif
 }
 
 absl::StatusOr<std::string> CreateTempBlobFile(

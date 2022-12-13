@@ -77,7 +77,7 @@ void FixToolWorker(FixToolWorkerArgs& args) {
       count_update = 0;
     }
 
-    absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot_X86_64(blob);
+    absl::StatusOr<Snapshot> snapshot = InstructionsToSnapshot<Host>(blob);
     if (!snapshot.ok()) {
       args.counters.Increment(
           "silifuzz-ERROR-FixToolWorker:instructions-to-snapshot-failed");

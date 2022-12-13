@@ -104,12 +104,7 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters) {
   return true;
 }
 
-bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
-  // TODO(ncbray): port to AArch64
-  GRegSet<X86_64> gregs;
-  FPRegSet<X86_64> fpregs;
-  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs, &fpregs));
-
+bool EditInitialRegisters(GRegSet<X86_64>& gregs, FPRegSet<X86_64>& fpregs) {
   // Non-zero initialization of at least 1 XMM register inhibits init state
   // optimization on Arcadia. This is a workaround for erratum 1386 "XSAVES
   // Instruction May Fail to Save XMM Registers to the Provided State Save
@@ -129,6 +124,22 @@ bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
     changed = true;
   }
 
+  return changed;
+}
+
+bool EditInitialRegisters(GRegSet<AArch64>& gregs, FPRegSet<AArch64>& fpregs) {
+  // No editing needed, yet.
+  return false;
+}
+
+template <typename Arch>
+bool RewriteInitialStateImpl(Snapshot& snapshot, FixToolCounters* counters) {
+  GRegSet<Arch> gregs;
+  FPRegSet<Arch> fpregs;
+  CHECK_STATUS(ConvertRegsFromSnapshot(snapshot.registers(), &gregs, &fpregs));
+
+  bool changed = EditInitialRegisters(gregs, fpregs);
+
   if (changed) {
     Snapshot::RegisterState regs = ConvertRegsToSnapshot(gregs, fpregs);
     if (snapshot.can_set_registers(regs).ok()) {
@@ -139,6 +150,17 @@ bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
     counters->Increment("silifuzz-INFO-Rewrite-changed");
   }
   return changed;
+}
+
+bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
+  switch (snapshot.architecture()) {
+    case Snapshot::Architecture::kX86_64:
+      return RewriteInitialStateImpl<X86_64>(snapshot, counters);
+    case Snapshot::Architecture::kAArch64:
+      return RewriteInitialStateImpl<AArch64>(snapshot, counters);
+    default:
+      LOG_FATAL("Unexpected architecture");
+  }
 }
 
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
