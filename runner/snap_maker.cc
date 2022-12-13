@@ -63,12 +63,21 @@ absl::StatusOr<Endpoint> RepairEndPoint(const Endpoint& actual_endpoint,
   if (stop_reason == MakerStopReason::kEndpoint) {
     return actual_endpoint;
   }
+  // On x86_64 we'll accept instruction sequences that contain INT3 or jump past
+  // the end of the instruction sequence into the instructions that pad the
+  // executable page. This is mostly due to historical snap corpuses - the
+  // generated instruction sequences depend on this behavior. Modern proxies
+  // should signal the fuzzer that the instruction sequence is bad in these
+  // cases and this repair should not be needed.
+  // Don't do this on aarch64 since there is no need for back compat.
+#if defined(__x86_64__)
   if (stop_reason == MakerStopReason::kSigTrap) {
     snapshot_types::Address sig_addr =
         actual_endpoint.sig_instruction_address();
     VLOG_INFO(1, "Fixing ", EnumStr(stop_reason), " at ", HexStr(sig_addr));
     return Endpoint(sig_addr);
   }
+#endif
   std::string msg =
       absl::StrCat(EnumStr(stop_reason), " isn't Snap-compatible.");
   if (actual_endpoint.type() == Endpoint::kSignal) {

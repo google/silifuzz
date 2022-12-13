@@ -49,20 +49,29 @@ std::string GetTestInstructions(TestSnapshot test) {
 
 #define EXPECT_FILTER_REJECT(insn) EXPECT_FALSE(FilterToolMain("Test", insn))
 
+constexpr bool WillRepairTraps() {
+#if defined(__x86_64__)
+  // x86_64 tries to repair instruction sequences that jump into padding bytes.
+  return true;
+#else
+  return false;
+#endif
+}
+
 TEST(FuzzFilterTool, Nop) {
   EXPECT_FILTER_ACCEPT(GetTestInstructions(TestSnapshot::kEndsAsExpected));
 }
 
 TEST(FuzzFilterTool, Padding) {
-#if defined(__x86_64__)
-  // x86_64 tries to repair instruction sequences that jump into padding bytes.
-  const bool kExpected = true;
-#else
-  const bool kExpected = false;
-#endif
   EXPECT_EQ(FilterToolMain(
                 "Test", GetTestInstructions(TestSnapshot::kEndsUnexpectedly)),
-            kExpected);
+            WillRepairTraps());
+}
+
+TEST(FuzzFilterTool, Breakpoint) {
+  EXPECT_EQ(
+      FilterToolMain("Test", GetTestInstructions(TestSnapshot::kBreakpoint)),
+      WillRepairTraps());
 }
 
 TEST(FuzzFilterTool, Syscall) {
