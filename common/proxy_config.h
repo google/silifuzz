@@ -49,18 +49,18 @@ struct FuzzingConfig_X86_64 {
 constexpr FuzzingConfig_X86_64 DEFAULT_X86_64_FUZZING_CONFIG = {
     .code_range =
         {
-            .start_address = 0x30000000,
-            .num_bytes = 0x80000000,  // 2 GB
+            .start_address = 0x3000'0000,
+            .num_bytes = 0x8000'0000,  // 2 GB
         },
     .data1_range =
         {
-            .start_address = 0x10000,
-            .num_bytes = 0x20000000,  // 512 MB
+            .start_address = 0x1'0000,
+            .num_bytes = 0x2000'0000,  // 512 MB
         },
     .data2_range =
         {
-            .start_address = 0x1000010000,
-            .num_bytes = 0x20000000,  // 512 MB
+            .start_address = 0x10'0001'0000,
+            .num_bytes = 0x2000'0000,  // 512 MB
         },
 };
 
@@ -85,24 +85,24 @@ struct FuzzingConfig_AArch64 {
 constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
     .code_range =
         {
-            .start_address = 0x30000000,
-            .num_bytes = 0x80000000,  // 2 GB
+            .start_address = 0x3000'0000,
+            .num_bytes = 0x8000'0000,  // 2 GB
         },
     .stack_range =
         {
-            .start_address = 0x2000000,
+            .start_address = 0x200'0000,
             .num_bytes = 0x1000,
         },
 
     .data1_range =
         {
-            .start_address = 0x700000000,
-            .num_bytes = 0x400000,  // 4 MB
+            .start_address = 0x7'0000'0000,
+            .num_bytes = 0x40'0000,  // 4 MB
         },
     .data2_range =
         {
-            .start_address = 0x100700000000,
-            .num_bytes = 0x400000,  // 4 MB
+            .start_address = 0x1007'0000'0000,
+            .num_bytes = 0x40'0000,  // 4 MB
         },
 };
 
@@ -110,24 +110,24 @@ constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
 constexpr FuzzingConfig_AArch64 LIMITED_MEMORY_AARCH64_FUZZING_CONFIG = {
     .code_range =
         {
-            .start_address = 0x30000000,
-            .num_bytes = 0x80000000,  // 2 GB
+            .start_address = 0x3000'0000,
+            .num_bytes = 0x8000'0000,  // 2 GB
         },
     .stack_range =
         {
-            .start_address = 0x2000000,
+            .start_address = 0x200'0000,
             .num_bytes = 0x1000,
         },
 
     .data1_range =
         {
-            .start_address = 0x700000000,
-            .num_bytes = 0x8000,  // 16 KB
+            .start_address = 0x7'0000'0000,
+            .num_bytes = 0x4000,  // 16 KB
         },
     .data2_range =
         {
-            .start_address = 0x100700000000,
-            .num_bytes = 0x8000,  // 16 KB
+            .start_address = 0x1007'0000'0000,
+            .num_bytes = 0x4000,  // 16 KB
         },
 };
 
