@@ -133,6 +133,12 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   return snapshot;
 }
 
+template <>
+absl::StatusOr<Snapshot> InstructionsToSnapshot<X86_64>(
+    absl::string_view code) {
+  return InstructionsToSnapshot_X86_64(code);
+}
+
 absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
     absl::string_view code, const FuzzingConfig_AArch64& config) {
   if (code.size() % 4 != 0) {
@@ -204,6 +210,12 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
       Snapshot::EndState(Snapshot::Endpoint(code_start_addr + code.length())));
 
   return snapshot;
+}
+
+template <>
+absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
+    absl::string_view code) {
+  return InstructionsToSnapshot_AArch64(code);
 }
 
 std::string InstructionsToSnapshotId(absl::string_view code) {

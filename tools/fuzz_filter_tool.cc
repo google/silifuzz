@@ -18,11 +18,12 @@
 // The bytes are converted into Snapshot using InstructionsToSnapshot() which
 // is the same as what our fuzzers and the fix pipeline use.
 
+#include "./tools/fuzz_filter_tool.h"
+
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/flags/parse.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -34,28 +35,19 @@
 #include "./runner/snap_maker.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/path_util.h"
-#include "./util/proto_util.h"
-#include "./util/tool_util.h"
 
 namespace silifuzz {
-namespace {
 
-bool FilterToolMain(absl::string_view raw_insns_file,
-                    absl::string_view output_snapshot_file = "") {
-  auto bytes = ReadFile(raw_insns_file);
-  if (!bytes.ok()) {
-    LOG_ERROR(bytes.status().message());
-    return false;
-  }
+bool FilterToolMain(absl::string_view id, absl::string_view raw_insns_bytes,
+                    absl::string_view output_snapshot_file) {
   absl::StatusOr<Snapshot> input_snapshot_or =
-      InstructionsToSnapshot_X86_64(*bytes);
+      InstructionsToSnapshot<Host>(raw_insns_bytes);
   if (!input_snapshot_or.ok()) {
     LOG_ERROR(input_snapshot_or.status().message());
     return false;
   }
-  input_snapshot_or->set_id(std::string(Basename(raw_insns_file)));
   Snapshot input_snapshot = std::move(input_snapshot_or).value();
+  input_snapshot.set_id(std::string(id));
   auto WriteOutputFile = [&output_snapshot_file](
                              absl::Status s, const Snapshot& output_snapshot) {
     if (!s.ok()) {
@@ -101,19 +93,4 @@ bool FilterToolMain(absl::string_view raw_insns_file,
   return verify_status.ok();
 }
 
-}  // namespace
 }  // namespace silifuzz
-
-int main(int argc, char** argv) {
-  std::vector<char*> non_flag_args = absl::ParseCommandLine(argc, argv);
-  if (non_flag_args.size() < 2) {
-    return 1;
-  }
-  absl::string_view output_snapshot_file = "";
-  if (non_flag_args.size() > 2) {
-    output_snapshot_file = non_flag_args[2];
-  }
-  bool success =
-      silifuzz::FilterToolMain(non_flag_args[1], output_snapshot_file);
-  return silifuzz::ToExitCode(success);
-}

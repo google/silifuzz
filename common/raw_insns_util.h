@@ -46,6 +46,10 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
     absl::string_view code,
     const FuzzingConfig_AArch64& config = DEFAULT_AARCH64_FUZZING_CONFIG);
 
+// Entry point for arch-generic tools.
+template <typename Arch>
+absl::StatusOr<Snapshot> InstructionsToSnapshot(absl::string_view code);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_

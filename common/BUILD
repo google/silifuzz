@@ -293,10 +293,12 @@ cc_library(
     testonly = True,
     srcs = [
         "snapshot_test_config.cc",
-        "snapshot_test_config.h",
         "snapshot_test_util.cc",
     ],
-    hdrs = ["snapshot_test_util.h"],
+    hdrs = [
+        "snapshot_test_config.h",
+        "snapshot_test_util.h",
+    ],
     deps = [
         ":memory_state",
         ":snapshot",

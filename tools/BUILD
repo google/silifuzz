@@ -62,9 +62,10 @@ cc_binary(
     ],
 )
 
-cc_binary(
-    name = "fuzz_filter_tool",
+cc_library(
+    name = "fuzz_filter_tool_lib",
     srcs = ["fuzz_filter_tool.cc"],
+    hdrs = ["fuzz_filter_tool.h"],
     deps = [
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
@@ -74,21 +75,36 @@ cc_binary(
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
-        "@silifuzz//util:path_util",
-        "@silifuzz//util:proto_util",
-        "@silifuzz//util:tool_util",
-        "@centipede//:runner_fork_server",  # Note: external dependency.
-        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
 
-sh_test(
+cc_binary(
+    name = "fuzz_filter_tool",
+    srcs = ["fuzz_filter_tool_main.cc"],
+    deps = [
+        ":fuzz_filter_tool_lib",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:path_util",
+        "@silifuzz//util:proto_util",
+        "@silifuzz//util:tool_util",
+        "@centipede//:runner_fork_server",  # Note: external dependency.
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
     name = "fuzz_filter_tool_test",
-    srcs = ["fuzz_filter_tool_test.sh"],
-    data = [":fuzz_filter_tool"],
+    size = "medium",
+    srcs = ["fuzz_filter_tool_test.cc"],
+    deps = [
+        ":fuzz_filter_tool_lib",
+        "@silifuzz//common:snapshot_test_util",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_binary(
