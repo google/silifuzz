@@ -150,9 +150,11 @@ class SnapshotPrinter : private SnapshotTypeNames {
   // of the registers that have the same value in it. `comment` provides an
   // optional note about how registers are printed.
   // When `log_diff` is true logs both the actual and the expected values.
-  void PrintGRegs(const GRegSet<Host>& gregs, const GRegSet<Host>* base,
+  template <typename Arch>
+  void PrintGRegs(const GRegSet<Arch>& gregs, const GRegSet<Arch>* base,
                   absl::string_view comment, bool log_diff);
-  void PrintFPRegs(const FPRegSet<Host>& fpregs, const FPRegSet<Host>* base,
+  template <typename Arch>
+  void PrintFPRegs(const FPRegSet<Arch>& fpregs, const FPRegSet<Arch>* base,
                    absl::string_view comment, bool log_diff);
 
   // Prints register_state from `snapshot` relative to base_register_state,
@@ -162,6 +164,11 @@ class SnapshotPrinter : private SnapshotTypeNames {
                           const RegisterState& register_state,
                           const RegisterState* base_register_state = nullptr,
                           bool log_diff = false);
+  template <typename Arch>
+  void PrintRegisterStateImpl(
+      const RegisterState& register_state,
+      const RegisterState* base_register_state = nullptr,
+      bool log_diff = false);
 
   // Prints snapshot.registers().
   void PrintRegisters(const Snapshot& snapshot);

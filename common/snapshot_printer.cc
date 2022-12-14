@@ -417,8 +417,9 @@ void SnapshotPrinter::RegsLogger(void* this_printer, const char* str1,
   static_cast<SnapshotPrinter*>(this_printer)->Line(str1, str2, str3, str4);
 }
 
-void SnapshotPrinter::PrintGRegs(const GRegSet<Host>& gregs,
-                                 const GRegSet<Host>* base,
+template <typename Arch>
+void SnapshotPrinter::PrintGRegs(const GRegSet<Arch>& gregs,
+                                 const GRegSet<Arch>* base,
                                  absl::string_view comment, bool log_diff) {
   Line("gregs", comment, ":");
   Indent();
@@ -426,8 +427,9 @@ void SnapshotPrinter::PrintGRegs(const GRegSet<Host>& gregs,
   Unindent();
 }
 
-void SnapshotPrinter::PrintFPRegs(const FPRegSet<Host>& fpregs,
-                                  const FPRegSet<Host>* base,
+template <typename Arch>
+void SnapshotPrinter::PrintFPRegs(const FPRegSet<Arch>& fpregs,
+                                  const FPRegSet<Arch>* base,
                                   absl::string_view comment, bool log_diff) {
   if (options_.fp_regs_mode == kNoFPRegs) return;
   Line("fpregs", options_.fp_regs_mode == kCtrlFPRegs ? " (control only)" : "",
@@ -438,53 +440,58 @@ void SnapshotPrinter::PrintFPRegs(const FPRegSet<Host>& fpregs,
   Unindent();
 }
 
+template <typename Arch>
+void SnapshotPrinter::PrintRegisterStateImpl(
+    const RegisterState& register_state,
+    const RegisterState* base_register_state, bool log_diff) {
+  GRegSet<Arch> gregs, gregs_base;
+  FPRegSet<Arch> fpregs, fpregs_base;
+  CHECK_STATUS(ConvertRegsFromSnapshot(register_state, &gregs, &fpregs));
+  if (base_register_state != nullptr) {
+    CHECK_STATUS(ConvertRegsFromSnapshot(*base_register_state, &gregs_base,
+                                         &fpregs_base));
+  } else {
+    memset(&gregs_base, 0, sizeof(gregs_base));
+    memset(&fpregs_base, 0, sizeof(fpregs_base));
+  }
+  bool use_base = base_register_state == nullptr
+                      ? options_.regs_mode == kNonZeroRegs
+                      : options_.end_state_regs_mode == kChangedEndRegs;
+  auto comment =
+      base_register_state == nullptr
+          ? (options_.regs_mode == kNonZeroRegs ? " (non-0 only)" : "")
+          : (options_.end_state_regs_mode == kChangedEndRegs
+                 ? " (modified only)"
+                 : "");
+  PrintGRegs(gregs, use_base ? &gregs_base : nullptr, comment, log_diff);
+  PrintFPRegs(fpregs, use_base ? &fpregs_base : nullptr, comment, log_diff);
+  if (VLOG_IS_ON(1)) {
+    // These can be copy-pasted into a textformat proto.Snapshot:
+    Line("raw gregs:");
+    Indent();
+    Line("\"", absl::CEscape(register_state.gregs()), "\"");
+    Unindent();
+    Line("raw fpregs:");
+    Indent();
+    Line("\"", absl::CEscape(register_state.fpregs()), "\"");
+    Unindent();
+  }
+}
+
 void SnapshotPrinter::PrintRegisterState(
     const Snapshot& snapshot, const RegisterState& register_state,
     const RegisterState* base_register_state, bool log_diff) {
-  if (snapshot.architecture() == Snapshot::CurrentArchitecture()) {
-    GRegSet<Host> gregs, gregs_base;
-    FPRegSet<Host> fpregs, fpregs_base;
-    CHECK_STATUS(ConvertRegsFromSnapshot(register_state, &gregs, &fpregs));
-    if (base_register_state != nullptr) {
-      CHECK_STATUS(ConvertRegsFromSnapshot(*base_register_state, &gregs_base,
-                                           &fpregs_base));
-    } else {
-      memset(&gregs_base, 0, sizeof(gregs_base));
-      memset(&fpregs_base, 0, sizeof(fpregs_base));
-    }
-    bool use_base = base_register_state == nullptr
-                        ? options_.regs_mode == kNonZeroRegs
-                        : options_.end_state_regs_mode == kChangedEndRegs;
-    auto comment =
-        base_register_state == nullptr
-            ? (options_.regs_mode == kNonZeroRegs ? " (non-0 only)" : "")
-            : (options_.end_state_regs_mode == kChangedEndRegs
-                   ? " (modified only)"
-                   : "");
-    PrintGRegs(gregs, use_base ? &gregs_base : nullptr, comment, log_diff);
-    PrintFPRegs(fpregs, use_base ? &fpregs_base : nullptr, comment, log_diff);
-    if (VLOG_IS_ON(1)) {
-      // These can be copy-pasted into a textformat proto.Snapshot:
-      Line("raw gregs:");
-      Indent();
-      Line("\"", absl::CEscape(register_state.gregs()), "\"");
-      Unindent();
-      Line("raw fpregs:");
-      Indent();
-      Line("\"", absl::CEscape(register_state.fpregs()), "\"");
-      Unindent();
-    }
-  } else {
-    Line("gregs (", register_state.gregs().size(), " bytes):");
-    Indent();
-    PrintByteData(register_state.gregs());
-    Unindent();
-    if (options_.fp_regs_mode != kNoFPRegs) {
-      Line("fpregs (", register_state.fpregs().size(), " bytes):");
-      Indent();
-      PrintByteData(register_state.fpregs());
-      Unindent();
-    }
+  switch (snapshot.architecture()) {
+    case Snapshot::Architecture::kX86_64:
+      PrintRegisterStateImpl<X86_64>(register_state, base_register_state,
+                                     log_diff);
+      break;
+    case Snapshot::Architecture::kAArch64:
+      PrintRegisterStateImpl<AArch64>(register_state, base_register_state,
+                                      log_diff);
+      break;
+    default:
+      LOG_FATAL("Unexpected architecture");
   }
 }
 
@@ -707,6 +714,8 @@ void SnapshotPrinter::PrintEndState(const Snapshot& snapshot,
       }
     }
     Unindent();
+  } else {
+    Line("Platforms: (empty)");
   }
   if (!end_state.registers().IsUnset()) {
     if (base_end_state) {
