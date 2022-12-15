@@ -181,7 +181,7 @@ absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path) {
     // Assume this is an uncompressed corpus.
     int fd = open(path.c_str(), O_RDONLY);
     if (fd < 0) {
-      return absl::ErrnoToStatus(errno, "open()");
+      return absl::ErrnoToStatus(errno, absl::StrCat("open(): ", path));
     }
     absl::Cleanup file_closer = absl::MakeCleanup([fd] { close(fd); });
     ASSIGN_OR_RETURN_IF_NOT_OK(contents, ReadCord(fd));

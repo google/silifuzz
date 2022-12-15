@@ -17,7 +17,7 @@
 //
 // Typical usage:
 //   ./silifuzz_orchestrator -max_cpus $(nproc) --runner=<runner path> \
-//        ./corpus1 [./corpus2 ...] [-- --runner_flag=value ...]
+//        --shard_list_file=<file> [-- --runner_flag=value ...]
 //
 // The runner is required to support the following flags:
 //   * --num_iterations=N: run this many snapshots.
@@ -44,6 +44,8 @@
 
 #include <csignal>
 #include <cstdlib>
+#include <filesystem>  // NOLINT
+#include <fstream>
 #include <random>
 #include <string>
 #include <thread>  // NOLINT
@@ -56,6 +58,7 @@
 #include "absl/log/initialize.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/ascii.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -80,6 +83,9 @@ ABSL_FLAG(absl::Duration, worker_thread_delay, absl::ZeroDuration(),
 ABSL_FLAG(std::string, runner, "",
           "A reading runner binary. The orchestrator executes this with one of "
           "the corpora randomly.  This must not be empty.");
+ABSL_FLAG(std::string, shard_list_file, "",
+          "A file containing a list of input corpus shards. This must not be "
+          "empty.");
 ABSL_FLAG(
     int, binary_log_fd, -1,
     "If non-negative, a writable file descriptor for streaming out a binary "
@@ -264,44 +270,61 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   return EXIT_SUCCESS;
 }
 
+std::vector<std::string> LoadShardFilenames(
+    const std::filesystem::path &shard_list_file) {
+  std::ifstream ifs;
+  ifs.open(shard_list_file);
+  VLOG_INFO(0, "Loading shards from ", shard_list_file.c_str());
+  if (!ifs.good()) {
+    LOG_ERROR("Error opening ", shard_list_file.c_str());
+    return {};
+  }
+  std::vector<std::string> shards;
+  std::string line;
+  while (std::getline(ifs, line)) {
+    absl::StripAsciiWhitespace(&line);
+    if (!line.empty() && line[0] != '#') {
+      shards.emplace_back(std::move(line));
+    }
+  }
+  if (ifs.bad()) {
+    LOG_ERROR("Error reading ", shard_list_file.c_str());
+    return {};
+  }
+  ifs.close();
+  return shards;
+}
+
 }  // namespace
 }  // namespace silifuzz
 
 int main(int argc, char **argv) {
-  // absl::ParseCommandLine does parse flags past '--' but does not provide
-  // any means to distinguish if a particular positional arg came after the --.
-  int adjusted_argc = argc;
-  bool collecting_runner_args = false;
-  std::vector<std::string> runner_extra_argv;
-  for (int i = 0; i < argc; ++i) {
-    std::string arg(argv[i]);
-    if (arg == "--") {
-      adjusted_argc = i;
-      collecting_runner_args = true;
-      continue;
-    }
-    if (collecting_runner_args) {
-      runner_extra_argv.emplace_back(arg);
-    }
-  }
-  std::vector<char *> remaining_args =
-      absl::ParseCommandLine(adjusted_argc, argv);
+  std::vector<char *> remaining_args = absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
-  // Collect arguments.
-  std::vector<std::string> corpora;
-  for (size_t i = 1; i < remaining_args.size(); ++i) {
-    corpora.push_back(remaining_args[i]);
-  }
-  if (corpora.empty()) {
-    std::cerr << "At least one corpus file must be preset" << std::endl;
-    return EXIT_FAILURE;
-  }
-
   std::string runner = absl::GetFlag(FLAGS_runner);
   if (runner.empty()) {
     std::cerr << "--runner must be set" << std::endl;
     return EXIT_FAILURE;
   }
+  // Load the corpus shard list.
+  std::string shard_list_file = absl::GetFlag(FLAGS_shard_list_file);
+  if (shard_list_file.empty()) {
+    std::cerr << "--shard_list_file must be set" << std::endl;
+    return EXIT_FAILURE;
+  }
+  std::vector<std::string> shards =
+      silifuzz::LoadShardFilenames(shard_list_file);
+  if (shards.empty()) {
+    std::cerr
+        << "At least one corpus file must be listed in the shard_file_list"
+        << std::endl;
+    return EXIT_FAILURE;
+  }
+  // Collect runner arguments.
+  std::vector<std::string> runner_extra_argv;
+  for (size_t i = 1; i < remaining_args.size(); ++i) {
+    runner_extra_argv.push_back(remaining_args[i]);
+  }
 
-  return silifuzz::OrchestratorMain(corpora, runner, runner_extra_argv);
+  return silifuzz::OrchestratorMain(shards, runner, runner_extra_argv);
 }

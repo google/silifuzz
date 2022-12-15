@@ -24,19 +24,19 @@ _RUNNER_PATH = get_data_dependency('silifuzz/orchestrator/test_runner')
 
 class OrchestratorTest(absltest.TestCase):
 
-  _FAKE_CORPUS = []
+  _FAKE_CORPUS: list[str] = []
 
   @classmethod
   def setUpClass(cls):
     super(OrchestratorTest, cls).setUpClass()
-    temp_dir = absltest.get_default_test_tmpdir()
     corpus_contents = ['One', 'Two']
     for i, contents in enumerate(corpus_contents):
       # Compress one corpus only. The orchestrator can load
       # both corpora with and without compression.
       is_compressed = i > 0
       suffix = '.xz' if is_compressed else ''
-      path = os.path.join(temp_dir, f'fake_corpus_{contents}{suffix}')
+      path = os.path.join(absltest.get_default_test_tmpdir(),
+                          f'fake_corpus_{contents}{suffix}')
       with open(path, 'wb') as f:
         encoded = f'Corpus {contents}'.encode('ascii')
         if is_compressed:
@@ -50,17 +50,17 @@ class OrchestratorTest(absltest.TestCase):
       test_dummy_commands: list[str],
       duration_sec: int,
       max_cpus: int,
-      corpus_files: list[str],
+      shard_list_file: str,
       extra_args: list[str],
   ) -> dict[str, object]:
     args = [
         _ORCHESTRATOR_PATH,
-        '--runner',
-        _RUNNER_PATH,
+        f'--runner={_RUNNER_PATH}',
+        f'--shard_list_file={shard_list_file}',
         '--stderrthreshold=0',
         f'--duration={duration_sec}s',
         f'--max_cpus={max_cpus}',
-    ] + (extra_args or []) + corpus_files + ['--'] + (
+    ] + (extra_args or []) + ['--'] + (
         test_dummy_commands or [])
     absl.logging.info(' '.join(args))
     pass_fds = []
@@ -98,10 +98,11 @@ class OrchestratorTest(absltest.TestCase):
     corpus_files = [self._FAKE_CORPUS[0]]
     if multicorpus:
       corpus_files.append(self._FAKE_CORPUS[1])
+    shard_list_file = self.create_tempfile(content='\n'.join(corpus_files))
     (err_log, returncode) = self._run(
         duration_sec=duration_sec,
         max_cpus=max_cpus,
-        corpus_files=corpus_files,
+        shard_list_file=shard_list_file.full_path,
         extra_args=extra_args,
         test_dummy_commands=test_dummy_commands)
     return (err_log, returncode)
@@ -218,17 +219,18 @@ class OrchestratorTest(absltest.TestCase):
     ])
 
   def test_sigint(self):
+    shard_list_file = self.create_tempfile(content=self._FAKE_CORPUS[0])
     popen_args = self._popen_args(
         test_dummy_commands=['sleep100'],
         max_cpus=1,
-        corpus_files=[self._FAKE_CORPUS[0]],
+        shard_list_file=shard_list_file.full_path,
         duration_sec=3600,
         extra_args=['--sequential_mode'])
     # start_new_session ensures that the orchestrator process is in its own
     # process group so that we can killpg() it later.
     with subprocess.Popen(start_new_session=True, **popen_args) as proc:
       time.sleep(5)
-      # Send SIGINT to the orchestator's process group. This similates ^C
+      # Send SIGINT to the orchestator's process group. This simulates ^C
       # behavior.
       os.killpg(proc.pid, 2)
       # NOTE: the communicate() interface used in all other tests takes care of
