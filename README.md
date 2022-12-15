@@ -176,6 +176,12 @@ NOTE: Please refer to
 [Centipede](https://github.com/google/centipede/blob/main/README.md#run-centipede-locally-run-step)
 documentation on how to efficiently run the fuzzing engine.
 
+### Using pre-generated corpus
+
+You can download Centipede corpus files that have been generated using the instructions
+above [here](https://storage.googleapis.com/silifuzz/corpus-unicorn-20221212.tar.bz2).
+The data can be processed by `simple_fix_tool` or used to seed future fuzzing runs.
+
 ## Tools
 
 ### silifuzz_platform_id
