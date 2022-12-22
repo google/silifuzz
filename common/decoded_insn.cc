@@ -116,11 +116,19 @@ bool DecodedInsn::is_deterministic() const {
       // These insns cause spurious {REGISTER,MEMORY}_MISMATCH failures. See
       // b/231974502
       return false;
+    // Segment descriptor related instructions.
+    // We cannot control contents of the segment descriptor tables.
+    // So these produce non-deterministic results.
+    case XED_ICLASS_ARPL:
+    case XED_ICLASS_LAR:
+    case XED_ICLASS_LSL:
     case XED_ICLASS_SIDT:
     case XED_ICLASS_SGDT:
     case XED_ICLASS_SLDT:
     case XED_ICLASS_SMSW:
     case XED_ICLASS_STR:
+    case XED_ICLASS_VERR:
+    case XED_ICLASS_VERW:
       // Non-deterministic but also controlled by CR4.UMIP disables these on
       // newer platforms.
       return false;
