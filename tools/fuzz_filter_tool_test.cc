@@ -131,7 +131,7 @@ TEST(FuzzFilterTool, INC_LOCK) {
 TEST(FuzzFilterTool, ReadTPIDR) {
   // We'll want to filter our a number of system register accesses in the
   // future, but this one should stay valid.
-  // mrs     x0, tpidr_el0
+  // mrs    x0, tpidr_el0
   EXPECT_FILTER_ACCEPT(FromInts({0xd53bd040}));
 }
 
@@ -139,6 +139,30 @@ TEST(FuzzFilterTool, ReadCNTVCT) {
   // This should cause non-determinism.
   // mrs     x1, cntvct_el0
   EXPECT_FILTER_REJECT(FromInts({0xd53be041}));
+}
+
+TEST(FuzzFilterTool, LDXRB) {
+  // The filter for store exclusive should not hit load exclusive.
+  // ldxrb     w16, [x6]
+  EXPECT_FILTER_ACCEPT(FromInts({0x085f7cd0}));
+}
+
+TEST(FuzzFilterTool, STR) {
+  // The filter for store exclusive should not hit normal stores.
+  // str     w16, [x6]
+  EXPECT_FILTER_ACCEPT(FromInts({0xb90000d0}));
+}
+
+TEST(FuzzFilterTool, STXRB) {
+  // Store exclusive is effectively non-deterministic.
+  // stxrb     w4, w16, [x6]
+  EXPECT_FILTER_REJECT(FromInts({0x080400d0}));
+}
+
+TEST(FuzzFilterTool, STXP) {
+  // Store exclusive is effectively non-deterministic.
+  // stxp     w11, w13, w21, [x6]
+  EXPECT_FILTER_REJECT(FromInts({0x882b54cd}));
 }
 
 #endif

@@ -28,6 +28,7 @@
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
+#include "./common/static_insn_filter.h"
 #include "./util/arch_mem.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -62,6 +63,11 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
 
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code, const FuzzingConfig_X86_64& config) {
+  if (!StaticInstructionFilter<X86_64>(code)) {
+    return absl::InvalidArgumentError(
+        "code snippet contains problematic instructions.");
+  }
+
   Snapshot snapshot(Snapshot::Architecture::kX86_64);
   const uint64_t page_size = snapshot.page_size();
 
@@ -145,6 +151,11 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
     return absl::InvalidArgumentError(
         "code snippet size must be a multiple of 4 to contain complete aarch64 "
         "instructions.");
+  }
+
+  if (!StaticInstructionFilter<AArch64>(code)) {
+    return absl::InvalidArgumentError(
+        "code snippet contains problematic instructions.");
   }
 
   Snapshot snapshot(Snapshot::Architecture::kAArch64);

@@ -336,6 +336,7 @@ cc_library(
         ":proxy_config",
         ":snapshot",
         ":snapshot_util",
+        ":static_insn_filter",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util/ucontext:ucontext_types",
         "@cityhash",
@@ -354,6 +355,27 @@ cc_test(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "static_insn_filter",
+    srcs = ["static_insn_filter.cc"],
+    hdrs = ["static_insn_filter.h"],
+    deps = [
+        "@silifuzz//util:arch",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "static_insn_filter_test",
+    size = "small",
+    srcs = ["static_insn_filter_test.cc"],
+    deps = [
+        ":static_insn_filter",
+        "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
 )
