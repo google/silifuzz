@@ -21,16 +21,16 @@
 namespace silifuzz {
 
 template <>
-ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) + 1] =
-    {
-        "UNDEFINED-PLATFORM", "intel-skylake",
-        "intel-haswell",      "intel-broadwell",
-        "intel-ivybridge",    "intel-cascadelake",
-        "amd-rome",           "intel-icelake",
-        "amd-milan",          "intel-sapphirerapids",
-        "amd-genoa",          "intel-coffeelake",
-        "intel-alderlake",    "arm-neoverse-n1",
-        "ANY-PLATFORM",       "NON-EXISTENT-PLATFORM",
+ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
+                                                    1] = {
+    "UNDEFINED-PLATFORM", "intel-skylake",
+    "intel-haswell",      "intel-broadwell",
+    "intel-ivybridge",    "intel-cascadelake",
+    "amd-rome",           "intel-icelake",
+    "amd-milan",          "intel-sapphirerapids",
+    "amd-genoa",          "intel-coffeelake",
+    "intel-alderlake",    "arm-neoverse-n1",
+    "ANY-PLATFORM",       "NON-EXISTENT-PLATFORM",
 };
 
 DEFINE_ENUM_FLAG(PlatformId);
