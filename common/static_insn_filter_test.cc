@@ -34,9 +34,13 @@ std::string FromInts(std::vector<uint32_t>&& data) {
 
 TEST(StaticInsnFilter, ReadTPIDR) {
   // We'll want to filter our a number of system register accesses in the
-  // future, but this one should stay valid.
+  // future, but these should stay valid.
+  // QEMU may accept malformed versions of these instructions that can be fixed
+  // by a bitwise AND with ~0x00c00000
+
   // mrs    x0, tpidr_el0
   EXPECT_AARCH64_FILTER_ACCEPT({0xd53bd040});
+  EXPECT_AARCH64_FILTER_REJECT({0xd5bbd040});
 }
 
 TEST(StaticInsnFilter, LDXRB) {
@@ -61,6 +65,38 @@ TEST(StaticInsnFilter, STXP) {
   // Store exclusive is effectively non-deterministic.
   // stxp     w11, w13, w21, [x6]
   EXPECT_AARCH64_FILTER_REJECT({0x882b54cd});
+}
+
+TEST(StaticInsnFilter, CompareAndSwap) {
+  // QEMU may accept malformed version of these instruction that can be fixed by
+  // a bitwise OR with 0x00007c00
+
+  // casl     x0, x24, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xc8a0fcd8});
+  EXPECT_AARCH64_FILTER_REJECT({0xc8a0ecd8});
+  EXPECT_AARCH64_FILTER_REJECT({0xc8a0f8d8});
+}
+
+TEST(StaticInsnFilter, AddSubtractExtendedRegister) {
+  // QEMU may accept malformed version of these instruction that can be fixed by
+  // a bitwise AND with ~0x00c00000
+
+  // adds     w0, w0, w2, uxtb
+  EXPECT_AARCH64_FILTER_ACCEPT({0x2b220000});
+  EXPECT_AARCH64_FILTER_REJECT({0x2be20000});
+
+  // cmp      x3, w21, uxtb
+  EXPECT_AARCH64_FILTER_ACCEPT({0xeb35007f});
+  EXPECT_AARCH64_FILTER_REJECT({0xebb5007f});
+}
+
+TEST(StaticInsnFilter, FloatingPointDataProcessing) {
+  // QEMU may accept malformed version of these instruction that can be fixed by
+  // a bitwise AND with ~0xa0000000
+
+  // fnmadd    s4, s20, s8, s22
+  EXPECT_AARCH64_FILTER_ACCEPT({0x1f285a84});
+  EXPECT_AARCH64_FILTER_REJECT({0x3f285a84});
 }
 
 }  // namespace

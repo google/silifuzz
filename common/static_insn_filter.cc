@@ -31,26 +31,117 @@ bool StaticInstructionFilter<X86_64>(absl::string_view code) {
 namespace {
 // See the ARM ARM (Architechture Reference Manual) for the details of
 // instruction encoding:  https://developer.arm.com/documentation/ddi0487/latest
+// Start here: C4.1 A64 instruction set encoding
 
-// See: C4.1.66 Loads and Stores
-// Should cover STLXR, STLXRB, STLXRH, and STLXP but not LDAXR, STR, etc.
-// Bit 22 => 0, this is a store.
-// Bit 21 => X, cover both store register and store pair.
-constexpr uint32_t kStoreExclusiveMask =
-    0b0011'1111'1100'0000'0000'0000'0000'0000;
-constexpr uint32_t kStoreExclusiveBits =
-    0b0000'1000'0000'0000'0000'0000'0000'0000;
+struct InstructionBits {
+  uint32_t mask;
+  uint32_t bits;
 
-// Store exclusive can succeed or fail in a non-deterministic manner.
-// Its exact behavior can depend on a variety of factors, such as another
-// snapshot doing a load exclusive or store exclusive to the same address.
-// It may also depend on if the address is in the cache or not.
-constexpr bool IsStoreExclusive(uint32_t insn) {
-  return (insn & kStoreExclusiveMask) == kStoreExclusiveBits;
-}
+  bool matches(uint32_t insn) const { return (insn & mask) == bits; }
+};
 
-bool InstructionIsOK(uint32_t insn) {
-  if (IsStoreExclusive(insn)) return false;
+struct RequiredInstructionBits {
+  InstructionBits pattern;
+  InstructionBits expect;
+  bool violates_requirements(uint32_t insn) const {
+    return pattern.matches(insn) && !expect.matches(insn);
+  }
+};
+
+constexpr InstructionBits kBannedInstructions[] = {
+    // See: C4.1.66 Loads and Stores
+    // Should cover STLXR, STLXRB, STLXRH, and STLXP but not LDAXR, STR, etc.
+    // Bit 22 => 0, this is a store.
+    // Bit 21 => X, cover both store register and store pair.
+    // Store exclusive can succeed or fail in a non-deterministic manner.
+    // Its exact behavior can depend on a variety of factors, such as another
+    // snapshot doing a load exclusive or store exclusive to the same address.
+    // It may also depend on if the address is in the cache or not or if context
+    // is swapped out between executing the load and the store.
+    {
+        .mask = 0b0011'1111'1100'0000'0000'0000'0000'0000,
+        .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
+    },
+};
+
+constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
+    {
+        // See: C4.1.65 Branches, Exception Generating and System
+        // instructions
+        .pattern =
+            {
+                .mask = 0b1111'1111'0000'0000'0000'0000'0000'0000,
+                .bits = 0b1101'0101'0000'0000'0000'0000'0000'0000,
+            },
+        // The spec currently does not define any system instructions that have
+        // non-zero bits for 22 and 23. Some versions of QEMU do not check this.
+        .expect =
+            {
+                .mask = 0b0000'0000'1100'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // See: C4.1.66 Loads and Stores
+        // Should cover all compare and swap instructions.
+        .pattern =
+            {
+                .mask = 0b0011'1111'1010'0000'0000'0000'0000'0000,
+                .bits = 0b0000'1000'1010'0000'0000'0000'0000'0000,
+            },
+        // The spec declares Rt2 != 11111 (xzr) "unallocated". Some versions of
+        // QEMU do not check this.
+        .expect =
+            {
+                .mask = 0b0000'0000'0000'0000'0111'1100'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0111'1100'0000'0000,
+            },
+    },
+    {
+        // C4.1.68 Data Processing -- Register
+        // Add/subtract (extended register)
+        .pattern =
+            {
+                .mask = 0b0001'1111'0010'0000'0000'0000'0000'0000,
+                .bits = 0b0000'1011'0010'0000'0000'0000'0000'0000,
+            },
+        // The spec declares Opt (bits 23:22) != 00 "unallocated". Some versions
+        // of QEMU do not check this.
+        .expect =
+            {
+                .mask = 0b0000'0000'1100'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // C4.1.68 Data Processing -- Register
+        // Floating-point data-processing (3 source)
+        .pattern =
+            {
+                .mask = 0b0101'1111'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0001'1111'0000'0000'0000'0000'0000'0000,
+            },
+        // The spec declares M (bit 31) != 0 is "unallocated".
+        // The spec declares S (bit 29) != 0 is "unallocated".
+        .expect =
+            {
+                .mask = 0b1010'0000'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+};
+
+constexpr bool InstructionIsOK(uint32_t insn) {
+  for (const InstructionBits& bits : kBannedInstructions) {
+    if (bits.matches(insn)) {
+      return false;
+    }
+  }
+  for (const RequiredInstructionBits& bits : kRequiredInstructionBits) {
+    if (bits.violates_requirements(insn)) {
+      return false;
+    }
+  }
   return true;
 }
 
