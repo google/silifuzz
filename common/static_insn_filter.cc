@@ -37,13 +37,13 @@ struct InstructionBits {
   uint32_t mask;
   uint32_t bits;
 
-  bool matches(uint32_t insn) const { return (insn & mask) == bits; }
+  constexpr bool matches(uint32_t insn) const { return (insn & mask) == bits; }
 };
 
 struct RequiredInstructionBits {
   InstructionBits pattern;
   InstructionBits expect;
-  bool violates_requirements(uint32_t insn) const {
+  constexpr bool violates_requirements(uint32_t insn) const {
     return pattern.matches(insn) && !expect.matches(insn);
   }
 };
