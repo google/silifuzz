@@ -34,6 +34,10 @@
 
 namespace silifuzz {
 
+// TODO(ncbray): share with exit_sequence.h
+// This file is in silifuzz/snap/ and silifuzz/common/ should not depend on it.
+constexpr inline uint64_t kSnapExitAddress = 0xABCD0000;
+
 namespace {
 
 uint64_t HashToCodeAddress(uint64_t hash, uint64_t code_range_start_address,
@@ -87,6 +91,12 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
   const uint64_t code_start_addr =
       InstructionsToCodeAddress(code, config.code_range.start_address,
                                 config.code_range.num_bytes, page_size);
+
+  if (code_start_addr == kSnapExitAddress) {
+    return absl::InvalidArgumentError(
+        "derived code address collides with exit sequence address.");
+  }
+
   auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
       code_start_addr, page_size, MemoryPerms::XR());
   snapshot.add_memory_mapping(code_page_mapping);
@@ -172,6 +182,11 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
   const uint64_t code_start_addr =
       InstructionsToCodeAddress(code, config.code_range.start_address,
                                 config.code_range.num_bytes, page_size);
+
+  if (code_start_addr == kSnapExitAddress) {
+    return absl::InvalidArgumentError(
+        "derived code address collides with exit sequence address.");
+  }
 
   // Create mapping for the code.
   // Map code execute-only to discourage depending on any widget that may exist
