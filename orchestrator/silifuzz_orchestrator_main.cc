@@ -46,7 +46,6 @@
 #include <cstdlib>
 #include <filesystem>  // NOLINT
 #include <fstream>
-#include <random>
 #include <string>
 #include <thread>  // NOLINT
 #include <vector>
@@ -56,6 +55,8 @@
 #include "absl/functional/bind_front.h"
 #include "absl/log/flags.h"
 #include "absl/log/initialize.h"
+#include "absl/random/distributions.h"
+#include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -255,9 +256,8 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   result_collector.LogSummary(true);
   double log_session_summary_probability =
       absl::GetFlag(FLAGS_log_session_summary_probability);
-  std::default_random_engine gen;
-  std::uniform_real_distribution<double> distribution(0.0, 1.0);
-  if (distribution(gen) <= log_session_summary_probability) {
+  absl::BitGen bitgen;
+  if (absl::Uniform(bitgen, 0, 1.0) <= log_session_summary_probability) {
     absl::Status s = LogSessionSummary(result_collector);
     if (!s.ok()) {
       LOG_ERROR(s.message());
