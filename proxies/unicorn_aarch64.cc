@@ -291,6 +291,23 @@ int RunAArch64Instructions(absl::string_view insns) {
     input_is_acceptable = false;
   }
 
+  // aarch64 requires that stack pointers are 16-byte aligned when they are
+  // used. The exit sequence will use the stack pointer, so SP needs to be
+  // aligned when the instruction sequence exits.
+  // Note that QEMU appears to not care about unaligned stack pointers. Hardware
+  // cares, however, and this creates skew between the proxy and hardware.
+  // Checking the stack pointer aligment on exit should help filter out some,
+  // but not all of these problems. It will not catch situations where the stack
+  // pointer is unaligned during execution, but becomes re-aligned before
+  // exiting.
+  uint64_t sp = 0;
+  UNICORN_CHECK(uc_reg_read(uc, UC_ARM64_REG_SP, &sp));
+  constexpr uint64_t kRequiredStackAlignment = 16;
+  if (sp % kRequiredStackAlignment != 0) {
+    LOG_ERROR("stack pointer misaligned on exit");
+    input_is_acceptable = false;
+  }
+
   uc_close(uc);
 
   return input_is_acceptable ? 0 : -1;

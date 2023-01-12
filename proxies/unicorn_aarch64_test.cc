@@ -114,6 +114,11 @@ TEST(UnicornAarch64, Stack) {
   EXPECT_INSTRUCTIONS_REJECTED({0xa8c107e0});
 }
 
+TEST(UnicornAarch64, MisalignedStack) {
+  // b8551ffd  ldr w29, [sp, #-175]!
+  EXPECT_INSTRUCTIONS_REJECTED({0xb8551ffd});
+}
+
 TEST(UnicornAarch64, Mem1) {
   // Make sure x6 points to usable memory.
   // f90000c0  str x0, [x6]
