@@ -34,7 +34,7 @@ absl::StatusOr<const Snapshot::EndState *> PickEndState(
   if (options.allow_undefined_end_state) {
     if (snapshot.expected_end_states().size() != 1) {
       return absl::InvalidArgumentError(
-          absl::StrCat("want exactly 1 endstate, found ",
+          absl::StrCat("want exactly 1 undefined expected endstate, found ",
                        snapshot.expected_end_states().size()));
     }
     RETURN_IF_NOT_OK(snapshot.IsCompleteSomeState());
@@ -49,8 +49,8 @@ absl::StatusOr<const Snapshot::EndState *> PickEndState(
       return &es;
     }
   }
-  return absl::InvalidArgumentError(absl::StrCat(
-      "no expected end state for platform ", EnumStr(options.platform_id)));
+  return absl::NotFoundError(absl::StrCat("no expected end state for platform ",
+                                          EnumStr(options.platform_id)));
 }
 
 // Helper for Snapify(). This normalizes `memory_byte_list` and then

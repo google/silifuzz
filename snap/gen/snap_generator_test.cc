@@ -21,6 +21,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
@@ -33,6 +34,7 @@
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/testing/status_macros.h"
+#include "./util/testing/status_matchers.h"
 
 // Snap generator test.
 // Test(s) below use pre-compiled Snaps in a SnapArray kSnapGeneratorTestSnaps,
@@ -43,6 +45,7 @@
 namespace silifuzz {
 
 namespace {
+using silifuzz::testing::StatusIs;
 
 TEST(SnapGenerator, BasicSnapGeneratorTest) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
@@ -153,6 +156,14 @@ TEST(SnapGenerator, SnapifyIdempotent) {
   ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
   ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified));
   ASSERT_EQ(snapified, snapified2);
+}
+
+TEST(SnapGenerator, CanSnapify) {
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+      SnapGeneratorTestType::kBasicSnapGeneratorTest);
+  snapshot.set_expected_end_states({});
+  EXPECT_THAT(CanSnapify(snapshot), StatusIs(absl::StatusCode::kNotFound));
+  EXPECT_THAT(Snapify(snapshot), StatusIs(absl::StatusCode::kNotFound));
 }
 
 }  // namespace

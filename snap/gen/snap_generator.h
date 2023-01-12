@@ -57,6 +57,8 @@ struct SnapifyOptions {
 };
 
 // Tests if snapshot can be converted to Snap.
+// Returns NOT_FOUND if there's no suitable expected end state for the
+// selected platform.
 absl::Status CanSnapify(const Snapshot &snapshot,
                         const SnapifyOptions &opts = SnapifyOptions::Default());
 
