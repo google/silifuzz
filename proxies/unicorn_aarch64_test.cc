@@ -103,4 +103,69 @@ TEST(UnicornAarch64, OutOfBounds) {
   EXPECT_INSTRUCTIONS_REJECTED({0x17ffffff});
 }
 
+TEST(UnicornAarch64, Stack) {
+  // Make sure the stack is useable.
+  // a9bf07e0  stp x0, x1, [sp, #-16]!
+  // a8c107e0  ldp x0, x1, [sp], #16
+  EXPECT_INSTRUCTIONS_ACCEPTED({0xa9bf07e0, 0xa8c107e0});
+
+  // SP should initially point to an unmapped address.
+  // a8c107e0  ldp x0, x1, [sp], #16
+  EXPECT_INSTRUCTIONS_REJECTED({0xa8c107e0});
+}
+
+TEST(UnicornAarch64, Mem1) {
+  // Make sure x6 points to usable memory.
+  // f90000c0  str x0, [x6]
+  // f94000c0  ldr x0, [x6]
+  EXPECT_INSTRUCTIONS_ACCEPTED({0xf90000c0, 0xf94000c0});
+}
+
+TEST(UnicornAarch64, Mem2) {
+  // Make sure x7 points to usable memory.
+  // f90000e0  str x0, [x7]
+  // f94000e0  ldr x0, [x7]
+  EXPECT_INSTRUCTIONS_ACCEPTED({0xf90000c0, 0xf94000c0});
+}
+
+TEST(UnicornAarch64, EL0) {
+  // As a baseline, these should still work.
+  // d53bd040  mrs x0, tpidr_el0
+  // d51bd040  msr tpidr_el0, x0
+  EXPECT_INSTRUCTIONS_ACCEPTED({0xd53bd040, 0xd51bd040});
+
+  // These instructions are privleged and should not work at EL0
+
+  // d5087878  at s1e0w, x24
+  EXPECT_INSTRUCTIONS_REJECTED({0xd5087878});
+
+  // d518104d  msr cpacr_el1, x13
+  EXPECT_INSTRUCTIONS_REJECTED({0xd518104d});
+}
+
+TEST(UnicornAarch64, ExceptionLevel) {
+  // Any attempt to change the exception level should cause the instructions to
+  // be rejected. This implicitly filters out syscalls, without regard to which
+  // syscall it is.
+
+  // Supervisor call (syscall)
+  // d4000001  svc #0x0
+  EXPECT_INSTRUCTIONS_REJECTED({0xd4000001});
+  // Note that the exception location is after the instruction.
+
+  // Hypervisor call
+  // d4000002  hvc #0x0
+  EXPECT_INSTRUCTIONS_REJECTED({0xd4000002});
+
+  // Secure monitor call
+  // d4000003  smc #0x0
+  EXPECT_INSTRUCTIONS_REJECTED({0xd4000003});
+}
+
+TEST(UnicornAarch64, FloatingPoint) {
+  // Floating point can be disabled in EL0 is CPACR_EL1 is misconfigured.
+  // 6e6edf5a  fmul v26.2d, v26.2d, v14.2d
+  EXPECT_INSTRUCTIONS_ACCEPTED({0x6e6edf5a});
+}
+
 }  // namespace

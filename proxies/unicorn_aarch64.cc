@@ -37,6 +37,29 @@ namespace silifuzz {
 
 namespace {
 
+// Drops the privlege level to EL0
+//
+// Don't trap advanced SIMD or floating point in EL0 or EL1.
+// Note: will trap SVE.
+// d2a00600  mov x0, #0x300000
+// d5181040  msr cpacr_el1, x0
+// TODO(ncbray): configure SCTLR_EL1
+// Configure the state upon returning to EL0.
+// TODO(ncbray): set nzcv, etc.
+// aa1f03e0  mov x0, xzr
+// d5184000  msr spsr_el1, x0
+// Jump to x30 upon returning to EL0.
+// d518403e  msr elr_el1, x30
+// Return to EL0.
+// d69f03e0  eret
+
+constexpr uint32_t kEntrySequence[] = {
+    0xd2a00600, 0xd5181040, 0xaa1f03e0, 0xd5184000, 0xd518403e, 0xd69f03e0,
+};
+
+// Use an address outside the configured memory ranges.
+constexpr uint64_t kEntrySequenceAddress = 0x123'4567'0000;
+
 #define UNICORN_CHECK(...)                              \
   do {                                                  \
     uc_err __uc_check_err = __VA_ARGS__;                \
@@ -67,6 +90,24 @@ uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms) {
     prot |= UC_PROT_EXEC;
   }
   return prot;
+}
+
+void SetupCPUState(uc_engine *uc) {
+  // Inject the entry sequence.
+  map_memory(uc, kEntrySequenceAddress, 0x1000, UC_PROT_EXEC);
+  UNICORN_CHECK(uc_mem_write(uc, kEntrySequenceAddress, kEntrySequence,
+                             sizeof(kEntrySequence)));
+
+  // The entry sequence needs to ERET to somewhere mapped, choose just after the
+  // entry sequence.
+  uint64_t exit_address = kEntrySequenceAddress + sizeof(kEntrySequence);
+  UNICORN_CHECK(uc_reg_write(uc, UC_ARM64_REG_X30, &exit_address));
+
+  // Execute the entry seqeunce
+  UNICORN_CHECK(uc_emu_start(uc, kEntrySequenceAddress, exit_address, 0, 100));
+
+  // Unmap the entry sequence
+  UNICORN_CHECK(uc_mem_unmap(uc, kEntrySequenceAddress, 0x1000));
 }
 
 void SetupMemory(const Snapshot &snapshot, uc_engine *uc, bool log = false) {
@@ -206,15 +247,12 @@ int RunAArch64Instructions(absl::string_view insns) {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc));
 
   // Details to sort out later:
-  // TODO(ncbray) derive base address for code and validate lack of conflicts
-  // TODO(ncbray) verify we're running at EL1 and drop to EL0?
-  // TODO(ncbray) verify that the space around the code is initialized to zero.
-  // TODO(ncbray) what are the instructions that execute but can't disassemble?
-  // TODO(ncbray) why are system register load/stores _not_ generated?
   // TODO(ncbray) why do PC-relative loads work w/ execute-only memory?
   // 100001c: 980019c8 ldrsw       x8, 0x1000354
   // TODO(ncbray) why do atomic ops using the initial stack pointer not fault?
   // 1000000: 787f63fc ldumaxlh    wzr, w28, [sp]
+
+  SetupCPUState(uc);
 
   SetupMemory(snapshot.value(), uc);
 
