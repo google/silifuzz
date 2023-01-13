@@ -37,7 +37,8 @@ TEST(SnapshotProto, MetadataRoundtrip) {
 }
 
 TEST(SnapshotProto, ArchRoundtrip) {
-  std::string instruction({0, 0, 0, 0});
+  // nop
+  std::string instruction({0x1f, 0x20, 0x03, 0xd5});
   ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
                        InstructionsToSnapshot_AArch64(instruction));
   ASSERT_EQ(snapshot.architecture(), Snapshot::Architecture::kAArch64);

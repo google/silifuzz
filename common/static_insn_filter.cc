@@ -114,6 +114,48 @@ constexpr InstructionBits kBannedInstructions[] = {
         .mask = 0b0101'1111'1110'0001'0000'0000'0000'0000,
         .bits = 0b0101'1010'1100'0001'0000'0000'0000'0000,
     },
+    // C4.1.1 Reserved
+    // UDF will always fault
+    {
+        .mask = 0b1001'1110'0000'0000'0000'0000'0000'0000,
+        .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+    },
+    // C4.1 A64 instruction set encoding
+    // op1 = 0001 is "unallocated"
+    {
+        .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
+        .bits = 0b0000'0010'0000'0000'0000'0000'0000'0000,
+    },
+    // C4.1 A64 instruction set encoding
+    // op1 = 0011 is "unallocated"
+    {
+        .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
+        .bits = 0b0000'0110'0000'0000'0000'0000'0000'0000,
+    },
+    // C4.1.67 Loads and Stores
+    // Atomic memory operations
+    // The allocated / unallocated boundary for atomics is complicated, but we
+    // want to cut out the big chunks of unallocated space to increase the
+    // probability that atomic instructions can be disassembled. This is because
+    // QEMU is currently accepting unaligned atomics but the hardware is not.
+    // In addition, both QEMU and the hardware are accepting malformed atomic
+    // instructions, which makes it difficult to disassemble and disagnose that
+    // it was a misaligned atomic.
+    {
+        // V = 0, o3 = 1, opc = 11x is unallocated
+        .mask = 0b0011'1111'0010'0000'1110'1100'0000'0000,
+        .bits = 0b0011'1000'0010'0000'1110'0000'0000'0000,
+    },
+    {
+        // V = 0, A = 0, o3 = 1, opc = 110 is unallocated
+        .mask = 0b0011'1111'1010'0000'1111'1100'0000'0000,
+        .bits = 0b0011'1000'0010'0000'1100'0000'0000'0000,
+    },
+    {
+        // V = 1 is unallocated
+        .mask = 0b0011'1111'0010'0000'0000'1100'0000'0000,
+        .bits = 0b0011'1100'0010'0000'0000'0000'0000'0000,
+    },
 };
 
 constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
@@ -135,6 +177,21 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     },
     {
         // See: C4.1.66 Loads and Stores
+        // op0 = 1x00
+        .pattern =
+            {
+                .mask = 0b1011'1010'0000'0000'0000'0000'0000'0000,
+                .bits = 0b1000'1000'0000'0000'0000'0000'0000'0000,
+            },
+        // op1 != 0 is "unallocated"
+        .expect =
+            {
+                .mask = 0b0000'0100'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // See: C4.1.66 Loads and Stores
         // Should cover all compare and swap instructions.
         .pattern =
             {
@@ -147,6 +204,39 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
             {
                 .mask = 0b0000'0000'0000'0000'0111'1100'0000'0000,
                 .bits = 0b0000'0000'0000'0000'0111'1100'0000'0000,
+            },
+    },
+    {
+        // C4.1.68 Data Processing -- Register
+        // Data-processing (1 source)
+        .pattern =
+            {
+                .mask = 0b0101'1111'1110'0000'0000'0000'0000'0000,
+                .bits = 0b0101'1010'1100'0000'0000'0000'0000'0000,
+            },
+        // S (bit 29) != 0 "unallocated".
+        // Parts of opcode2 (bits 20:17) and opcode (bit 15) must be zero.
+        .expect =
+            {
+                .mask = 0b0010'0000'0001'1110'1000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // C4.1.68 Data Processing -- Register
+        // Data-processing (1 source)
+        .pattern =
+            {
+                .mask = 0b0111'1111'1111'1111'0000'0000'0000'0000,
+                .bits = 0b0101'1010'1100'0000'0000'0000'0000'0000,
+            },
+        // If S = 0 and opcode2 == 00000, part of opcode (bits 13:14) must be
+        // zero. This is a very narrow part of the encoding space, but it
+        // contains a lot of distinct instructions so the fuzzer finds it.
+        .expect =
+            {
+                .mask = 0b0000'0000'0000'0000'0110'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
             },
     },
     {
@@ -167,6 +257,22 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     },
     {
         // C4.1.68 Data Processing -- Register
+        // Floating-point data-processing (2 source)
+        .pattern =
+            {
+                .mask = 0b0101'1111'0010'0000'0000'1100'0000'0000,
+                .bits = 0b0001'1110'0010'0000'0000'1000'0000'0000,
+            },
+        // The spec declares M (bit 31) != 0 is "unallocated".
+        // The spec declares S (bit 29) != 0 is "unallocated".
+        .expect =
+            {
+                .mask = 0b1010'0000'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // C4.1.68 Data Processing -- Register
         // Floating-point data-processing (3 source)
         .pattern =
             {
@@ -178,6 +284,23 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
         .expect =
             {
                 .mask = 0b1010'0000'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // C4.1.69 Data Processing -- Scalar Floating-Point and Advanced SIMD
+        // Floating-point immediate
+        .pattern =
+            {
+                .mask = 0b0101'1111'0010'0000'0001'1100'0000'0000,
+                .bits = 0b0001'1110'0010'0000'0001'0000'0000'0000,
+            },
+        // The spec declares M (bit 31) != 0 is "unallocated".
+        // The spec declares S (bit 29) != 0 is "unallocated".
+        // The spec declares imm5 (bit 5:9) != 00000 is "unallocated".
+        .expect =
+            {
+                .mask = 0b1010'0000'0000'0000'0000'0011'1110'0000,
                 .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
             },
     },

@@ -57,7 +57,8 @@ TEST(RawInsnsUtil, InstructionsToSnapshotId) {
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
   auto config = DEFAULT_AARCH64_FUZZING_CONFIG;
-  std::string instruction({0, 0, 0, 0});
+  // nop
+  std::string instruction({0x1f, 0x20, 0x03, 0xd5});
   absl::StatusOr<Snapshot> snapshot =
       InstructionsToSnapshot_AArch64(instruction, config);
   ASSERT_OK(snapshot);

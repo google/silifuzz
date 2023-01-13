@@ -67,6 +67,14 @@ TEST(StaticInsnFilter, STXP) {
   EXPECT_AARCH64_FILTER_REJECT({0x882b54cd});
 }
 
+TEST(StaticInsnFilter, Reserved) { EXPECT_AARCH64_FILTER_REJECT({0x00000000}); }
+
+TEST(StaticInsnFilter, Unallocated) {
+  EXPECT_AARCH64_FILTER_REJECT({0x675188e2});
+  EXPECT_AARCH64_FILTER_REJECT({0x8383a5ea});
+  EXPECT_AARCH64_FILTER_REJECT({0xc7285a07});
+}
+
 TEST(StaticInsnFilter, LoadStoreRegisterPAC) {
   // Standard load
   // ldr      x14, [x6, #1064]
@@ -116,6 +124,14 @@ TEST(StaticInsnFilter, DataPAC) {
   EXPECT_AARCH64_FILTER_REJECT({0xdac123f1});
 }
 
+TEST(StaticInsnFilter, LoadStore) {
+  // ldff1h    {z11.s}, p3/z, [x17, z8.s, sxtw]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x84c86e2b});
+
+  // Some sort of load / store, unsure what QEMU thinks it is.
+  EXPECT_AARCH64_FILTER_REJECT({0xcd8070e5});
+}
+
 TEST(StaticInsnFilter, CompareAndSwap) {
   // QEMU may accept malformed version of these instruction that can be fixed by
   // a bitwise OR with 0x00007c00
@@ -124,6 +140,16 @@ TEST(StaticInsnFilter, CompareAndSwap) {
   EXPECT_AARCH64_FILTER_ACCEPT({0xc8a0fcd8});
   EXPECT_AARCH64_FILTER_REJECT({0xc8a0ecd8});
   EXPECT_AARCH64_FILTER_REJECT({0xc8a0f8d8});
+
+  // casl     w4, w14, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x88a4fcce});
+  EXPECT_AARCH64_FILTER_REJECT({0x88a4e4ce});
+}
+
+TEST(StaticInsnFilter, Atomics) {
+  // ldumax   w5, w1, [x7]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xb82560e1});
+  EXPECT_AARCH64_FILTER_REJECT({0xb825e0e1});
 }
 
 TEST(StaticInsnFilter, AddSubtractExtendedRegister) {
@@ -139,13 +165,38 @@ TEST(StaticInsnFilter, AddSubtractExtendedRegister) {
   EXPECT_AARCH64_FILTER_REJECT({0xebb5007f});
 }
 
+TEST(StaticInsnFilter, DataProcessingOneSource) {
+  // rev32     x19, x3
+  EXPECT_AARCH64_FILTER_ACCEPT({0xdac00873});
+  EXPECT_AARCH64_FILTER_REJECT({0xdac08873});
+
+  // rbit      x3, x12
+  EXPECT_AARCH64_FILTER_ACCEPT({0xdac00183});
+  EXPECT_AARCH64_FILTER_REJECT({0xdac04183});
+}
+
 TEST(StaticInsnFilter, FloatingPointDataProcessing) {
   // QEMU may accept malformed version of these instruction that can be fixed by
   // a bitwise AND with ~0xa0000000
 
+  // 2 input
+  // fmin      s7, s16, s8
+  EXPECT_AARCH64_FILTER_ACCEPT({0x1e285a07});
+  EXPECT_AARCH64_FILTER_REJECT({0xbe285a07});
+
+  // 3 input
   // fnmadd    s4, s20, s8, s22
   EXPECT_AARCH64_FILTER_ACCEPT({0x1f285a84});
   EXPECT_AARCH64_FILTER_REJECT({0x3f285a84});
+}
+
+TEST(StaticInsnFilter, FloatingPointImmediate) {
+  // QEMU may accept malformed version of these instruction that can be fixed by
+  // a bitwise AND with ~0xa00003e0
+
+  // fmov     s16, #-1.640625000000000000e-01
+  EXPECT_AARCH64_FILTER_ACCEPT({0x1e38b010});
+  EXPECT_AARCH64_FILTER_REJECT({0x9e38b2d0});
 }
 
 }  // namespace
