@@ -67,6 +67,55 @@ TEST(StaticInsnFilter, STXP) {
   EXPECT_AARCH64_FILTER_REJECT({0x882b54cd});
 }
 
+TEST(StaticInsnFilter, LoadStoreRegisterPAC) {
+  // Standard load
+  // ldr      x14, [x6, #1064]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf94214ce});
+  // PAC load
+  // ldraa    x14, [x6, #1064]
+  EXPECT_AARCH64_FILTER_REJECT({0xf82854ce});
+  // A malformed encoding that should be rejected even if PAC enabled.
+  EXPECT_AARCH64_FILTER_REJECT({0x782854ce});
+
+  // Standard load
+  // ldr      x29, [x7, #512]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf94100fd});
+  // PAC load
+  // ldrab    x29, [x7, #512]
+  EXPECT_AARCH64_FILTER_REJECT({0xf8a404fd});
+}
+
+TEST(StaticInsnFilter, BranchPAC) {
+  // Standared indirect branch
+  // br       x3
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd61f0060});
+  // PAC indirect branch
+  // braaz    x3
+  EXPECT_AARCH64_FILTER_REJECT({0xd61f087f});
+}
+
+TEST(StaticInsnFilter, HintPAC) {
+  // yield
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd503203f});
+
+  // psb    csync
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd503223f});
+
+  // hint    #0x76
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd5032edf});
+
+  // pacibz
+  EXPECT_AARCH64_FILTER_REJECT({0xd503235f});
+}
+
+TEST(StaticInsnFilter, DataPAC) {
+  // clz        x30, x27
+  EXPECT_AARCH64_FILTER_ACCEPT({0xdac0137e});
+
+  // paciza    x17
+  EXPECT_AARCH64_FILTER_REJECT({0xdac123f1});
+}
+
 TEST(StaticInsnFilter, CompareAndSwap) {
   // QEMU may accept malformed version of these instruction that can be fixed by
   // a bitwise OR with 0x00007c00

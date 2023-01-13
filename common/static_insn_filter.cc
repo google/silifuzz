@@ -48,6 +48,10 @@ struct RequiredInstructionBits {
   }
 };
 
+// In general, we need to ban PAC until we can control the PAC keys for the
+// runner and set them to known constants. Otherwise the PAC instructions
+// are effectively non-deterministic.
+
 constexpr InstructionBits kBannedInstructions[] = {
     // See: C4.1.66 Loads and Stores
     // Should cover STLXR, STLXRB, STLXRH, and STLXP but not LDAXR, STR, etc.
@@ -61,6 +65,54 @@ constexpr InstructionBits kBannedInstructions[] = {
     {
         .mask = 0b0011'1111'1100'0000'0000'0000'0000'0000,
         .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
+    },
+    // C4.1.66 Loads and Stores
+    // Load/store register (pac)
+    // Filter out PAC memory ops
+    // Older versions of QEMU also treat these loads and stores as if they were
+    // normal loads and stores, so they behave differently in the making
+    // process.
+    {
+        .mask = 0b0011'1011'0010'0000'0000'0100'0000'0000,
+        .bits = 0b0011'1000'0010'0000'0000'0100'0000'0000,
+        // Note that if we do enable PAC support, unallocated encodings should
+        // be filtered out:
+        // size (bits 30:31) != 11 is "unallocated"
+        // V (bit 26) != 0 is "unallocated"
+    },
+    // C4.1.66 Branches, Exception Generating and System instructions
+    // Unconditional branch (register)
+    // Filter out PAC branches
+    // This should cover:
+    // BRAA, BRAAZ, BRAB, BRABZ
+    // BLRAA, BLRAAZ, BLRAB, BLRABZ
+    // RETAA, RETAB
+    // ERETAA, ERETAB
+    // op2 != 11111 is unallocated, so we ignore those bits.
+    // top four bits of op3 != 0 are unallocated so we ignore them.
+    // PAC variations are op3 == 000010 and 000011, so we ignore the last bit.
+    // opc can also be ignored because op3 consistently indicates PAC for all
+    // allocated variations of op3.
+    {
+        .mask = 0b1111'1110'0000'0000'0000'1000'0000'0000,
+        .bits = 0b1101'0110'0000'0000'0000'1000'0000'0000,
+    },
+    // C4.1.66 Branches, Exception Generating and System instructions
+    // Hints
+    // Should cover zero argument AUT* and PAC*
+    // CRm = 00x1, op2=xxx
+    {
+        .mask = 0b1111'1111'1111'1111'1111'1101'0001'1111,
+        .bits = 0b1101'0101'0000'0011'0010'0001'0001'1111,
+    },
+    // C4.1.68 Data Processing -- Register
+    // Data-processing (1 source)
+    // Should cover single argument AUT* and PAC*
+    // opcode2 = xxxx1 covers the PAC instructions because there is a large
+    // amount of unallocated instructions in this part of the instruction space.
+    {
+        .mask = 0b0101'1111'1110'0001'0000'0000'0000'0000,
+        .bits = 0b0101'1010'1100'0001'0000'0000'0000'0000,
     },
 };
 
