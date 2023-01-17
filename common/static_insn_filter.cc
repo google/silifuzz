@@ -177,6 +177,36 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     },
     {
         // See: C4.1.66 Loads and Stores
+        // op1 = 0x00 op1 = 1 op2 = 0x
+        .pattern =
+            {
+                .mask = 0b1011'1111'0000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'1100'0000'0000'0000'0000'0000'0000,
+            },
+        // op3 != 0xxxxx  is "unallocated"
+        .expect =
+            {
+                .mask = 0b0000'0000'0010'0000'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // See: C4.1.66 Loads and Stores
+        // op1 = 0x00 op1 = 1 op2 = x0
+        .pattern =
+            {
+                .mask = 0b1011'1110'1000'0000'0000'0000'0000'0000,
+                .bits = 0b0000'1100'0000'0000'0000'0000'0000'0000,
+            },
+        // op3 != x000000  is "unallocated"
+        .expect =
+            {
+                .mask = 0b0000'0000'0001'1111'0000'0000'0000'0000,
+                .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
+            },
+    },
+    {
+        // See: C4.1.66 Loads and Stores
         // op0 = 1x00
         .pattern =
             {

@@ -130,6 +130,18 @@ TEST(StaticInsnFilter, LoadStore) {
 
   // Some sort of load / store, unsure what QEMU thinks it is.
   EXPECT_AARCH64_FILTER_REJECT({0xcd8070e5});
+
+  // st1    {v31.4h, v0.4h, v1.4h}, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x0c0064df});
+  EXPECT_AARCH64_FILTER_REJECT({0x0c1e64df});
+
+  // st4    {v0.8h-v3.8h}, [x7]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x4c0004e0});
+  EXPECT_AARCH64_FILTER_REJECT({0x4c0c04e0});
+
+  // ld1    {v20.b}[8], [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x4d4000d4});
+  EXPECT_AARCH64_FILTER_REJECT({0x4d5e00d4});
 }
 
 TEST(StaticInsnFilter, CompareAndSwap) {
