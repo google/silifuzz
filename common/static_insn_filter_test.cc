@@ -32,7 +32,7 @@ std::string FromInts(std::vector<uint32_t>&& data) {
 #define EXPECT_AARCH64_FILTER_REJECT(insn) \
   EXPECT_FALSE(StaticInstructionFilter<AArch64>(FromInts(insn)))
 
-TEST(StaticInsnFilter, ReadTPIDR) {
+TEST(StaticInsnFilter, SystemRegister) {
   // We'll want to filter our a number of system register accesses in the
   // future, but these should stay valid.
   // QEMU may accept malformed versions of these instructions that can be fixed
@@ -41,6 +41,16 @@ TEST(StaticInsnFilter, ReadTPIDR) {
   // mrs    x0, tpidr_el0
   EXPECT_AARCH64_FILTER_ACCEPT({0xd53bd040});
   EXPECT_AARCH64_FILTER_REJECT({0xd5bbd040});
+
+  // msr    fpcr, x23
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd51b4417});
+
+  // mrs    x24, nzcv
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd53b4218});
+
+  // Banned because some versions of QEMU fail to control access.
+  // mrs    x28, cntp_tval_el0
+  EXPECT_AARCH64_FILTER_REJECT({0xd53be21c});
 }
 
 TEST(StaticInsnFilter, LDXRB) {
