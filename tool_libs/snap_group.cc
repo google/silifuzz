@@ -129,7 +129,7 @@ SnapshotPartition::SnapshotSummaryList SnapshotPartition::PartitionSnapshots(
       }
     }
     offset += chunk_size;
-  }
+  }  // ~ThreadPool joins the threads.
   return rejected;
 }
 

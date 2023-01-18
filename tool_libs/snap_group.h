@@ -185,12 +185,12 @@ class SnapshotPartition {
     return snapshot_groups_;
   }
 
-  // Deterministically partitions snaphots described by 'summaries' into groups
-  // of this so that the groups have approximately same sizes. Returns
-  // unadded snapshots that are rejected due to mapping conflicts. Note that the
-  // groups may be non-empty before call.
+  // Deterministically partitions snapshots described by 'summaries' into groups
+  // of this so that the groups have approximately same sizes. Returns snapshots
+  // that are rejected due to mapping conflicts. Note that the groups may be
+  // non-empty before call.
   //
-  // There is no guranteed that we can adds all snapshots. A caller may need to
+  // There is no guarantee that we can add all snapshots. A caller may need to
   // call this multiple times until all snapshots are inserted. The caller may
   // also shuffle the input to make it less likely conflicting snapshots to be
   // considered for addition into the same group.
@@ -201,7 +201,7 @@ class SnapshotPartition {
   // SnapshotSummaryList ungrouped = ...;
   // for (int i = 0; i < kMaxIterations && !ungrouped.empty(); ++i) {
   //    std::shuffle(ungrouped.begin(), ungrouped.end(), random_gen);
-  //    ungrouped = parition.PartitionSnapshots(ungrouped);
+  //    ungrouped = partition.PartitionSnapshots(ungrouped);
   // }
   //
   SnapshotSummaryList PartitionSnapshots(const SnapshotSummaryList& summaries);
