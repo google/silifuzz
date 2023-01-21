@@ -96,6 +96,17 @@ const std::vector<Snapshot>& TestSnapshots() {
   return *snapshots;
 }
 
+const SnapshotGroup::SnapshotSummaryList& TestSummaries() {
+  static SnapshotGroup::SnapshotSummaryList* summaries = []() {
+    auto* rv = new SnapshotGroup::SnapshotSummaryList();
+    for (const auto& s : TestSnapshots()) {
+      rv->emplace_back(s);
+    }
+    return rv;
+  }();
+  return *summaries;
+}
+
 TEST(SnapshotSummary, ConstructFromSnapshot) {
   Snapshot snapshot = CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
   SnapshotGroup::SnapshotSummary memory_summary(snapshot);
@@ -162,17 +173,13 @@ TEST(SnapshotGroup, CannotAddSnapshotWriteConflictDifferentPerms) {
 }
 
 TEST(SnapPartition, OneSnapPerGroup) {
-  SnapshotGroup::SnapshotSummaryList kSnapshotSummaryList;
-  for (const auto& s : TestSnapshots()) {
-    kSnapshotSummaryList.emplace_back(s);
-  }
-
+  SnapshotGroup::SnapshotSummaryList kSummaries = TestSummaries();
   // Number of groups == Number of Snaphots. This should trivially
   // put exactly 1 snap per group.
-  SnapshotPartition partition(kSnapshotSummaryList.size(),
+  SnapshotPartition partition(kSummaries.size(),
                               SnapshotGroup::kAllowWriteConflictsWithSamePerm);
   SnapshotGroup::SnapshotSummaryList rejected =
-      partition.PartitionSnapshots(kSnapshotSummaryList);
+      partition.PartitionSnapshots(kSummaries);
   EXPECT_THAT(rejected, IsEmpty());
   for (const auto& group : partition.snapshot_groups()) {
     EXPECT_EQ(group.size(), 1);
@@ -183,25 +190,20 @@ TEST(SnapPartition, OneSnapPerGroup) {
 // mapping conflicts. The example is constructed so that all
 // snapshots can be added.
 TEST(SnapshotGroup, PartitionSmallExample) {
-  SnapshotGroup::SnapshotSummaryList kSnapshotSummaryList;
-  for (const auto& s : TestSnapshots()) {
-    kSnapshotSummaryList.emplace_back(s);
-  }
-
+  const SnapshotGroup::SnapshotSummaryList kSummaries = TestSummaries();
   constexpr int kNumGroups = 3;
+  const size_t group_size_lower_bound = kSummaries.size() / kNumGroups;
+  const size_t group_size_upper_bound =
+      (kSummaries.size() + kNumGroups - 1) / kNumGroups;
+
   SnapshotPartition partition(kNumGroups,
                               SnapshotGroup::kAllowWriteConflictsWithSamePerm);
   SnapshotGroup::SnapshotSummaryList rejected =
-      partition.PartitionSnapshots(kSnapshotSummaryList);
+      partition.PartitionSnapshots(kSummaries);
   EXPECT_TRUE(rejected.empty());
 
-  absl::flat_hash_set<SnapshotGroup::Id> grouped_ids;
-  const size_t group_size_lower_bound =
-      kSnapshotSummaryList.size() / kNumGroups;
-  const size_t group_size_upper_bound =
-      (kSnapshotSummaryList.size() + kNumGroups - 1) / kNumGroups;
-
   // We expect a roughly even distribution.
+  absl::flat_hash_set<SnapshotGroup::Id> grouped_ids;
   for (const auto& group : partition.snapshot_groups()) {
     EXPECT_GE(group.size(), group_size_lower_bound);
     EXPECT_LE(group.size(), group_size_upper_bound);
@@ -210,8 +212,8 @@ TEST(SnapshotGroup, PartitionSmallExample) {
   }
 
   // Check that all snapshots are indeed added.
-  EXPECT_EQ(grouped_ids.size(), kSnapshotSummaryList.size());
-  for (const auto& summary : kSnapshotSummaryList) {
+  EXPECT_EQ(grouped_ids.size(), kSummaries.size());
+  for (const auto& summary : kSummaries) {
     EXPECT_THAT(grouped_ids, Contains(summary.id()));
   }
 }
@@ -220,17 +222,13 @@ TEST(SnapshotGroup, PartitionSmallExample) {
 // mapping conflicts. The example is constructed so that not
 // all snapshots can be added as there is too few groups.
 TEST(SnapshotGroup, PartitionTooFewGroupsToFit) {
-  SnapshotGroup::SnapshotSummaryList kSnapshotSummaryList;
-  for (const auto& s : TestSnapshots()) {
-    kSnapshotSummaryList.emplace_back(s);
-  }
-
+  SnapshotGroup::SnapshotSummaryList kSummaries = TestSummaries();
   // We need 3 groups at least.
   constexpr int kNumGroups = 2;
   SnapshotPartition partition(kNumGroups,
                               SnapshotGroup::kAllowWriteConflictsWithSamePerm);
   SnapshotGroup::SnapshotSummaryList rejected =
-      partition.PartitionSnapshots(kSnapshotSummaryList);
+      partition.PartitionSnapshots(kSummaries);
   // There should be rejected snapshots.
   EXPECT_THAT(rejected, Not(IsEmpty()));
 }
