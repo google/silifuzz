@@ -794,6 +794,17 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "thread_pool",
+    hdrs = ["thread_pool.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
 cc_library_plus_nolibc(
     name = "file_util",
     srcs = ["file_util.cc"],
