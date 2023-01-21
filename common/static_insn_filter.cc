@@ -53,6 +53,11 @@ struct RequiredInstructionBits {
 // are effectively non-deterministic.
 
 constexpr InstructionBits kBannedInstructions[] = {
+    //
+    // The following instructions are things that can pass through the fuzzing
+    // and making processes, and then cause a problem in the runner. If they are
+    // not filtered, the runner will not be reliable.
+    //
     // See: C4.1.66 Loads and Stores
     // Should cover STLXR, STLXRB, STLXRH, and STLXP but not LDAXR, STR, etc.
     // Bit 22 => 0, this is a store.
@@ -114,6 +119,41 @@ constexpr InstructionBits kBannedInstructions[] = {
         .mask = 0b0101'1111'1110'0001'0000'0000'0000'0000,
         .bits = 0b0101'1010'1100'0001'0000'0000'0000'0000,
     },
+    // C4.1.66 Branches, Exception Generating and System instructions
+    // Hints
+    // WFE is problematic because it can cause a snapshot to wait in userspace
+    // for an event that no one is explicitly sending. Empirically, this can
+    // cause some corpuses to run 2-3 orders of magnitude slower. It may also
+    // cause some proxies to deadlock.
+    {
+        .mask = 0b1111'1111'1111'1111'1111'1111'1111'1111,
+        .bits = 0b1101'0101'0000'0011'0010'0000'0101'1111,
+    },
+    // C4.1.66 Branches, Exception Generating and System instructions
+    // Hints
+    // WFI is problematic because it either will wait for an interrupt or it
+    // will trap into the kernel. Waiting will cause some proxies to deadlock,
+    // trapping will cause some corupses to run 1-2 orders of magnitude slower.
+    // This entry is not colapsed with WFE because these instructions behave
+    // slightly differently because Linux traps WFI and makes it a no-op and we
+    // may want to experiment with unbanning WFI.
+    {
+        .mask = 0b1111'1111'1111'1111'1111'1111'1111'1111,
+        .bits = 0b1101'0101'0000'0011'0010'0000'0111'1111,
+    },
+    // C4.1.66 Branches, Exception Generating and System instructions
+    // System instructions with register argument
+    // This should cover WFET and WFIT, which are WFE and WFI with timeouts and
+    // are banned for the same reason as WFE and WFI.
+    // These are the only instructions in this space, so ban the whole space.
+    {
+        .mask = 0b1111'1111'1111'1111'1111'0000'0000'0000,
+        .bits = 0b1101'0101'0000'0011'0001'0000'0000'0000,
+    },
+    //
+    // The following parts of the instruction space either do not have specified
+    // instructions or contain instructions that should always fault.
+    //
     // C4.1.1 Reserved
     // UDF will always fault
     {
@@ -132,6 +172,11 @@ constexpr InstructionBits kBannedInstructions[] = {
         .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
         .bits = 0b0000'0110'0000'0000'0000'0000'0000'0000,
     },
+    //
+    // The following parts of the instruction space do not have specified
+    // instructions but more complicated and don't cover as much of the space as
+    // the previous section.
+    //
     // C4.1.67 Loads and Stores
     // Atomic memory operations
     // The allocated / unallocated boundary for atomics is complicated, but we
@@ -158,6 +203,8 @@ constexpr InstructionBits kBannedInstructions[] = {
     },
 };
 
+// These rules cover fine-grained encoding issues that could be corrected in
+// the mutator, if desired.
 constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     {
         // See: C4.1.65 Branches, Exception Generating and System

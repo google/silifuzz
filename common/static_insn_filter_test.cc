@@ -85,6 +85,35 @@ TEST(StaticInsnFilter, Unallocated) {
   EXPECT_AARCH64_FILTER_REJECT({0xc7285a07});
 }
 
+TEST(StaticInsnFilter, Hint) {
+  // nop
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd503201f});
+
+  // yield
+  // Yield appears to be a hint for hardware multithreading, and we currently
+  // don't have any chips with hardware multithreading to check if it does
+  // anything pathalogical.  Assume it's OK since it doesn't trap.
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd503203f});
+
+  // wfe
+  // Can make the corpus run 2-3 orders of magnitude slower by waiting in EL0.
+  EXPECT_AARCH64_FILTER_REJECT({0xd503205f});
+
+  // wfi
+  // Can make the corpus run 1-2 orders of magnitude slower by trapping to EL1.
+  EXPECT_AARCH64_FILTER_REJECT({0xd503207f});
+
+  // sev and sevl are questionable, since they can affect other processes.
+  // We haven't found a situation where they actually cause a problem.  We're
+  // leaving them in until we understand them better.
+
+  // sev
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd503209f});
+
+  // sevl
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd50320bf});
+}
+
 TEST(StaticInsnFilter, LoadStoreRegisterPAC) {
   // Standard load
   // ldr      x14, [x6, #1064]
@@ -113,9 +142,6 @@ TEST(StaticInsnFilter, BranchPAC) {
 }
 
 TEST(StaticInsnFilter, HintPAC) {
-  // yield
-  EXPECT_AARCH64_FILTER_ACCEPT({0xd503203f});
-
   // psb    csync
   EXPECT_AARCH64_FILTER_ACCEPT({0xd503223f});
 
