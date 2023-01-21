@@ -239,12 +239,10 @@ TEST(SnapshotGroup, LessThan) {
   SnapshotGroup::SnapshotSummary snapshot_summary_1(TestSnapshots()[0]);
   SnapshotGroup::SnapshotSummary snapshot_summary_2(TestSnapshots()[1]);
 
-  SnapshotGroup::SnapshotSummary::LessThan lt;
-
   // Test that sort_key (number of end states and platforms) takes precedence
-  // over the ID when sorting according to LessThan.
+  // over the ID when sorting according to SnapshotSummary::operator<().
   EXPECT_LT(snapshot_summary_1.id(), snapshot_summary_2.id());
-  EXPECT_TRUE(lt(snapshot_summary_2, snapshot_summary_1));
+  EXPECT_LT(snapshot_summary_2, snapshot_summary_1);
 }
 
 }  // namespace

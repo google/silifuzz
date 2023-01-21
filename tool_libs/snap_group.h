@@ -83,27 +83,28 @@ class SnapshotGroup {
       return memory_mappings_;
     }
 
-    // Helper struct to sort SnapshotSummaries.
-    struct LessThan {
-      bool operator()(const SnapshotGroup::SnapshotSummary& lhs,
-                      const SnapshotGroup::SnapshotSummary& rhs) const {
-        if (lhs.sort_key_ != rhs.sort_key_) {
-          return lhs.sort_key_ < rhs.sort_key_;
-        }
-        return lhs.id() < rhs.id();
+    // Comparison friend operators.
+    friend bool operator<(const SnapshotSummary& lhs,
+                          const SnapshotSummary& rhs) {
+      if (lhs.sort_key_ != rhs.sort_key_) {
+        return lhs.sort_key_ < rhs.sort_key_;
       }
-    };
+      return lhs.id() < rhs.id();
+    }
+    friend bool operator==(const SnapshotSummary& lhs,
+                           const SnapshotSummary& rhs) {
+      return lhs.sort_key_ == rhs.sort_key_ && lhs.id() == rhs.id();
+    }
 
    private:
-    friend struct LessThan;
     // Id of the Snap of which memory mappings are described by this.
     Id id_;
 
     // Memory mappings of the Snap.
     MemoryMappingList memory_mappings_;
 
-    // Sort key used by LessThan to order snapshots.
-    int sort_key_;
+    // Sort key used to stably order snapshots.
+    int sort_key_ = 0;
   };
 
   using SnapshotSummaryList = std::vector<SnapshotSummary>;
