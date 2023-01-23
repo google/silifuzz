@@ -33,7 +33,7 @@ SnapshotPartition PartitionCorpus(
   SnapshotPartition partition(num_groups,
                               SnapshotGroup::kAllowWriteConflictsWithSamePerm);
   for (int32_t i = 0; i < num_iterations && !ungrouped.empty(); ++i) {
-    ungrouped = partition.PartitionSnapshots(ungrouped);
+    partition.PartitionSnapshots(ungrouped);
   }
 
   if (!ungrouped.empty()) {

@@ -19,12 +19,12 @@
 #include <cstddef>
 #include <vector>
 
-#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
+#include "./util/thread_pool.h"
 
 namespace silifuzz {
 
@@ -90,10 +90,9 @@ SnapshotPartition::SnapshotPartition(
   }
 }
 
-SnapshotPartition::SnapshotSummaryList SnapshotPartition::PartitionSnapshots(
-    const SnapshotSummaryList& snapshot_summaries) {
-  // Compute number of snapshots if all snapshot_summaries can be added
-  size_t num_snapshots = snapshot_summaries.size();
+void SnapshotPartition::PartitionSnapshots(SnapshotSummaryList& summaries) {
+  // Compute number of snapshots if all summaries can be added
+  size_t num_snapshots = summaries.size();
   for (const auto& group : snapshot_groups_) {
     num_snapshots += group.size();
   }
@@ -106,31 +105,49 @@ SnapshotPartition::SnapshotSummaryList SnapshotPartition::PartitionSnapshots(
     target_group_size[i] = group_size + (i < remainder ? 1 : 0);
   }
 
-  // This loop below can be parallelized by using a thread to handle each group
-  // Each group can keep its  own rejected snap list and all individual reject
-  // snap lists are merged at the end an iteration into a single list.
-  SnapshotPartition::SnapshotSummaryList rejected;
-  size_t offset = 0;
-  for (size_t i = 0; i < snapshot_groups_.size(); ++i) {
-    SnapshotGroup& group = snapshot_groups_[i];
-    const ssize_t chunk_size = target_group_size[i] - group.size();
-    if (chunk_size == 0) {
-      continue;
-    }
+  const SnapshotSummary kNullSummary{};
 
-    DCHECK_GT(chunk_size, 0);
-    DCHECK_LE(offset + chunk_size, snapshot_summaries.size());
-    for (size_t j = offset; j < offset + chunk_size; ++j) {
-      const SnapshotSummary& summary = snapshot_summaries[j];
-      if (group.CanAddSnapshot(summary).ok()) {
-        group.AddSnapshot(summary);
-      } else {
-        rejected.push_back(summary);
+  // Populate groups in parallel from non-overlapping sequential ranges of ids.
+  // Threads nullify processed summaries in place. The nulls are then discarded
+  // in a single pass after the thread pool returns. This preserves the original
+  // relative order, so repeated calls to PartitionSnapshot() applied to the
+  // same ever-diminishing input `summaries` always deliver a deterministic
+  // partitioning result.
+  {
+    size_t offset = 0;
+
+    // NOTE: This version of ThreadPool is borrowed from ABSL. Unlike
+    // //thread/threadpool.h, it doesn't need .StartWorkers().
+    ThreadPool threads{NumCPUs() * 2};
+
+    for (size_t i = 0; i < snapshot_groups_.size(); ++i) {
+      SnapshotGroup& group = snapshot_groups_[i];
+      const ssize_t chunk_size = target_group_size[i] - group.size();
+      if (chunk_size == 0) {
+        continue;
       }
+
+      DCHECK_LE(offset + chunk_size, summaries.size());
+
+      threads.Schedule(
+          [&summaries, offset, chunk_size, &group, &kNullSummary]() {
+            for (size_t j = offset; j < offset + chunk_size; ++j) {
+              // Thread-safe: no two threads ever process the same summary.
+              SnapshotSummary& summary = summaries[j];
+              if (group.CanAddSnapshot(summary).ok()) {
+                group.AddSnapshot(summary);
+                summary = kNullSummary;
+              }
+            }
+          });
+
+      offset += chunk_size;
     }
-    offset += chunk_size;
   }  // ~ThreadPool joins the threads.
-  return rejected;
+
+  const auto last_ungrouped_it =
+      std::remove(summaries.begin(), summaries.end(), kNullSummary);
+  summaries.erase(last_ungrouped_it, summaries.end());
 }
 
 SnapshotGroup::SnapshotSummary::SnapshotSummary(const Snapshot& snapshot)

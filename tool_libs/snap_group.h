@@ -73,6 +73,9 @@ class SnapshotGroup {
    public:
     using MemoryMappingList = Snapshot::MemoryMappingList;
 
+    // Constructs a null summary. Useful as a sentinel value or similar.
+    SnapshotSummary() = default;
+    // Constructs a summary of the `snapshot`.
     explicit SnapshotSummary(const Snapshot& snapshot);
     ~SnapshotSummary() = default;
 
@@ -187,8 +190,10 @@ class SnapshotPartition {
   }
 
   // Deterministically partitions snapshots described by 'summaries' into groups
-  // of this so that the groups have approximately same sizes. Returns snapshots
-  // that are rejected due to mapping conflicts. Note that the groups may be
+  // of this so that the groups have approximately same sizes. Upon return,
+  // the input `summaries` contains only leftover snapshots that were rejected
+  // due to mapping conflicts. The relative order of the leftover snapshots
+  // is stable (carried over from the input). Note that the groups may be
   // non-empty before call.
   //
   // There is no guarantee that we can add all snapshots. A caller may need to
@@ -202,10 +207,10 @@ class SnapshotPartition {
   // SnapshotSummaryList ungrouped = ...;
   // for (int i = 0; i < kMaxIterations && !ungrouped.empty(); ++i) {
   //    std::shuffle(ungrouped.begin(), ungrouped.end(), random_gen);
-  //    ungrouped = partition.PartitionSnapshots(ungrouped);
+  //    partition.PartitionSnapshots(ungrouped);
   // }
   //
-  SnapshotSummaryList PartitionSnapshots(const SnapshotSummaryList& summaries);
+  void PartitionSnapshots(SnapshotSummaryList& summaries);
 
  private:
   std::vector<SnapshotGroup> snapshot_groups_;
