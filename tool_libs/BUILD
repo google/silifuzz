@@ -99,7 +99,6 @@ cc_library(
         "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
-        "@silifuzz//util:checks",
         "@silifuzz//util:thread_pool",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",

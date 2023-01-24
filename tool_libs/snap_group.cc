@@ -17,13 +17,13 @@
 #include <sys/types.h>
 
 #include <cstddef>
+#include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
-#include "./util/checks.h"
 #include "./util/thread_pool.h"
 
 namespace silifuzz {
@@ -118,7 +118,9 @@ void SnapshotPartition::PartitionSnapshots(SnapshotSummaryList& summaries) {
 
     // NOTE: This version of ThreadPool is borrowed from ABSL. Unlike
     // //thread/threadpool.h, it doesn't need .StartWorkers().
-    ThreadPool threads{NumCPUs() * 2};
+    const int kNumCores =
+        static_cast<int>(std::thread::hardware_concurrency()) * 2;
+    ThreadPool threads{kNumCores};
 
     for (size_t i = 0; i < snapshot_groups_.size(); ++i) {
       SnapshotGroup& group = snapshot_groups_[i];
