@@ -65,7 +65,7 @@ TEST(HarnessTracerTest, CrashAndExit) {
     ASSERT_TRUE(status.has_value());
     if (test_mode == "test-crash") {
       EXPECT_TRUE(WIFSIGNALED(*status));
-      EXPECT_EQ(WTERMSIG(*status), SIGILL);
+      EXPECT_EQ(WTERMSIG(*status), SIGABRT);
     } else {
       EXPECT_EQ(*status, 0);
     }
