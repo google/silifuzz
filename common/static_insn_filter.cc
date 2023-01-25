@@ -383,9 +383,15 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     },
 };
 
+// C4.1.66 Branches, Exception Generating and System instructions
+// System register move
+// Should match MRS and MSR instructions.  Bit 21 controls if this is a read or
+// a write.  Bit 20 is technically redundant with the high bit of op0. It needs
+// to be 1 for the instruction to be a system register move, but all system
+// registers are specified with the high bit of op0 as 1.
 constexpr InstructionBits kSysregInstruction = {
-    .mask = 0b1111'1111'1100'0000'0000'0000'0000'0000,
-    .bits = 0b1101'0101'0000'0000'0000'0000'0000'0000,
+    .mask = 0b1111'1111'1101'0000'0000'0000'0000'0000,
+    .bits = 0b1101'0101'0001'0000'0000'0000'0000'0000,
 };
 
 constexpr uint32_t sysreg(uint32_t op0, uint32_t op1, uint32_t CRn,
@@ -393,7 +399,7 @@ constexpr uint32_t sysreg(uint32_t op0, uint32_t op1, uint32_t CRn,
   assert(op0 < 4);
   assert(op1 < 8);
   assert(CRn < 16);
-  assert(CRn < 16);
+  assert(CRm < 16);
   assert(op2 < 8);
   return op0 << 19 | op1 << 16 | CRn << 12 | CRm << 8 | op2 << 5;
 }
@@ -404,6 +410,9 @@ constexpr uint32_t kBannedSysregs[] = {
     // CNTP_TVAL_EL0 - older versions of QEMU do not control access to this
     // register so we need to explicitly ban it.
     sysreg(0b11, 0b011, 0b1110, 0b0010, 0b000),
+    // CNTV_TVAL_EL0 - older versions of QEMU do not control access to this
+    // register so we need to explicitly ban it.
+    sysreg(0b11, 0b011, 0b1110, 0b0011, 0b000),
 };
 
 constexpr bool InstructionIsOK(uint32_t insn) {

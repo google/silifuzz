@@ -51,6 +51,8 @@ TEST(StaticInsnFilter, SystemRegister) {
   // Banned because some versions of QEMU fail to control access.
   // mrs    x28, cntp_tval_el0
   EXPECT_AARCH64_FILTER_REJECT({0xd53be21c});
+  // mrs     x0, cntv_tval_el0
+  EXPECT_AARCH64_FILTER_REJECT({0xd53be300});
 }
 
 TEST(StaticInsnFilter, LDXRB) {
