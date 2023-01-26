@@ -85,8 +85,7 @@ SnapshotPartition::SnapshotPartition(
     size_t num_groups, SnapshotGroup::ConflictResolution conflict_resolution,
     const MappedMemoryMap& conflict_mapped_memory) {
   for (size_t i = 0; i < num_groups; ++i) {
-    snapshot_groups_.push_back(
-        SnapshotGroup(conflict_resolution, conflict_mapped_memory));
+    snapshot_groups_.emplace_back(conflict_resolution, conflict_mapped_memory);
   }
 }
 
