@@ -72,6 +72,7 @@ class ResultCollector {
   Summary summary_ = {};
   absl::Time start_time_;
   std::string session_id_;
+  uint64_t max_rss_kb_ = 0;
 };
 
 }  // namespace silifuzz

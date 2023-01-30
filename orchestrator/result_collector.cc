@@ -20,9 +20,9 @@
 
 #include <algorithm>
 #include <cerrno>
-#include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "google/protobuf/duration.pb.h"
 #include "google/protobuf/timestamp.pb.h"
@@ -35,6 +35,7 @@
 #include "absl/time/time.h"
 #include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"
+#include "./orchestrator/orchestrator_util.h"
 #include "./player/player_result_proto.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/corpus_metadata.pb.h"
@@ -52,6 +53,7 @@ ABSL_FLAG(bool, report_runaways_as_errors, false,
 
 namespace silifuzz {
 namespace {
+
 google::protobuf::Timestamp TimeToProto(absl::Time t) {
   const int64_t s = absl::ToUnixSeconds(t);
   google::protobuf::Timestamp timestamp;
@@ -143,17 +145,13 @@ void LogV1SingleSnapFailure(const RunnerDriver::RunResult &run_result) {
 
 // Logs V1-style summary e.g.
 // Silifuzz Checker Result:{issues_detected ... }
-void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed) {
+void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
+                        uint64_t max_rss_kb) {
   static bool enable_v1_compat_logging =
       absl::GetFlag(FLAGS_enable_v1_compat_logging);
   if (!enable_v1_compat_logging) return;
   absl::Duration user_time = absl::ZeroDuration(),
                  sys_time = absl::ZeroDuration();
-  uint64_t max_rss_kb = 0;
-  if (absl::Status s = GetRUsage(&user_time, &sys_time, &max_rss_kb); !s.ok()) {
-    LOG_ERROR(s.message());
-    return;
-  }
 
   // The ? fields are irrelevant/not consumed by anyone.
   std::cerr << "Silifuzz Checker Result:{"
@@ -187,6 +185,7 @@ void ResultCollector::operator()(const RunnerDriver::RunResult &result) {
       absl::GetFlag(FLAGS_report_runaways_as_errors);
 
   ++summary_.play_count;
+  max_rss_kb_ = std::max(max_rss_kb_, MaxRunnerRssSizeBytes(getpid()) / 1024);
   if (!result.success()) {
     if (result.player_result().outcome ==
         snapshot_types::PlaybackOutcome::kExecutionRunaway) {
@@ -214,7 +213,8 @@ void ResultCollector::LogSummary(bool always) {
   absl::Time now = absl::Now();
   if (always || now > last_summary_log_time_ + log_interval_) {
     LogV1CompatSummary(summary_,
-                       absl::Trunc(now - start_time_, absl::Seconds(1)));
+                       absl::Trunc(now - start_time_, absl::Seconds(1)),
+                       max_rss_kb_);
     last_summary_log_time_ = now;
     log_interval_ = std::min(log_interval_ * 2, absl::Minutes(1));
   }

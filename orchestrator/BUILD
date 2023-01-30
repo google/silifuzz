@@ -83,6 +83,7 @@ cc_library(
     hdrs = ["result_collector.h"],
     deps = [
         ":binary_log_channel",
+        ":orchestrator_util",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//player:player_result_proto",
         "@silifuzz//proto:binary_log_entry_cc_proto",
@@ -118,6 +119,31 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/time",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "orchestrator_util",
+    srcs = ["orchestrator_util.cc"],
+    hdrs = ["orchestrator_util.h"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "orchestrator_util_test",
+    srcs = ["orchestrator_util_test.cc"],
+    deps = [
+        ":orchestrator_util",
+        "@silifuzz//util:subprocess",
+        "@silifuzz//util/testing:status_macros",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

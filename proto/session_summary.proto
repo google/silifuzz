@@ -26,8 +26,7 @@ message ResourceUsage {
   // System CPU time used according to getrusage(2).
   google.protobuf.Duration system_time = 2;
 
-  // Maximum resident set size of a single _largest_ runner process as reported
-  // by getrusage(RUSAGE_CHILDREN).
+  // Maximum observed resident set size of a single _largest_ runner process.
   uint64 max_rss_kb = 3;
 }
 
