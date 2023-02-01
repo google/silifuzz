@@ -57,6 +57,9 @@ TEST(OrchestratorUtil, ProcessStatm) {
 }
 
 TEST(OrchestratorUtil, MaxRunnerRssSizeBytes) {
+#if defined(ABSL_HAVE_THREAD_SANITIZER)
+  GTEST_SKIP() << "This test does not work under TSAN";
+#endif
   Subprocess s;
   ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
   EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), "sleep"), 0);
