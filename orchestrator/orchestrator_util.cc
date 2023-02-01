@@ -86,13 +86,6 @@ absl::StatusOr<Statm> ProcessStatm(pid_t pid) {
   ifs.close();
   statm.vm_size_bytes *= page_size;
   statm.rss_bytes *= page_size;
-  //
-  path = absl::StrCat("/proc/", pid, "/cmdline");
-  ifs.open(path);
-  if (!ifs.good()) return absl::NotFoundError(path);
-  std::string line;
-  std::getline(ifs, line);
-  ifs.close();
   return statm;
 }
 
