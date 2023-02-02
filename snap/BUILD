@@ -37,7 +37,6 @@ cc_library_plus_nolibc(
     hdrs = ["exit_sequence.h"],
     deps = [
         "@silifuzz//util:arch",
-        "@silifuzz//util:cache",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",
         "@silifuzz//util/ucontext:ucontext_types",

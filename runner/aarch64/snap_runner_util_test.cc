@@ -23,7 +23,6 @@
 
 #include "absl/base/macros.h"
 #include "./snap/exit_sequence.h"
-#include "./util/cache.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/nolibc_gunit.h"
@@ -53,7 +52,8 @@ TEST(SnapRunnerUtil, BasicTest) {
   size_t exit_sequence_size = WriteSnapExitSequence<AArch64>(
       reinterpret_cast<uint8_t*>(code_page) + code_size);
   CHECK_EQ(exit_sequence_size, GetSnapExitSequenceSize<AArch64>());
-  sync_instruction_cache(code_page, code_size + exit_sequence_size);
+  // mprotect should sync the data cache and invalidate the instruction cache as
+  // needed. No need to do it explicitly.
   CHECK_EQ(mprotect(code_page, kPageSize, PROT_EXEC | PROT_READ), 0);
 
   // Allocate stack page.

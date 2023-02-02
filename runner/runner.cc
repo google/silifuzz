@@ -36,7 +36,6 @@
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/snap.h"
-#include "./util/cache.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
 #include "./util/itoa.h"
@@ -241,11 +240,8 @@ void SetupReadOnlySnapContents(const Snap& snap) {
       VLOG_INFO(2, "mprotect mapping ", HexStr(start_address));
       DCHECK_LE(start_address, start_address + memory_mapping.num_bytes);
       void* target_address = AsPtr(start_address);
-      // If the page is executable, sync the icache so it is coherent with the
-      // data we just wrote.
-      if (memory_mapping.perms & PROT_EXEC) {
-        sync_instruction_cache(target_address, memory_mapping.num_bytes);
-      }
+      // mprotect should sync the data cache and invalidate the instruction
+      // cache as needed. No need to do it explicitly.
       int mprotect_result = mprotect(target_address, memory_mapping.num_bytes,
                                      memory_mapping.perms);
       if (mprotect_result != 0) {

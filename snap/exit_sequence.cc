@@ -20,7 +20,6 @@
 #include <cstdint>
 
 #include "./util/arch.h"
-#include "./util/cache.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
@@ -32,8 +31,9 @@ void InitSnapExit(void (*reentry_address)()) {
                               kPageSize, PROT_READ | PROT_WRITE,
                               MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED, -1, 0);
   CHECK_NE(snap_exit_page, MAP_FAILED);
-  size_t size = WriteSnapExitThunk<Host>(reentry_address, snap_exit_page);
-  sync_instruction_cache(snap_exit_page, size);
+  WriteSnapExitThunk<Host>(reentry_address, snap_exit_page);
+  // mprotect should sync the data cache and invalidate the instruction cache as
+  // needed. No need to do it explicitly.
   CHECK_EQ(mprotect(snap_exit_page, kPageSize, PROT_EXEC | PROT_READ), 0);
 }
 

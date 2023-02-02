@@ -21,7 +21,6 @@
 #include <cstdint>
 
 #include "./util/arch.h"
-#include "./util/cache.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
 #include "./util/ucontext/ucontext_types.h"

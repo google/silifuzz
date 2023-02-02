@@ -104,7 +104,6 @@ cc_test_nolibc(
     deps = [
         ":snap_runner_util",
         "@silifuzz//snap:exit_sequence",
-        "@silifuzz//util:cache",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
@@ -165,7 +164,6 @@ cc_library_nolibc(
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:atoi",
         "@silifuzz//util:byte_io",
-        "@silifuzz//util:cache",
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:itoa",
