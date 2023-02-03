@@ -24,6 +24,7 @@ cc_binary(
     srcs = ["silifuzz_orchestrator_main.cc"],
     deps = [
         ":corpus_util",
+        ":orchestrator_util",
         ":result_collector",
         ":silifuzz_orchestrator",
         "@silifuzz//proto:corpus_metadata_cc_proto",
@@ -128,7 +129,9 @@ cc_library(
     srcs = ["orchestrator_util.cc"],
     hdrs = ["orchestrator_util.h"],
     deps = [
+        ":corpus_util",
         "@silifuzz//util:checks",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -137,9 +140,13 @@ cc_library(
 
 cc_test(
     name = "orchestrator_util_test",
+    size = "medium",
     srcs = ["orchestrator_util_test.cc"],
+    # dd if=/dev/zero of=/dev/stdout bs=1024 count=1024 | xz -9 > testdata/one_mb_of_zeros.xz
+    data = ["testdata/one_mb_of_zeros.xz"],
     deps = [
         ":orchestrator_util",
+        "@silifuzz//util:data_dependency",
         "@silifuzz//util:subprocess",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",

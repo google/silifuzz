@@ -23,6 +23,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "./util/data_dependency.h"
 #include "./util/subprocess.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
@@ -30,9 +31,12 @@
 namespace silifuzz {
 namespace {
 using ::silifuzz::testing::IsOk;
+using ::silifuzz::testing::IsOkAndHolds;
 using ::silifuzz::testing::StatusIs;
 using ::testing::ElementsAre;
+using ::testing::Gt;
 using ::testing::IsEmpty;
+using ::testing::SizeIs;
 
 TEST(OrchestratorUtil, ListChildrenPids) {
   EXPECT_THAT(ListChildrenPids(getpid()), IsEmpty());
@@ -64,6 +68,34 @@ TEST(OrchestratorUtil, MaxRunnerRssSizeBytes) {
   ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
   EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), "sleep"), 0);
   kill(s.pid(), SIGKILL);
+}
+
+TEST(OrchestratorUtil, AvailableMemoryMb) {
+  EXPECT_THAT(AvailableMemoryMb(), IsOkAndHolds(Gt(0)));
+}
+
+TEST(OrchestratorUtil, CapShardsToMemLimit) {
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  std::vector<std::string> shards{1, shard};
+  absl::StatusOr<std::vector<std::string>> capped_shards =
+      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
+  EXPECT_THAT(capped_shards, IsOkAndHolds(shards));
+
+  shards.resize(10, shard);
+  capped_shards =
+      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
+  EXPECT_THAT(capped_shards, IsOkAndHolds(shards));
+
+  shards.resize(100, shard);
+  capped_shards =
+      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
+  EXPECT_THAT(capped_shards, IsOkAndHolds(SizeIs(10)));
+
+  shards.resize(1, shard);
+  capped_shards =
+      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 0, 1);
+  EXPECT_THAT(capped_shards, StatusIs(absl::StatusCode::kResourceExhausted));
 }
 
 }  // namespace

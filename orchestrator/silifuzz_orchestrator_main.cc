@@ -41,6 +41,7 @@
 #include <errno.h>
 #include <sched.h>
 #include <stddef.h>
+#include <unistd.h>
 
 #include <csignal>
 #include <cstdlib>
@@ -60,10 +61,12 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/numbers.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./orchestrator/corpus_util.h"
+#include "./orchestrator/orchestrator_util.h"
 #include "./orchestrator/result_collector.h"
 #include "./orchestrator/silifuzz_orchestrator.h"
 #include "./proto/corpus_metadata.pb.h"
@@ -106,6 +109,13 @@ ABSL_FLAG(std::string, orchestrator_version, "",
 ABSL_FLAG(absl::Duration, watchdog_allowed_overrun, absl::ZeroDuration(),
           "When > 0, a watchdog thread will terminate this process after "
           "exceeding duration+overrun");
+ABSL_FLAG(
+    std::string, limit_memory_usage_mb, "unlimited",
+    "How much memory (in Mb) can the scanning process use. The default is "
+    "unlimited. When set, the orchestrator will _try to_ limit the memory "
+    "usage of itself + all the runner processes by loading just a random "
+    "fraction of the shards. A special value `auto` can be used to "
+    "automatically determine the amount of free memory from /proc/meminfo");
 
 namespace silifuzz {
 
@@ -319,6 +329,38 @@ int main(int argc, char **argv) {
         << "At least one corpus file must be listed in the shard_file_list"
         << std::endl;
     return EXIT_FAILURE;
+  }
+
+  std::string limit_memory_usage_mb =
+      absl::GetFlag(FLAGS_limit_memory_usage_mb);
+  if (limit_memory_usage_mb != "unlimited") {
+    int64_t limit_memory_usage_mb_as_int = 0;
+    if (limit_memory_usage_mb == "auto") {
+      if (auto v = silifuzz::AvailableMemoryMb(); !v.ok()) {
+        LOG_ERROR("Failed to get available memory: ", v.status().message());
+        return EXIT_FAILURE;
+      } else {
+        // Apply 0.8 fudge factor such that we don't consume all the available
+        // memory.
+        limit_memory_usage_mb_as_int = *v * 0.8;
+      }
+    } else if (!absl::SimpleAtoi(limit_memory_usage_mb,
+                                 &limit_memory_usage_mb_as_int)) {
+      LOG_ERROR("Failed to parse: ", limit_memory_usage_mb);
+      return EXIT_FAILURE;
+    }
+    uint64_t max_cpus = absl::GetFlag(FLAGS_max_cpus);
+    if (max_cpus == 0) {
+      max_cpus = silifuzz::AvailableCpus().size();
+    }
+    absl::StatusOr<std::vector<std::string>> capped_shards =
+        silifuzz::CapShardsToMemLimit(shards, limit_memory_usage_mb_as_int,
+                                      max_cpus);
+    if (!capped_shards.ok()) {
+      LOG_ERROR(capped_shards.status().message());
+      return EXIT_FAILURE;
+    }
+    shards = std::move(*capped_shards);
   }
   // Collect runner arguments.
   std::vector<std::string> runner_extra_argv;
