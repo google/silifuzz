@@ -72,8 +72,7 @@ google::protobuf::Duration DurationToProto(absl::Duration d) {
   return proto;
 }
 
-absl::Status GetRUsage(absl::Duration *user_time, absl::Duration *sys_time,
-                       uint64_t *max_rss_kb) {
+absl::Status GetRUsage(absl::Duration *user_time, absl::Duration *sys_time) {
   struct rusage rusage = {};
   if (getrusage(RUSAGE_CHILDREN, &rusage) == -1) {
     return absl::ErrnoToStatus(errno, "getrusage()");
@@ -82,7 +81,6 @@ absl::Status GetRUsage(absl::Duration *user_time, absl::Duration *sys_time,
       absl::Trunc(absl::DurationFromTimeval(rusage.ru_utime), absl::Seconds(1));
   *sys_time =
       absl::Trunc(absl::DurationFromTimeval(rusage.ru_stime), absl::Seconds(1));
-  *max_rss_kb = rusage.ru_maxrss;
   return absl::OkStatus();
 }
 
@@ -152,6 +150,10 @@ void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
   if (!enable_v1_compat_logging) return;
   absl::Duration user_time = absl::ZeroDuration(),
                  sys_time = absl::ZeroDuration();
+  if (absl::Status s = GetRUsage(&user_time, &sys_time); !s.ok()) {
+    LOG_ERROR(s.message());
+    return;
+  }
 
   // The ? fields are irrelevant/not consumed by anyone.
   std::cerr << "Silifuzz Checker Result:{"
@@ -232,12 +234,11 @@ absl::Status ResultCollector::LogSessionSummary(
   *entry.mutable_timestamp() = TimeToProto(now);
   absl::Duration user_time = absl::ZeroDuration();
   absl::Duration sys_time = absl::ZeroDuration();
-  uint64_t max_rss_kb = 0;
-  RETURN_IF_NOT_OK(GetRUsage(&user_time, &sys_time, &max_rss_kb));
+  RETURN_IF_NOT_OK(GetRUsage(&user_time, &sys_time));
   auto ru = entry.mutable_session_summary()->mutable_resource_usage();
   *ru->mutable_user_time() = DurationToProto(user_time);
   *ru->mutable_system_time() = DurationToProto(sys_time);
-  ru->set_max_rss_kb(max_rss_kb);
+  ru->set_max_rss_kb(max_rss_kb_);
 
   auto playback_summary =
       entry.mutable_session_summary()->mutable_playback_summary();
