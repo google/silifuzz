@@ -66,7 +66,7 @@ TEST(OrchestratorUtil, MaxRunnerRssSizeBytes) {
 #endif
   Subprocess s;
   ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
-  EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), "sleep"), 0);
+  EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), ""), 0);
   kill(s.pid(), SIGKILL);
 }
 
