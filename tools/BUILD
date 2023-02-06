@@ -16,8 +16,6 @@
 #   Various helper tools for Silifuzz.
 #   Particularly, snap_toop is the swiss-army-knife for Silifuzz snapshots.
 
-load("//releasetools/build_defs:release.bzl", "release_binary_mpm")
-
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
