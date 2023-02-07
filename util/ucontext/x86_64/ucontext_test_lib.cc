@@ -412,10 +412,13 @@ void TestUContextVarious() {
   // -- the latter only saves these:
   if (DEBUG_MODE) {
     LOG_INFO("libc_ucontext FP registers vs ucontext:");
-    // Layout should be the same since they are both based on fxstore64.
-    LogFPRegs(
-        *reinterpret_cast<FPRegSet<X86_64>*>(libc_ucontext.uc_mcontext.fpregs),
-        false, &ucontext.fpregs, true);
+    // Layout should be the same since they are both based on fxrstor but
+    // the alignment may be different. FPRegSet<X86_64> is 16-aligned as
+    // required by fxrstor but there's no such guarantee for the libc' struct
+    // so resort to memcpy.
+    FPRegSet<X86_64> fpregs;
+    memcpy(&fpregs, libc_ucontext.uc_mcontext.fpregs, sizeof(fpregs));
+    LogFPRegs(fpregs, false, &ucontext.fpregs, true);
   }
   EXPECT_EQ(ucontext.fpregs.fcw, libc_ucontext.uc_mcontext.fpregs->cwd);
   if (0) {
