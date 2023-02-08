@@ -7,61 +7,59 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
 # Bazel Skylib (transitively required by com_google_absl).
 ###############################################################################
 
-skylib_ver = "1.2.1"
-
 http_archive(
     name = "bazel_skylib",
-    sha256 = "f7be3474d42aae265405a592bb7da8e171919d74c16f082a5457840f06054728",
-    url = "https://github.com/bazelbuild/bazel-skylib/releases/download/%s/bazel-skylib-%s.tar.gz" % (skylib_ver, skylib_ver),
+    sha256 = "f24ab666394232f834f74d19e2ff142b0af17466ea0c69a3f4c276ee75f6efce",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.0/bazel-skylib-1.4.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.0/bazel-skylib-1.4.0.tar.gz",
+    ],
 )
+
+load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
+
+bazel_skylib_workspace()
 
 ###############################################################################
 # C++ build rules
 # Configure the bootstrapped Clang and LLVM toolchain for Bazel.
 ###############################################################################
 
-rules_cc_ver = "262ebec3c2296296526740db4aefce68c80de7fa"
-
 http_archive(
     name = "rules_cc",
-    sha256 = "9a446e9dd9c1bb180c86977a8dc1e9e659550ae732ae58bd2e8fd51e15b2c91d",
-    strip_prefix = "rules_cc-%s" % rules_cc_ver,
-    url = "https://github.com/bazelbuild/rules_cc/archive/%s.zip" % rules_cc_ver,
+    sha256 = "2004c71f3e0a88080b2bd3b6d3b73b4c597116db9c9a36676d0ffad39b849214",
+    strip_prefix = "rules_cc-0.0.5",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.5/rules_cc-0.0.5.tar.gz"],
 )
 
 ###############################################################################
 # Abseil
 ###############################################################################
 
-#abseil_ref = "tags"
-#abseil_ver = "20220623.0"
+abseil_ref = "refs/tags"
+
+abseil_ver = "20230125.0"
 
 # Use these values to get the tip of the master branch:
-# abseil_ref = "heads"
+# abseil_ref = "refs/heads"
 # abseil_ver = "master"
-abseil_ver = "92fdbfb301f8b301b28ab5c99e7361e775c2fb8a"
 
 http_archive(
     name = "com_google_absl",
-    sha256 = "71d38c5f44997a5ccbc338f904c8682b40c25cad60b9cbaf27087a917228d5fa",
+    sha256 = "3ea49a7d97421b88a8c48a0de16c16048e17725c7ec0f1d3ea2683a2a75adc21",
     strip_prefix = "abseil-cpp-%s" % abseil_ver,
-    # TODO(ksteuck): Switch back to fetching a tag once there's one with logging.
-    #url = "https://github.com/abseil/abseil-cpp/archive/refs/%s/%s.tar.gz" % (abseil_ref, abseil_ver),
-    url = "https://github.com/abseil/abseil-cpp/archive/%s.tar.gz" % abseil_ver,
+    url = "https://github.com/abseil/abseil-cpp/archive/%s/%s.tar.gz" % (abseil_ref, abseil_ver),
 )
 
 ###############################################################################
 # GoogleTest/GoogleMock
 ###############################################################################
 
-# Version as of 2021-12-07.
-googletest_ver = "4c5650f68866e3c2e60361d5c4c95c6f335fb64b"
-
 http_archive(
     name = "com_google_googletest",
-    sha256 = "770e61fa13d51320736c2881ff6279212e4eab8a9100709fff8c44759f61d126",
-    strip_prefix = "googletest-%s" % googletest_ver,
-    url = "https://github.com/google/googletest/archive/%s.tar.gz" % googletest_ver,
+    sha256 = "ad7fdba11ea011c1d925b3289cf4af2c66a352e18d4c7264392fead75e919363",
+    strip_prefix = "googletest-1.13.0",
+    url = "https://github.com/google/googletest/archive/refs/tags/v1.13.0.tar.gz",
 )
 
 ###############################################################################
@@ -72,9 +70,9 @@ http_archive(
 # This statement defines the @com_google_protobuf repo.
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "85d42d4485f36f8cec3e475a3b9e841d7d78523cd775de3a86dba77081f4ca25",
-    strip_prefix = "protobuf-3.21.4",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.4.tar.gz"],
+    sha256 = "930c2c3b5ecc6c9c12615cf5ad93f1cd6e12d0aba862b572e076259970ac3a53",
+    strip_prefix = "protobuf-3.21.12",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v3.21.12.tar.gz"],
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
