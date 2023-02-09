@@ -17,10 +17,7 @@
 
 licenses(["notice"])
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 cc_binary(
     name = "silifuzz_orchestrator_main",

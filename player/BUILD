@@ -16,10 +16,7 @@
 #   Libraries and binaries for different variants/components of the snapshot
 #   player.
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

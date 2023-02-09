@@ -19,10 +19,7 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 licenses(["notice"])
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 bzl_library(
     name = "build_defs",

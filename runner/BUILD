@@ -29,10 +29,7 @@ load(
     "SILIFUZZ_RUNNER_BASE_ADDRESS",
 )
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

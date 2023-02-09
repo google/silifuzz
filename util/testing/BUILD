@@ -15,10 +15,7 @@
 # Description: absl::Status matchers for GoogleTest. This is a fork of
 # Tensorflow's StatusMatchers code.
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

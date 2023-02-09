@@ -18,10 +18,7 @@
 #   entities and not manipulating the internals of snapshots, which are handled
 #   by various libraries in silifuzz/common/
 
-package(
-    default_applicable_licenses = ["//third_party/silifuzz:license"],
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
