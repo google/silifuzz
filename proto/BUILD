@@ -18,7 +18,10 @@
 
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/silifuzz:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 licenses(["notice"])
 

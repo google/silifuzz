@@ -14,7 +14,10 @@
 
 # Library to drive a single SiliFuzz v2 runner binary.
 #
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/silifuzz:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 licenses(["notice"])
 

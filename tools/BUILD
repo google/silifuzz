@@ -16,7 +16,10 @@
 #   Various helper tools for Silifuzz.
 #   Particularly, snap_toop is the swiss-army-knife for Silifuzz snapshots.
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/silifuzz:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 licenses(["notice"])
 

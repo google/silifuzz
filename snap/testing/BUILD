@@ -21,7 +21,10 @@ load(
     "cc_library_plus_nolibc",
 )
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//third_party/silifuzz:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 licenses(["notice"])
 
