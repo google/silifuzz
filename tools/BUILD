@@ -149,6 +149,7 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//snap/gen:relocatable_snap_generator",
+        "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//tool_libs:corpus_partitioner_lib",
         "@silifuzz//tool_libs:fix_tool_common",
         "@silifuzz//tool_libs:simple_fix_tool_counters",

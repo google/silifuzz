@@ -33,6 +33,7 @@
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"
+#include "./snap/gen/snap_generator.h"
 #include "./tool_libs/corpus_partitioner_lib.h"
 #include "./tool_libs/fix_tool_common.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
@@ -91,6 +92,13 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     const FixupSnapshotOptions options;
     auto remade_snapshot_or =
         FixupSnapshot(snapshot.value(), options, &platform_counters);
+    if (!remade_snapshot_or.ok()) {
+      continue;
+    }
+    // Snaps need to be snapified before GenerateRelocatableSnaps.
+    // If they are not, executable pages may not be RLE compressed.
+    remade_snapshot_or =
+        Snapify(remade_snapshot_or.value(), SnapifyOptions::V2InputRunOpts());
     if (!remade_snapshot_or.ok()) {
       continue;
     }
