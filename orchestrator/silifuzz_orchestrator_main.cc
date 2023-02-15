@@ -186,6 +186,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
 
   const absl::Time start_time = absl::Now();
   absl::Time deadline = start_time + absl::GetFlag(FLAGS_duration);
+
   // Load corpora and exit if there is any error.
   // File descriptors of the uncompressed corpora are kept open
   // until corpus_fds goes out of scope.
@@ -330,6 +331,7 @@ int main(int argc, char **argv) {
         << std::endl;
     return EXIT_FAILURE;
   }
+  const int total_shards = shards.size();
 
   std::string limit_memory_usage_mb =
       absl::GetFlag(FLAGS_limit_memory_usage_mb);
@@ -367,6 +369,10 @@ int main(int argc, char **argv) {
   for (size_t i = 1; i < remaining_args.size(); ++i) {
     runner_extra_argv.push_back(remaining_args[i]);
   }
+
+  LOG_INFO("AVAIL MEM: ", silifuzz::AvailableMemoryMb().value_or(0),
+           " LOADABLE SHARDS: ", shards.size(), " TOTAL SHARDS: ", total_shards,
+           " CPUS: ", silifuzz::AvailableCpus().size());
 
   return silifuzz::OrchestratorMain(shards, runner, runner_extra_argv);
 }
