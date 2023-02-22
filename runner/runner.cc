@@ -217,38 +217,50 @@ void InstallSigHandler() {
   }
 }
 
-// Sets up read-only contents of 'snap'. This copies all memory bytes of 'snap'
-// that are located in read-only memory regions and then mprotects all pages
-// in read-only mappings.
-// REQUIRES: all pages in read-only mappings must be mapped with write
-// permission.
-void SetupReadOnlySnapContents(const Snap& snap) {
-  VLOG_INFO(2, "Setting up r/o content for ", snap.id);
-  // Copy read-only memory contents.
-  for (const auto& memory_bytes : snap.memory_bytes) {
-    if (!memory_bytes.writable()) {
-      // TODO(ksteuck): [bug] This MemCopy segfaults if two snaps map the same
-      // read-only page.
+void CreateMemoryMapping(const Snap::MemoryMapping& memory_mapping) {
+  const uint64_t start_address = memory_mapping.start_address;
+  VLOG_INFO(2, "Mapping ", HexStr(start_address));
+
+  // Make the initial mapping.
+  void* target_address = AsPtr(start_address);
+  void* mapped_address =
+      mmap(target_address, memory_mapping.num_bytes, kInitialMappingProtection,
+           MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+  if (mapped_address == MAP_FAILED) {
+    LOG_FATAL("mmap(", HexStr(AsInt(target_address)),
+              ") failed: ", ErrnoStr(errno));
+  }
+  if (mapped_address != target_address) {
+    LOG_FATAL("mmap failed: got ", HexStr(AsInt(mapped_address)), " want ",
+              HexStr(AsInt(target_address)));
+  }
+
+  // Initialize the contents of the mapping.
+  // We will always initialize writeable mappings before the snap runs, so we
+  // only setup read-only mappings here.
+  if (!memory_mapping.writable()) {
+    for (const auto& memory_bytes : memory_mapping.memory_bytes) {
       SetupMemoryBytes(memory_bytes);
     }
   }
 
-  // mprotect all pages that are something other than RW.
-  for (const auto& memory_mapping : snap.memory_mappings) {
-    if (memory_mapping.perms != kInitialMappingProtection) {
-      const uint64_t start_address = memory_mapping.start_address;
-      VLOG_INFO(2, "mprotect mapping ", HexStr(start_address));
-      DCHECK_LE(start_address, start_address + memory_mapping.num_bytes);
-      void* target_address = AsPtr(start_address);
-      // mprotect should sync the data cache and invalidate the instruction
-      // cache as needed. No need to do it explicitly.
-      int mprotect_result = mprotect(target_address, memory_mapping.num_bytes,
-                                     memory_mapping.perms);
-      if (mprotect_result != 0) {
-        LOG_FATAL("mprotect(", HexStr(AsInt(target_address)),
-                  ") failed: ", ErrnoStr(errno));
-      }
+  // Set the final protections.
+  if (memory_mapping.perms != kInitialMappingProtection) {
+    VLOG_INFO(2, "mprotect mapping ", HexStr(start_address));
+    // mprotect should sync the data cache and invalidate the instruction
+    // cache as needed. No need to do it explicitly.
+    int mprotect_result = mprotect(target_address, memory_mapping.num_bytes,
+                                   memory_mapping.perms);
+    if (mprotect_result != 0) {
+      LOG_FATAL("mprotect(", HexStr(AsInt(target_address)),
+                ") failed: ", ErrnoStr(errno));
     }
+  }
+}
+
+void MapSnap(const Snap& snap) {
+  for (const auto& memory_mapping : snap.memory_mappings) {
+    CreateMemoryMapping(memory_mapping);
   }
 }
 
@@ -304,12 +316,6 @@ void MapCorpus(const SnapCorpus& corpus) {
   }
   ApplyProcMapsFixups(proc_maps_entries, num_proc_maps_entries);
 
-  // Set up memory mappings and read-only memory contents.
-  // This is a two-pass process. First, we map all memory pages with write
-  // permission. Then for each snap, we copy read-only contents to memory and
-  // then protect the read-only pages afterwards.  If there are any conflicting
-  // read-only mappings between two snaps, we will get a SEGV fault we write
-  // read-only contents of the second snap.
   VLOG_INFO(1, "Creating memory mappings");
   for (const auto& snap : corpus.snaps) {
     // TODO(dougkwan): [impl] Make this fail more gracefully. We can skip
@@ -321,33 +327,15 @@ void MapCorpus(const SnapCorpus& corpus) {
                                         num_proc_maps_entries)) {
       LOG_FATAL("Cannot handle overlapping mappings");
     }
-
-    // Maps all pages used by this snap.
-    for (const auto& memory_mapping : snap->memory_mappings) {
-      const uint64_t start_address = memory_mapping.start_address;
-      VLOG_INFO(2, "Mapping ", HexStr(start_address));
-      DCHECK_LE(start_address, start_address + memory_mapping.num_bytes);
-
-      void* target_address = AsPtr(start_address);
-      void* mapped_address = mmap(
-          target_address, memory_mapping.num_bytes, kInitialMappingProtection,
-          MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-      if (mapped_address == MAP_FAILED) {
-        LOG_FATAL("mmap(", HexStr(AsInt(target_address)),
-                  ") failed: ", ErrnoStr(errno));
-      }
-      if (mapped_address != target_address) {
-        LOG_FATAL("mmap failed: got ", HexStr(AsInt(mapped_address)), " want ",
-                  HexStr(AsInt(target_address)));
-      }
-    }
+    // If any of these memory mappings overlap, the mapping earlier in this list
+    // will be silently overwritten by the mapping later in this list.
+    // Currently, the corpus creator should avoid overlaping RO pages, but there
+    // may be zero-initialized RW pages that overlap between snaps. The most
+    // obvious case will be that most Snaps will have stacks mapped in exactly
+    // the same location.
+    MapSnap(*snap);
   }
   VLOG_INFO(1, "Done creating memory mappings");
-
-  // Second pass: Copy read-only contents and then protect read-only pages.
-  for (const auto& snap : corpus.snaps) {
-    SetupReadOnlySnapContents(*snap);
-  }
 }
 
 RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
@@ -367,7 +355,6 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
 
   // Verify writable memory contents after execution.
   for (const auto& memory_bytes : snap.end_state_memory_bytes) {
-    CHECK(memory_bytes.writable());
     if (!VerifyMemoryBytes(memory_bytes)) {
       VLOG_INFO(1, "Memory mismatch at ", HexStr(memory_bytes.start_address));
       return RunSnapOutcome::kMemoryMismatch;
@@ -379,10 +366,12 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
 
 // Copies read/writable memory contents needed to run the snap.
 void PrepareSnapMemory(const Snap& snap) {
-  for (const auto& memory_bytes : snap.memory_bytes) {
-    // Read-only contents are set up in runner initialization.
-    if (memory_bytes.writable()) {
-      SetupMemoryBytes(memory_bytes);
+  for (const auto& memory_mapping : snap.memory_mappings) {
+    // Read-only contents will not have changed.
+    if (memory_mapping.writable()) {
+      for (const auto& memory_bytes : memory_mapping.memory_bytes) {
+        SetupMemoryBytes(memory_bytes);
+      }
     }
   }
 }
@@ -406,18 +395,18 @@ RunSnapResult RunSnap(const Snap& snap) {
 void LogSnapMemoryBytes(const Snap& snap,
                         class TextProtoPrinter::Message& end_state_m) {
   const size_t kPageSize = getpagesize();
-  for (const auto& memory_bytes : snap.memory_bytes) {
-    if (!memory_bytes.writable()) {
+  for (const auto& memory_mapping : snap.memory_mappings) {
+    if (!memory_mapping.writable()) {
       continue;
     }
     VLOG_INFO(2, "Logging memory bytes at ",
-              HexStr(memory_bytes.start_address));
+              HexStr(memory_mapping.start_address));
     // Convert the memory bytes to page-sized chunks to avoid overflowing
     // TextProtoPrinter::Bytes buffer which can only hold a page-ful of escaped
     // bytes. The consumer may choose to normalize.
     const char* start_address =
-        reinterpret_cast<const char*>(AsPtr(memory_bytes.start_address));
-    const char* limit_address = start_address + memory_bytes.size();
+        reinterpret_cast<const char*>(AsPtr(memory_mapping.start_address));
+    const char* limit_address = start_address + memory_mapping.num_bytes;
     for (; start_address < limit_address; start_address += kPageSize) {
       auto memory_bytes_m = end_state_m->Message("memory_bytes");
       size_t bytes_to_log =

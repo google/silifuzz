@@ -62,17 +62,6 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
   VerifyTestSnap(snapshot, snap, SnapifyOptions::Default());
 
-  // Check that there is a code page and it is read-only.
-  MappedMemoryMap code_mappings;
-  for (const auto& mapping : snap.memory_mappings) {
-    if (mapping.perms & PROT_EXEC) {
-      EXPECT_EQ(mapping.perms & PROT_WRITE, 0);
-      code_mappings.Add(mapping.start_address,
-                        mapping.start_address + mapping.num_bytes,
-                        MemoryPerms::FromMProtect(mapping.perms));
-    }
-  }
-  EXPECT_FALSE(code_mappings.IsEmpty());
   // Check that any memory bytes in list that overlap with [start, limit)
   // must 1) completely lie inside [start, limit) and 2) is not writable.
   auto validate_memory_bytes_list =
@@ -84,7 +73,6 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
           if (memory_bytes.start_address >= start &&
               memory_bytes_limit <= limit) {
             // memory bytes is completely inside [start,limit)
-            EXPECT_EQ(memory_bytes.perms & PROT_WRITE, 0);
           } else {
             // Check that memory byte is completely outside of [start,limit).
             EXPECT_TRUE(memory_bytes_limit <= start ||
@@ -93,16 +81,21 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
         }
       };
 
-  // Validate any memory bytes or end state memory bytes overlapping with
-  // this code mapping.
-  auto validate_one_code_mapping =
-      [&snap, &validate_memory_bytes_list](
-          Snapshot::Address start, Snapshot::Address limit, MemoryPerms perms) {
-        validate_memory_bytes_list(start, limit, snap.memory_bytes);
-        validate_memory_bytes_list(start, limit, snap.end_state_memory_bytes);
-      };
-
-  code_mappings.Iterate(validate_one_code_mapping);
+  // Check that there is a code page and it is read-only.
+  bool found_code = false;
+  for (const auto& mapping : snap.memory_mappings) {
+    if (mapping.perms & PROT_EXEC) {
+      EXPECT_EQ(mapping.perms & PROT_WRITE, 0);
+      validate_memory_bytes_list(mapping.start_address,
+                                 mapping.start_address + mapping.num_bytes,
+                                 mapping.memory_bytes);
+      validate_memory_bytes_list(mapping.start_address,
+                                 mapping.start_address + mapping.num_bytes,
+                                 snap.end_state_memory_bytes);
+      found_code = true;
+    }
+  }
+  EXPECT_TRUE(found_code);
 }
 
 TEST(SnapGenerator, Snapify) {

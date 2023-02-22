@@ -98,4 +98,55 @@ template absl::Status ConvertRegsFromSnapshot(
     const Snapshot::RegisterState& register_state, GRegSet<AArch64>* gregs,
     FPRegSet<AArch64>* fpregs);
 
+BorrowedMappingBytesList SplitBytesByMapping(
+    const Snapshot::MemoryMappingList& memory_mapping_list,
+    const Snapshot::MemoryBytesList& memory_byte_list) {
+  // Create a list for each mapping.
+  BorrowedMappingBytesList output{memory_mapping_list.size(),
+                                  BorrowedMemoryBytesList()};
+
+  // Assign each set of bytes to the corresponding mapping.
+  // Note: this is O(n*m) but the number of mappings should stay relatively
+  // low so doing something more optimal is not worth it at this point. Note:
+  // the memory bytes are the outer loop so we can make sure none of the
+  // memory bytes are lost.
+  for (const auto& bytes : memory_byte_list) {
+    bool found_mapping = false;
+    for (size_t i = 0; i < memory_mapping_list.size(); ++i) {
+      const Snapshot::MemoryMapping& mapping = memory_mapping_list[i];
+      // Check if the bytes are completely inside the mapping.
+      // Note: if, for some reason, the bytes are only partially inside a
+      // mapping, this will result in !found_mapping.
+      // Note: the following check is crafted to avoid overflow.
+      if (mapping.start_address() <= bytes.start_address() &&
+          bytes.start_address() - mapping.start_address() + bytes.num_bytes() <=
+              mapping.num_bytes()) {
+        // Borrow a reference from memory_byte_list.
+        output[i].push_back(&bytes);
+        found_mapping = true;
+        break;
+      }
+    }
+    if (!found_mapping) {
+      // TODO(ncbray): propagate this error rather than LOG_FATAL.
+      LOG_FATAL(
+          "Bytes do not fit in a mapping: ", HexStr(bytes.start_address()),
+          " + ", HexStr(bytes.num_bytes()));
+    }
+  }
+
+  return output;
+}
+
+BorrowedMemoryBytesList ToBorrowedMemoryBytesList(
+    const Snapshot::MemoryBytesList& memory_byte_list) {
+  BorrowedMemoryBytesList output;
+  output.reserve(memory_byte_list.size());
+  for (const auto& bytes : memory_byte_list) {
+    // Borrow a reference from memory_byte_list.
+    output.push_back(&bytes);
+  }
+  return output;
+}
+
 }  // namespace silifuzz

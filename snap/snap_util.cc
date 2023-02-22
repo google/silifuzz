@@ -59,12 +59,12 @@ absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
         m.start_address, m.num_bytes, MemoryPerms::FromMProtect(m.perms));
     RETURN_IF_NOT_OK(snapshot.can_add_memory_mapping(mapping));
     snapshot.add_memory_mapping(mapping);
-  }
-  for (const Snap::MemoryBytes& snap_mb : snap.memory_bytes) {
-    Snapshot::ByteData data = SnapMemoryBytesData(snap_mb);
-    Snapshot::MemoryBytes mb = {snap_mb.start_address, data};
-    RETURN_IF_NOT_OK(snapshot.can_add_memory_bytes(mb));
-    snapshot.add_memory_bytes(mb);
+    for (const Snap::MemoryBytes& snap_mb : m.memory_bytes) {
+      Snapshot::ByteData data = SnapMemoryBytesData(snap_mb);
+      Snapshot::MemoryBytes mb = {snap_mb.start_address, data};
+      RETURN_IF_NOT_OK(snapshot.can_add_memory_bytes(mb));
+      snapshot.add_memory_bytes(mb);
+    }
   }
   Snapshot::RegisterState rs =
       ConvertRegsToSnapshot(snap.registers->gregs, snap.registers->fpregs);

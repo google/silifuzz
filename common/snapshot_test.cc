@@ -291,5 +291,92 @@ TEST(MemoryBytes, Range) {
   EXPECT_EQ(middle.byte_values(), "ob");
 }
 
+TEST(SnapshotUtil, ToBorrowedMemoryByteListEmpty) {
+  Snapshot::MemoryBytesList bytes{};
+  BorrowedMemoryBytesList borrow = ToBorrowedMemoryBytesList(bytes);
+  ASSERT_THAT(borrow, ::testing::IsEmpty());
+}
+
+TEST(SnapshotUtil, ToBorrowedMemoryByteListData) {
+  Snapshot::MemoryBytesList bytes{
+      {42, "foo"},
+      {45, "bar"},
+      {48, "baz"},
+  };
+  BorrowedMemoryBytesList borrow = ToBorrowedMemoryBytesList(bytes);
+  ASSERT_EQ(bytes.size(), borrow.size());
+  for (size_t i = 0; i < bytes.size(); ++i) {
+    EXPECT_EQ(&bytes[i], borrow[i]);
+  }
+}
+
+TEST(SnapshotUtil, SplitBytesByMappingNoMappings) {
+  Snapshot::MemoryMappingList mappings{};
+  Snapshot::MemoryBytesList bytes{};
+  BorrowedMappingBytesList split = SplitBytesByMapping(mappings, bytes);
+  ASSERT_THAT(split, ::testing::IsEmpty());
+}
+
+TEST(SnapshotUtil, SplitBytesByMappingOneMappingNoData) {
+  Snapshot::MemoryMappingList mappings{
+      MemoryMapping::MakeSized(0, 4096, MemoryPerms::XR()),
+  };
+  Snapshot::MemoryBytesList bytes{};
+  BorrowedMappingBytesList split = SplitBytesByMapping(mappings, bytes);
+  ASSERT_EQ(split.size(), mappings.size());
+  for (const BorrowedMemoryBytesList& byte_list : split) {
+    EXPECT_THAT(byte_list, ::testing::IsEmpty());
+  }
+}
+
+TEST(SnapshotUtil, SplitBytesByMappingOneMappingOneData) {
+  Snapshot::MemoryMappingList mappings{
+      MemoryMapping::MakeSized(0, 4096, MemoryPerms::XR()),
+  };
+  Snapshot::MemoryBytesList bytes{{0, "test"}};
+  BorrowedMappingBytesList split = SplitBytesByMapping(mappings, bytes);
+  ASSERT_EQ(split.size(), mappings.size());
+  ASSERT_EQ(split[0].size(), bytes.size());
+  EXPECT_EQ(split[0][0], &bytes[0]);
+}
+
+TEST(SnapshotUtil, SplitBytesByMappingThreeMappingsNoData) {
+  Snapshot::MemoryMappingList mappings{
+      MemoryMapping::MakeSized(4096, 4096, MemoryPerms::XR()),
+      MemoryMapping::MakeSized(8192, 4096, MemoryPerms::R()),
+      MemoryMapping::MakeSized(12288, 4096, MemoryPerms::RW()),
+  };
+  Snapshot::MemoryBytesList bytes{};
+  BorrowedMappingBytesList split = SplitBytesByMapping(mappings, bytes);
+  ASSERT_EQ(split.size(), mappings.size());
+  for (const BorrowedMemoryBytesList& byte_list : split) {
+    EXPECT_EQ(byte_list.size(), 0);
+  }
+}
+
+TEST(SnapshotUtil, SplitBytesByMappingThreeMappingsMultipleData) {
+  Snapshot::MemoryMappingList mappings{
+      MemoryMapping::MakeSized(4096, 4096, MemoryPerms::XR()),
+      MemoryMapping::MakeSized(40960, 4096, MemoryPerms::R()),
+      MemoryMapping::MakeSized(409600, 4096, MemoryPerms::RW()),
+  };
+  Snapshot::MemoryBytesList bytes{
+      {5000, "one"},    {5010, "two"},   {40960, "three"},  {41060, "four"},
+      {409700, "five"}, {409800, "six"}, {409900, "seven"},
+  };
+  BorrowedMappingBytesList split = SplitBytesByMapping(mappings, bytes);
+  ASSERT_EQ(split.size(), mappings.size());
+  ASSERT_EQ(split[0].size(), 2);
+  EXPECT_EQ(split[0][0], &bytes[0]);
+  EXPECT_EQ(split[0][1], &bytes[1]);
+  ASSERT_EQ(split[1].size(), 2);
+  EXPECT_EQ(split[1][0], &bytes[2]);
+  EXPECT_EQ(split[1][1], &bytes[3]);
+  ASSERT_EQ(split[2].size(), 3);
+  EXPECT_EQ(split[2][0], &bytes[4]);
+  EXPECT_EQ(split[2][1], &bytes[5]);
+  EXPECT_EQ(split[2][2], &bytes[6]);
+}
+
 }  // namespace
 }  // namespace silifuzz

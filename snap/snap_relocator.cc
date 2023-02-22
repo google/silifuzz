@@ -153,8 +153,14 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.registers));
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.end_state_registers));
 
-    // Adjust memory bytes arrays.
-    RETURN_IF_RELOCATION_FAILED(RelocateMemoryBytesArray(snap.memory_bytes));
+    // Adjust memory bytes for initial mappings.
+    for (size_t j = 0; j < snap.memory_mappings.size; ++j) {
+      RETURN_IF_RELOCATION_FAILED(RelocateMemoryBytesArray(
+          const_cast<Snap::MemoryMapping&>(snap.memory_mappings[j])
+              .memory_bytes));
+    }
+
+    // Adjust memory bytes for end state.
     RETURN_IF_RELOCATION_FAILED(
         RelocateMemoryBytesArray(snap.end_state_memory_bytes));
   }

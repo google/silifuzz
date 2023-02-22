@@ -85,21 +85,8 @@ struct Snap {
       return repeating() ? data.byte_run.size : data.byte_values.size;
     }
 
-    // Returns true if memory bytes are writable.
-    bool writable() const { return (perms & PROT_WRITE) != 0; }
-
     // Where `byte_values` start.
     uint64_t start_address;
-
-    // POSIX memory permissions of the memory bytes. The snap generator
-    // ensures that each MemoryBytes resides in a memory region with the same
-    // permissions throughout. This information can be obtained from
-    // memory mappings. However, it is duplicated here for efficiency of the
-    // runner.
-    //
-    // TODO(dougkwan): [design] Remove MemoryMapping and just use perms here
-    // instead.
-    int32_t perms;  // Only stores READ/WRITE/EXEC permssions.
 
     // Flags
     uint8_t flags = 0;
@@ -130,6 +117,11 @@ struct Snap {
     // Bit mask of memory protections. Same as those used in mprotect().
     // This information is duplicated in MemoryBytes above.
     int32_t perms;
+
+    // The memory state that exists at the start of the snapshot for this
+    // mapping. This is Snapshot::memory_bytes(), but split and associated with
+    // the mapping that contains the bytes.
+    Array<MemoryBytes> memory_bytes;
   };
 
   // Identifier for this snapshot.
@@ -141,13 +133,8 @@ struct Snap {
 
   // All the memory mappings that exist at the start of the snapshot.
   // See Snapshot::memory_mappings().
-  Array<MemoryMapping> memory_mappings;
-
   // We do not support negative memory mappings for now.
-
-  // All the memory state that exists at the start of the snapshot.
-  // See Snapshot::memory_bytes().
-  Array<MemoryBytes> memory_bytes;
+  Array<MemoryMapping> memory_mappings;
 
   // The state of the registers at the start of the snapshot.
   RegisterState* registers;

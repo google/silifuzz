@@ -126,23 +126,20 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
   // Code generation is done bottom-up. First, we generate variable-sized
   // components that cannot be placed inside the fix-sized Snap struct.
 
-  // Generate all out-of-line ByteData.
-  const std::vector<std::string> memory_byte_values_var_names =
-      GenerateMemoryBytesByteData(snapified.memory_bytes(), opts);
-  const std::vector<std::string> end_state_memory_byte_values_var_names =
-      GenerateMemoryBytesByteData(end_state.memory_bytes(), opts);
+  // Generate end state bytes.
+  BorrowedMemoryBytesList end_state_memory_bytes =
+      ToBorrowedMemoryBytesList(end_state.memory_bytes());
 
-  // Generate all out-of-line MemoryBytes
-  const std::string memory_bytes_var_name = GenerateMemoryBytesList(
-      snapified.memory_bytes(), memory_byte_values_var_names,
-      snapified.mapped_memory_map(), opts);
+  const std::vector<std::string> end_state_memory_byte_values_var_names =
+      GenerateMemoryBytesByteData(end_state_memory_bytes, opts);
   const std::string end_state_memory_bytes_var_name = GenerateMemoryBytesList(
-      end_state.memory_bytes(), end_state_memory_byte_values_var_names,
-      snapified.mapped_memory_map(), opts);
+      end_state_memory_bytes, end_state_memory_byte_values_var_names, opts);
 
   // Generate all out-of-line MemoryMappings
-  const std::string memory_mappings_var_name =
-      GenerateMemoryMappingList(snapified.memory_mappings());
+  BorrowedMappingBytesList bytes_per_mapping = SplitBytesByMapping(
+      snapified.memory_mappings(), snapified.memory_bytes());
+  const std::string memory_mappings_var_name = GenerateMemoryMappingList(
+      snapified.memory_mappings(), bytes_per_mapping, opts);
 
   const std::string registers_name = GenerateRegisters(snapified.registers());
 
@@ -157,9 +154,6 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
       ".memory_mappings=",
       ArrayString(snapified.memory_mappings().size(), memory_mappings_var_name),
       ",");
-  PrintLn(".memory_bytes=",
-          ArrayString(snapified.memory_bytes().size(), memory_bytes_var_name),
-          ",");
   PrintLn(".registers=&", registers_name, ",");
   PrintLn(".end_state_instruction_address=",
           AddressString(endpoint.instruction_address()), ",");
@@ -262,20 +256,20 @@ std::string SnapGenerator<Arch>::GenerateByteData(
 
 template <typename Arch>
 std::vector<std::string> SnapGenerator<Arch>::GenerateMemoryBytesByteData(
-    const Snapshot::MemoryBytesList &memory_bytes_list,
+    const BorrowedMemoryBytesList &memory_bytes_list,
     const SnapifyOptions &opts) {
   std::vector<std::string> var_names;
   for (const auto &memory_bytes : memory_bytes_list) {
-    var_names.push_back(GenerateByteData(memory_bytes.byte_values(), opts));
+    var_names.push_back(GenerateByteData(memory_bytes->byte_values(), opts));
   }
   return var_names;
 }
 
 template <typename Arch>
 std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
-    const Snapshot::MemoryBytesList &memory_bytes_list,
+    const BorrowedMemoryBytesList &memory_bytes_list,
     const std::vector<std::string> &byte_values_var_names,
-    const MappedMemoryMap &mapped_memory_map, const SnapifyOptions &opts) {
+    const SnapifyOptions &opts) {
   CHECK_EQ(memory_bytes_list.size(), byte_values_var_names.size());
   std::string memory_bytes_list_var_name = LocalVarName("local_memory_bytes");
 
@@ -283,21 +277,13 @@ std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
                           memory_bytes_list_var_name,
                           memory_bytes_list.size()));
   for (size_t i = 0; i < memory_bytes_list.size(); ++i) {
-    const Snapshot::MemoryBytes &memory_bytes = memory_bytes_list[i];
+    const Snapshot::MemoryBytes &memory_bytes = *memory_bytes_list[i];
     const Snapshot::Address start = memory_bytes.start_address();
-    const Snapshot::Address limit = memory_bytes.limit_address();
-    std::optional<MemoryMapping> memory_mapping =
-        mapped_memory_map.MappingAt(start);
-    CHECK(memory_mapping.has_value());
-    // Memory bytes should be contained within this memory mapping.
-    CHECK_LE(memory_mapping->start_address(), start);
-    CHECK_GE(memory_mapping->limit_address(), limit);
     bool compress_repeating_bytes =
         opts.compress_repeating_bytes &&
         IsRepeatingByteRun(memory_bytes.byte_values());
     PrintLn(absl::StrFormat(
-        "{ .start_address = %s, .perms = 0x%x, .flags = %s,",
-        AddressString(start), memory_mapping->perms().ToMProtect(),
+        "{ .start_address = %s, .flags = %s,", AddressString(start),
         compress_repeating_bytes ? "Snap::MemoryBytes::kRepeating" : "0"));
     if (compress_repeating_bytes) {
       CHECK(byte_values_var_names[i].empty());
@@ -318,19 +304,37 @@ std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
 
 template <typename Arch>
 std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
-    const Snapshot::MemoryMappingList &memory_mapping_list) {
+    const Snapshot::MemoryMappingList &memory_mapping_list,
+    const BorrowedMappingBytesList &bytes_per_mapping,
+    const SnapifyOptions &opts) {
+  // Output the memory byte arrays contained in the mapping.
+  std::vector<std::string> memory_byte_var_names;
+  for (const auto &bytes : bytes_per_mapping) {
+    const std::vector<std::string> memory_byte_values_var_names =
+        GenerateMemoryBytesByteData(bytes, opts);
+
+    memory_byte_var_names.push_back(
+        GenerateMemoryBytesList(bytes, memory_byte_values_var_names, opts));
+  }
+
+  // Output the mapping.
   std::string memory_mapping_list_var_name =
       LocalVarName("local_memory_mapping");
-
   PrintLn(absl::StrFormat("static const Snap::MemoryMapping %s[%zd] = {",
                           memory_mapping_list_var_name,
                           memory_mapping_list.size()));
-  for (const auto &memory_mapping : memory_mapping_list) {
+  for (size_t i = 0; i < memory_mapping_list.size(); ++i) {
+    const auto &memory_mapping = memory_mapping_list[i];
     Print("{ .start_address=", AddressString(memory_mapping.start_address()),
-          ",");
-    Print(absl::StrFormat(".num_bytes = %lluULL,", memory_mapping.num_bytes()));
-    PrintLn(absl::StrFormat(".perms = 0x%x, },",
-                            memory_mapping.perms().ToMProtect()));
+          ", ");
+    Print(
+        absl::StrFormat(".num_bytes = %lluULL, ", memory_mapping.num_bytes()));
+    Print(absl::StrFormat(".perms = 0x%x, ",
+                          memory_mapping.perms().ToMProtect()));
+
+    PrintLn(absl::StrFormat(
+        ".memory_bytes = %s },",
+        ArrayString(bytes_per_mapping[i].size(), memory_byte_var_names[i])));
   }
   PrintLn("};");
   return memory_mapping_list_var_name;

@@ -88,7 +88,6 @@ void VerifySnapMemoryBytes(const Snapshot::MemoryBytes& memory_bytes,
   CHECK(perms == mapped_memory_map.Perms(snap_memory_bytes.start_address,
                                          snap_memory_bytes_limit,
                                          MemoryPerms::kAnd));
-  CHECK_EQ(perms.ToMProtect(), snap_memory_bytes.perms);
   if (snap_memory_bytes.repeating()) {
     VerifyByteRun("byte_run", memory_bytes.byte_values(),
                   snap_memory_bytes.data.byte_run);
@@ -113,14 +112,14 @@ void VerifySnapRegisterState(const Snapshot::RegisterState& registers,
 // Verifies Snapshot::MemoryBytesList -> Snap::Array<Snap::MemoryBytes>
 // conversion.
 void VerifySnapMemoryBytesArray(
-    absl::string_view name, const Snapshot::MemoryBytesList& memory_bytes_list,
+    absl::string_view name, const BorrowedMemoryBytesList& memory_bytes_list,
     const Snap::Array<Snap::MemoryBytes>& snap_memory_bytes_list,
     const MappedMemoryMap& mapped_memory_map) {
   VerifySnapField(absl::StrCat(name, " size"), memory_bytes_list.size(),
                   snap_memory_bytes_list.size);
   size_t snap_array_index = 0;
   for (const auto& memory_bytes : memory_bytes_list) {
-    VerifySnapMemoryBytes(memory_bytes,
+    VerifySnapMemoryBytes(*memory_bytes,
                           snap_memory_bytes_list.elements[snap_array_index],
                           mapped_memory_map);
     snap_array_index++;
@@ -156,9 +155,15 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
   VerifySnapMemoryMappingArray("memory_mappings",
                                snapified_snapshot.memory_mappings(),
                                snap.memory_mappings);
-  VerifySnapMemoryBytesArray("memory_bytes", snapified_snapshot.memory_bytes(),
-                             snap.memory_bytes,
-                             snapified_snapshot.mapped_memory_map());
+
+  BorrowedMappingBytesList bytes_per_mapping = SplitBytesByMapping(
+      snapified_snapshot.memory_mappings(), snapified_snapshot.memory_bytes());
+
+  for (size_t i = 0; i < snap.memory_mappings.size; ++i) {
+    VerifySnapMemoryBytesArray("memory_bytes", bytes_per_mapping[i],
+                               snap.memory_mappings[i].memory_bytes,
+                               snapified_snapshot.mapped_memory_map());
+  }
   VerifySnapRegisterState(snapified_snapshot.registers(), *snap.registers);
   CHECK_EQ(snapified_snapshot.expected_end_states().size(), 1);
   const Snapshot::EndState& end_state =
@@ -169,9 +174,10 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
                   endpoint.instruction_address(),
                   snap.end_state_instruction_address);
   VerifySnapRegisterState(end_state.registers(), *snap.end_state_registers);
-  VerifySnapMemoryBytesArray("memory_bytes", end_state.memory_bytes(),
-                             snap.end_state_memory_bytes,
-                             snapified_snapshot.mapped_memory_map());
+
+  VerifySnapMemoryBytesArray(
+      "memory_bytes", ToBorrowedMemoryBytesList(end_state.memory_bytes()),
+      snap.end_state_memory_bytes, snapified_snapshot.mapped_memory_map());
 }
 
 }  // namespace silifuzz
