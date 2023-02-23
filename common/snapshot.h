@@ -36,6 +36,7 @@
 #include "./common/memory_perms.h"
 #include "./common/snapshot_enums.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
 #include "./util/platform.h"
@@ -168,6 +169,9 @@ class Snapshot final {
 
   // Architecture this snapshot is meant for, i.e. its target architecture.
   Architecture architecture() const { return architecture_; }
+  ArchitectureId architecture_id() const {
+    return static_cast<ArchitectureId>(architecture_);
+  }
 
   // Human-readable name of architecture().
   absl::string_view architecture_name() const;

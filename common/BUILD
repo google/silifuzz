@@ -128,6 +128,7 @@ cc_library(
         ":memory_perms",
         ":snapshot_enums",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",

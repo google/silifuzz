@@ -318,7 +318,7 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryBytesList(
 
 void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                                  RelocatableDataBlock::Ref snapshot_ref) {
-  CHECK_EQ(static_cast<int>(snapshot.architecture()),
+  CHECK_EQ(static_cast<int>(snapshot.architecture_id()),
            static_cast<int>(architecture_id_));
   size_t id_size = snapshot.id().size() + 1;  // NUL character terminator.
   RelocatableDataBlock::Ref id_ref = string_block_.Allocate(id_size, 1);
