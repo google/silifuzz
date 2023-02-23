@@ -856,6 +856,7 @@ cc_library_plus_nolibc(
     name = "mmapped_memory_ptr",
     hdrs = ["mmapped_memory_ptr.h"],
     deps = [
+        ":page_util",
         "@silifuzz//util:checks",
     ],
 )
@@ -885,5 +886,25 @@ cc_library(
         ":arch",
         ":checks",
         "@silifuzz//util/ucontext:ucontext_types",
+    ],
+)
+
+cc_library_plus_nolibc(
+    name = "page_util",
+    hdrs = ["page_util.h"],
+    deps = [":checks"],
+)
+
+cc_test_plus_nolibc(
+    name = "page_util_test",
+    size = "small",
+    srcs = ["page_util_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":checks",
+        ":nolibc_gunit",
+        ":page_util",
     ],
 )

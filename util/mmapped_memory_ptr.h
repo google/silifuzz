@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "./util/checks.h"
+#include "./util/page_util.h"
 
 namespace silifuzz {
 
@@ -56,8 +57,7 @@ static inline MmappedMemoryPtr<T> MakeMmappedMemoryPtr(T* ptr, size_t size) {
 // returns an MmappedMemoryPtr<T> pointer for the buffer.
 template <typename T>
 static inline MmappedMemoryPtr<T> AllocateMmappedBuffer(size_t byte_size) {
-  const size_t page_mask = getpagesize() - 1;
-  const size_t page_aligned_size = (byte_size + page_mask) & ~page_mask;
+  const size_t page_aligned_size = RoundUpToPageAlignment(byte_size);
   void* ptr = mmap(nullptr, page_aligned_size, PROT_READ | PROT_WRITE,
                    MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
   CHECK_NE(ptr, MAP_FAILED);
