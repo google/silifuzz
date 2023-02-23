@@ -58,6 +58,8 @@ namespace silifuzz {
 // +---------------------------+
 // | Snap::RegisterState array |
 // +---------------------------+
+// | page aligned byte data    |
+// +---------------------------+
 //
 // The parts are aligned with respect to their individual requirements and the
 // whole corpus is loaded with alignment not smaller than the maximum alignment
@@ -95,6 +97,12 @@ namespace silifuzz {
 // These are the registers that specify the entry and exit state of each Snap.
 // This data is stored out-of-line from the Snap structure so that relocating
 // the Snap doesn't dirty the pages containg register data.
+//
+// 9. Page-aligned data.
+// Page-aligned memory bytes may be put in this section if we want to mmap them
+// directly from the file when the corpus is loaded. Page-aligned data will not
+// be RLE compressed, however, so there is a tradeoff between load speed and
+// corpus size.
 
 // Options passed to relocatable Snap corpus generator.
 struct RelocatableSnapGeneratorOptions {

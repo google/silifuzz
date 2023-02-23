@@ -21,7 +21,12 @@ namespace silifuzz {
 // Returns a pointer to the Snap array.
 // The `filename` is the first non-flag command line argument passed to the
 // binary or nullptr if there wasn't any.
-const SnapCorpus* LoadCorpus(const char* filename);
+// On successful load, `*corpus_fd` will be set to the descriptor of the file
+// object that backs the corpus, if such an object exists. The caller takes
+// ownership of this descriptor and is responsible for closing it. If the
+// backing file object does not exist, `*corpus_fd` will be -1. If `corpus_fd`
+// is NULL, no descriptor is returned.
+const SnapCorpus* LoadCorpus(const char* filename, int* corpus_fd);
 
 }  // namespace silifuzz
 

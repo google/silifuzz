@@ -36,6 +36,7 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
+#include "./util/page_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
@@ -114,10 +115,10 @@ class Traversal {
   const RelocatableDataBlock& main_block() const { return main_block_; }
 
  private:
-  // Processes `byte_data` for `pass`. Allocates a ref element bytes of the
-  // generated Snap::ByteData. Returns element ref.
+  // Processes the data contained in `memory_bytes` for `pass`. Allocates a ref
+  // element bytes of the generated Snap::ByteData. Returns element ref.
   RelocatableDataBlock::Ref ProcessMemoryBytes(
-      PassType pass, const Snapshot::ByteData& byte_data);
+      PassType pass, const Snapshot::MemoryBytes& memory_bytes);
 
   // Processes `memory_mappings` for `pass`. Allocates a ref for the
   // elements of the Snap::MemoryMapping array and returns it.
@@ -188,13 +189,15 @@ class Traversal {
   RelocatableDataBlock byte_data_block_;
   RelocatableDataBlock string_block_;
   RelocatableDataBlock register_state_block_;
+  RelocatableDataBlock page_data_block_;
 
   // Hash map for de-duping byte data.
   ByteDataRefMap byte_data_ref_map_;
 };
 
 RelocatableDataBlock::Ref Traversal::ProcessMemoryBytes(
-    PassType pass, const Snapshot::ByteData& byte_data) {
+    PassType pass, const Snapshot::MemoryBytes& memory_bytes) {
+  const Snapshot::ByteData& byte_data = memory_bytes.byte_values();
   // Check to see if we can de-dupe byte data.
   static constexpr RelocatableDataBlock::Ref kNullRef;
   auto [it, success] = byte_data_ref_map_.try_emplace(&byte_data, kNullRef);
@@ -211,8 +214,28 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryBytes(
     return ref;
   }
 
+  // The main reason for treating page aligned data separately is so we can mmap
+  // it directly from the corpus file. When we process the bytes, however, we
+  // throw all page-aligned page-sized data into same data block without regard
+  // to if we actually want to mmap it. This makes the logic simpler (for
+  // instance we don't need two byte data caches) and at most increases the
+  // corpus size by less than 4kB due to fragmentation from the alignment
+  // requirements.
+  bool page_aligned_data = IsPageAligned(memory_bytes.start_address()) &&
+                           IsPageAligned(memory_bytes.num_bytes());
+
   // Allocate a new Ref as this has not be seen before.
-  ref = byte_data_block_.Allocate(byte_data.size(), sizeof(uint64_t));
+  if (page_aligned_data) {
+    // If the data will be page aligned in memory, we also make it page aligned
+    // inside the corpus so it can be directly mmaped if desired.
+    // Note that we're using the same cache for both data blocks, and the cache
+    // does not take alignment into account. For this to work, it must be
+    // impossible for equivilent MemoryBytes to be stored with different
+    // alignments.
+    ref = page_data_block_.Allocate(byte_data.size(), kPageSize);
+  } else {
+    ref = byte_data_block_.Allocate(byte_data.size(), sizeof(uint64_t));
+  }
   if (pass == PassType::kGeneration) {
     memcpy(ref.contents(), byte_data.data(), byte_data.size());
   }
@@ -270,8 +293,7 @@ void Traversal::ProcessAllocated(PassType pass,
       IsRepeatingByteRun(memory_bytes.byte_values());
   RelocatableDataBlock::Ref byte_values_elements_ref;
   if (!compress_repeating_bytes) {
-    byte_values_elements_ref =
-        ProcessMemoryBytes(pass, memory_bytes.byte_values());
+    byte_values_elements_ref = ProcessMemoryBytes(pass, memory_bytes);
   }
 
   if (pass == PassType::kGeneration) {
@@ -411,6 +433,7 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   main_block_.Allocate(byte_data_block_);
   main_block_.Allocate(string_block_);
   main_block_.Allocate(register_state_block_);
+  main_block_.Allocate(page_data_block_);
 
   if (pass == PassType::kGeneration) {
     new (corpus_ref.contents()) SnapCorpus{
@@ -461,6 +484,7 @@ void Traversal::PrepareSnapGeneration(char* content_buffer,
   prepare_sub_data_block(byte_data_block_);
   prepare_sub_data_block(string_block_);
   prepare_sub_data_block(register_state_block_);
+  prepare_sub_data_block(page_data_block_);
 
   // Reset main block again for generation pass.
   main_block_.ResetSizeAndAlignment();
@@ -481,9 +505,7 @@ MmappedMemoryPtr<char> GenerateRelocatableSnaps(
 
   // Check that the whole corpus has alignment requirement not exceeding page
   // size of the runner since it will be mmap()'ed by the runner.
-  // Cross-platform-generation is not supported. So it is okay to use the
-  // generator's page size here.
-  CHECK_LE(traversal.main_block().required_alignment(), getpagesize());
+  CHECK_LE(traversal.main_block().required_alignment(), kPageSize);
   auto buffer = AllocateMmappedBuffer<char>(traversal.main_block().size());
 
   // Generate contents of the relocatable corpus as if it was to be loaded

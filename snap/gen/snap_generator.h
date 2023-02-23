@@ -45,6 +45,9 @@ struct SnapifyOptions {
   // Use run-length compression for memory byte data.
   bool compress_repeating_bytes = true;
 
+  // Keep executable pages uncompressed so they can be mmaped.
+  bool support_direct_mmap = false;
+
   // Returns Options for running snapshots produced by V2-style Maker.
   // `arch_id` specified the architecture of the snapshot. The default values
   // for SnapifyOptions may depend on the architecture being targeted.
@@ -60,8 +63,14 @@ struct SnapifyOptions {
  private:
   static constexpr SnapifyOptions MakeOpts(ArchitectureId arch_id,
                                            bool allow_undefined_end_state) {
-    return SnapifyOptions{.allow_undefined_end_state =
-                              allow_undefined_end_state};
+    // On aarch64 we want to avoid compressing executable pages so that they can
+    // be mmaped. This works around a performance bottlekneck, but makes the
+    // corpus ~2.6x larger. For now, don't try to mmap executable pages on
+    // x86_64.
+    bool support_direct_mmap = arch_id == ArchitectureId::kAArch64;
+    return SnapifyOptions{
+        .allow_undefined_end_state = allow_undefined_end_state,
+        .support_direct_mmap = support_direct_mmap};
   }
 };
 

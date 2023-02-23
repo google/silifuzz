@@ -41,6 +41,8 @@ struct ByteRunInfo {
   bool repeating = false;  // whether all bytes are the same.
 };
 
+}  // namespace
+
 // Split repeating byte runs in `memory_bytes` of size kMinRepeatingByteRunSize
 // or above into their own MemoryBytes objects.
 // Returns a list of memory bytes.
@@ -97,8 +99,6 @@ absl::StatusOr<MemoryBytesList> GetRepeatingByteRuns(
 
   return runs;
 }
-
-}  // namespace
 
 absl::StatusOr<MemoryBytesList> GetRepeatingByteRuns(
     const MemoryBytesList& memory_bytes_list) {

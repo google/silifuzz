@@ -18,13 +18,16 @@
 
 namespace silifuzz {
 
-const SnapCorpus* LoadCorpus(const char* filename) {
+const SnapCorpus* LoadCorpus(const char* filename, int* corpus_fd) {
   if (filename == nullptr) {
+    if (corpus_fd != nullptr) {
+      *corpus_fd = -1;
+    }
     return nullptr;
   }
   // Release the pointer -- it is ok to leak memory since the runner always
   // runs to completion and then exits.
-  return LoadCorpusFromFile(filename).release();
+  return LoadCorpusFromFile(filename, true, corpus_fd).release();
 }
 
 }  // namespace silifuzz

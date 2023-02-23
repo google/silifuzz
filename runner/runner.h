@@ -126,10 +126,20 @@ struct RunnerMainOptions {
   // If true, runner sequentially goes through all Snaps once. Batch and
   // schedule sizes in options are ignored. This is used for Snap verification.
   bool sequential_mode = false;
+
+  // The FD of the corpus file, -1 if the FD is not available. The runner may
+  // use the FD to create Snap mappings faster.
+  int corpus_fd = -1;
 };
 
 // Establishes memory mappings in 'corpus'.
-void MapCorpus(const SnapCorpus& corpus);
+// Takes ownership of 'corpus_fd' and closes it after the corpus is mapped.
+// If the corpus is not backed by a file object, 'corpus_fd' may be -1.
+// 'corpus_mapping' points to the address where corpus_fd is mapped. This is
+// usually identical to the SnapCorpus pointer. This value can be NULL if
+// corpus_fd == -1.
+void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
+               const void* corpus_mapping);
 
 // Executes 'snap' and returns the execution result.
 // REQUIRES: the runtime environment, including memory mapping used by 'snap'

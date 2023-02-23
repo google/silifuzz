@@ -56,7 +56,7 @@ TEST(Runner, MemoryMismatch) {
 
 NOLIBC_TEST_MAIN({
   silifuzz::InitSnapExit(&SnapExitImpl);
-  silifuzz::MapCorpus(silifuzz::kSnapRunnerTestCorpus);
+  silifuzz::MapCorpus(silifuzz::kSnapRunnerTestCorpus, -1, nullptr);
   silifuzz::EnterSeccompStrictMode();
 
   RUN_TEST(Runner, EndsAsExpected);

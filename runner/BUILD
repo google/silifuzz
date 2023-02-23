@@ -170,6 +170,7 @@ cc_library_nolibc(
         "@silifuzz//util:logging_util",
         "@silifuzz//util:mem_util",
         "@silifuzz//util:misc_util",
+        "@silifuzz//util:page_util",
         "@silifuzz//util:proc_maps_parser",
         "@silifuzz//util:text_proto_printer",
         "@silifuzz//util/ucontext",

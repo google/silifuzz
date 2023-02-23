@@ -53,12 +53,32 @@ absl::StatusOr<const Snapshot::EndState *> PickEndState(
                                           EnumStr(options.platform_id)));
 }
 
+typedef bool (*CompressionQuery)(const MemoryState &memory_state,
+                                 const Snapshot::MemoryBytes &bytes);
+
+bool ShouldAlwaysCompress(const MemoryState &memory_state,
+                          const Snapshot::MemoryBytes &bytes) {
+  return true;
+}
+
+bool ShouldCompressNonExecutable(const MemoryState &memory_state,
+                                 const Snapshot::MemoryBytes &bytes) {
+  return !memory_state.mapped_memory()
+              .PermsAt(bytes.start_address())
+              .Has(MemoryPerms::kExecutable);
+}
+
+bool ShouldNeverCompress(const MemoryState &memory_state,
+                         const Snapshot::MemoryBytes &bytes) {
+  return false;
+}
+
 // Helper for Snapify(). This normalizes `memory_byte_list` and then
 // breaks list elements into smaller MemoryBytes objects if necessary for
 // run-length compression. Optionally apply run-length compression on byte data.
 // Returns a status to report any errors.
 absl::StatusOr<Snapshot::MemoryBytesList> SnapifyMemoryByteList(
-    const MemoryState &memory_state, const SnapifyOptions &opts) {
+    const MemoryState &memory_state, CompressionQuery should_compress) {
   // Normalize memory bytes to ensure all bytes in a MemoryBytes have identical
   // permissions
   Snapshot::MemoryBytesList memory_bytes_list =
@@ -66,12 +86,23 @@ absl::StatusOr<Snapshot::MemoryBytesList> SnapifyMemoryByteList(
   Snapshot::NormalizeMemoryBytes(memory_state.mapped_memory(),
                                  &memory_bytes_list);
 
-  // Prepare memory byte list for run-length compression.
-  if (opts.compress_repeating_bytes) {
-    return GetRepeatingByteRuns(memory_bytes_list);
-  } else {
-    return memory_bytes_list;
+  // Prepare the memory bytes for run length compression when it is appropriate.
+  // We may chose not to compress some byte runs if we want to mmap the byte
+  // data directly from the corpus.
+  Snapshot::MemoryBytesList result;
+  for (const auto &memory_bytes : memory_bytes_list) {
+    if (should_compress(memory_state, memory_bytes)) {
+      ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot::MemoryBytesList runs,
+                                 GetRepeatingByteRuns(memory_bytes));
+      result.reserve(result.size() + runs.size());
+      for (auto &run : runs) {
+        result.push_back(std::move(run));
+      }
+    } else {
+      result.push_back(std::move(memory_bytes));
+    }
   }
+  return result;
 }
 
 // Transforms the snapshot's MemoryBytes into Snap-compatible format.
@@ -83,9 +114,18 @@ absl::Status SnapifyMemoryBytes(Snapshot &snapshot,
   MemoryState memory_state =
       MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
 
+  CompressionQuery should_compress_initial = &ShouldNeverCompress;
+  if (opts.compress_repeating_bytes) {
+    if (opts.support_direct_mmap) {
+      should_compress_initial = &ShouldCompressNonExecutable;
+    } else {
+      should_compress_initial = &ShouldAlwaysCompress;
+    }
+  }
+
   ASSIGN_OR_RETURN_IF_NOT_OK(
       Snapshot::MemoryBytesList snapified_memory_bytes_list,
-      SnapifyMemoryByteList(memory_state, opts));
+      SnapifyMemoryByteList(memory_state, should_compress_initial));
   RETURN_IF_NOT_OK(
       snapshot.ReplaceMemoryBytes(std::move(snapified_memory_bytes_list)));
 
@@ -110,7 +150,9 @@ absl::Status SnapifyMemoryBytes(Snapshot &snapshot,
           });
       ASSIGN_OR_RETURN_IF_NOT_OK(
           Snapshot::MemoryBytesList snapified_end_state_memory_bytes_list,
-          SnapifyMemoryByteList(memory_state, opts));
+          SnapifyMemoryByteList(memory_state, opts.compress_repeating_bytes
+                                                  ? &ShouldAlwaysCompress
+                                                  : &ShouldNeverCompress));
       RETURN_IF_NOT_OK(end_state.ReplaceMemoryBytes(
           std::move(snapified_end_state_memory_bytes_list)));
     } else {

@@ -49,6 +49,11 @@ static_assert(kMinRepeatingByteRunSize >= kByteRunAlignmentSize &&
 absl::StatusOr<Snapshot::MemoryBytesList> GetRepeatingByteRuns(
     const Snapshot::MemoryBytesList& memory_bytes_list);
 
+// The same as the previous function except that it operates on a single
+// MemoryBytes instead of a MemoryBytesList.
+absl::StatusOr<Snapshot::MemoryBytesList> GetRepeatingByteRuns(
+    const Snapshot::MemoryBytes& memory_bytes);
+
 // Returns true iff `byte_data` should be encoded as a byte run.
 bool inline IsRepeatingByteRun(const Snapshot::ByteData& byte_data) {
   return byte_data.size() >= kMinRepeatingByteRunSize &&

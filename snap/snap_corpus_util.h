@@ -25,8 +25,11 @@ namespace silifuzz {
 // Loads relocatable Snap corpus from `filename`. CHECK-fails on any error.
 // When `preload` is true, preloads the file into memory using MAP_POPULATE
 // except for files in /proc and /dev/shm.
+// When `corpus_fd` is not NULL, passes ownership of the corpus FD to the caller
+// rather than closing it.
 MmappedMemoryPtr<const SnapCorpus> LoadCorpusFromFile(const char* filename,
-                                                      bool preload = true);
+                                                      bool preload = true,
+                                                      int* corpus_fd = nullptr);
 
 }  // namespace silifuzz
 

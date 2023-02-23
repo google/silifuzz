@@ -24,7 +24,10 @@ namespace silifuzz {
 // See snap_examples.cc for an example usage.
 extern const SnapCorpus kDefaultSnapCorpus;
 
-const SnapCorpus* LoadCorpus(const char* filename) {
+const SnapCorpus* LoadCorpus(const char* filename, int* corpus_fd) {
+  if (corpus_fd != nullptr) {
+    *corpus_fd = -1;
+  }
   return &kDefaultSnapCorpus;
 }
 

@@ -77,6 +77,7 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
+        "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/hash",

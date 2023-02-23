@@ -42,6 +42,7 @@
 #include "./util/logging_util.h"
 #include "./util/mem_util.h"
 #include "./util/misc_util.h"
+#include "./util/page_util.h"
 #include "./util/proc_maps_parser.h"
 #include "./util/text_proto_printer.h"
 #include "./util/ucontext/serialize.h"
@@ -168,6 +169,42 @@ void SetupMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
   }
 }
 
+void CheckFixedMmapOK(void* mapped_address, void* target_address) {
+  if (mapped_address == MAP_FAILED) {
+    LOG_FATAL("mmap(", HexStr(AsInt(target_address)),
+              ") failed: ", ErrnoStr(errno));
+  }
+  if (mapped_address != target_address) {
+    LOG_FATAL("mmap failed: got ", HexStr(AsInt(mapped_address)), " want ",
+              HexStr(AsInt(target_address)));
+  }
+}
+
+// Can this memory mapping be mapped directly from the backing file?
+bool CanDirectMap(const Snap::MemoryMapping& memory_mapping) {
+  // We could support mmapping writeable pages with COW, but that's not a
+  // feature we need right now and it makes the code a little more complicated.
+  if ((memory_mapping.perms & PROT_WRITE) != 0) {
+    return false;
+  }
+  // There must be only one memory_bytes entry.
+  if (memory_mapping.memory_bytes.size != 1) {
+    return false;
+  }
+  const Snap::MemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
+  // The bytes must be uncompressed.
+  if (memory_bytes.repeating()) {
+    return false;
+  }
+  // The bytes must cover the mapping completely.
+  if (memory_bytes.start_address != memory_mapping.start_address ||
+      memory_bytes.size() != memory_mapping.num_bytes) {
+    return false;
+  }
+  // The underlying data pointer must be page aligned.
+  return IsPageAligned(memory_bytes.data.byte_values.elements);
+}
+
 }  // namespace
 
 void InstallSigHandler() {
@@ -217,50 +254,62 @@ void InstallSigHandler() {
   }
 }
 
-void CreateMemoryMapping(const Snap::MemoryMapping& memory_mapping) {
+void CreateMemoryMapping(const Snap::MemoryMapping& memory_mapping,
+                         int corpus_fd, const void* corpus_mapping) {
   const uint64_t start_address = memory_mapping.start_address;
   VLOG_INFO(2, "Mapping ", HexStr(start_address));
 
   // Make the initial mapping.
   void* target_address = AsPtr(start_address);
-  void* mapped_address =
-      mmap(target_address, memory_mapping.num_bytes, kInitialMappingProtection,
-           MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-  if (mapped_address == MAP_FAILED) {
-    LOG_FATAL("mmap(", HexStr(AsInt(target_address)),
-              ") failed: ", ErrnoStr(errno));
-  }
-  if (mapped_address != target_address) {
-    LOG_FATAL("mmap failed: got ", HexStr(AsInt(mapped_address)), " want ",
-              HexStr(AsInt(target_address)));
-  }
+  if (corpus_fd != -1 && CanDirectMap(memory_mapping)) {
+    // We can map this data directly from the corpus file.
 
-  // Initialize the contents of the mapping.
-  // We will always initialize writeable mappings before the snap runs, so we
-  // only setup read-only mappings here.
-  if (!memory_mapping.writable()) {
-    for (const auto& memory_bytes : memory_mapping.memory_bytes) {
-      SetupMemoryBytes(memory_bytes);
+    // Calculate offset of the bytes from the start of the corpus file.
+    off_t offset = static_cast<off_t>(
+        AsInt(memory_mapping.memory_bytes[0].data.byte_values.elements) -
+        AsInt(corpus_mapping));
+    CHECK(IsPageAligned(offset));
+
+    // Map.
+    void* mapped_address =
+        mmap(target_address, memory_mapping.num_bytes, memory_mapping.perms,
+             MAP_SHARED | MAP_FIXED, corpus_fd, offset);
+    CheckFixedMmapOK(mapped_address, target_address);
+  } else {
+    // The data cannot be direct mapped.
+
+    void* mapped_address = mmap(target_address, memory_mapping.num_bytes,
+                                kInitialMappingProtection,
+                                MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    CheckFixedMmapOK(mapped_address, target_address);
+
+    // Initialize the contents of the mapping.
+    // We will always initialize writeable mappings before the snap runs, so we
+    // only setup read-only mappings here.
+    if (!memory_mapping.writable()) {
+      for (const auto& memory_bytes : memory_mapping.memory_bytes) {
+        SetupMemoryBytes(memory_bytes);
+      }
     }
-  }
 
-  // Set the final protections.
-  if (memory_mapping.perms != kInitialMappingProtection) {
-    VLOG_INFO(2, "mprotect mapping ", HexStr(start_address));
-    // mprotect should sync the data cache and invalidate the instruction
-    // cache as needed. No need to do it explicitly.
-    int mprotect_result = mprotect(target_address, memory_mapping.num_bytes,
-                                   memory_mapping.perms);
-    if (mprotect_result != 0) {
-      LOG_FATAL("mprotect(", HexStr(AsInt(target_address)),
-                ") failed: ", ErrnoStr(errno));
+    // Set the final protections.
+    if (memory_mapping.perms != kInitialMappingProtection) {
+      VLOG_INFO(2, "mprotect mapping ", HexStr(start_address));
+      // mprotect should sync the data cache and invalidate the instruction
+      // cache as needed. No need to do it explicitly.
+      int mprotect_result = mprotect(target_address, memory_mapping.num_bytes,
+                                     memory_mapping.perms);
+      if (mprotect_result != 0) {
+        LOG_FATAL("mprotect(", HexStr(AsInt(target_address)),
+                  ") failed: ", ErrnoStr(errno));
+      }
     }
   }
 }
 
-void MapSnap(const Snap& snap) {
+void MapSnap(const Snap& snap, int corpus_fd, const void* corpus_mapping) {
   for (const auto& memory_mapping : snap.memory_mappings) {
-    CreateMemoryMapping(memory_mapping);
+    CreateMemoryMapping(memory_mapping, corpus_fd, corpus_mapping);
   }
 }
 
@@ -297,7 +346,8 @@ void ApplyProcMapsFixups(ProcMapsEntry proc_maps_entries[],
 // stack, heap and VDSO), it can crash the runner. Therefore, it performs
 // range checks before adding memory mappings into the runners address
 // space and dies if a conflict is detected.
-void MapCorpus(const SnapCorpus& corpus) {
+void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
+               const void* corpus_mapping) {
   CHECK(corpus.IsArch<Host>());
 
   // On x86_64, we should only need 8 entries to describe all memory ranges when
@@ -333,9 +383,13 @@ void MapCorpus(const SnapCorpus& corpus) {
     // may be zero-initialized RW pages that overlap between snaps. The most
     // obvious case will be that most Snaps will have stacks mapped in exactly
     // the same location.
-    MapSnap(*snap);
+    MapSnap(*snap, corpus_fd, corpus_mapping);
   }
   VLOG_INFO(1, "Done creating memory mappings");
+
+  if (corpus_fd != -1) {
+    CHECK_EQ(close(corpus_fd), 0);
+  }
 }
 
 RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
@@ -505,6 +559,10 @@ const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
 
   InitSnapExit(&SnapExitImpl);
 
+  // Preserve this value because the following logic might synthesize a new
+  // SnapCorpus struct.
+  const void* corpus_mapping = reinterpret_cast<const void*>(options.corpus);
+
   auto corpus = [&options]() -> const SnapCorpus* {
     static SnapCorpus one_snap_corpus = {};
     if (options.snap_id == nullptr) {
@@ -522,7 +580,7 @@ const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
     }
     LOG_FATAL("Snap ", options.snap_id, " not found in the corpus");
   }();
-  MapCorpus(*corpus);
+  MapCorpus(*corpus, options.corpus_fd, corpus_mapping);
   InstallSigHandler();
 
   return corpus;

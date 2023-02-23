@@ -15,6 +15,7 @@
 #include "./snap/gen/relocatable_snap_generator.h"
 
 #include <string.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 #include <cstddef>
@@ -97,6 +98,87 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
       SnapToSnapshot(*relocated_corpus->snaps.at(0), CurrentPlatformId());
   ASSERT_OK(snapshotFromSnap);
   ASSERT_EQ(corpus[0], *snapshotFromSnap);
+}
+
+TEST(RelocatableSnapGenerator, SupportDirectMMap) {
+  std::vector<Snapshot> rle_corpus;
+  {
+    Snapshot snapshot =
+        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+
+    SnapifyOptions snapify_options =
+        SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+    snapify_options.compress_repeating_bytes = true;
+    snapify_options.support_direct_mmap = false;
+
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                         Snapify(snapshot, snapify_options));
+    rle_corpus.push_back(std::move(snapified));
+  }
+
+  auto relocated_rle_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, rle_corpus);
+
+  std::vector<Snapshot> mmap_corpus;
+  {
+    Snapshot snapshot =
+        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+
+    SnapifyOptions snapify_options =
+        SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+    snapify_options.compress_repeating_bytes = true;
+    snapify_options.support_direct_mmap = true;
+
+    ASSERT_OK_AND_ASSIGN(Snapshot snapified,
+                         Snapify(snapshot, snapify_options));
+    mmap_corpus.push_back(std::move(snapified));
+  }
+
+  auto relocated_mmap_corpus =
+      GenerateRelocatedCorpus(Host::architecture_id, mmap_corpus);
+
+  // The mmap corpus should be bigger because it does not compress executable
+  // pages.
+  EXPECT_LT(MmappedMemorySize(relocated_rle_corpus) + 3072,
+            MmappedMemorySize(relocated_mmap_corpus));
+
+  // But it shouldn't me more that 2 pages larger - one for fragmentation, one
+  // for the uncompressed page.
+  EXPECT_GT(MmappedMemorySize(relocated_rle_corpus) + 8192,
+            MmappedMemorySize(relocated_mmap_corpus));
+
+  // Check invariants.
+  ASSERT_EQ(relocated_rle_corpus->snaps.size, 1);
+  ASSERT_EQ(relocated_mmap_corpus->snaps.size, 1);
+
+  // Check invariants for rle executable page.
+  bool found = false;
+  for (auto& memory_mapping :
+       relocated_rle_corpus->snaps.at(0)->memory_mappings) {
+    if (memory_mapping.perms & PROT_EXEC) {
+      found = true;
+      ASSERT_GT(memory_mapping.memory_bytes.size, 1);
+    }
+  }
+  EXPECT_TRUE(found);
+
+  // Check invariants for mmap executable page.
+  found = false;
+  for (auto& memory_mapping :
+       relocated_mmap_corpus->snaps.at(0)->memory_mappings) {
+    if (memory_mapping.perms & PROT_EXEC) {
+      found = true;
+      ASSERT_EQ(memory_mapping.memory_bytes.size, 1);
+      const Snap::MemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
+      ASSERT_FALSE(memory_bytes.repeating());
+      EXPECT_EQ(
+          reinterpret_cast<uintptr_t>(memory_bytes.data.byte_values.elements) %
+              4096,
+          0);
+      EXPECT_EQ(memory_bytes.data.byte_values.size % 4096, 0);
+    }
+  }
+  EXPECT_TRUE(found);
 }
 
 TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
