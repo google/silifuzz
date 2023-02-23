@@ -65,7 +65,8 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   ASSERT_TRUE(snapshot.IsComplete(Snapshot::kUndefinedEndState).ok())
       << "Expected that this snapshot has an undefined end state";
 
-  SnapifyOptions snapify_options = SnapifyOptions::V2InputRunOpts();
+  SnapifyOptions snapify_options =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
   snapify_options.allow_undefined_end_state = true;
   // Note: it isn't guarenteed that all the test snaps will be snap
   // compatible. If this becomes an issue, we can add a query function and
@@ -83,9 +84,10 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
   {
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
-
+    SnapifyOptions snapify_options =
+        SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
     ASSERT_OK_AND_ASSIGN(Snapshot snapified,
-                         Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
+                         Snapify(snapshot, snapify_options));
     corpus.push_back(std::move(snapified));
   }
 
@@ -98,9 +100,10 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
 }
 
 TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts(Host::architecture_id);
+
   // Generate relocatable snaps from runner test snaps.
   std::vector<Snapshot> snapified_corpus;
-  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   for (int index = 0; index < static_cast<int>(TestSnapshot::kNumTestSnapshot);
        ++index) {
     TestSnapshot type = static_cast<TestSnapshot>(index);
@@ -155,8 +158,9 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   add_test_byte_data(addr1);
   add_test_byte_data(addr2);
 
-  ASSERT_OK_AND_ASSIGN(auto snapified,
-                       Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+  ASSERT_OK_AND_ASSIGN(auto snapified, Snapify(snapshot, snapify_opts));
 
   std::vector<Snapshot> snapified_corpus;
   snapified_corpus.push_back(std::move(snapified));

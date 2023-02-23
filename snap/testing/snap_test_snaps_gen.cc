@@ -50,7 +50,7 @@ namespace {
 
 template <typename Arch>
 absl::Status GenerateRelocatableRunnerCorpus() {
-  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts(Arch::architecture_id);
   opts.compress_repeating_bytes = true;
 
   // Build the test Snapshot corpus.
@@ -89,6 +89,9 @@ absl::Status GenerateRelocatableRunnerCorpus() {
 
 template <typename Arch>
 absl::Status GenerateSource() {
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputRunOpts(Arch::architecture_id);
+
   SnapGenerator<Arch> generator(std::cout);
   generator.IncludeLocalHeader("./snap/testing/snap_test_snaps.h");
   generator.FileStart();
@@ -107,7 +110,7 @@ absl::Status GenerateSource() {
         MakeSnapGeneratorTestSnapshot<Arch>(snap_generator_test_type);
     std::string name = absl::StrCat("kGeneratorTestSnap_", type);
     generator_test_snap_names.push_back(name);
-    CHECK_STATUS(generator.GenerateSnap(name, snapshot));
+    CHECK_STATUS(generator.GenerateSnap(name, snapshot, snapify_opts));
   }
 
   // We use types as array indices.
@@ -128,7 +131,7 @@ absl::Status GenerateSource() {
     Snapshot snapshot = MakeSnapRunnerTestSnapshot<Arch>(type);
     std::string name = absl::StrCat("kRunnerTestSnap_", index);
     runner_test_snap_names.push_back(name);
-    CHECK_STATUS(generator.GenerateSnap(name, snapshot));
+    CHECK_STATUS(generator.GenerateSnap(name, snapshot, snapify_opts));
   }
 
   // Print SnapArray containing pointers to Snaps generated above.

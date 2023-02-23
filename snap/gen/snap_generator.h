@@ -28,6 +28,7 @@
 #include "./common/mapped_memory_map.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch.h"
 #include "./util/platform.h"
 
 namespace silifuzz {
@@ -45,32 +46,37 @@ struct SnapifyOptions {
   bool compress_repeating_bytes = true;
 
   // Returns Options for running snapshots produced by V2-style Maker.
-  static constexpr SnapifyOptions V2InputRunOpts() {
-    return SnapifyOptions{.allow_undefined_end_state = false};
+  // `arch_id` specified the architecture of the snapshot. The default values
+  // for SnapifyOptions may depend on the architecture being targeted.
+  static constexpr SnapifyOptions V2InputRunOpts(ArchitectureId arch_id) {
+    return MakeOpts(arch_id, false);
   }
 
   // Returns Options for making V2-style snapshots.
-  static constexpr SnapifyOptions V2InputMakeOpts() {
-    return SnapifyOptions{.allow_undefined_end_state = true};
+  static constexpr SnapifyOptions V2InputMakeOpts(ArchitectureId arch_id) {
+    return MakeOpts(arch_id, true);
   }
 
-  static constexpr SnapifyOptions Default() { return V2InputRunOpts(); }
+ private:
+  static constexpr SnapifyOptions MakeOpts(ArchitectureId arch_id,
+                                           bool allow_undefined_end_state) {
+    return SnapifyOptions{.allow_undefined_end_state =
+                              allow_undefined_end_state};
+  }
 };
 
 // Tests if snapshot can be converted to Snap.
 // Returns NOT_FOUND if there's no suitable expected end state for the
 // selected platform.
-absl::Status CanSnapify(const Snapshot &snapshot,
-                        const SnapifyOptions &opts = SnapifyOptions::Default());
+absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts);
 
 // Convert 'snapshot' into a form that GenerateSnap() can convert into a
 // Snap that produces the same result as the 'snapshot'. The conversion
 // includes adding an exit sequence at the end state instruction
 // address and including all writable mapping memory bytes in the end
 // state.
-absl::StatusOr<Snapshot> Snapify(
-    const Snapshot &snapshot,
-    const SnapifyOptions &opts = SnapifyOptions::Default());
+absl::StatusOr<Snapshot> Snapify(const Snapshot &snapshot,
+                                 const SnapifyOptions &opts);
 
 // SnapGenerator takes a silifuzz::Snapshot and generates a Snap representation
 // of it as C++ source code. The generated C++ source code is not formatted
@@ -129,9 +135,8 @@ class SnapGenerator {
 
   // Generates C++ source code to define a Snap variable called
   // `name` using a normalized version of `snapshot`.
-  absl::Status GenerateSnap(
-      const std::string &name, const Snapshot &snapshot,
-      const SnapifyOptions &opts = SnapifyOptions::Default());
+  absl::Status GenerateSnap(const std::string &name, const Snapshot &snapshot,
+                            const SnapifyOptions &opts);
 
   // Generate C++ source code to define a SnapCorpus variable
   // called 'name' using a list containing variable names of previously

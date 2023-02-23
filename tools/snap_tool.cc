@@ -36,6 +36,7 @@
 #include "./runner/snap_maker.h"
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/gen/snap_generator.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/enum_flag.h"
 #include "./util/file_util.h"
@@ -118,15 +119,13 @@ void OutputSnapshotOrDie(Snapshot&& snapshot, absl::string_view filename,
 // Implements `generate_corpus` command.
 absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
                             PlatformId platform_id, LinePrinter* line_printer) {
-  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
   if (platform_id == PlatformId::kUndefined) {
     return absl::InvalidArgumentError(
         "generate_corpus requires a valid platform id");
   }
+  ArchitectureId arch_id = PlatformArchitecture(platform_id);
+  SnapifyOptions opts = SnapifyOptions::V2InputRunOpts(arch_id);
   opts.platform_id = platform_id;
-  if (opts.platform_id == PlatformId::kUndefined) {
-    return absl::InternalError("This platform is not supported by SiliFuzz");
-  }
 
   std::vector<Snapshot> snapified_corpus;
 
@@ -149,8 +148,8 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
   // TODO(ksteuck): Call PartitionSnapshots() to ensure there are no conflicts.
 
   RelocatableSnapGeneratorOptions options;
-  MmappedMemoryPtr<char> buffer = GenerateRelocatableSnaps(
-      PlatformArchitecture(platform_id), snapified_corpus, options);
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(arch_id, snapified_corpus, options);
   absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
   if (!WriteToFileDescriptor(STDOUT_FILENO, buf)) {
     return absl::InternalError("WriteToFileDescriptor failed");

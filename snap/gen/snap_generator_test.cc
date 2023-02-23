@@ -52,7 +52,8 @@ TEST(SnapGenerator, BasicSnapGeneratorTest) {
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  VerifyTestSnap(snapshot, snap, SnapifyOptions::Default());
+  VerifyTestSnap(snapshot, snap,
+                 SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));
 }
 
 TEST(SnapGenerator, MemoryBytesAttributesTest) {
@@ -60,7 +61,8 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
       SnapGeneratorTestType::kMemoryBytesPermsTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
-  VerifyTestSnap(snapshot, snap, SnapifyOptions::Default());
+  VerifyTestSnap(snapshot, snap,
+                 SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));
 
   // Check that any memory bytes in list that overlap with [start, limit)
   // must 1) completely lie inside [start, limit) and 2) is not writable.
@@ -101,7 +103,9 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
 TEST(SnapGenerator, Snapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
+                       Snapify(snapshot, SnapifyOptions::V2InputRunOpts(
+                                             snapshot.architecture_id())));
 
   for (const auto& mapping : snapified.memory_mappings()) {
     MemoryPerms expected_perms = snapshot.PermsAt(mapping.start_address());
@@ -146,8 +150,11 @@ TEST(SnapGenerator, Snapify) {
 TEST(SnapGenerator, SnapifyIdempotent) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot));
-  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified));
+
+  SnapifyOptions opts =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified, Snapify(snapshot, opts));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified2, Snapify(snapified, opts));
   ASSERT_EQ(snapified, snapified2);
 }
 
@@ -155,8 +162,11 @@ TEST(SnapGenerator, CanSnapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   snapshot.set_expected_end_states({});
-  EXPECT_THAT(CanSnapify(snapshot), StatusIs(absl::StatusCode::kNotFound));
-  EXPECT_THAT(Snapify(snapshot), StatusIs(absl::StatusCode::kNotFound));
+  SnapifyOptions opts =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+  EXPECT_THAT(CanSnapify(snapshot, opts),
+              StatusIs(absl::StatusCode::kNotFound));
+  EXPECT_THAT(Snapify(snapshot, opts), StatusIs(absl::StatusCode::kNotFound));
 }
 
 }  // namespace

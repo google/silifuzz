@@ -40,6 +40,7 @@ cc_binary(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/gen:relocatable_snap_generator",
         "@silifuzz//snap/gen:snap_generator",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:file_util",

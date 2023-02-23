@@ -41,9 +41,10 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
   // Generate relocatable snaps from runner test snaps.
   std::vector<Snapshot> snapified_corpus;
   {
-    SnapifyOptions opts = SnapifyOptions::V2InputRunOpts();
     Snapshot snapshot =
         MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+    SnapifyOptions opts =
+        SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.emplace_back(std::move(snapified));
   }

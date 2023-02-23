@@ -98,7 +98,8 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     // Snaps need to be snapified before GenerateRelocatableSnaps.
     // If they are not, executable pages may not be RLE compressed.
     remade_snapshot_or =
-        Snapify(remade_snapshot_or.value(), SnapifyOptions::V2InputRunOpts());
+        Snapify(remade_snapshot_or.value(),
+                SnapifyOptions::V2InputRunOpts(snapshot->architecture_id()));
     if (!remade_snapshot_or.ok()) {
       continue;
     }

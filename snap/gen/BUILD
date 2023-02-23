@@ -180,6 +180,7 @@ cc_library(
         "@silifuzz//common:snapshot_util",
         "@silifuzz//snap",
         "@silifuzz//snap:exit_sequence",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",

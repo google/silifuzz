@@ -130,8 +130,10 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
 }
 
 absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapified, Snapify(snapshot, SnapifyOptions::V2InputMakeOpts()));
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputMakeOpts(snapshot.architecture_id());
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified,
+                             Snapify(snapshot, snapify_opts));
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
@@ -163,8 +165,10 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
 }
 
 absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapified, Snapify(snapshot, SnapifyOptions::V2InputRunOpts()));
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified,
+                             Snapify(snapshot, snapify_opts));
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver verifier,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
@@ -234,9 +238,11 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
   VLOG_INFO(1, "MakeLoop()");
   int pages_added = 0;
 
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputMakeOpts(snapshot->architecture_id());
+
   while (true) {
-    ASSIGN_OR_RETURN_IF_NOT_OK(
-        *snapshot, Snapify(*snapshot, SnapifyOptions::V2InputMakeOpts()));
+    ASSIGN_OR_RETURN_IF_NOT_OK(*snapshot, Snapify(*snapshot, snapify_opts));
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver runner_driver,
         RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));
