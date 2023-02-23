@@ -172,6 +172,78 @@ TYPED_TEST(SnapshotTest, NormalizeMemoryMappings) {
   EXPECT_THAT(s.memory_mappings(), ContainerEq(expected));
 }
 
+TYPED_TEST(SnapshotTest, NormalizeMemoryMappingsMerge) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
+  constexpr Snapshot::Address kBase = 0x80000000;
+  const size_t kPageSize = s.page_size();
+
+  const Snapshot::MemoryMapping data_mapping0 =
+      Snapshot::MemoryMapping::MakeSized(kBase, kPageSize, MemoryPerms::RW());
+  s.add_memory_mapping(data_mapping0);
+
+  const Snapshot::MemoryMapping data_mapping1 =
+      Snapshot::MemoryMapping::MakeSized(kBase + kPageSize, kPageSize,
+                                         MemoryPerms::RW());
+  s.add_memory_mapping(data_mapping1);
+
+  s.NormalizeMemoryMappings();
+
+  ASSERT_THAT(s.memory_mappings(), ::testing::SizeIs(1));
+  EXPECT_EQ(s.memory_mappings()[0].start_address(), kBase);
+  EXPECT_EQ(s.memory_mappings()[0].num_bytes(), kPageSize * 2);
+}
+
+TYPED_TEST(SnapshotTest, NormalizeMemoryMappingNoMerge) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
+  constexpr Snapshot::Address kBase = 0x80000000;
+  const size_t kPageSize = s.page_size();
+
+  const Snapshot::MemoryMapping data_mapping0 =
+      Snapshot::MemoryMapping::MakeSized(kBase, kPageSize, MemoryPerms::RW());
+  s.add_memory_mapping(data_mapping0);
+
+  const Snapshot::MemoryMapping data_mapping1 =
+      Snapshot::MemoryMapping::MakeSized(kBase + kPageSize, kPageSize,
+                                         MemoryPerms::XR());
+  s.add_memory_mapping(data_mapping1);
+
+  s.NormalizeMemoryMappings();
+
+  ASSERT_THAT(s.memory_mappings(), ::testing::SizeIs(2));
+  EXPECT_EQ(s.memory_mappings()[0].start_address(), kBase);
+  EXPECT_EQ(s.memory_mappings()[0].num_bytes(), kPageSize);
+  EXPECT_EQ(s.memory_mappings()[1].start_address(), kBase + kPageSize);
+  EXPECT_EQ(s.memory_mappings()[1].num_bytes(), kPageSize);
+}
+
+TYPED_TEST(SnapshotTest, NormalizeMemoryMappingMixedMerge) {
+  Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
+  const size_t kPageSize = s.page_size();
+
+  const Snapshot::MemoryMapping data_mapping0 =
+      Snapshot::MemoryMapping::MakeSized(0x2000000, kPageSize,
+                                         MemoryPerms::RW());
+  s.add_memory_mapping(data_mapping0);
+
+  const Snapshot::MemoryMapping exec_mapping0 =
+      Snapshot::MemoryMapping::MakeSized(0xacd1e000, kPageSize,
+                                         MemoryPerms::X());
+  s.add_memory_mapping(exec_mapping0);
+
+  const Snapshot::MemoryMapping data_mapping1 =
+      Snapshot::MemoryMapping::MakeSized(0x2001000, kPageSize,
+                                         MemoryPerms::RW());
+  s.add_memory_mapping(data_mapping1);
+
+  s.NormalizeMemoryMappings();
+
+  ASSERT_THAT(s.memory_mappings(), ::testing::SizeIs(2));
+  EXPECT_EQ(s.memory_mappings()[0].start_address(), 0x2000000);
+  EXPECT_EQ(s.memory_mappings()[0].num_bytes(), kPageSize * 2);
+  EXPECT_EQ(s.memory_mappings()[1].start_address(), 0xacd1e000);
+  EXPECT_EQ(s.memory_mappings()[1].num_bytes(), kPageSize);
+}
+
 TYPED_TEST(SnapshotTest, NormalizeMemoryBytesMerge) {
   Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>(), "id");
   constexpr Snapshot::Address kBase = 0x80000000;

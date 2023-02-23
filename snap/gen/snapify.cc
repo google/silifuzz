@@ -230,6 +230,10 @@ absl::StatusOr<Snapshot> Snapify(const Snapshot &snapshot,
   const Snapshot::Endpoint &endpoint = end_state->endpoint();
 
   Snapshot snapified = snapshot.Copy();
+
+  // Make sure adjacent memory mappings are merged.
+  snapified.NormalizeMemoryMappings();
+
   // Replace potentially multiple expected end states with just the one for the
   // requested platform.
   snapified.set_expected_end_states({*end_state});

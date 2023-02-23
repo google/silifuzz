@@ -158,6 +158,50 @@ TEST(SnapGenerator, SnapifyIdempotent) {
   ASSERT_EQ(snapified, snapified2);
 }
 
+TEST(SnapGenerator, SnapifyMerge) {
+  Snapshot original = MakeSnapGeneratorTestSnapshot(
+      SnapGeneratorTestType::kBasicSnapGeneratorTest);
+
+  // Arbitrary address that shouldn't collide with the test snapshot.
+  Snapshot::Address aux_data_address = 0x90000000ULL;
+  size_t aux_data_size = 0x2000;
+  // Check there's nothing there.
+  ASSERT_EQ(original.PermsAt(aux_data_address), MemoryPerms::None());
+
+  // Create a snapshot with two adjacent data ranges.
+  Snapshot modified = original.Copy();
+  modified.add_memory_mapping(Snapshot::MemoryMapping::MakeSized(
+      aux_data_address, aux_data_size, MemoryPerms::RW()));
+  modified.add_memory_mapping(Snapshot::MemoryMapping::MakeSized(
+      aux_data_address + aux_data_size, aux_data_size, MemoryPerms::RW()));
+
+  // Create a snapshot with those ranges merged.
+  Snapshot expected = original.Copy();
+  expected.add_memory_mapping(Snapshot::MemoryMapping::MakeSized(
+      aux_data_address, aux_data_size * 2, MemoryPerms::RW()));
+
+  // Snapify everything.
+  SnapifyOptions opts =
+      SnapifyOptions::V2InputRunOpts(original.architecture_id());
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified_original,
+                       Snapify(original, opts));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified_modified,
+                       Snapify(modified, opts));
+  ASSERT_OK_AND_ASSIGN(const Snapshot snapified_expected,
+                       Snapify(expected, opts));
+
+  // Note: checking the mappings are equal rather than the Snapshot because the
+  // Snapshot equals doesn't check the mappings directly.
+
+  // Make sure adding the mappings gave us a different result.
+  EXPECT_NE(snapified_original.memory_mappings(),
+            snapified_modified.memory_mappings());
+
+  // Make sure the mappings got merged.
+  EXPECT_EQ(snapified_expected.memory_mappings(),
+            snapified_modified.memory_mappings());
+}
+
 TEST(SnapGenerator, CanSnapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
