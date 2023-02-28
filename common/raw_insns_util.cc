@@ -189,10 +189,18 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
   }
 
   // Create mapping for the code.
-  // Map code execute-only to discourage depending on any widget that may exist
-  // before or after the code.
+  // Historically, we tried to make executable pages execute-only in an attempt
+  // to push the fuzzer towards generating code that didn't depend on the
+  // contents of the executable segment. This would give us flexibility to
+  // change the exit sequence, maybe add an entry sequence, possibly reduce the
+  // chance that mutation produces invalid instruction sequences, etc.
+  // But Linux has removed support for execute-only pages on ARMv8 for good
+  // reasons that look unlikely to change:
+  // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=24cecc37746393432d994c0dbc251fb9ac7c5d72
+  // https://blog.siguza.net/PAN/
+  // So we can't actually use execute-only pages.
   auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
-      code_start_addr, page_size, MemoryPerms::X());
+      code_start_addr, page_size, MemoryPerms::XR());
   snapshot.add_memory_mapping(code_page_mapping);
 
   // Add code to the snapshot.

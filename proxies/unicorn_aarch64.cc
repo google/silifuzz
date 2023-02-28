@@ -247,8 +247,6 @@ int RunAArch64Instructions(absl::string_view insns) {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc));
 
   // Details to sort out later:
-  // TODO(ncbray) why do PC-relative loads work w/ execute-only memory?
-  // 100001c: 980019c8 ldrsw       x8, 0x1000354
   // TODO(ncbray) why do atomic ops using the initial stack pointer not fault?
   // 1000000: 787f63fc ldumaxlh    wzr, w28, [sp]
 
