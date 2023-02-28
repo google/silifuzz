@@ -57,6 +57,7 @@ inline int GetCPUIdUsingRDTSCP() {
 }  // namespace
 
 extern int GetCPUIdUsingSyscall();
+extern int GetCPUAffinityNoSyscall();
 
 int GetCPUId() {
   if (HasRDTSCP()) {
@@ -70,7 +71,7 @@ int GetCPUIdNoSyscall() {
   if (HasRDTSCP()) {
     return GetCPUIdUsingRDTSCP();
   } else {
-    return kUnknownCPUId;
+    return GetCPUAffinityNoSyscall();
   }
 }
 

@@ -549,7 +549,7 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
 const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
   // Pin CPU if pinning is requested.
   if (options.cpu != kAnyCPUId) {
-    const int error = SetCPUId(options.cpu);
+    const int error = SetCPUAffinity(options.cpu);
     // Linux kernel API uses unsigned long type.
     if (error != 0) {
       LOG_FATAL("Cannot pin cpu to core ", IntStr(options.cpu),

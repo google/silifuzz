@@ -23,37 +23,42 @@
 namespace silifuzz {
 namespace {
 
+double RecordConsistency(int (*callback)(), int expected) {
+  constexpr int kNumIterations = 100;
+  int is_expected_count = 0;
+  for (int i = 0; i < kNumIterations; i++) {
+    sched_yield();
+    if (callback() == expected) {
+      is_expected_count += 1;
+    }
+  }
+  return static_cast<double>(is_expected_count) / kNumIterations;
+}
+
 TEST(CPUId, BasicTest) {
   cpu_set_t all_cpus;
   ASSERT_EQ(sched_getaffinity(0, sizeof(all_cpus), &all_cpus), 0);
 
+  double normal_consistency_sum = 0;
+  double nosys_consistency_sum = 0;
   int num_trials = 0;
-  int passes = 0;
+
   for (int i = 0; i < CPU_SETSIZE; i++) {
     if (CPU_ISSET(i, &all_cpus)) {
-      if (SetCPUId(i) != 0) {
+      if (SetCPUAffinity(i) != 0) {
         LOG_ERROR("Cannot bind to CPU ", IntStr(i));
         continue;
       }
-
-      // There is no guarantee that a thread stays on a core so this can fail.
-      const int cpu_before = sched_getcpu();
-      const int getcpu_result = GetCPUId();
-      const int cpu_after = sched_getcpu();
-
-      // Discard trial if thread obviously has migrated.
-      if (cpu_before == cpu_after) {
-        num_trials++;
-        if (getcpu_result == cpu_before) {
-          passes++;
-        }
-      }
+      normal_consistency_sum += RecordConsistency(&GetCPUId, i);
+      nosys_consistency_sum += RecordConsistency(&GetCPUIdNoSyscall, i);
+      num_trials += 1;
     }
   }
 
   // This is chosen empirically to keep failure rate below 1 in 10000.
   constexpr double kAcceptableErrorRate = 0.10;
-  EXPECT_GT(passes, num_trials * (1.0 - kAcceptableErrorRate));
+  EXPECT_GE(normal_consistency_sum, num_trials * (1.0 - kAcceptableErrorRate));
+  EXPECT_GE(nosys_consistency_sum, num_trials * (1.0 - kAcceptableErrorRate));
 }
 
 }  // namespace

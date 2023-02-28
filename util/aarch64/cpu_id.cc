@@ -17,9 +17,10 @@
 namespace silifuzz {
 
 extern int GetCPUIdUsingSyscall();
+extern int GetCPUAffinityNoSyscall();
 
 int GetCPUId() { return GetCPUIdUsingSyscall(); }
 
-int GetCPUIdNoSyscall() { return kUnknownCPUId; }
+int GetCPUIdNoSyscall() { return GetCPUAffinityNoSyscall(); }
 
 }  // namespace silifuzz

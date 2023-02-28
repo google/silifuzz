@@ -14,11 +14,18 @@
 
 #include "./util/cpu_id.h"
 
+#include <atomic>
 #include <climits>
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 
 namespace silifuzz {
+
+namespace {
+// Stored as the cpu_affinity + 1 to avoid initializing to -1 and adding a
+// possible init function to the nolibc environment.
+std::atomic<int> cpu_affinity_plus_one;
+}  // namespace
 
 // Gets current CPU ID using getcpu syscall.
 int GetCPUIdUsingSyscall() {
@@ -32,7 +39,7 @@ int GetCPUIdUsingSyscall() {
   return cpu;
 }
 
-int SetCPUId(int cpu_id) {
+int SetCPUAffinity(int cpu_id) {
   // Linux kernel API uses unsigned long type.
   constexpr size_t kULongBits =
       CHAR_BIT * sizeof(unsigned long);  // NOLINT(runtime/int)
@@ -43,7 +50,22 @@ int SetCPUId(int cpu_id) {
   const size_t idx = cpu_id / kULongBits;
   const int bit = cpu_id % kULongBits;
   cpu_set[idx] |= static_cast<unsigned long>(1) << bit;
-  return sys_sched_setaffinity(0, sizeof(cpu_set), cpu_set) == 0 ? 0 : errno;
+  if (sys_sched_setaffinity(0, sizeof(cpu_set), cpu_set)) {
+    return errno;
+  }
+  // Remember the CPU affinity setting so we can give an approximate answer to
+  // GetCPUIdNoSyscall.
+  cpu_affinity_plus_one.store(cpu_id + 1, std::memory_order_relaxed);
+  return 0;
+}
+
+// Note: since we only have a single global variable we're recording the
+// last affinity set on any thread. This function may not work the way you'd
+// expect if called from multiple threads, but we expect it will only be used in
+// single-threaded scenarios.
+// Ideally we'd store this value in thread-local storage, if nolibc had support.
+int GetCPUAffinityNoSyscall() {
+  return cpu_affinity_plus_one.load(std::memory_order_relaxed) - 1;
 }
 
 }  // namespace silifuzz

@@ -32,7 +32,7 @@ int GetCPUIdNoSyscall();
 
 // Sets CPU of the current thread to the one with given Id . Returns 0 if
 // successful or an error number from sched_setaffinity().
-int SetCPUId(int cpu_id);
+int SetCPUAffinity(int cpu_id);
 
 }  // namespace silifuzz
 
