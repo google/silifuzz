@@ -31,6 +31,50 @@ MmappedMemoryPtr<const SnapCorpus> make_null_corpus() {
   return MakeMmappedMemoryPtr<const SnapCorpus>(nullptr, 0);
 }
 
+// Ensure that a read from memory only occurs once.
+// If the relocator is fed junk data (by a fuzzer, for example) the pointers
+// can be aliased in strange ways and any relocation can mutate any part of the
+// corpus. If we wanted to be secure against an attacker-provided corpus, we'd
+// need to re-design the format to make aliasing detectable / impossible. If we
+// want to fuzz and find non-aliasing-related bugs, the following function
+// allows us to write code that behaves more predictably in the presence of
+// aliasing. For example, we can read the size of an array before iterating over
+// it without worrying that processing the array will mutate the size. Naively,
+// we could just store the array size in a local variable, but if the compiler
+// does any type-based alias optimizations, the local variable could be silently
+// re-loaded from memory every loop iteration because the compiler determines it
+// should never change and it needs to free up a register. This function
+// prevents silent reloads by making the read volitile.
+template <typename T>
+T read_once(T& value) {
+  return *const_cast<volatile T*>(&value);
+}
+
+template <typename T>
+class RelocationIterator {
+ public:
+  explicit RelocationIterator(const Snap::Array<T>& array) {
+    // If the Corpus is malformed, future relocations could corrupt these values
+    // so copy them.
+    // This iterator should be created immediately after relocating the array
+    // and before relocating anything else.
+    // Make the elements non-const since we're going to be mutating them.
+    elements_ = const_cast<T*>(read_once(array.elements));
+    size_ = read_once(array.size);
+  }
+
+  T* begin() const { return elements_; }
+  T* end() const { return elements_ + size_; }
+
+ private:
+  T* elements_;
+  size_t size_;
+};
+
+// Satisfy -Wctad-maybe-unsupported
+template <typename T>
+RelocationIterator(Snap::Array<T>&) -> RelocationIterator<T>;
+
 }  // namespace
 
 // Similar to RETURN_IF_NOT_OK() but for SnapRelocator::Error.
@@ -105,9 +149,8 @@ SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
 SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
     Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {
   RETURN_IF_RELOCATION_FAILED(AdjustArray(memory_bytes_array));
-  for (size_t i = 0; i < memory_bytes_array.size; ++i) {
-    Snap::MemoryBytes& memory_byte =
-        const_cast<Snap::MemoryBytes&>(memory_bytes_array[i]);
+  for (Snap::MemoryBytes& memory_byte :
+       RelocationIterator(memory_bytes_array)) {
     if (!memory_byte.repeating()) {
       RETURN_IF_RELOCATION_FAILED(
           AdjustPointer(memory_byte.data.byte_values.elements));
@@ -139,26 +182,25 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
   }
 
   RETURN_IF_RELOCATION_FAILED(AdjustArray(corpus.snaps));
-  for (size_t i = 0; i < corpus.snaps.size; ++i) {
+  for (const Snap*& snap_ptr : RelocationIterator(corpus.snaps)) {
     // Adjust the pointer in the array.
-    RETURN_IF_RELOCATION_FAILED(
-        AdjustPointer(const_cast<Snap*&>(corpus.snaps[i])));
+    RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap_ptr));
 
     // Adjust pointers in this Snap.
-    Snap& snap = *const_cast<Snap*>(corpus.snaps[i]);
+    Snap& snap = *const_cast<Snap*>(read_once(snap_ptr));
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.id));
+
     RETURN_IF_RELOCATION_FAILED(AdjustArray(snap.memory_mappings));
+    for (Snap::MemoryMapping& mapping :
+         RelocationIterator(snap.memory_mappings)) {
+      // Adjust memory bytes for initial mappings.
+      RETURN_IF_RELOCATION_FAILED(
+          RelocateMemoryBytesArray(mapping.memory_bytes));
+    }
 
     // Adjust register pointers.
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.registers));
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.end_state_registers));
-
-    // Adjust memory bytes for initial mappings.
-    for (size_t j = 0; j < snap.memory_mappings.size; ++j) {
-      RETURN_IF_RELOCATION_FAILED(RelocateMemoryBytesArray(
-          const_cast<Snap::MemoryMapping&>(snap.memory_mappings[j])
-              .memory_bytes));
-    }
 
     // Adjust memory bytes for end state.
     RETURN_IF_RELOCATION_FAILED(
