@@ -14,43 +14,10 @@
 
 #include "./common/snapshot_util.h"
 
-#include "absl/status/statusor.h"
-#include "./common/snapshot_proto.h"
 #include "./util/checks.h"
-#include "./util/proto_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
-
-absl::Status WriteSnapshotToFile(const Snapshot& snapshot,
-                                 absl::string_view filename) {
-  proto::Snapshot proto;
-  SnapshotProto::ToProto(snapshot, &proto);
-  return WriteToFile(proto, filename);
-}
-
-void WriteSnapshotToFileOrDie(const Snapshot& snapshot,
-                              absl::string_view filename) {
-  auto s = WriteSnapshotToFile(snapshot, filename);
-  CHECK_STATUS(s);
-}
-
-absl::StatusOr<Snapshot> ReadSnapshotFromFile(absl::string_view filename) {
-  proto::Snapshot snap_proto;
-  auto s = ReadFromFile(filename, &snap_proto);
-  RETURN_IF_NOT_OK(s);
-
-  auto snapshot_or = SnapshotProto::FromProto(snap_proto);
-  RETURN_IF_NOT_OK_PLUS(snapshot_or.status(),
-                        "Could not parse Snapshot from proto: ");
-  return snapshot_or;
-}
-
-Snapshot ReadSnapshotFromFileOrDie(absl::string_view filename) {
-  auto snapshot_or = ReadSnapshotFromFile(filename);
-  CHECK_STATUS(snapshot_or.status());
-  return std::move(snapshot_or).value();
-}
 
 template <typename Arch>
 Snapshot::RegisterState ConvertRegsToSnapshot(const GRegSet<Arch>& gregs,

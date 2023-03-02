@@ -30,7 +30,7 @@
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
-#include "./common/snapshot_util.h"
+#include "./common/snapshot_file_util.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
 #include "./util/checks.h"

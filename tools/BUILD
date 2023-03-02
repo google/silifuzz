@@ -33,8 +33,8 @@ cc_binary(
     deps = [
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
+        "@silifuzz//common:snapshot_file_util",
         "@silifuzz//common:snapshot_printer",
-        "@silifuzz//common:snapshot_util",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner:snap_maker",
         "@silifuzz//runner/driver:runner_driver",
@@ -71,7 +71,7 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
-        "@silifuzz//common:snapshot_util",
+        "@silifuzz//common:snapshot_file_util",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:checks",
@@ -113,8 +113,8 @@ cc_binary(
     srcs = ["snap_corpus_tool.cc"],
     deps = [
         "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_file_util",
         "@silifuzz//common:snapshot_printer",
-        "@silifuzz//common:snapshot_util",
         "@silifuzz//player:player_result_proto",
         "@silifuzz//proto:binary_log_entry_cc_proto",
         "@silifuzz//proto:snapshot_execution_result_cc_proto",

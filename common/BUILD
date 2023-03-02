@@ -202,11 +202,22 @@ cc_library(
     hdrs = ["snapshot_util.h"],
     deps = [
         ":snapshot",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:serialize",
+        "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/status",
+    ],
+)
+
+cc_library(
+    name = "snapshot_file_util",
+    srcs = ["snapshot_file_util.cc"],
+    hdrs = ["snapshot_file_util.h"],
+    deps = [
+        ":snapshot",
         ":snapshot_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:proto_util",
-        "@silifuzz//util/ucontext:serialize",
-        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
