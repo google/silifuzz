@@ -35,15 +35,12 @@
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot_enums.h"
-#include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
 #include "./util/platform.h"
 
 namespace silifuzz {
-
-class SnapshotProto;  // in snapshot_proto.h; needed for friendship.
 
 // Snapshot is the data representation for a snapshot: instructions
 // and the necessary data for execution of some relatively short snippet
@@ -507,17 +504,29 @@ class Snapshot final {
 
 // Contains metadata associated with the snapshot.
 class Snapshot::Metadata {
-  friend class SnapshotProto;  // for value_.
-  proto::SnapshotMetadata value_;
-  bool empty_;
-
  public:
-  explicit Metadata(const proto::SnapshotMetadata& value)
-      : value_(value), empty_(false) {}
-  Metadata() : value_(), empty_(true) {}
-  bool empty() const { return empty_; }
+  enum class Origin {
+    kUndefined = 0,
+    kIfuzz = 2,
+    kUnicorn = 3,
+    kBochs = 5,
+    kXed = 6,
+    kGem5 = 7,
+    kIaca = 8,
+    kLlvmMca = 9,
+    kUnicornCustom = 10,
+    kEmulator1 = 11,
+  };
+
+  Metadata() : origin_(Origin::kUndefined) {}
   Metadata(const Metadata& other) = default;
   Metadata(Metadata&& other) = default;
+  explicit Metadata(Origin origin) : origin_(origin) {}
+
+  Origin origin() const { return origin_; }
+
+ private:
+  Origin origin_;
 };
 
 // ========================================================================= //

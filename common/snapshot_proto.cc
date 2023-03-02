@@ -70,6 +70,28 @@ static_assert(ToInt(Snapshot::Endpoint::kSegvOverflow) ==
 static_assert(ToInt(Snapshot::Endpoint::kSegvGeneralProtection) ==
               ToInt(proto::Endpoint::SEGV_GENERAL_PROTECTION));
 
+// Make sure that Origin values match.
+static_assert(ToInt(Snapshot::Metadata::Origin::kUndefined) ==
+              ToInt(proto::SnapshotMetadata::UNDEFINED_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kIfuzz) ==
+              ToInt(proto::SnapshotMetadata::IFUZZ_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kUnicorn) ==
+              ToInt(proto::SnapshotMetadata::UNICORN_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kBochs) ==
+              ToInt(proto::SnapshotMetadata::BOCHS_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kXed) ==
+              ToInt(proto::SnapshotMetadata::XED_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kGem5) ==
+              ToInt(proto::SnapshotMetadata::GEM5_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kIaca) ==
+              ToInt(proto::SnapshotMetadata::IACA_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kLlvmMca) ==
+              ToInt(proto::SnapshotMetadata::LLVM_MCA_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kEmulator1) ==
+              ToInt(proto::SnapshotMetadata::EMULATOR1_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kUnicornCustom) ==
+              ToInt(proto::SnapshotMetadata::UNICORNCUSTOM_FUZZING_ORIGIN));
+
 // Make sure that PlatformId values match.
 static_assert(ToInt(PlatformId::kUndefined) ==
               ToInt(proto::PlatformId::UNDEFINED_PLATFORM_ID));
@@ -206,6 +228,15 @@ absl::StatusOr<Snapshot::EndState> SnapshotProto::FromProto(
 }
 
 // static
+absl::StatusOr<Snapshot::Metadata> SnapshotProto::FromProto(
+    const proto::SnapshotMetadata& proto) {
+  // We aren't strictly validating the presence of metadata fields because old
+  // protos may not have them. Silently set them to the default.
+  return Snapshot::Metadata{
+      static_cast<Snapshot::Metadata::Origin>(proto.origin())};
+}
+
+// static
 absl::StatusOr<Snapshot> SnapshotProto::FromProto(
     const proto::Snapshot& proto) {
   PROTO_MUST_HAVE_FIELD(proto, architecture);
@@ -252,9 +283,10 @@ absl::StatusOr<Snapshot> SnapshotProto::FromProto(
                           "Can't add EndState: ");
     snap.add_expected_end_state(s.value());
   }
-
-  if (proto.has_metadata()) {
-    snap.set_metadata(Metadata(proto.metadata()));
+  {
+    auto s = FromProto(proto.metadata());
+    RETURN_IF_NOT_OK_PLUS(s.status(), "Bad Metadata: ");
+    snap.set_metadata(s.value());
   }
 
   RETURN_IF_NOT_OK_PLUS(snap.IsCompleteSomeState(), "Snapshot is incomplete: ");
@@ -329,6 +361,13 @@ void SnapshotProto::ToProto(const EndState& snap, proto::EndState* proto) {
 }
 
 // static
+void SnapshotProto::ToProto(const Snapshot::Metadata& metadata,
+                            proto::SnapshotMetadata* proto) {
+  proto->set_origin(
+      static_cast<proto::SnapshotMetadata_Origin>(metadata.origin()));
+}
+
+// static
 void SnapshotProto::ToProto(const Snapshot& snap, proto::Snapshot* proto) {
   DCHECK_STATUS(snap.IsCompleteSomeState());
   proto->Clear();
@@ -348,9 +387,7 @@ void SnapshotProto::ToProto(const Snapshot& snap, proto::Snapshot* proto) {
   for (const EndState& s : snap.expected_end_states()) {
     ToProto(s, proto->add_expected_end_states());
   }
-  if (!snap.metadata().empty()) {
-    *proto->mutable_metadata() = snap.metadata().value_;
-  }
+  ToProto(snap.metadata(), proto->mutable_metadata());
 }
 
 }  // namespace silifuzz

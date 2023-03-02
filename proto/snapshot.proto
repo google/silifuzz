@@ -168,17 +168,6 @@ message EndState {
 //
 // NEXT ID: 8
 message SnapshotMetadata {
-  // The time when the snapshot was created or last modified (in a minor way
-  // that does not merit to be called a transformation with a separate
-  // snapshot id, e.g. recording end-state is such a minor transformation).
-  // Seconds of UTC time since Unix epoch.
-  // Same as the `seconds` part of google/protobuf/timestamp.proto.
-  optional int64 timestamp_seconds = 1;  // semantically required
-
-  // Unstructured human-readable (maybe human-supplied) comments about the
-  // snapshot.
-  repeated string comment = 7;  // can be missing
-
   // How snapshot originated.
   // There are two classes of origin:
   // * creation from nothing -- all the enum values with _ORIGIN suffix
@@ -214,7 +203,7 @@ message SnapshotMetadata {
   }
   optional Origin origin = 2;  // semantically required
 
-  reserved 3 to 6;
+  reserved 1, 3 to 7;
 }
 
 // Proto representation of a snapshot: instructions and the necessary data

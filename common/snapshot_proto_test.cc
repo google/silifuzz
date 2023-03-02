@@ -25,15 +25,18 @@ namespace silifuzz {
 namespace {
 
 TEST(SnapshotProto, MetadataRoundtrip) {
+  constexpr proto::SnapshotMetadata_Origin kOrigin =
+      proto::SnapshotMetadata::UNICORN_FUZZING_ORIGIN;
+
   ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
                        InstructionsToSnapshot_X86_64("\xCC"));
   proto::Snapshot proto;
   SnapshotProto::ToProto(snapshot, &proto);
-  proto.mutable_metadata()->add_comment("test");
+  proto.mutable_metadata()->set_origin(kOrigin);
   ASSERT_OK_AND_ASSIGN(snapshot, SnapshotProto::FromProto(proto));
   proto.Clear();
   SnapshotProto::ToProto(snapshot, &proto);
-  ASSERT_EQ(proto.metadata().comment(0), "test");
+  ASSERT_EQ(proto.metadata().origin(), kOrigin);
 }
 
 TEST(SnapshotProto, ArchRoundtrip) {
