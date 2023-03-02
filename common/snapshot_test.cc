@@ -37,7 +37,7 @@ using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 using ::testing::UnorderedElementsAre;
 
-using arch_typelist = ::testing::Types<X86_64, AArch64>;
+using arch_typelist = ::testing::Types<ALL_ARCH_TYPES>;
 template <class>
 struct SnapshotTest : ::testing::Test {};
 TYPED_TEST_SUITE(SnapshotTest, arch_typelist);

@@ -25,7 +25,7 @@ namespace {
 
 // For docs on TYPED_TEST_SUITE:
 // http://google.github.io/googletest/reference/testing.html#TYPED_TEST_SUITE
-using arch_typelist = testing::Types<X86_64, AArch64>;
+using arch_typelist = testing::Types<ALL_ARCH_TYPES>;
 
 template <class>
 struct SerializeTest : testing::Test {};

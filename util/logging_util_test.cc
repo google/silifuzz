@@ -20,7 +20,7 @@
 namespace silifuzz {
 namespace {
 
-using arch_typelist = testing::Types<X86_64, AArch64>;
+using arch_typelist = testing::Types<ALL_ARCH_TYPES>;
 template <class>
 struct LoggingUtilTest : testing::Test {};
 TYPED_TEST_SUITE(LoggingUtilTest, arch_typelist);

@@ -38,6 +38,8 @@ struct AArch64 {
   static constexpr const char* arch_name = "aarch64";
 };
 
+#define ALL_ARCH_TYPES X86_64, AArch64
+
 #if defined(__x86_64__)
 using Host = X86_64;
 #elif defined(__aarch64__)
