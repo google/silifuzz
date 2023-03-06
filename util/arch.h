@@ -15,6 +15,10 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 
+#include <utility>
+
+#include "./util/checks.h"
+
 namespace silifuzz {
 
 // By convention these values match Snapshot::Architecture::* so that it can be
@@ -47,6 +51,18 @@ using Host = AArch64;
 #else
 #error "Unsupported architecture"
 #endif
+
+#define ARCH_DISPATCH(func, arch, ...)                               \
+  [](ArchitectureId arch_id, auto&&... args) {                       \
+    switch (arch_id) {                                               \
+      case ArchitectureId::kX86_64:                                  \
+        return func<X86_64>(std::forward<decltype(args)>(args)...);  \
+      case ArchitectureId::kAArch64:                                 \
+        return func<AArch64>(std::forward<decltype(args)>(args)...); \
+      default:                                                       \
+        LOG_FATAL("Unsupported architecture");                       \
+    }                                                                \
+  }(arch, ##__VA_ARGS__)
 
 }  // namespace silifuzz
 

@@ -876,6 +876,18 @@ cc_library_plus_nolibc(
 cc_library_plus_nolibc(
     name = "arch",
     hdrs = ["arch.h"],
+    deps = [
+        ":checks",
+    ],
+)
+
+cc_test(
+    name = "arch_test",
+    srcs = ["arch_test.cc"],
+    deps = [
+        ":arch",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_library(
