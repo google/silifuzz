@@ -41,16 +41,6 @@ Snapshot::ByteData SnapMemoryBytesData(const Snap::MemoryBytes& memory_bytes) {
 
 }  // namespace
 
-Snapshot::MemoryMappingList SnapMemoryMappings(const Snap& snap) {
-  Snapshot::MemoryMappingList memory_mappings;
-  for (const Snap::MemoryMapping& mapping : snap.memory_mappings) {
-    const MemoryPerms perms = MemoryPerms::FromMProtect(mapping.perms);
-    memory_mappings.push_back(Snapshot::MemoryMapping::MakeSized(
-        mapping.start_address, mapping.num_bytes, perms));
-  }
-  return memory_mappings;
-}
-
 absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
   Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Host>(), snap.id);
   for (const Snap::MemoryMapping& m : snap.memory_mappings) {

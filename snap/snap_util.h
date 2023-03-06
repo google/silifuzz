@@ -26,9 +26,6 @@
 
 namespace silifuzz {
 
-// Creates and returns a memory mapping list for 'snap'.
-Snapshot::MemoryMappingList SnapMemoryMappings(const Snap& snap);
-
 // Converts Snap into Snapshot with `platform` representing the platform for the
 // only expected end state in `snap`.
 // TODO(ksteuck): [impl] There should be metadata in the corpus file or the Snap
