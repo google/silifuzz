@@ -83,6 +83,9 @@ int main(int argc, char** argv) {
     } else if (cmd == "short_loop") {
       // sub-second.
       MakeCpuBusy(100000000);
+    } else if (cmd == "long_loop") {
+      // ~5 sec
+      MakeCpuBusy(2000000000);
     } else if (cmd == "infinite_loop") {
       // Never ends.
       MakeCpuBusy(1ULL << 60);

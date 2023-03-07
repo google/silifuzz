@@ -118,7 +118,8 @@ class OrchestratorTest(absltest.TestCase):
 
   def test_basic(self):
     (err_log, returncode) = self.run_orchestrator(
-        ['short_output', 'short_loop']
+        ['short_output', 'short_loop'],
+        duration_sec=10,
     )
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
@@ -206,7 +207,8 @@ class OrchestratorTest(absltest.TestCase):
 
   def test_v1_logging(self):
     (err_log, _) = self.run_orchestrator(
-        ['short_loop'] * 5,
+        ['long_loop'],
+        duration_sec=10,
         extra_args=['--enable_v1_compat_logging'],
     )
 
