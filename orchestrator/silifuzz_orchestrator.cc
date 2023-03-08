@@ -84,19 +84,15 @@ bool ExecutionContext::OfferRunResult(
 // Runs the orchestrator event loop.
 // NOTE: This method is not reentrant. Must be called by the main thread.
 void ExecutionContext::EventLoop() {
-  absl::Duration delay = absl::Seconds(10);
+  constexpr absl::Duration kTimeout = absl::Seconds(10);
   while (!ShouldStop()) {
     std::vector<RunnerDriver::RunResult> current_results;
     current_results.reserve(num_threads_);
     {
       bool timed_out = mu_.LockWhenWithTimeout(
-          absl::Condition(this, &ExecutionContext::ShouldWakeUp), delay);
+          absl::Condition(this, &ExecutionContext::ShouldWakeUp), kTimeout);
       VLOG_INFO(2, "Result processor woke up, queue size = ",
                 invocation_results_.size(), " due to timeout? = ", timed_out);
-      if (invocation_results_.empty()) {
-        mu_.Unlock();
-        continue;
-      }
       invocation_results_.swap(current_results);
       mu_.Unlock();
     }
