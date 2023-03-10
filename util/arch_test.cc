@@ -35,6 +35,18 @@ void MutateArg(int& arch) {
   arch = static_cast<int>(Arch::architecture_id);
 }
 
+class TestClass {
+ public:
+  template <class Arch>
+  int ReturnArchValue() {
+    return static_cast<int>(Arch::architecture_id);
+  }
+
+  int ImplicitThis(ArchitectureId arch_id) {
+    return ARCH_DISPATCH(ReturnArchValue, arch_id);
+  }
+};
+
 using arch_typelist = testing::Types<ALL_ARCH_TYPES>;
 
 template <class>
@@ -59,6 +71,18 @@ TYPED_TEST(ArchTest, ArchDispatchOutputParam) {
   int tmp = -1;
   ARCH_DISPATCH(MutateArg, TypeParam::architecture_id, tmp);
   EXPECT_EQ(tmp, static_cast<int>(TypeParam::architecture_id));
+}
+
+TYPED_TEST(ArchTest, ExplicitThis) {
+  TestClass cls;
+  EXPECT_EQ(ARCH_DISPATCH(cls.ReturnArchValue, TypeParam::architecture_id),
+            static_cast<int>(TypeParam::architecture_id));
+}
+
+TYPED_TEST(ArchTest, ImplicitThis) {
+  TestClass cls;
+  EXPECT_EQ(cls.ImplicitThis(TypeParam::architecture_id),
+            static_cast<int>(TypeParam::architecture_id));
 }
 
 }  // namespace

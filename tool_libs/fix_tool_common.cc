@@ -153,14 +153,8 @@ bool RewriteInitialStateImpl(Snapshot& snapshot, FixToolCounters* counters) {
 }
 
 bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
-  switch (snapshot.architecture()) {
-    case Snapshot::Architecture::kX86_64:
-      return RewriteInitialStateImpl<X86_64>(snapshot, counters);
-    case Snapshot::Architecture::kAArch64:
-      return RewriteInitialStateImpl<AArch64>(snapshot, counters);
-    default:
-      LOG_FATAL("Unexpected architecture");
-  }
+  return ARCH_DISPATCH(RewriteInitialStateImpl, snapshot.architecture_id(),
+                       snapshot, counters);
 }
 
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,

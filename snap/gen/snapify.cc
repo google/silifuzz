@@ -20,6 +20,7 @@
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/gen/snap_generator.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
@@ -169,8 +170,7 @@ absl::Status SnapifyMemoryBytes(Snapshot &snapshot,
 // add any new memory mappings.
 // NOTE: this transformation likely invalidates any expected end states.
 template <typename Arch>
-absl::Status MergeExitSequenceImpl(Snapshot &snapshot,
-                                   Snapshot::Address address) {
+absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
   // Add a snap exit sequence to initial memory bytes at the end point
   // instruction address.
   Snapshot::ByteData snap_exit_byte_data(GetSnapExitSequenceSize<Arch>(), 0);
@@ -197,28 +197,6 @@ absl::Status MergeExitSequenceImpl(Snapshot &snapshot,
   return absl::OkStatus();
 }
 
-absl::Status MergeExitSequence(Snapshot &snapshot, Snapshot::Address address) {
-  switch (snapshot.architecture()) {
-    case Snapshot::Architecture::kX86_64:
-      return MergeExitSequenceImpl<X86_64>(snapshot, address);
-    case Snapshot::Architecture::kAArch64:
-      return MergeExitSequenceImpl<AArch64>(snapshot, address);
-    default:
-      LOG_FATAL("Unexpected architecture: ", snapshot.architecture());
-  }
-}
-
-size_t GetSnapExitSequenceSizeForArch(Snapshot::Architecture arch) {
-  switch (arch) {
-    case Snapshot::Architecture::kX86_64:
-      return GetSnapExitSequenceSize<X86_64>();
-    case Snapshot::Architecture::kAArch64:
-      return GetSnapExitSequenceSize<AArch64>();
-    default:
-      LOG_FATAL("Unexpected architecture: ", arch);
-  }
-}
-
 }  // namespace
 
 absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts) {
@@ -238,9 +216,10 @@ absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts) {
   // There should be code space to append an exit sequence.
   const MappedMemoryMap &mapped_memory_map = snapshot.mapped_memory_map();
   const Snapshot::Address ending_rip = endpoint.instruction_address();
+  const size_t exit_sequence_size =
+      ARCH_DISPATCH(GetSnapExitSequenceSize, snapshot.architecture_id());
   if (!mapped_memory_map.Contains(ending_rip,
-                                  ending_rip + GetSnapExitSequenceSizeForArch(
-                                                   snapshot.architecture()))) {
+                                  ending_rip + exit_sequence_size)) {
     return absl::InvalidArgumentError(
         "CanSnapify: no room for the exit sequence");
   }
@@ -280,8 +259,8 @@ absl::StatusOr<Snapshot> Snapify(const Snapshot &snapshot,
   // requested platform.
   snapified.set_expected_end_states({*end_state});
 
-  RETURN_IF_NOT_OK(
-      MergeExitSequence(snapified, endpoint.instruction_address()));
+  RETURN_IF_NOT_OK(ARCH_DISPATCH(MergeExitSequence, snapified.architecture_id(),
+                                 snapified, endpoint.instruction_address()));
 
   RETURN_IF_NOT_OK(SnapifyMemoryBytes(snapified, opts));
 

@@ -23,6 +23,7 @@
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
 
@@ -481,18 +482,8 @@ void SnapshotPrinter::PrintRegisterStateImpl(
 void SnapshotPrinter::PrintRegisterState(
     const Snapshot& snapshot, const RegisterState& register_state,
     const RegisterState* base_register_state, bool log_diff) {
-  switch (snapshot.architecture()) {
-    case Snapshot::Architecture::kX86_64:
-      PrintRegisterStateImpl<X86_64>(register_state, base_register_state,
-                                     log_diff);
-      break;
-    case Snapshot::Architecture::kAArch64:
-      PrintRegisterStateImpl<AArch64>(register_state, base_register_state,
-                                      log_diff);
-      break;
-    default:
-      LOG_FATAL("Unexpected architecture");
-  }
+  ARCH_DISPATCH(PrintRegisterStateImpl, snapshot.architecture_id(),
+                register_state, base_register_state, log_diff);
 }
 
 void SnapshotPrinter::PrintRegisters(const Snapshot& snapshot) {

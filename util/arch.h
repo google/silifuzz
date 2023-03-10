@@ -53,7 +53,7 @@ using Host = AArch64;
 #endif
 
 #define ARCH_DISPATCH(func, arch, ...)                               \
-  [](ArchitectureId arch_id, auto&&... args) {                       \
+  [&](ArchitectureId arch_id, auto&&... args) {                      \
     switch (arch_id) {                                               \
       case ArchitectureId::kX86_64:                                  \
         return func<X86_64>(std::forward<decltype(args)>(args)...);  \

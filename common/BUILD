@@ -235,6 +235,7 @@ cc_library(
         ":snapshot_types",
         ":snapshot_util",
         "@com_google_absl//absl/strings",
+        "@silifuzz//util:arch",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
