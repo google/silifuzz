@@ -15,6 +15,8 @@
 // A do-it-all tool for examining, manipulating, or creating
 // snapshot proto files.
 
+#include <fcntl.h>
+
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -27,6 +29,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_file_util.h"
@@ -57,6 +60,9 @@ ABSL_FLAG(bool, dry_run, false,
           "Whether commands that modify snapshot instead will only print it.");
 ABSL_FLAG(bool, normalize, true,
           "Whether to also do Snapshot::NormalizeAll() of the output.");
+ABSL_FLAG(bool, raw, false,
+          "Whether the input is a raw sequence of instructions rather than a "
+          "Snapshot.");
 
 // Flags that control `print` command (including in --dry_run mode):
 ABSL_FLAG(SnapshotPrinter::RegsMode, regs, SnapshotPrinter::kNonZeroRegs,
@@ -116,9 +122,106 @@ void OutputSnapshotOrDie(Snapshot&& snapshot, absl::string_view filename,
   }
 }
 
+// Implements `make` command, also used for loading raw instructions.
+absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot) {
+  SnapMaker::Options opts;
+  opts.runner_path = RunnerLocation();
+  opts.num_verify_attempts = 1;
+  SnapMaker maker(opts);
+
+  absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(snapshot);
+  if (!made_snapshot_or.ok()) {
+    return absl::InternalError(absl::StrCat(
+        "Could not make snapshot: ", made_snapshot_or.status().ToString()));
+  }
+  Snapshot made_snapshot = std::move(made_snapshot_or).value();
+
+  absl::StatusOr<Snapshot> recorded_snapshot_or =
+      maker.RecordEndState(made_snapshot);
+  if (!recorded_snapshot_or.ok()) {
+    return absl::InternalError(
+        absl::StrCat("Could not record snapshot: ",
+                     recorded_snapshot_or.status().ToString()));
+  }
+  Snapshot recorded_snapshot = std::move(recorded_snapshot_or).value();
+
+  DCHECK_EQ(recorded_snapshot.expected_end_states().size(), 1);
+  const auto& ep = recorded_snapshot.expected_end_states()[0].endpoint();
+  if (ep.type() != snapshot_types::Endpoint::kInstruction) {
+    return absl::InternalError(absl::StrCat(
+        "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
+  }
+  absl::Status verify_status = maker.Verify(recorded_snapshot);
+  if (!verify_status.ok()) {
+    return verify_status;
+  }
+  return recorded_snapshot;
+}
+
+// Get the bytes of a file.
+absl::StatusOr<std::string> GetContents(absl::string_view file_name) {
+  int fd = open(file_name.data(), O_RDONLY);
+  if (fd == -1) {
+    return absl::PermissionDeniedError(absl::StrCat(
+        "Could not open file ", file_name, " : ", strerror(errno)));
+  }
+  off_t size = lseek(fd, 0, SEEK_END);
+  if (size == -1) {
+    close(fd);
+    return absl::UnknownError(
+        absl::StrCat("Could not seek ", file_name, " : ", strerror(errno)));
+  }
+  if (lseek(fd, 0, SEEK_SET) != 0) {
+    close(fd);
+    return absl::UnknownError(
+        absl::StrCat("Could not seek ", file_name, " : ", strerror(errno)));
+  }
+
+  std::string buffer(size, 0);
+
+  char* data = buffer.data();
+  size_t data_read = 0;
+  while (data_read < size) {
+    int result = read(fd, data, size - data_read);
+    if (result == -1) {
+      close(fd);
+      return absl::UnknownError(absl::StrCat("Could only read ", data_read,
+                                             " bytes from ", file_name, " : ",
+                                             strerror(errno)));
+    }
+    data += result;
+    data_read += result;
+  }
+  close(fd);
+  return buffer;
+}
+
+// Turn a file containing raw instruction bytes into a Snapshot.
+absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
+    absl::string_view filename) {
+  // Load the instructions.
+  ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions, GetContents(filename));
+
+  // Create the initial snapshot.
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
+                             InstructionsToSnapshot<Host>(instructions));
+  snapshot.set_id(InstructionsToSnapshotId(instructions));
+
+  // Make, or else it will be missing the exit sequence, etc.
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, MakeSnapshot(snapshot));
+
+  return made_snapshot;
+}
+
+absl::StatusOr<Snapshot> LoadSnapshot(absl::string_view filename, bool raw) {
+  return raw ? CreateSnapshotFromRawInstructions(filename)
+             : ReadSnapshotFromFile(filename);
+}
+
 // Implements `generate_corpus` command.
 absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
-                            PlatformId platform_id, LinePrinter* line_printer) {
+                            bool raw, PlatformId platform_id,
+                            LinePrinter* line_printer) {
   if (platform_id == PlatformId::kUndefined) {
     return absl::InvalidArgumentError(
         "generate_corpus requires a valid platform id");
@@ -130,9 +233,8 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
   std::vector<Snapshot> snapified_corpus;
 
   for (const std::string& proto_path : input_protos) {
-    ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(auto snapshot,
-                                    ReadSnapshotFromFile(proto_path),
-                                    "Cannot read snapshot");
+    ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(
+        auto snapshot, LoadSnapshot(proto_path, raw), "Cannot read snapshot");
     auto snapified_or = Snapify(snapshot, opts);
     if (!snapified_or.ok()) {
       line_printer->Line("Skipping ", proto_path, ": ",
@@ -177,7 +279,21 @@ bool SnapToolMain(std::vector<char*>& args) {
     snapshot_file = ConsumeArg(args);
   }
 
-  Snapshot snapshot = ReadSnapshotFromFileOrDie(snapshot_file);
+  PlatformId platform_id = absl::GetFlag(FLAGS_target_platform);
+  bool raw = absl::GetFlag(FLAGS_raw);
+  // In raw mode it's reasonable to default to the current platform.
+  if (raw && platform_id == PlatformId::kUndefined) {
+    platform_id = CurrentPlatformId();
+  }
+
+  // Load the snapshot
+  absl::StatusOr<Snapshot> snapshot_or = LoadSnapshot(snapshot_file, raw);
+  if (!snapshot_or.ok()) {
+    line_printer.Line("Could not load snapshot: ",
+                      snapshot_or.status().ToString());
+    return false;
+  }
+  Snapshot snapshot = std::move(snapshot_or).value();
 
   if (command == "print") {
     if (ExtraArgs(args)) return false;
@@ -256,50 +372,21 @@ bool SnapToolMain(std::vector<char*>& args) {
   } else if (command == "make") {
     if (ExtraArgs(args)) return false;
 
-    SnapMaker::Options opts;
-    opts.runner_path = RunnerLocation();
-    opts.num_verify_attempts = 1;
-    SnapMaker maker(opts);
+    absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot);
+    if (!recorded_snapshot.ok()) {
+      line_printer.Line(recorded_snapshot.status().ToString());
+      return false;
+    }
 
-    absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(snapshot);
-    if (!made_snapshot_or.ok()) {
-      line_printer.Line("Could not make snapshot: ",
-                        made_snapshot_or.status().ToString());
-      return false;
-    }
-    Snapshot made_snapshot = std::move(made_snapshot_or).value();
-
-    absl::StatusOr<Snapshot> recorded_snapshot_or =
-        maker.RecordEndState(made_snapshot);
-    if (!recorded_snapshot_or.ok()) {
-      line_printer.Line("Could not record snapshot: ",
-                        recorded_snapshot_or.status().ToString());
-      return false;
-    }
-    Snapshot recorded_snapshot = std::move(recorded_snapshot_or).value();
-
-    DCHECK_EQ(recorded_snapshot.expected_end_states().size(), 1);
-    const auto& ep = recorded_snapshot.expected_end_states()[0].endpoint();
-    if (ep.type() != snapshot_types::Endpoint::kInstruction) {
-      line_printer.Line("Cannot fix ", EnumStr(ep.sig_cause()), "/",
-                        EnumStr(ep.sig_num()));
-      return false;
-    }
-    absl::Status verify_status = maker.Verify(recorded_snapshot);
-    if (!verify_status.ok()) {
-      line_printer.Line(verify_status.message());
-      return false;
-    }
     line_printer.Line("Re-made snapshot succefully.");
-    OutputSnapshotOrDie(std::move(recorded_snapshot), snapshot_file,
+    OutputSnapshotOrDie(std::move(recorded_snapshot).value(), snapshot_file,
                         &line_printer);
   } else if (command == "generate_corpus") {
     std::vector<std::string> inputs({snapshot_file});
     for (const auto& a : args) {
       inputs.push_back(a);
     }
-    absl::Status s = GenerateCorpus(
-        inputs, absl::GetFlag(FLAGS_target_platform), &line_printer);
+    absl::Status s = GenerateCorpus(inputs, raw, platform_id, &line_printer);
     if (!s.ok()) {
       line_printer.Line("Cannot generate corpus: ", s.message());
       return false;

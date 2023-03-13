@@ -31,6 +31,7 @@ cc_binary(
     name = "snap_tool",
     srcs = ["snap_tool.cc"],
     deps = [
+        "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_file_util",
