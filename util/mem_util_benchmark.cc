@@ -23,62 +23,92 @@
 //
 // Here is result from running it on a 2.0GHz Skylake.
 //
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking MemEq
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 3069 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 18686 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 20816 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 21467 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 21654 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking bcmp
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 1510 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 2010 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 2158 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 2126 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 2112 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking MemEqSSE
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 3187 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 18717 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 20835 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 21518 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 21564 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking MemCopy
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 4094 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 22506 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 23525 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 21394 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 20608 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking memcpy
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 1230 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 1460 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 1536 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 1547 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 1538 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking MemSet
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 4472 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 23486 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 24514 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 21865 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 20718 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking memset
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 1799 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 2717 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 3046 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 2803 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 2810 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:190] Benchmarking MemAllEqualTo
-// I<DATE> <PID> mem_util_benchmark.cc:194] 16B : 3766 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 256B : 21301 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 4096B : 25406 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 65536B : 23892 MiB/s
-// I<DATE> <PID> mem_util_benchmark.cc:194] 1048576B : 21730 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemEq
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 4235 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 19605 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 20647 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 21401 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 21435 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking bcmp
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 1709 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 1899 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 2023 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 2022 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 2036 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemEqSSE
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 9306 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 18131 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 18081 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 17807 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 18278 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemEqAVX512F
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 4438 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 60006 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 95925 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 97082 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 86545 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemCopy
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 5168 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 20109 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 23400 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 21326 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 20786 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemCopyAVX512F
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 5406 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 50265 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 82962 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 37237 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 35203 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking memcpy
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 1996 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 2215 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 2431 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 2446 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 2444 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemSet
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 4455 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 23776 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 24423 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 21575 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 20751 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemSetAVX512F
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 4882 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 53834 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 82968 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 39340 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 31784 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking memset
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 2031 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 2773 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 3035 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 2794 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 2783 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:300] Benchmarking MemAllEqualTo
+// I<DATE> <PID> mem_util_benchmark.cc:310] 16B : 4454 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 256B : 21752 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 4096B : 25574 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 65536B : 23994 MiB/s
+// I<DATE> <PID> mem_util_benchmark.cc:310] 1048576B : 22620 MiB/s
 //
 #include <cstdint>
 #include <cstring>
+#ifdef __x86_64__
+#include <immintrin.h>
+#endif
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/mem_util.h"
+
+#ifdef __x86_64__
+#include "./util/avx.h"
+
+// This file is compiled with "-mno-sse" by default. So we have to force
+// AVX512F target via a function attribute.
+#define AVX512F_FUNCTION __attribute__((target("avx512f")))
+
+#endif
 
 namespace silifuzz {
 namespace {
@@ -116,6 +146,87 @@ bool MemEqSSE(const void* s1, const void* s2, size_t n) {
   }
   return diff_bits == 0;
 }
+
+#ifdef __x86_64__
+AVX512F_FUNCTION void MemCopyAVX512F(void* dest, const void* src, size_t n) {
+  // Optimize only if n is 8-byte aligned.
+  uint8_t* dest_u8 = reinterpret_cast<uint8_t*>(dest);
+  const uint8_t* src_u8 = reinterpret_cast<const uint8_t*>(src);
+  if (n % sizeof(uint64_t) != 0) {
+    for (size_t i = 0; i < n; ++i) {
+      dest_u8[i] = src_u8[i];
+    }
+    return;
+  }
+
+  size_t i;
+  for (i = 0; i < n; i += sizeof(__m512i)) {
+    _mm512_storeu_epi64(&dest_u8[i], _mm512_loadu_epi64(&src_u8[i]));
+  }
+
+  if (i < n) {
+    const size_t remaining_u64s = (n - i) / sizeof(uint64_t);
+    const __mmask16 mask = _cvtu32_mask16((1 << remaining_u64s) - 1);
+    _mm512_mask_storeu_epi64(&dest_u8[i], mask, _mm512_loadu_epi64(&src_u8[i]));
+  }
+}
+
+AVX512F_FUNCTION void MemSetAVX512F(void* dest, uint8_t c, size_t n)
+    __attribute__((no_builtin("memset"))) /* see MemCopy() above */ {
+  uint8_t* dest_u8 = reinterpret_cast<uint8_t*>(dest);
+  // Optimize only if n is both 8-byte aligned.
+  if (n % sizeof(uint64_t) != 0) {
+    for (size_t i = 0; i < n; ++i) {
+      dest_u8[i] = c;
+    }
+    return;
+  }
+
+  const __m512i c_m512i = _mm512_set1_epi8(c);
+  size_t i;
+  for (i = 0; i < n; i += sizeof(__m512i)) {
+    _mm512_storeu_epi64(&dest_u8[i], c_m512i);
+  }
+
+  if (i < n) {
+    const size_t remaining_u64s = (n - i) / sizeof(uint64_t);
+    const __mmask16 mask = _cvtu32_mask16((1 << remaining_u64s) - 1);
+    _mm512_mask_storeu_epi64(&dest_u8[i], mask, c_m512i);
+  }
+}
+
+AVX512F_FUNCTION bool MemEqAVX512F(const void* s1, const void* s2, size_t n)
+    __attribute__((no_builtin("memcmp"))) {
+  // Optimize only if n is 8-byte aligned.
+  if (n % sizeof(uint64_t) != 0) {
+    return bcmp(s1, s2, n) == 0;
+  }
+  const char* char_ptr1 = reinterpret_cast<const char*>(s1);
+  const char* char_ptr2 = reinterpret_cast<const char*>(s2);
+
+  // Accumulate XOR differences. diff is non-zero is there are any pairs of
+  // different corresponding bits in s1 and s2.
+  const __m512i kZeros = _mm512_setzero_epi32();
+  __m512i diff = kZeros;
+
+  size_t i;
+  for (i = 0; i < n; i += sizeof(__m512i)) {
+    diff = _mm512_or_epi64(diff,
+                           _mm512_xor_epi64(_mm512_loadu_epi64(&char_ptr1[i]),
+                                            _mm512_loadu_epi64(&char_ptr2[i])));
+  }
+
+  if (i < n) {
+    const size_t remaining_epi64s = (n - i) / sizeof(uint64_t);
+    const __mmask16 mask = _cvtu32_mask16((1L << remaining_epi64s) - 1);
+    const __m512i remainder1 = _mm512_maskz_loadu_epi64(mask, &char_ptr1[i]);
+    const __m512i remainder2 = _mm512_maskz_loadu_epi64(mask, &char_ptr2[i]);
+    diff = _mm512_or_epi64(diff, _mm512_xor_epi64(remainder1, remainder2));
+  }
+
+  return _mm512_cmpeq_epi64_mask(diff, kZeros) == static_cast<__mmask8>(~0);
+}
+#endif
 
 void MemcpyAdaptor(void* dest, const void* src, size_t n) {
   memcpy(dest, src, n);
@@ -231,15 +342,30 @@ int BenchmarkMain() {
   RunBenchmark(CompareOneIteration, "MemEq", MemEq);
   RunBenchmark(CompareOneIteration, "bcmp", BcmpAdaptor);
   RunBenchmark(CompareOneIteration, "MemEqSSE", MemEqSSE);
+#ifdef __x86_64__
+  if (HasAVX512Registers()) {
+    RunBenchmark(CompareOneIteration, "MemEqAVX512F", MemEqAVX512F);
+  }
+#endif
 
   // Measures bandwidth in bytes copied per second for a memory copying
   // function. The raw memory bandwidth is about double of that because we need
   // to access two memory ranges for each byte copied.
   RunBenchmark(CopyOneIteration, "MemCopy", MemCopy);
+#ifdef __x86_64__
+  if (HasAVX512Registers()) {
+    RunBenchmark(CopyOneIteration, "MemCopyAVX512F", MemCopyAVX512F);
+  }
+#endif
   RunBenchmark(CopyOneIteration, "memcpy", MemcpyAdaptor);
 
   // Measures bandwidth in bytes set per second for a memory setting function.
   RunBenchmark(SetOneIteration, "MemSet", MemSet);
+#ifdef __x86_64__
+  if (HasAVX512Registers()) {
+    RunBenchmark(SetOneIteration, "MemSetAVX512F", MemSetAVX512F);
+  }
+#endif
   RunBenchmark(SetOneIteration, "memset", NolibcMemsetAdaptor);
 
   // Measures bandwidth in bytes processed per second for a memory all equal to
