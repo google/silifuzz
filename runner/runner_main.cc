@@ -34,6 +34,7 @@
 #include "./runner/runner_flags.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/strcat.h"
 
 namespace silifuzz {
 
@@ -50,6 +51,12 @@ int Main(int argc, char* argv[]) {
     ShowUsage(argv[0]);
     return EXIT_SUCCESS;
   }
+  if (flags_end < argc && argv[flags_end][0] == '-') {
+    // There's an option that didn't parse.
+    LOG_ERROR(StrCat({"Unknown flag ", argv[flags_end]}));
+    ShowUsage(argv[0]);
+    return EXIT_FAILURE;
+  }
 
   RunnerMainOptions options;
   const char* corpus_file_name = flags_end < argc ? argv[flags_end] : nullptr;
@@ -58,6 +65,11 @@ int Main(int argc, char* argv[]) {
     LOG_ERROR("No corpus file name was specified");
     return EXIT_FAILURE;
   }
+  if (++flags_end < argc) {
+    LOG_ERROR(StrCat({"Flags must come before corpus ", argv[flags_end]}));
+    return EXIT_FAILURE;
+  }
+
   if (options.corpus->snaps.size == 0) {
     // Treat an empty corpus file as valid an exit immediately.
     LOG_INFO("The corpus is empty, exiting");

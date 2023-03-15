@@ -164,5 +164,14 @@ TEST(RunnerTest, EmptyCorpus) {
   ASSERT_OK(driver.Run(opts));
 }
 
+TEST(RunnerTest, UnknownFlags) {
+  RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
+  Snap asExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  RunnerOptions opts = RunnerOptions::PlayOptions(asExpectedSnap.id);
+  opts.set_extra_argv({"--foobar=1"});
+  absl::StatusOr<RunnerDriver::RunResult> result = driver.Run(opts);
+  ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
 }  // namespace
 }  // namespace silifuzz

@@ -371,6 +371,7 @@ cc_library_nolibc(
         "@silifuzz//snap",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:strcat",
     ],
 )
 
