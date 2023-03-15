@@ -259,6 +259,44 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
   return absl::OkStatus();
 }
 
+absl::Status GetInstructions(const Snapshot& snapshot) {
+  // The initial RIP / PC should point to first instruction
+  uint64_t begin_code = snapshot.ExtractRip(snapshot.registers());
+
+  // The end point should point to the beginning of the exit sequence.
+  // This is also the end of the instructions that are unique to this Snapshot.
+  // Trimming the exit sequence means that we should be able to re-make these
+  // instructions and get the same snapshot.
+  const Snapshot::EndStateList& end_states = snapshot.expected_end_states();
+  if (end_states.size() != 1) {
+    return absl::InternalError(
+        absl::StrCat("Expected 1 end state, found ", end_states.size()));
+  }
+  uint64_t end_code = end_states[0].endpoint().instruction_address();
+  CHECK_LE(begin_code, end_code);
+
+  // Normalizing the memory bytes should ensure all the instructions are inside
+  // a single MemoryBytes object.
+  Snapshot::MemoryBytesList memory_bytes = snapshot.memory_bytes();
+  Snapshot::NormalizeMemoryBytes(snapshot.mapped_memory_map(), &memory_bytes);
+
+  // Search for the instructions.
+  for (const Snapshot::MemoryBytes& bytes : memory_bytes) {
+    if (begin_code >= bytes.start_address() &&
+        end_code <= bytes.limit_address()) {
+      uint64_t begin_index = begin_code - bytes.start_address();
+      absl::string_view view(bytes.byte_values().data() + begin_index,
+                             end_code - begin_code);
+      if (!WriteToFileDescriptor(STDOUT_FILENO, view)) {
+        return absl::InternalError("WriteToFileDescriptor failed");
+      }
+      return absl::OkStatus();
+    }
+  }
+
+  return absl::InternalError("Could not find instructions in the memory bytes");
+}
+
 // ========================================================================= //
 
 // Implements main().
@@ -271,8 +309,9 @@ bool SnapToolMain(std::vector<char*>& args) {
   std::string snapshot_file;
   if (args.size() < 2) {
     line_printer.Line(
-        "Expected one of {print,set_id,set_end,make,play,generate_corpus} and a"
-        " snapshot file name(s).");
+        "Expected one of "
+        "{print,set_id,set_end,make,play,generate_corpus,get_instructions} and "
+        "a snapshot file name(s).");
     return false;
   } else {
     command = ConsumeArg(args);
@@ -389,6 +428,12 @@ bool SnapToolMain(std::vector<char*>& args) {
     absl::Status s = GenerateCorpus(inputs, raw, platform_id, &line_printer);
     if (!s.ok()) {
       line_printer.Line("Cannot generate corpus: ", s.message());
+      return false;
+    }
+  } else if (command == "get_instructions") {
+    absl::Status s = GetInstructions(snapshot);
+    if (!s.ok()) {
+      line_printer.Line("Cannot get instructions: ", s.message());
       return false;
     }
   } else {
