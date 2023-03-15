@@ -76,13 +76,13 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
 
 // Switches to 'context' to execute code in Snap. After the snap exits,
 // switches back to the runner's context and returns to caller.
-// Returns the EndSpot containing the CPU state at the time of Snap exit.
+// Stores CPU state at the time of Snap exit in 'end_spot'.
 // The caller MUST install a custom signal handler that invokes
 // RunnerReentryFromSignal() for RunSnap() to work properly for sig-causing
 // snaps.
 //
 // REQUIRES: Called after calling InitSnapExit().
-snapshot_types::EndSpot RunSnap(const UContext<Host>& context);
+void RunSnap(const UContext<Host>& context, snapshot_types::EndSpot& end_spot);
 
 }  // namespace silifuzz
 

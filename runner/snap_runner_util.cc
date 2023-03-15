@@ -151,7 +151,7 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
   __builtin_unreachable();
 }
 
-EndSpot RunSnap(const UContext<Host>& context) {
+void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
   snap_signal_context.signal_occurred = false;
   enter_snap_context = true;
 
@@ -164,7 +164,6 @@ EndSpot RunSnap(const UContext<Host>& context) {
     __builtin_unreachable();
   }
   // Otherwise, the snap has just finished executing
-  EndSpot end_spot;
   if (snap_signal_context.signal_occurred) {
     ConvertGRegsFromLibC(snap_signal_context.ucontext,
                          snap_signal_context.extra_gregs, &end_spot.gregs);
@@ -194,8 +193,6 @@ EndSpot RunSnap(const UContext<Host>& context) {
   // flag (e.g. do this when the process is being traced).
   end_spot.gregs.eflags &= ~kX86TrapFlag;
 #endif
-
-  return end_spot;
 }
 
 }  // namespace silifuzz

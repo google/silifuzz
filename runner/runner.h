@@ -141,10 +141,13 @@ struct RunnerMainOptions {
 void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
                const void* corpus_mapping);
 
-// Executes 'snap' and returns the execution result.
+// Executes 'snap' and stores the execution result in 'result'.
 // REQUIRES: the runtime environment, including memory mapping used by 'snap'
 // must be properly initialized.
-RunSnapResult RunSnap(const Snap& snap);
+//
+// We deliberately use a reference instead of returning a RunSnapResult object
+// to avoid unnecessary copying.
+void RunSnap(const Snap& snap, RunSnapResult& result);
 
 // Executes Snaps from a corpus according to 'options' and returns an exit code
 // that can be passed to _exit(). This is intended to be used for implementing

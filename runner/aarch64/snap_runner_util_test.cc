@@ -78,7 +78,8 @@ TEST(SnapRunnerUtil, BasicTest) {
       reinterpret_cast<uint64_t>(stack_page) + kPageSize;
 
   // Execute.
-  RunSnap(execution_context);
+  snapshot_types::EndSpot end_spot;
+  RunSnap(execution_context, end_spot);
 
   // Verify that test code has been executed.
   CHECK_EQ(snap_exit_context.gregs.x[0], ~execution_context.gregs.x[0]);
