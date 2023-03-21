@@ -42,6 +42,12 @@ void MemSet(void* dest, uint8_t c, size_t n);
 // significantly for all other cases.
 bool MemEq(const void* s1, const void* s2, size_t n);
 
+// Byte-wise comparison of the two PODs of type T.
+template <typename T>
+inline bool MemEqT(const T& s1, const T& s2) {
+  return MemEq(&s1, &s2, sizeof(T));
+}
+
 // Returns true iff all n bytes at src address equal to byte value c.
 // This is optimized for the case that src and n are both aligned by 8.
 // Performance may degrade significantly for all other cases.

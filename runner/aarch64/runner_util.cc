@@ -28,15 +28,15 @@ using snapshot_types::SigCause;
 using snapshot_types::SigNum;
 
 std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
+  auto pc = GetInstructionPointer(*actual_endspot.gregs);
   switch (actual_endspot.signum) {
     case 0:  // there was no signal.
-      return Endpoint(GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(pc);
     case SIGTRAP: {
       // Unlike x86, the instruction pointer will point to the head of the
       // instruction causing the trap, not the tail. There is no need to adjust
       // the instruction pointer.
-      return Endpoint(SigNum::kSigTrap, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(SigNum::kSigTrap, actual_endspot.sig_address, pc);
     }
     case SIGSEGV: {
       ESR esr = {actual_endspot.sigregs.esr};
@@ -53,25 +53,22 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
         cause = Endpoint::kSegvCantExec;
       }
       return Endpoint(Endpoint::kSigSegv, cause, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+                      pc);
     }
     case SIGFPE: {
-      return Endpoint(Endpoint::kSigFPE, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigFPE, actual_endspot.sig_address, pc);
     }
     case SIGILL: {
-      return Endpoint(Endpoint::kSigIll, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigIll, actual_endspot.sig_address, pc);
     }
     case SIGBUS: {
       // TODO: decode unaligned instruction and stack faults?
-      return Endpoint(Endpoint::kSigBus, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigBus, actual_endspot.sig_address, pc);
     }
     case SIGXCPU:
     case SIGALRM: {
       // a runaway; endpoint is where it got stopped
-      return Endpoint(GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(pc);
     }
     default:
       LOG_ERROR("Unsupported signal-based endpoint: signal=",

@@ -399,10 +399,8 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
     return RunSnapOutcome::kExecutionMisbehave;
   }
   // Verify register state.
-  if (!MemEq(&end_spot.gregs, &snap.end_state_registers->gregs,
-             sizeof(end_spot.gregs)) ||
-      !MemEq(&end_spot.fpregs, &snap.end_state_registers->fpregs,
-             sizeof(end_spot.fpregs))) {
+  if (!MemEqT(*end_spot.gregs, snap.end_state_registers->gregs) ||
+      !MemEqT(*end_spot.fpregs, snap.end_state_registers->fpregs)) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
 
@@ -485,10 +483,10 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
       // See SnapGenerator::Options::allow_undefined_end_state for details.
       bool log_diff =
           GetInstructionPointer(snap.end_state_registers->gregs) != 0;
-      LogGRegs(run_result.end_spot.gregs, &snap.end_state_registers->gregs,
+      LogGRegs(*run_result.end_spot.gregs, &snap.end_state_registers->gregs,
                log_diff);
       LOG_INFO("  fpregs (modified only):");
-      LogFPRegs(run_result.end_spot.fpregs, true,
+      LogFPRegs(*run_result.end_spot.fpregs, true,
                 &snap.end_state_registers->fpregs, log_diff);
     } else if (run_result.outcome == RunSnapOutcome::kMemoryMismatch) {
       LOG_INFO("Memory state mismatch (details omitted)");
@@ -515,13 +513,13 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
     auto registers_m = actual_end_state->Message("registers");
 
     // Serialize the GRegs
-    Serialized<decltype(run_result.end_spot.gregs)> serialized_gregs;
-    CHECK(SerializeGRegs(run_result.end_spot.gregs, &serialized_gregs));
+    Serialized<EndSpot::gregs_t> serialized_gregs;
+    CHECK(SerializeGRegs(*run_result.end_spot.gregs, &serialized_gregs));
     registers_m->Bytes("gregs", serialized_gregs.data, serialized_gregs.size);
 
     // Serialize the FPRegs
-    Serialized<decltype(run_result.end_spot.fpregs)> serialized_fpregs;
-    CHECK(SerializeFPRegs(run_result.end_spot.fpregs, &serialized_fpregs));
+    Serialized<EndSpot::fpregs_t> serialized_fpregs;
+    CHECK(SerializeFPRegs(*run_result.end_spot.fpregs, &serialized_fpregs));
     registers_m->Bytes("fpregs", serialized_fpregs.data,
                        serialized_fpregs.size);
 

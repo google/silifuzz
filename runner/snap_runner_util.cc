@@ -24,7 +24,6 @@
 
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
-#include "./util/logging_util.h"
 #include "./util/misc_util.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
@@ -40,6 +39,11 @@ namespace {
 // Before entering a Snap, the runner's context is saved here. After a Snap
 // finishes normally, control flow continues after this saved context.
 UContext<Host> runner_return_context;
+
+// Storage for backing EndSpot::{gregs,fpregs} when a signal handler
+// was invoked.
+EndSpot::fpregs_t signal_fpregs;
+EndSpot::gregs_t signal_gregs;
 
 // Bool indicating if we are about to enter a Snap's context. This is used by
 // RunSnap() below to distinguish whether we have just saved the runner's
@@ -164,9 +168,11 @@ void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
   }
   // Otherwise, the snap has just finished executing
   if (snap_signal_context.signal_occurred) {
+    end_spot.gregs = &signal_gregs;
+    end_spot.fpregs = &signal_fpregs;
     ConvertGRegsFromLibC(snap_signal_context.ucontext,
-                         snap_signal_context.extra_gregs, &end_spot.gregs);
-    ConvertFPRegsFromLibC(snap_signal_context.ucontext, &end_spot.fpregs);
+                         snap_signal_context.extra_gregs, end_spot.gregs);
+    ConvertFPRegsFromLibC(snap_signal_context.ucontext, end_spot.fpregs);
     end_spot.signum = snap_signal_context.sig_info.si_signo;
     end_spot.sig_address = AsInt(snap_signal_context.sig_info.si_addr);
     ConvertSignalRegsFromLibC(snap_signal_context.ucontext, &end_spot.sigregs);
@@ -174,11 +180,11 @@ void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
     end_spot.signum = 0;
     end_spot.sig_address = 0;
     end_spot.sigregs = {};
-    end_spot.gregs = snap_exit_context.gregs;
-    end_spot.fpregs = snap_exit_context.fpregs;
+    end_spot.gregs = &snap_exit_context.gregs;
+    end_spot.fpregs = &snap_exit_context.fpregs;
     // Sanitize gregs and fpregs.
-    ZeroOutGRegsPadding(&end_spot.gregs);
-    ZeroOutFPRegsPadding(&end_spot.fpregs);
+    ZeroOutGRegsPadding(end_spot.gregs);
+    ZeroOutFPRegsPadding(end_spot.fpregs);
   }
 
 #if defined(__x86_64__)
@@ -190,7 +196,7 @@ void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
   // raised.
   // TODO(ksteuck): [as-needed] We can be more selective about when to hide the
   // flag (e.g. do this when the process is being traced).
-  end_spot.gregs.eflags &= ~kX86TrapFlag;
+  end_spot.gregs->eflags &= ~kX86TrapFlag;
 #endif
 }
 

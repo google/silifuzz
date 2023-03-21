@@ -27,13 +27,13 @@ void EndSpot::Log() const {
   LogSignalRegs(sigregs, &base);
   if (VLOG_IS_ON(0)) {
     LOG_INFO("CPU registers (non-0 only):");
-    decltype(gregs) base = {};
-    LogGRegs(gregs, &base);
+    gregs_t base = {};
+    LogGRegs(*gregs, &base);
   }
   if (VLOG_IS_ON(1)) {
     LOG_INFO("FP registers (non-0 only):");
-    decltype(fpregs) base = {};
-    LogFPRegs(fpregs, true, &base);
+    fpregs_t base = {};
+    LogFPRegs(*fpregs, true, &base);
   }
 }
 

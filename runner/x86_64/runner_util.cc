@@ -28,9 +28,10 @@ using snapshot_types::SigCause;
 using snapshot_types::SigNum;
 
 std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
+  auto pc = GetInstructionPointer(*actual_endspot.gregs);
   switch (actual_endspot.signum) {
     case 0:  // there was no signal.
-      return Endpoint(GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(pc);
     case SIGTRAP: {
       CHECK_EQ(actual_endspot.sigregs.err, 0x0);
       // RIP advances to the following insn on trap. The expected trap insn
@@ -39,8 +40,7 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
       // return an incorrect instruction address and the produced snapshot
       // won't replay.
       if (actual_endspot.sigregs.trapno == X86Exception::X86_TRAP_BP) {
-        return Endpoint(SigNum::kSigTrap, actual_endspot.sig_address,
-                        GetInstructionPointer(actual_endspot.gregs) - 1);
+        return Endpoint(SigNum::kSigTrap, actual_endspot.sig_address, pc - 1);
       }
       LOG_ERROR("Unsupported SIGTRAP endpoint: trapno=",
                 IntStr(actual_endspot.sigregs.trapno));
@@ -83,27 +83,24 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
         return std::nullopt;
       }
       return Endpoint(Endpoint::kSigSegv, cause, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+                      pc);
     }
     case SIGFPE: {
       CHECK_EQ(actual_endspot.sigregs.err, 0);
-      return Endpoint(Endpoint::kSigFPE, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigFPE, actual_endspot.sig_address, pc);
     }
     case SIGILL: {
       CHECK_EQ(actual_endspot.sigregs.err, 0);
-      return Endpoint(Endpoint::kSigIll, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigIll, actual_endspot.sig_address, pc);
     }
     case SIGBUS: {
       CHECK_EQ(actual_endspot.sigregs.err, 0);
-      return Endpoint(Endpoint::kSigBus, actual_endspot.sig_address,
-                      GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(Endpoint::kSigBus, actual_endspot.sig_address, pc);
     }
     case SIGXCPU:
     case SIGALRM: {
       // a runaway; endpoint is the rip where it got stopped
-      return Endpoint(GetInstructionPointer(actual_endspot.gregs));
+      return Endpoint(pc);
     }
     default:
       LOG_ERROR("Unsupported signal-based endpoint: signal=",

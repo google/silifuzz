@@ -25,6 +25,9 @@ namespace silifuzz {
 // Description of an execution endpoint plus the associated CPU and signal
 // state.
 struct EndSpot {
+  using gregs_t = GRegSet<Host>;
+  using fpregs_t = FPRegSet<Host>;
+
   // The signal that was triggered. 0 if none.
   int signum;
 
@@ -36,8 +39,8 @@ struct EndSpot {
   SignalRegSet sigregs;
 
   // Values for all the registers.
-  GRegSet<Host> gregs;
-  FPRegSet<Host> fpregs;
+  gregs_t* gregs;
+  fpregs_t* fpregs;
 
   // Logs this EndSpot via LOG_INFO().
   // Not a DebugString() so that we can use this in nolibc mode.
