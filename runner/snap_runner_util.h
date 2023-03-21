@@ -49,7 +49,8 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "./common/snapshot_enums.h"
+#include "./runner/endspot.h"
+#include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
 extern "C" void SnapExitImpl();
@@ -82,7 +83,7 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
 // snaps.
 //
 // REQUIRES: Called after calling InitSnapExit().
-void RunSnap(const UContext<Host>& context, snapshot_types::EndSpot& end_spot);
+void RunSnap(const UContext<Host>& context, EndSpot& end_spot);
 
 }  // namespace silifuzz
 

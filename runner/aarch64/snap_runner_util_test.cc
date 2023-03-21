@@ -22,6 +22,7 @@
 #include <cstdint>
 
 #include "absl/base/macros.h"
+#include "./runner/endspot.h"
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -78,7 +79,7 @@ TEST(SnapRunnerUtil, BasicTest) {
       reinterpret_cast<uint64_t>(stack_page) + kPageSize;
 
   // Execute.
-  snapshot_types::EndSpot end_spot;
+  EndSpot end_spot;
   RunSnap(execution_context, end_spot);
 
   // Verify that test code has been executed.

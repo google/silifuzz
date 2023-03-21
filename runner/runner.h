@@ -19,7 +19,7 @@
 
 #include <cstddef>
 
-#include "./common/snapshot_enums.h"
+#include "./runner/endspot.h"
 #include "./snap/snap.h"
 #include "./util/cpu_id.h"
 
@@ -49,7 +49,7 @@ enum class RunSnapOutcome : int {
 struct RunSnapResult {
   // Contains registers and signal info pertaning to the end_spot reached by
   // by the snapshot.
-  snapshot_types::EndSpot end_spot;
+  EndSpot end_spot;
 
   // Snap playback outcome code.
   RunSnapOutcome outcome;

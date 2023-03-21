@@ -60,6 +60,21 @@ cc_library_plus_nolibc(
 )
 
 cc_library_plus_nolibc(
+    name = "endspot",
+    srcs = ["endspot.cc"],
+    hdrs = ["endspot.h"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@silifuzz//util:logging_util",
+        "@silifuzz//util:mem_util",
+        "@silifuzz//util/ucontext",
+        "@silifuzz//util/ucontext:signal",
+        "@silifuzz//util/ucontext:ucontext_types",
+    ],
+)
+
+cc_library_plus_nolibc(
     name = "snap_runner_util",
     srcs = ["snap_runner_util.cc"] + select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -74,10 +89,13 @@ cc_library_plus_nolibc(
     # crash the dynamic linker due to invalid fs_base on x86.
     linkstatic = 1,
     deps = [
-        "@silifuzz//common:snapshot_enums",
+        ":endspot",
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@silifuzz//util:logging_util",
         "@silifuzz//util:mem_util",
+        "@silifuzz//util:misc_util",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:ucontext_types",
@@ -102,6 +120,7 @@ cc_test_nolibc(
     features = ["fully_static_link"],
     linkstatic = 1,
     deps = [
+        ":endspot",
         ":snap_runner_util",
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:checks",
@@ -130,6 +149,7 @@ cc_library_plus_nolibc(
     # crash the dynamic linker due to invalid fs_base on x86.
     linkstatic = 1,
     deps = [
+        ":endspot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//snap",
         "@silifuzz//util:byte_io",
@@ -157,6 +177,7 @@ cc_library_nolibc(
     # crash the dynamic linker due to invalid fs_base on x86.
     linkstatic = 1,
     deps = [
+        ":endspot",
         ":runner_util",
         ":snap_runner_util",
         "@silifuzz//common:snapshot_enums",

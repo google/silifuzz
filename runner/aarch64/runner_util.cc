@@ -15,6 +15,7 @@
 #include <signal.h>
 
 #include "./common/snapshot_enums.h"
+#include "./runner/endspot.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ucontext/aarch64/esr.h"
@@ -23,7 +24,6 @@
 namespace silifuzz {
 
 using snapshot_types::Endpoint;
-using snapshot_types::EndSpot;
 using snapshot_types::SigCause;
 using snapshot_types::SigNum;
 

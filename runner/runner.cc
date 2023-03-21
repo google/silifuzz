@@ -117,7 +117,6 @@ namespace {
 
 using snapshot_types::Endpoint;
 using snapshot_types::EndpointType;
-using snapshot_types::EndSpot;
 
 constexpr int kInitialMappingProtection = PROT_READ | PROT_WRITE;
 

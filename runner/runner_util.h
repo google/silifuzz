@@ -20,6 +20,7 @@
 #include <optional>
 
 #include "./common/snapshot_enums.h"
+#include "./runner/endspot.h"
 #include "./snap/snap.h"
 #include "./util/proc_maps_parser.h"
 
@@ -40,7 +41,7 @@ bool SnapOverlapsWithProcMapsEntries(const Snap& snap,
 // Converts the EndSpot to the corresponding Endpoint.
 // Returns std::nullopt and logs an error when no conversion is possible.
 std::optional<snapshot_types::Endpoint> EndSpotToEndpoint(
-    const snapshot_types::EndSpot& actual_endspot);
+    const EndSpot& actual_endspot);
 
 // Writes a null-terminated string to the standard output.
 void LogToStdout(const char* data);

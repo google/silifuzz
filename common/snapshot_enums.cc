@@ -70,24 +70,6 @@ Address Endpoint::sig_instruction_address() const {
   return instruction_address_;
 }
 
-// =========================================================================
-void EndSpot::Log() const {
-  LOG_INFO("Signal: ", IntStr(signum));
-  LOG_INFO("sig_address: ", HexStr(sig_address));
-  SignalRegSet base = {};
-  LogSignalRegs(sigregs, &base);
-  if (VLOG_IS_ON(0)) {
-    LOG_INFO("CPU registers (non-0 only):");
-    decltype(gregs) base = {};
-    LogGRegs(gregs, &base);
-  }
-  if (VLOG_IS_ON(1)) {
-    LOG_INFO("FP registers (non-0 only):");
-    decltype(fpregs) base = {};
-    LogFPRegs(fpregs, true, &base);
-  }
-}
-
 }  // namespace snapshot_types
 
 template <>

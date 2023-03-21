@@ -22,17 +22,16 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "./common/snapshot_enums.h"
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
+#include "./util/logging_util.h"
+#include "./util/misc_util.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
-
-using snapshot_types::EndSpot;
 
 UContext<Host> snap_exit_context;
 

@@ -152,28 +152,6 @@ class Endpoint final {
   Address instruction_address_;
 };
 
-// Description of an execution endpoint plus the associated CPU and signal
-// state.
-struct EndSpot {
-  // The signal that was triggered. 0 if none.
-  int signum;
-
-  // The siginfo_t::si_addr value if relevant for `signum`:
-  // the address that causes the signal.
-  uintptr_t sig_address;
-
-  // Arch-specific regs related to the signal.
-  SignalRegSet sigregs;
-
-  // Values for all the registers.
-  GRegSet<Host> gregs;
-  FPRegSet<Host> fpregs;
-
-  // Logs this EndSpot via LOG_INFO().
-  // Not a DebugString() so that we can use this in nolibc mode.
-  void Log() const;
-};
-
 // Snapshot playback outcome code.
 // Ordered from best to worst matching:
 // We match endpoint(), registers(), and memory_bytes() in Snapshot::EndState

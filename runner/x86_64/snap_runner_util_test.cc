@@ -71,7 +71,7 @@ TEST(SnapRunnerUtil, BasicTest) {
   execution_context.gregs.rsp =
       reinterpret_cast<uint64_t>(stack_page) + kPageSize;
   execution_context.gregs.rdi = 0xabcd;
-  snapshot_types::EndSpot end_spot;
+  EndSpot end_spot;
   RunSnap(execution_context, end_spot);
 
   // Verify that code has been executed.
