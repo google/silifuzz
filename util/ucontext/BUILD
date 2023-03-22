@@ -50,26 +50,26 @@ cc_library_plus_nolibc(
 cc_library_plus_nolibc(
     name = "ucontext",
     srcs = [
-        "ucontext.cc",
         "aarch64/ucontext.cc",
+        "ucontext.cc",
         "x86_64/ucontext.cc",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/restore_ucontext.S",
             "aarch64/restore_ucontext_body.inc",
             "aarch64/restore_ucontext_no_syscalls.S",
-            "aarch64/restore_ucontext.S",
+            "aarch64/save_ucontext.S",
             "aarch64/save_ucontext_body.inc",
             "aarch64/save_ucontext_no_syscalls.S",
-            "aarch64/save_ucontext.S",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/ucontext_offsets.h",
+            "//third_party/silifuzz_libunwind:restore_ucontext.S",
             "//third_party/silifuzz_libunwind:restore_ucontext_body.inc",
             "//third_party/silifuzz_libunwind:restore_ucontext_no_syscalls.S",
-            "//third_party/silifuzz_libunwind:restore_ucontext.S",
+            "//third_party/silifuzz_libunwind:save_ucontext.S",
             "//third_party/silifuzz_libunwind:save_ucontext_body.inc",
             "//third_party/silifuzz_libunwind:save_ucontext_no_syscalls.S",
-            "//third_party/silifuzz_libunwind:save_ucontext.S",
-            "x86_64/ucontext_offsets.h",
         ],
     }),
     hdrs = ["ucontext.h"],
@@ -168,9 +168,9 @@ cc_test(
             "aarch64/ucontext_test_widgets.S",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/ucontext_offsets.h",
             "x86_64/ucontext_test.cc",
             "x86_64/ucontext_test_widgets.S",
-            "x86_64/ucontext_offsets.h",
         ],
     }),
     # The dynamic linker smashes registers and interferes with this test.
@@ -201,9 +201,9 @@ cc_test(
             "aarch64/ucontext_test_widgets.S",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/ucontext_offsets.h",
             "x86_64/ucontext_test.cc",
             "x86_64/ucontext_test_widgets.S",
-            "x86_64/ucontext_offsets.h",
         ],
     }),
     copts = [
