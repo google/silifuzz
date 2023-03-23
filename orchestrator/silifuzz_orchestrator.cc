@@ -158,7 +158,9 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
     VLOG_INFO(0, "T", args.thread_idx, " corpus: ", Basename(corpus_name),
               " time: ", elapsed_time, " exit_status: ", exit_status);
     if (!run_result_or.ok()) {
-      LOG_ERROR(run_result_or.status().message());
+      LOG_ERROR("T", args.thread_idx, " corpus: ", Basename(corpus_name),
+                " time: ", elapsed_time,
+                " error: ", run_result_or.status().message());
     }
 
     if (!ctx->OfferRunResult(std::move(run_result_or))) {
