@@ -411,22 +411,16 @@ $ ./runner/reading_runner_main_nolibc \
 
 ### How to scan all cores of a CPU
 
-```shell
-# Will repeatedly run the corpus on all available CPU cores for 30s.
-$ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
-     --runner=./runner/reading_runner_main_nolibc \
-     /tmp/inc_eax.corpus
-```
-
-You can pass multiple corpus shards to the orchestrator. It'll cycle through
-them in random order:
+The orchestrator will cycle through all the shards listed in the file passed
+in `--shard_list_file` argument.
 
 ```shell
+$ ls -1 /tmp/wd/runnable-corpus.* > /tmp/shard_list
 # Will repeatedly run the corpus on all available CPU cores for 30s using
 # /tmp/wd/runnable-corpus.* selected randomly.
 $ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
      --runner=./runner/reading_runner_main_nolibc \
-     /tmp/wd/runnable-corpus.*
+     --shard_list_file=/tmp/shard_list
 ```
 
-NOTE: The orchestrator can also use XZ-compressed corpus shards.
+NOTE: The orchestrator can also load XZ-compressed corpus shards from files ending with `.xz`
