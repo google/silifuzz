@@ -26,7 +26,6 @@
 
 namespace silifuzz {
 namespace {
-using testing::Contains;
 using testing::ElementsAre;
 using testing::IsSupersetOf;
 
@@ -86,23 +85,24 @@ TEST(ExecutionContext, Multithreaded) {
 }
 
 TEST(NextCorpusGenerator, Sequential) {
-  NextCorpusGenerator gen({"1", "2", "3"}, true, 0);
-  std::vector<std::string> actual;
+  NextCorpusGenerator gen(3, true, 0);
+  std::vector<int> actual;
   for (int i = 0; i < 5; ++i) {
     actual.push_back(gen());
   }
-  ASSERT_THAT(actual, ElementsAre("1", "2", "3", "", ""));
+  ASSERT_THAT(actual, ElementsAre(0, 1, 2, -1, -1));
 }
 
 TEST(NextCorpusGenerator, Random) {
   std::vector<std::string> src = {"1", "2", "3"};
   std::vector<std::string> result;
-  NextCorpusGenerator gen(src, false, 0);
+  NextCorpusGenerator gen(src.size(), false, 0);
   std::vector<std::string> actual;
   for (int i = 0; i < 100; ++i) {
-    std::string v = gen();
-    result.push_back(v);
-    ASSERT_THAT(src, Contains(v));
+    int idx = gen();
+    ASSERT_GE(idx, 0);
+    ASSERT_LT(idx, src.size());
+    result.push_back(src[idx]);
   }
   ASSERT_THAT(result, IsSupersetOf(src))
       << "Expected a sequence of a 100 random elements to contain each element "

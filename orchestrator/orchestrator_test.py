@@ -242,8 +242,9 @@ class OrchestratorTest(absltest.TestCase):
     self.assertStrSeqContainsAll(
         err_log,
         [
+            'corpus: fake_corpus_One',
+            'error: Runner killed by signal 14',
             'exit_status: internal_error',
-            'Runner killed by signal 14',
         ],
     )
 

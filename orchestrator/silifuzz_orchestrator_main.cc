@@ -70,7 +70,6 @@
 #include "./orchestrator/result_collector.h"
 #include "./orchestrator/silifuzz_orchestrator.h"
 #include "./proto/corpus_metadata.pb.h"
-#include "./runner/driver/runner_driver.h"
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -189,17 +188,13 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
 
   // Load corpora and exit if there is any error.
   // File descriptors of the uncompressed corpora are kept open
-  // until corpus_fds goes out of scope.
-  const absl::StatusOr<LoadCorporaResult> load_corpora_result_or =
+  // until this struct goes out of scope.
+  const absl::StatusOr<InMemoryCorpora> in_memory_corpora =
       LoadCorpora(corpora);
-  if (!load_corpora_result_or.ok()) {
-    LOG_ERROR("Cannot load corpora: ",
-              load_corpora_result_or.status().message());
+  if (!in_memory_corpora.ok()) {
+    LOG_ERROR("Cannot load corpora: ", in_memory_corpora.status().message());
     return EXIT_FAILURE;
   }
-
-  const std::vector<std::string> &uncompressed_corpus_paths =
-      load_corpora_result_or.value().file_descriptor_paths;
 
   size_t num_threads = absl::GetFlag(FLAGS_max_cpus);
   const absl::Duration runner_cpu_time_budget =
@@ -220,7 +215,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
           .set_extra_argv(runner_extra_argv);
       thread_args.push_back({.thread_idx = cpu,
                              .runner = runner,
-                             .corpora = uncompressed_corpus_paths,
+                             .corpora = &*in_memory_corpora,
                              .runner_options = runner_options});
     }
   } else {
@@ -231,7 +226,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
           .set_extra_argv(runner_extra_argv);
       thread_args.push_back({.thread_idx = thread_idx,
                              .runner = runner,
-                             .corpora = uncompressed_corpus_paths,
+                             .corpora = &*in_memory_corpora,
                              .runner_options = runner_options});
     }
   }

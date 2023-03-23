@@ -184,7 +184,7 @@ TEST(CorpusUtil, LoadCorpora) {
     ASSERT_EQ(close(fd), 0);
   }
 
-  ASSERT_OK_AND_ASSIGN(LoadCorporaResult load_corpora_result,
+  ASSERT_OK_AND_ASSIGN(InMemoryCorpora load_corpora_result,
                        LoadCorpora(corpus_paths));
 
   const std::vector<OwnedFileDescriptor>& owned_fds =
@@ -209,7 +209,7 @@ TEST(CorpusUtil, LoadCorpora) {
 
 TEST(CorpusUtil, LoadCorporaFileNotFound) {
   std::vector<std::string> corpus_paths{"This does not exist.xz"};
-  absl::StatusOr<LoadCorporaResult> load_corpora_result_or =
+  absl::StatusOr<InMemoryCorpora> load_corpora_result_or =
       LoadCorpora(corpus_paths);
   EXPECT_THAT(
       load_corpora_result_or.status(),
@@ -231,7 +231,7 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
     ASSERT_EQ(close(fd), 0);
   }
 
-  ASSERT_OK_AND_ASSIGN(LoadCorporaResult load_corpora_result,
+  ASSERT_OK_AND_ASSIGN(InMemoryCorpora load_corpora_result,
                        LoadCorpora(corpus_paths));
 
   const std::vector<OwnedFileDescriptor>& owned_fds =

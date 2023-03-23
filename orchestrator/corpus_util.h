@@ -48,7 +48,7 @@ absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
 // suffix of `path`. Currently only .gz and .xz are recognized.
 absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path);
 
-struct LoadCorporaResult {
+struct InMemoryCorpora {
   // File descriptors returned by LoadCorpora() below, in the same order
   // as their corresponding corpus paths in
   std::vector<OwnedFileDescriptor> file_descriptors;
@@ -56,17 +56,21 @@ struct LoadCorporaResult {
   // Paths in /proc file system to access the elements of file_descriptors
   // above. Paths are in the same order as corresponding file descriptors.
   std::vector<std::string> file_descriptor_paths;
+
+  // Shard names corresponding to the file_descriptors above. The names are in
+  // the same order as the descriptors.
+  std::vector<std::string> shard_names;
 };
 
 // Reads and decompresses gzipped relocatable Snap corpora whose paths are in
 // `corpus_path`. Contents of each corpus are written in a file created in RAM.
 //
-// RETURNS a LoadCorporaResult struct contaning a vector of owned file
+// RETURNS an InMemoryCorpora struct contaning a vector of owned file
 // descriptors and a vector of paths or an error status. See above for details
-// about LoadCorporaResult.
+// about InMemoryCorpora.
 //
 // REQUIRES: corpus_paths not empty.
-absl::StatusOr<LoadCorporaResult> LoadCorpora(
+absl::StatusOr<InMemoryCorpora> LoadCorpora(
     const std::vector<std::string>& corpus_paths);
 
 }  // namespace silifuzz

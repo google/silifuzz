@@ -160,7 +160,7 @@ absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
       uint64_t top_shard_size_mb, [&]() -> absl::StatusOr<uint64_t> {
         // Probe the top shard size. Works under the assumption that all shards
         // are equally sized.
-        ASSIGN_OR_RETURN_IF_NOT_OK(LoadCorporaResult top_shard,
+        ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryCorpora top_shard,
                                    LoadCorpora({shards[0]}));
         off_t top_shard_size =
             lseek64(*top_shard.file_descriptors[0], 0, SEEK_END);

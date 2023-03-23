@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -117,20 +118,34 @@ void ExecutionContext::ProcessResultQueueImpl(
   }
 }
 
-std::string NextCorpusGenerator::operator()() {
+// ==================================================================
+
+NextCorpusGenerator::NextCorpusGenerator(int size, bool sequential_mode,
+                                         int seed)
+    : size_(size),
+      sequential_mode_(sequential_mode),
+      random_(seed),
+      next_index_(0) {
+  CHECK_GT(size_, 0);
+}
+
+int NextCorpusGenerator::operator()() {
   if (sequential_mode_) {
-    return next_index_ < corpora_.size() ? corpora_[next_index_++] : "";
+    return next_index_ < size_ ? next_index_++ : kEndOfStream;
   } else {
-    return corpora_[random_() % corpora_.size()];
+    return random_() % size_;
   }
 }
 
+// ==================================================================
+//
 // The main worker thread. Each such thread executes runners with corpora in a
 // loop until it is told to stop.
 void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
   VLOG_INFO(0, "T", args.thread_idx, " started");
   NextCorpusGenerator next_corpus_generator(
-      args.corpora, args.runner_options.sequential_mode(), args.thread_idx);
+      args.corpora->file_descriptor_paths.size(),
+      args.runner_options.sequential_mode(), args.thread_idx);
 
   while (!ctx->ShouldStop()) {
     absl::Time start_time = absl::Now();
@@ -142,25 +157,31 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
     runner_options.set_wall_time_bugdet(time_budget);
     VLOG_INFO(1, "T", args.thread_idx, " time budget ",
               absl::FormatDuration(time_budget));
-    std::string corpus_name = next_corpus_generator();
-    if (corpus_name.empty()) {
+    int shard_idx = next_corpus_generator();
+
+    if (shard_idx == NextCorpusGenerator::kEndOfStream) {
       VLOG_INFO(0, "T", args.thread_idx,
                 " Reached end of stream in sequential mode");
       break;
     }
+    const std::string &corpus_name =
+        args.corpora->file_descriptor_paths[shard_idx];
+    const std::string &corpus_shard_name = args.corpora->shard_names[shard_idx];
     RunnerDriver driver = RunnerDriver::ReadingRunner(args.runner, corpus_name);
     absl::StatusOr<RunnerDriver::RunResult> run_result_or =
         driver.Run(runner_options);
 
-    int64_t elapsed_time = absl::ToInt64Seconds(absl::Now() - start_time);
+    absl::Duration elapsed_time = absl::Now() - start_time;
 
-    std::string exit_status = RunResultToDebugString(run_result_or);
-    VLOG_INFO(0, "T", args.thread_idx, " corpus: ", Basename(corpus_name),
-              " time: ", elapsed_time, " exit_status: ", exit_status);
+    std::string log_msg =
+        absl::StrCat("T", args.thread_idx, " cpu: ", args.runner_options.cpu(),
+                     " corpus: ", Basename(corpus_shard_name),
+                     " time: ", absl::ToInt64Seconds(elapsed_time),
+                     " exit_status: ", RunResultToDebugString(run_result_or));
     if (!run_result_or.ok()) {
-      LOG_ERROR("T", args.thread_idx, " corpus: ", Basename(corpus_name),
-                " time: ", elapsed_time,
-                " error: ", run_result_or.status().message());
+      LOG_ERROR(log_msg, " error: ", run_result_or.status().message());
+    } else {
+      VLOG_INFO(0, log_msg);
     }
 
     if (!ctx->OfferRunResult(std::move(run_result_or))) {

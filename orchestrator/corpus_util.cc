@@ -191,7 +191,7 @@ absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path) {
   return WriteSharedMemoryFile(contents, std::string(Basename(path)));
 }
 
-absl::StatusOr<LoadCorporaResult> LoadCorpora(
+absl::StatusOr<InMemoryCorpora> LoadCorpora(
     const std::vector<std::string>& corpus_paths) {
   // Cannot use construct owner_fds(size, init_value) because element type is
   // not copyable.
@@ -229,7 +229,7 @@ absl::StatusOr<LoadCorporaResult> LoadCorpora(
     thread.join();
   }
 
-  LoadCorporaResult result;
+  InMemoryCorpora result;
   result.file_descriptors.reserve(corpus_paths.size());
   result.file_descriptor_paths.reserve(corpus_paths.size());
   const pid_t pid = getpid();
@@ -241,6 +241,7 @@ absl::StatusOr<LoadCorporaResult> LoadCorpora(
     VLOG_INFO(1, "Loaded corpus ", corpus_paths[i], " as ",
               result.file_descriptor_paths[i]);
   }
+  result.shard_names = corpus_paths;
   return result;
 }
 

@@ -26,6 +26,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "./orchestrator/corpus_util.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/driver/runner_options.h"
 
@@ -39,8 +40,8 @@ struct RunnerThreadArgs {
   // Path to a reading runner.
   std::string runner = "";
 
-  // All available corpora
-  std::vector<std::string> corpora = {};
+  // All available corpora.
+  const InMemoryCorpora *corpora = nullptr;
 
   // Additional paramaters passed to each runner binary.
   RunnerOptions runner_options = RunnerOptions::Default();
@@ -132,21 +133,18 @@ class ExecutionContext {
 // Helper class to generate the next corpus file name.
 class NextCorpusGenerator {
  public:
-  NextCorpusGenerator(const std::vector<std::string> &corpora,
-                      bool sequential_mode, int seed)
-      : corpora_(corpora),
-        sequential_mode_(sequential_mode),
-        random_(seed),
-        next_index_(0) {}
+  NextCorpusGenerator(int size, bool sequential_mode, int seed);
   NextCorpusGenerator(const NextCorpusGenerator &) = default;
   NextCorpusGenerator(NextCorpusGenerator &&) = default;
   NextCorpusGenerator &operator=(const NextCorpusGenerator &) = default;
   NextCorpusGenerator &operator=(NextCorpusGenerator &&) = default;
-  // Returns the next corpus file name or "" to stop.
-  std::string operator()();
+  // Returns the next index corpus file name or "" to stop.
+  int operator()();
+
+  static constexpr int kEndOfStream = -1;
 
  private:
-  std::vector<std::string> corpora_;
+  int size_;
   bool sequential_mode_;
   std::mt19937_64 random_;
   int next_index_;
