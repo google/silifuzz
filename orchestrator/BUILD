@@ -35,6 +35,7 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/log:flags",
         "@com_google_absl//absl/log:initialize",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
