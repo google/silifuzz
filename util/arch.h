@@ -52,16 +52,16 @@ using Host = AArch64;
 #error "Unsupported architecture"
 #endif
 
-#define ARCH_DISPATCH(func, arch, ...)                               \
-  [&](ArchitectureId arch_id, auto&&... args) {                      \
-    switch (arch_id) {                                               \
-      case ArchitectureId::kX86_64:                                  \
-        return func<X86_64>(std::forward<decltype(args)>(args)...);  \
-      case ArchitectureId::kAArch64:                                 \
-        return func<AArch64>(std::forward<decltype(args)>(args)...); \
-      default:                                                       \
-        LOG_FATAL("Unsupported architecture");                       \
-    }                                                                \
+#define ARCH_DISPATCH(func, arch, ...)                                         \
+  [&](silifuzz::ArchitectureId arch_id, auto&&... args) {                      \
+    switch (arch_id) {                                                         \
+      case silifuzz::ArchitectureId::kX86_64:                                  \
+        return func<silifuzz::X86_64>(std::forward<decltype(args)>(args)...);  \
+      case silifuzz::ArchitectureId::kAArch64:                                 \
+        return func<silifuzz::AArch64>(std::forward<decltype(args)>(args)...); \
+      default:                                                                 \
+        LOG_FATAL("Unsupported architecture");                                 \
+    }                                                                          \
   }(arch, ##__VA_ARGS__)
 
 }  // namespace silifuzz
