@@ -51,8 +51,8 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
   RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
   auto opts = RunnerOptions::PlayOptions(snap.id);
   if (timeout != absl::InfiniteDuration()) {
-    opts.set_wall_time_bugdet(timeout);
-    opts.set_cpu_time_bugdet(timeout * 10);
+    opts.set_wall_time_budget(timeout);
+    opts.set_cpu_time_budget(timeout * 10);
   }
   return driver.Run(opts);
 }

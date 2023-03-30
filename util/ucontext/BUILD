@@ -178,9 +178,9 @@ cc_test(
     deps = [
         ":ucontext",
         ":ucontext_types",
-        "@com_google_googletest//:gtest_main",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
+        "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": [
@@ -214,9 +214,9 @@ cc_test(
     deps = [
         ":ucontext",
         ":ucontext_types",
-        "@com_google_googletest//:gtest_main",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
+        "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": [
@@ -282,8 +282,8 @@ cc_test(
     deps = [
         ":signal",
         ":ucontext",
-        "@com_google_googletest//:gtest_main",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [":aarch64_esr"],
         "@silifuzz//build_defs/platform:x86_64": [":x86_traps"],

@@ -234,13 +234,13 @@ cc_library(
         ":snapshot",
         ":snapshot_types",
         ":snapshot_util",
-        "@com_google_absl//absl/strings",
         "@silifuzz//util:arch",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/strings",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
         ],

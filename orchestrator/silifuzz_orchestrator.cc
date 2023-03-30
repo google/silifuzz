@@ -154,7 +154,7 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
       break;
     }
     RunnerOptions runner_options = args.runner_options;
-    runner_options.set_wall_time_bugdet(time_budget);
+    runner_options.set_wall_time_budget(time_budget);
     VLOG_INFO(1, "T", args.thread_idx, " time budget ",
               absl::FormatDuration(time_budget));
     int shard_idx = next_corpus_generator();

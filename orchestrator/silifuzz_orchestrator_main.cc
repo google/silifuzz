@@ -211,7 +211,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
     for (int cpu : cpus) {
       RunnerOptions runner_options = RunnerOptions::Default();
       runner_options.set_cpu(cpu)
-          .set_cpu_time_bugdet(runner_cpu_time_budget)
+          .set_cpu_time_budget(runner_cpu_time_budget)
           .set_extra_argv(runner_extra_argv);
       thread_args.push_back({.thread_idx = cpu,
                              .runner = runner,
@@ -221,7 +221,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   } else {
     for (int thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
       RunnerOptions runner_options = RunnerOptions::Default();
-      runner_options.set_cpu_time_bugdet(runner_cpu_time_budget)
+      runner_options.set_cpu_time_budget(runner_cpu_time_budget)
           .set_sequential_mode(sequential_mode)
           .set_extra_argv(runner_extra_argv);
       thread_args.push_back({.thread_idx = thread_idx,

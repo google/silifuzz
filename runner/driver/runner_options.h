@@ -41,11 +41,11 @@ class RunnerOptions {
     this->cpu_ = cpu;
     return *this;
   }
-  RunnerOptions& set_cpu_time_bugdet(absl::Duration cpu_time_budget) {
+  RunnerOptions& set_cpu_time_budget(absl::Duration cpu_time_budget) {
     this->cpu_time_budget_ = cpu_time_budget;
     return *this;
   }
-  RunnerOptions& set_wall_time_bugdet(absl::Duration wall_time_budget) {
+  RunnerOptions& set_wall_time_budget(absl::Duration wall_time_budget) {
     this->wall_time_budget_ = wall_time_budget;
     return *this;
   }

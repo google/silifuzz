@@ -37,7 +37,7 @@ const RunnerOptions& RunnerOptions::Default() {
 
 RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id) {
   return RunnerOptions()
-      .set_cpu_time_bugdet(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id),
                        // TODO(b/227770288): [bug] Play more than once to ensure
                        // determinism.
@@ -46,7 +46,7 @@ RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id) {
 
 RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id) {
   return RunnerOptions()
-      .set_cpu_time_bugdet(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
                        "1", "--make"})
       // Discard human-readable failure details in stderr.
@@ -56,7 +56,7 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id) {
 
 RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
   return RunnerOptions()
-      .set_cpu_time_bugdet(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv(
           {"--snap_id", std::string(snap_id), "--num_iterations", "3"})
       .set_disable_aslr(false)
@@ -66,7 +66,7 @@ RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
 
 RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id) {
   return RunnerOptions()
-      .set_cpu_time_bugdet(kPerSnapTraceCpuTimeBudget)
+      .set_cpu_time_budget(kPerSnapTraceCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
                        "1", "--enable_tracer"});
 }
