@@ -66,7 +66,7 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
 }  // namespace
 
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
-    absl::string_view code, const FuzzingConfig_X86_64& config) {
+    absl::string_view code, const FuzzingConfig<X86_64>& config) {
   if (!StaticInstructionFilter<X86_64>(code)) {
     return absl::InvalidArgumentError(
         "code snippet contains problematic instructions.");
@@ -156,7 +156,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot<X86_64>(
 }
 
 absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
-    absl::string_view code, const FuzzingConfig_AArch64& config) {
+    absl::string_view code, const FuzzingConfig<AArch64>& config) {
   if (code.size() % 4 != 0) {
     return absl::InvalidArgumentError(
         "code snippet size must be a multiple of 4 to contain complete aarch64 "

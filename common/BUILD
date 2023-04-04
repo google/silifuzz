@@ -477,6 +477,9 @@ cc_test(
 cc_library(
     name = "proxy_config",
     hdrs = ["proxy_config.h"],
+    deps = [
+        "@silifuzz//util:arch",
+    ],
 )
 
 cc_test(

@@ -232,7 +232,7 @@ int RunAArch64Instructions(absl::string_view insns) {
     return -1;
   }
 
-  FuzzingConfig_AArch64 config = DEFAULT_AARCH64_FUZZING_CONFIG;
+  FuzzingConfig<AArch64> config = DEFAULT_AARCH64_FUZZING_CONFIG;
 
   absl::StatusOr<Snapshot> snapshot =
       InstructionsToSnapshot_AArch64(insns, config);

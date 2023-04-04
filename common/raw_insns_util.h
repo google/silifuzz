@@ -40,11 +40,11 @@ std::string InstructionsToSnapshotId(absl::string_view code);
 // byte. The result is guaranteed to be stable.
 absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
     absl::string_view code,
-    const FuzzingConfig_X86_64& config = DEFAULT_X86_64_FUZZING_CONFIG);
+    const FuzzingConfig<X86_64>& config = DEFAULT_X86_64_FUZZING_CONFIG);
 
 absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
     absl::string_view code,
-    const FuzzingConfig_AArch64& config = DEFAULT_AARCH64_FUZZING_CONFIG);
+    const FuzzingConfig<AArch64>& config = DEFAULT_AARCH64_FUZZING_CONFIG);
 
 // Entry point for arch-generic tools.
 template <typename Arch>

@@ -22,6 +22,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/arch.h"
+
 namespace silifuzz {
 
 // A memory region spanning [start_address;start_address+num_bytes).
@@ -30,10 +32,14 @@ struct MemoryRange {
   uint64_t num_bytes;
 };
 
+template <typename Arch>
+struct FuzzingConfig;
+
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
 // Can include things like "default GPR value" in the future.
-struct FuzzingConfig_X86_64 {
+template <>
+struct FuzzingConfig<X86_64> {
   // The start_address address must be page aligned.
   // The num_bytes must be a power of 2.
   MemoryRange code_range;
@@ -46,7 +52,7 @@ struct FuzzingConfig_X86_64 {
   MemoryRange data2_range;
 };
 
-constexpr FuzzingConfig_X86_64 DEFAULT_X86_64_FUZZING_CONFIG = {
+constexpr FuzzingConfig<X86_64> DEFAULT_X86_64_FUZZING_CONFIG = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -69,7 +75,8 @@ constexpr FuzzingConfig_X86_64 DEFAULT_X86_64_FUZZING_CONFIG = {
 // config.
 // Even if the configs had identical fields, we'd probally want to keep the
 // types separate so type checking could catch config confusion.
-struct FuzzingConfig_AArch64 {
+template <>
+struct FuzzingConfig<AArch64> {
   MemoryRange code_range;
 
   // AArch64 currently has a separate stack. We may want to re-evaluate this in
@@ -82,7 +89,7 @@ struct FuzzingConfig_AArch64 {
   MemoryRange data2_range;
 };
 
-constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
+constexpr FuzzingConfig<AArch64> DEFAULT_AARCH64_FUZZING_CONFIG = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -107,7 +114,7 @@ constexpr FuzzingConfig_AArch64 DEFAULT_AARCH64_FUZZING_CONFIG = {
 };
 
 // This config is used to accommodate proxies with limited physical memory.
-constexpr FuzzingConfig_AArch64 LIMITED_MEMORY_AARCH64_FUZZING_CONFIG = {
+constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_AARCH64_FUZZING_CONFIG = {
     .code_range =
         {
             .start_address = 0x3000'0000,
