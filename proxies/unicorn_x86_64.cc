@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./proxies/unicorn_x86_64.h"
-
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -25,14 +23,35 @@
 #include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"
 #include "third_party/unicorn/x86.h"
 
+#define UNICORN_CHECK(...)                              \
+  do {                                                  \
+    uc_err __uc_check_err = __VA_ARGS__;                \
+    if ((__uc_check_err != UC_ERR_OK)) {                \
+      LOG_FATAL(#__VA_ARGS__ " failed with ",           \
+                silifuzz::IntStr(__uc_check_err), ": ", \
+                uc_strerror(__uc_check_err));           \
+    }                                                   \
+  } while (0);
+
 namespace silifuzz {
 namespace {
+
+// Does uc_open(uc) on scope entry, uc_close(*uc) on scope exit.
+struct ScopedUC {
+  explicit ScopedUC(uc_arch arch, uc_mode mode, uc_engine **uc) : uc_(uc) {
+    UNICORN_CHECK(uc_open(arch, mode, uc_));
+  }
+  ~ScopedUC() { UNICORN_CHECK(uc_close(*uc_)); }
+  uc_engine **uc_;
+};
 
 absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
                                   const FPRegSet<X86_64> &fpregs) {
@@ -99,10 +118,11 @@ absl::StatusOr<uc_err> Initialize(uc_engine *uc, const GRegSet<X86_64> &gregs,
 
 }  // namespace
 
-absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
-  FuzzingConfig<X86_64> config = DEFAULT_X86_64_FUZZING_CONFIG;
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
-                             InstructionsToSnapshot_X86_64(insns, config));
+absl::Status RunInstructions(absl::string_view insns,
+                             const FuzzingConfig<X86_64> &fuzzing_config,
+                             size_t max_inst_executed) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      Snapshot snapshot, InstructionsToSnapshot_X86_64(insns, fuzzing_config));
   const uint64_t code_addr = snapshot.ExtractRip(snapshot.registers());
   const Snapshot::MemoryBytes *code_bytes = [&]() {
     for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
@@ -133,11 +153,11 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
                              code_bytes->num_bytes()));
 
   // Map the data region(s).
-  UNICORN_CHECK(uc_mem_map(uc, config.data1_range.start_address,
-                           config.data1_range.num_bytes,
+  UNICORN_CHECK(uc_mem_map(uc, fuzzing_config.data1_range.start_address,
+                           fuzzing_config.data1_range.num_bytes,
                            UC_PROT_READ | UC_PROT_WRITE));
-  UNICORN_CHECK(uc_mem_map(uc, config.data2_range.start_address,
-                           config.data2_range.num_bytes,
+  UNICORN_CHECK(uc_mem_map(uc, fuzzing_config.data2_range.start_address,
+                           fuzzing_config.data2_range.num_bytes,
                            UC_PROT_READ | UC_PROT_WRITE));
 
   // Simulate the effect RestoreUContext could have on the stack.
@@ -147,9 +167,11 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
 
   // Emulate up to kMaxInstExecuted instructions.
   uint64_t end_of_code = code_addr + insns.size();
-  size_t kMaxInstExecuted = 100;
-  UNICORN_RETURN_IF_NOT_OK(
-      uc_emu_start(uc, code_addr, end_of_code, 0, kMaxInstExecuted));
+  uc_err err = uc_emu_start(uc, code_addr, end_of_code, 0, max_inst_executed);
+  if (err) {
+    return absl::InternalError(absl::StrCat(
+        "uc_emu_start() returned ", IntStr(err), ": ", uc_strerror(err)));
+  }
 
   // Reject the input if emulation didn't finish at end_of_code.
   uint64_t pc = 0;
@@ -159,7 +181,19 @@ absl::StatusOr<uc_err> RunInstructions(absl::string_view insns) {
   }
 
   // Accept the input.
-  return UC_ERR_OK;
+  return absl::OkStatus();
 }
 
 }  // namespace silifuzz
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+  const size_t max_inst_executed = 100;
+  absl::Status status = silifuzz::RunInstructions(
+      absl::string_view(reinterpret_cast<const char *>(data), size),
+      silifuzz::DEFAULT_X86_64_FUZZING_CONFIG, max_inst_executed);
+  if (!status.ok()) {
+    LOG_ERROR(status.message());
+    return -1;
+  }
+  return 0;
+}

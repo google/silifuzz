@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./proxies/unicorn_x86_64.h"
-
 #include <cstdint>
 #include <limits>
 #include <vector>
@@ -25,57 +23,51 @@
 #include "./util/testing/status_matchers.h"
 #include "third_party/unicorn/unicorn.h"
 
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
+
 namespace {
 
-using silifuzz::testing::IsOkAndHolds;
-using silifuzz::testing::StatusIs;
-
-auto run_bytes(std::vector<uint8_t>&& data) {
-  return silifuzz::RunInstructions(
-      {reinterpret_cast<const char*>(data.data()), data.size()});
+int run_bytes(std::vector<uint8_t>&& data) {
+  return LLVMFuzzerTestOneInput(data.data(), data.size());
 }
 
-TEST(UnicornX86_64, Nop) {
-  EXPECT_THAT(run_bytes({0x90}), IsOkAndHolds(UC_ERR_OK));
-}
+// The preprocessor does not understand initializer lists, so hack around this
+// with vardic macros.
+#define EXPECT_BYTES_ACCEPTED(...) EXPECT_EQ(0, run_bytes(__VA_ARGS__));
+#define EXPECT_BYTES_REJECTED(...) EXPECT_EQ(-1, run_bytes(__VA_ARGS__));
 
-TEST(UnicornX86_64, Hlt) {
-  EXPECT_THAT(run_bytes({0xF4}), IsOkAndHolds(UC_ERR_OK));
-}
+TEST(UnicornX86_64, Nop) { EXPECT_BYTES_ACCEPTED({0x90}); }
+
+TEST(UnicornX86_64, Hlt) { EXPECT_BYTES_ACCEPTED({0xF4}); }
 
 TEST(UnicornX86_64, ReadMappedMem) {
   // movabs eax,ds:0x1000010000
-  EXPECT_THAT(run_bytes({0xA1, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00}),
-              IsOkAndHolds(UC_ERR_OK));
+  EXPECT_BYTES_ACCEPTED({0xA1, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00});
 }
 
 TEST(UnicornX86_64, ReadUnmappedMem) {
   // mov eax, dword ptr [0]
-  EXPECT_THAT(run_bytes({0x8B, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00}),
-              IsOkAndHolds(UC_ERR_READ_UNMAPPED));
+  EXPECT_BYTES_REJECTED({0x8B, 0x04, 0x25, 0x00, 0x00, 0x00, 0x00});
 }
 
 TEST(UnicornX86_64, Loop10) {
   // xor rcx, rcx
   // mov cl, 10
   // loop .
-  EXPECT_THAT(run_bytes({0x48, 0x31, 0xC9, 0xB1, 0x0A, 0xE2, 0xFE}),
-              IsOkAndHolds(UC_ERR_OK));
+  EXPECT_BYTES_ACCEPTED({0x48, 0x31, 0xC9, 0xB1, 0x0A, 0xE2, 0xFE});
 }
 
 TEST(UnicornX86_64, Runaway) {
   //  jmp .
-  EXPECT_THAT(run_bytes({0xEB, 0xFE}), StatusIs(absl::StatusCode::kOutOfRange));
+  EXPECT_BYTES_REJECTED({0xEB, 0xFE});
 }
 
 TEST(UnicornX86_64, JmpFar) {
   // jmp .+0x60
-  EXPECT_THAT(run_bytes({0xEB, 0x60}), IsOkAndHolds(UC_ERR_EXCEPTION));
+  EXPECT_BYTES_REJECTED({0xEB, 0x60});
 }
 
-TEST(UnicornX86_64, UD) {
-  EXPECT_THAT(run_bytes({0x0F, 0xFF}), IsOkAndHolds(UC_ERR_INSN_INVALID));
-}
+TEST(UnicornX86_64, UD) { EXPECT_BYTES_REJECTED({0x0F, 0xFF}); }
 
 TEST(UnicornX86_64, ReadFewPages) {
   /* Attempt to touch few pages
@@ -86,11 +78,10 @@ TEST(UnicornX86_64, ReadFewPages) {
     14: 48 81 c6 00 10 00 00    add    rsi,0x1000
     1b: e2 f4                   loop   0x11
   */
-  EXPECT_THAT(
-      run_bytes({0x48, 0xC7, 0xC1, 0x05, 0x00, 0x00, 0x00, 0x48, 0xBE, 0x00,
-                 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0x48, 0x8B, 0x06,
-                 0x48, 0x81, 0xC6, 0x00, 0x10, 0x00, 0x00, 0xE2, 0xF4}),
-      IsOkAndHolds(UC_ERR_OK));
+  EXPECT_BYTES_ACCEPTED({0x48, 0xC7, 0xC1, 0x05, 0x00, 0x00, 0x00, 0x48,
+                         0xBE, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00,
+                         0x00, 0x48, 0x8B, 0x06, 0x48, 0x81, 0xC6, 0x00,
+                         0x10, 0x00, 0x00, 0xE2, 0xF4});
 }
 
 TEST(UnicornX86_64, ReadManyPages) {
@@ -102,11 +93,10 @@ TEST(UnicornX86_64, ReadManyPages) {
     14: 48 81 c6 00 10 00 00    add    rsi,0x1000
     1b: e2 f4                   loop   0x11
   */
-  EXPECT_THAT(
-      run_bytes({0x48, 0xC7, 0xC1, 0x00, 0x01, 0x00, 0x00, 0x48, 0xBE, 0x00,
-                 0x00, 0x01, 0x00, 0x10, 0x00, 0x00, 0x00, 0x48, 0x8B, 0x06,
-                 0x48, 0x81, 0xC6, 0x00, 0x10, 0x00, 0x00, 0xE2, 0xF4}),
-      StatusIs(absl::StatusCode::kOutOfRange));
+  EXPECT_BYTES_REJECTED({0x48, 0xC7, 0xC1, 0x00, 0x01, 0x00, 0x00, 0x48,
+                         0xBE, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00,
+                         0x00, 0x48, 0x8B, 0x06, 0x48, 0x81, 0xC6, 0x00,
+                         0x10, 0x00, 0x00, 0xE2, 0xF4});
 }
 
 TEST(UnicornX86_64, Many) {
@@ -117,17 +107,7 @@ TEST(UnicornX86_64, Many) {
     uint64_t bytes =
         absl::Uniform(gen, 0ULL, std::numeric_limits<uint64_t>::max());
     const uint8_t* v = reinterpret_cast<const uint8_t*>(&bytes);
-    auto s = run_bytes({v, v + sizeof(uint64_t)});
-    if (!s.ok()) {
-      EXPECT_THAT(s, StatusIs(absl::StatusCode::kOutOfRange));
-    } else {
-      // All valid and expected uc_emu_start() return values.
-      ASSERT_TRUE(*s == UC_ERR_OK || *s == UC_ERR_READ_UNMAPPED ||
-                  *s == UC_ERR_WRITE_UNMAPPED || *s == UC_ERR_FETCH_UNMAPPED ||
-                  *s == UC_ERR_INSN_INVALID || *s == UC_ERR_EXCEPTION ||
-                  *s == UC_ERR_FETCH_PROT)
-          << bytes << ": " << uc_strerror(*s);
-    }
+    run_bytes({v, v + sizeof(uint64_t)});
   }
 }
 

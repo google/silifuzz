@@ -52,18 +52,17 @@ cc_library(
     name = "unicorn_x86_64_lib",
     testonly = True,
     srcs = ["unicorn_x86_64.cc"],
-    hdrs = ["unicorn_x86_64.h"],
     deps = [
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@unicorn//:unicorn_x86",
     ],
@@ -102,7 +101,6 @@ cc_binary(
 cc_binary(
     name = "unicorn_x86_64",
     testonly = True,
-    srcs = ["unicorn_x86_64_sancov.cc"],
     linkopts = [
         "-ldl",
         "-lrt",
@@ -111,6 +109,5 @@ cc_binary(
     deps = [
         ":unicorn_x86_64_lib",
         "@centipede//:centipede_runner",
-        "@unicorn//:unicorn_x86",
     ],
 )
