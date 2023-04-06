@@ -268,12 +268,19 @@ absl::Status GetInstructions(const Snapshot& snapshot) {
   // Trimming the exit sequence means that we should be able to re-make these
   // instructions and get the same snapshot.
   const Snapshot::EndStateList& end_states = snapshot.expected_end_states();
-  if (end_states.size() != 1) {
-    return absl::InternalError(
-        absl::StrCat("Expected 1 end state, found ", end_states.size()));
+  if (end_states.empty()) {
+    return absl::InternalError("Expected at least 1 end state");
   }
   uint64_t end_code = end_states[0].endpoint().instruction_address();
   CHECK_LE(begin_code, end_code);
+  for (const Snapshot::EndState& es : end_states) {
+    uint64_t other_end_code = es.endpoint().instruction_address();
+    if (end_code != other_end_code) {
+      return absl::InternalError(
+          absl::StrCat("Endpoint position is inconsistent between endstates: ",
+                       HexStr(end_code), " vs. ", HexStr(other_end_code)));
+    }
+  }
 
   // Normalizing the memory bytes should ensure all the instructions are inside
   // a single MemoryBytes object.
