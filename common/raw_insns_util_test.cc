@@ -28,7 +28,7 @@ namespace {
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
   auto config = DEFAULT_X86_64_FUZZING_CONFIG;
   absl::StatusOr<Snapshot> snapshot =
-      InstructionsToSnapshot_X86_64("\xCC", config);
+      InstructionsToSnapshot<X86_64>("\xCC", config);
   ASSERT_OK(snapshot);
   // data page + code page
   EXPECT_EQ(snapshot->num_pages(), 2);
@@ -41,10 +41,10 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
-  absl::StatusOr<Snapshot> snapshot_2 = InstructionsToSnapshot_X86_64("\xAA");
+  absl::StatusOr<Snapshot> snapshot_2 = InstructionsToSnapshot<X86_64>("\xAA");
   ASSERT_OK(snapshot_2);
 
-  absl::StatusOr<Snapshot> snapshot_3 = InstructionsToSnapshot_X86_64("\xAA");
+  absl::StatusOr<Snapshot> snapshot_3 = InstructionsToSnapshot<X86_64>("\xAA");
   ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));
@@ -60,7 +60,7 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
   // nop
   std::string instruction({0x1f, 0x20, 0x03, 0xd5});
   absl::StatusOr<Snapshot> snapshot =
-      InstructionsToSnapshot_AArch64(instruction, config);
+      InstructionsToSnapshot<AArch64>(instruction, config);
   ASSERT_OK(snapshot);
   // code page + stack page
   EXPECT_EQ(snapshot->num_pages(), 2);
@@ -75,11 +75,11 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
 TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Stable) {
   std::string instruction({0x0, 0xc0, 0xb0, 0x72});
   absl::StatusOr<Snapshot> snapshot_2 =
-      InstructionsToSnapshot_AArch64(instruction);
+      InstructionsToSnapshot<AArch64>(instruction);
   ASSERT_OK(snapshot_2);
 
   absl::StatusOr<Snapshot> snapshot_3 =
-      InstructionsToSnapshot_AArch64(instruction);
+      InstructionsToSnapshot<AArch64>(instruction);
   ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));

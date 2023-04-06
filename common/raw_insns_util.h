@@ -38,17 +38,11 @@ std::string InstructionsToSnapshotId(absl::string_view code);
 // The returned Snapshot will contain a single undefined (i.e. no registers)
 // expected end-state at the address immediately following the final `code`
 // byte. The result is guaranteed to be stable.
-absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
-    absl::string_view code,
-    const FuzzingConfig<X86_64>& config = DEFAULT_X86_64_FUZZING_CONFIG);
-
-absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
-    absl::string_view code,
-    const FuzzingConfig<AArch64>& config = DEFAULT_AARCH64_FUZZING_CONFIG);
-
-// Entry point for arch-generic tools.
 template <typename Arch>
 absl::StatusOr<Snapshot> InstructionsToSnapshot(absl::string_view code);
+template <typename Arch>
+absl::StatusOr<Snapshot> InstructionsToSnapshot(
+    absl::string_view code, const FuzzingConfig<Arch>& config);
 
 }  // namespace silifuzz
 

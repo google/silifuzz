@@ -122,7 +122,7 @@ absl::Status RunInstructions(absl::string_view insns,
                              const FuzzingConfig<X86_64> &fuzzing_config,
                              size_t max_inst_executed) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
-      Snapshot snapshot, InstructionsToSnapshot_X86_64(insns, fuzzing_config));
+      Snapshot snapshot, InstructionsToSnapshot<X86_64>(insns, fuzzing_config));
   const uint64_t code_addr = snapshot.ExtractRip(snapshot.registers());
   const Snapshot::MemoryBytes *code_bytes = [&]() {
     for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {

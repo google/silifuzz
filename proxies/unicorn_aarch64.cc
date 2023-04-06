@@ -235,7 +235,7 @@ int RunAArch64Instructions(absl::string_view insns) {
   FuzzingConfig<AArch64> config = DEFAULT_AARCH64_FUZZING_CONFIG;
 
   absl::StatusOr<Snapshot> snapshot =
-      InstructionsToSnapshot_AArch64(insns, config);
+      InstructionsToSnapshot<AArch64>(insns, config);
   if (!snapshot.ok()) {
     LOG_ERROR("could not create snapshot - ", snapshot.status().message());
     // This input is likely not a multiple of 4 or too large.

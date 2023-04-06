@@ -29,7 +29,7 @@ TEST(SnapshotProto, MetadataRoundtrip) {
       proto::SnapshotMetadata::UNICORN_FUZZING_ORIGIN;
 
   ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
-                       InstructionsToSnapshot_X86_64("\xCC"));
+                       InstructionsToSnapshot<X86_64>("\xCC"));
   proto::Snapshot proto;
   SnapshotProto::ToProto(snapshot, &proto);
   proto.mutable_metadata()->set_origin(kOrigin);
@@ -43,7 +43,7 @@ TEST(SnapshotProto, ArchRoundtrip) {
   // nop
   std::string instruction({0x1f, 0x20, 0x03, 0xd5});
   ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
-                       InstructionsToSnapshot_AArch64(instruction));
+                       InstructionsToSnapshot<AArch64>(instruction));
   ASSERT_EQ(snapshot.architecture(), Snapshot::Architecture::kAArch64);
 
   proto::Snapshot proto;

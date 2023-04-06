@@ -65,7 +65,8 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
 
 }  // namespace
 
-absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
+template <>
+absl::StatusOr<Snapshot> InstructionsToSnapshot<X86_64>(
     absl::string_view code, const FuzzingConfig<X86_64>& config) {
   if (!StaticInstructionFilter<X86_64>(code)) {
     return absl::InvalidArgumentError(
@@ -152,10 +153,11 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_X86_64(
 template <>
 absl::StatusOr<Snapshot> InstructionsToSnapshot<X86_64>(
     absl::string_view code) {
-  return InstructionsToSnapshot_X86_64(code);
+  return InstructionsToSnapshot<X86_64>(code, DEFAULT_X86_64_FUZZING_CONFIG);
 }
 
-absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
+template <>
+absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
     absl::string_view code, const FuzzingConfig<AArch64>& config) {
   if (code.size() % 4 != 0) {
     return absl::InvalidArgumentError(
@@ -249,7 +251,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot_AArch64(
 template <>
 absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
     absl::string_view code) {
-  return InstructionsToSnapshot_AArch64(code);
+  return InstructionsToSnapshot<AArch64>(code, DEFAULT_AARCH64_FUZZING_CONFIG);
 }
 
 std::string InstructionsToSnapshotId(absl::string_view code) {
