@@ -16,8 +16,10 @@
 // snapshot proto files.
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -63,6 +65,8 @@ ABSL_FLAG(bool, normalize, true,
 ABSL_FLAG(bool, raw, false,
           "Whether the input is a raw sequence of instructions rather than a "
           "Snapshot.");
+
+ABSL_FLAG(std::optional<std::string>, out, std::nullopt, "Output file path.");
 
 // Flags that control `print` command (including in --dry_run mode):
 ABSL_FLAG(SnapshotPrinter::RegsMode, regs, SnapshotPrinter::kNonZeroRegs,
@@ -220,7 +224,7 @@ absl::StatusOr<Snapshot> LoadSnapshot(absl::string_view filename, bool raw) {
 
 // Implements `generate_corpus` command.
 absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
-                            bool raw, PlatformId platform_id,
+                            bool raw, PlatformId platform_id, int out_fd,
                             LinePrinter* line_printer) {
   if (platform_id == PlatformId::kUndefined) {
     return absl::InvalidArgumentError(
@@ -253,13 +257,13 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
   MmappedMemoryPtr<char> buffer =
       GenerateRelocatableSnaps(arch_id, snapified_corpus, options);
   absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
-  if (!WriteToFileDescriptor(STDOUT_FILENO, buf)) {
+  if (!WriteToFileDescriptor(out_fd, buf)) {
     return absl::InternalError("WriteToFileDescriptor failed");
   }
   return absl::OkStatus();
 }
 
-absl::Status GetInstructions(const Snapshot& snapshot) {
+absl::Status GetInstructions(const Snapshot& snapshot, int out_fd) {
   // The initial RIP / PC should point to first instruction
   uint64_t begin_code = snapshot.ExtractRip(snapshot.registers());
 
@@ -294,7 +298,7 @@ absl::Status GetInstructions(const Snapshot& snapshot) {
       uint64_t begin_index = begin_code - bytes.start_address();
       absl::string_view view(bytes.byte_values().data() + begin_index,
                              end_code - begin_code);
-      if (!WriteToFileDescriptor(STDOUT_FILENO, view)) {
+      if (!WriteToFileDescriptor(out_fd, view)) {
         return absl::InternalError("WriteToFileDescriptor failed");
       }
       return absl::OkStatus();
@@ -302,6 +306,30 @@ absl::Status GetInstructions(const Snapshot& snapshot) {
   }
 
   return absl::InternalError("Could not find instructions in the memory bytes");
+}
+
+absl::StatusOr<int> OpenOutput() {
+  std::optional<std::string> out = absl::GetFlag(FLAGS_out);
+  if (out.has_value()) {
+    int fd = open(out.value().c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                  S_IRUSR | S_IWUSR);
+    if (fd == -1) {
+      return absl::UnknownError(
+          absl::StrCat("Could not open ", out->c_str(), ": ", ErrnoStr(errno)));
+    }
+    return fd;
+  }
+  // Default to STDOUT - tool's original behavior.
+  return dup(STDOUT_FILENO);
+}
+
+std::string OutputPath(absl::string_view input_path) {
+  std::optional<std::string> out = absl::GetFlag(FLAGS_out);
+  if (out.has_value()) {
+    return out.value();
+  }
+  // Default to overwriting the input - tool's original behavior.
+  return std::string(input_path);
 }
 
 // ========================================================================= //
@@ -359,7 +387,8 @@ bool SnapToolMain(std::vector<char*>& args) {
 
     snapshot.set_id(id);
 
-    OutputSnapshotOrDie(std::move(snapshot), snapshot_file, &line_printer);
+    OutputSnapshotOrDie(std::move(snapshot), OutputPath(snapshot_file),
+                        &line_printer);
   } else if (command == "set_end") {
     // This is a way to manually replace snapshot's end-state(s) by one
     // specific endpoint address. It can be used to help one inspect
@@ -385,7 +414,8 @@ bool SnapToolMain(std::vector<char*>& args) {
     }
     snapshot.set_expected_end_states({es});
 
-    OutputSnapshotOrDie(std::move(snapshot), snapshot_file, &line_printer);
+    OutputSnapshotOrDie(std::move(snapshot), OutputPath(snapshot_file),
+                        &line_printer);
   } else if (command == "play") {
     if (ExtraArgs(args)) return false;
 
@@ -425,20 +455,33 @@ bool SnapToolMain(std::vector<char*>& args) {
     }
 
     line_printer.Line("Re-made snapshot succefully.");
-    OutputSnapshotOrDie(std::move(recorded_snapshot).value(), snapshot_file,
-                        &line_printer);
+    OutputSnapshotOrDie(std::move(recorded_snapshot).value(),
+                        OutputPath(snapshot_file), &line_printer);
   } else if (command == "generate_corpus") {
     std::vector<std::string> inputs({snapshot_file});
     for (const auto& a : args) {
       inputs.push_back(a);
     }
-    absl::Status s = GenerateCorpus(inputs, raw, platform_id, &line_printer);
+    absl::StatusOr<int> out_fd = OpenOutput();
+    if (!out_fd.ok()) {
+      line_printer.Line(out_fd.status().ToString());
+      return false;
+    }
+    absl::Status s =
+        GenerateCorpus(inputs, raw, platform_id, out_fd.value(), &line_printer);
+    close(out_fd.value());
     if (!s.ok()) {
       line_printer.Line("Cannot generate corpus: ", s.message());
       return false;
     }
   } else if (command == "get_instructions") {
-    absl::Status s = GetInstructions(snapshot);
+    absl::StatusOr<int> out_fd = OpenOutput();
+    if (!out_fd.ok()) {
+      line_printer.Line(out_fd.status().ToString());
+      return false;
+    }
+    absl::Status s = GetInstructions(snapshot, out_fd.value());
+    close(out_fd.value());
     if (!s.ok()) {
       line_printer.Line("Cannot get instructions: ", s.message());
       return false;
