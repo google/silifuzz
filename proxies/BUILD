@@ -17,23 +17,45 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "unicorn_aarch64_lib",
+    name = "unicorn_tracer_aarch64",
     testonly = True,
-    srcs = ["unicorn_aarch64.cc"],
+    srcs = [
+        "unicorn_tracer_aarch64.cc",
+        "unicorn_util.cc",
+        "unicorn_util.h",
+    ],
+    hdrs = [
+        "unicorn_tracer.h",
+    ],
     deps = [
+        "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
-        "@silifuzz//util:logging_util",
+        "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@unicorn//:unicorn_arm64",
+    ],
+)
+
+cc_library(
+    name = "unicorn_aarch64_lib",
+    testonly = True,
+    srcs = ["unicorn_aarch64.cc"],
+    deps = [
+        ":unicorn_tracer_aarch64",
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
     ],
     alwayslink = True,
 )
