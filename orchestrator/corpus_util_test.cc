@@ -128,8 +128,7 @@ TEST(CorpusUtil, WriteSharedMemoryFile) {
   // Check that file is correctly sealed.
   int seals = fcntl(*owned_fd, F_GET_SEALS);
   EXPECT_NE(seals, -1);
-  constexpr int kExpectedSeals =
-      F_SEAL_SEAL | F_SEAL_WRITE | F_SEAL_SHRINK | F_SEAL_GROW;
+  constexpr int kExpectedSeals = F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW;
   EXPECT_EQ(seals & kExpectedSeals, kExpectedSeals);
 
   EXPECT_EQ(ftruncate(*owned_fd, 0), -1);

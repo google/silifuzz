@@ -160,9 +160,13 @@ absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
   RETURN_IF_NOT_OK(WriteCord(contents, *owned_fd));
 
   // Seal file after write to prevent modification of its contents and seals.
+  // There appears to be a kernel bug that happens with large enough number of
+  // concurrent threads calling fcntl(2). The bug manifests as fcntl returning
+  // errno=EBUSY when passed F_SEAL_WRITE.
   if (fcntl(*owned_fd, F_ADD_SEALS,
-            F_SEAL_SEAL | F_SEAL_WRITE | F_SEAL_SHRINK | F_SEAL_GROW) != 0) {
-    return absl::ErrnoToStatus(errno, "fcntl(F_ADD_SEALS)");
+            F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW) != 0) {
+    return absl::ErrnoToStatus(errno,
+                               absl::StrCat("fcntl(F_ADD_SEALS): ", name));
   }
 
   // Move file descriptor to beginning of file.
