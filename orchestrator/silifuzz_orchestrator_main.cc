@@ -260,16 +260,17 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   }
   ctx->ProcessResultQueue();
   result_collector.LogSummary(true);
+  Summary summary = result_collector.summary();
   double log_session_summary_probability =
       absl::GetFlag(FLAGS_log_session_summary_probability);
   absl::BitGen bitgen;
-  if (absl::Uniform(bitgen, 0, 1.0) <= log_session_summary_probability) {
+  if (absl::Uniform(bitgen, 0, 1.0) <= log_session_summary_probability ||
+      summary.num_failed_snapshots > 0) {
     absl::Status s = LogSessionSummary(result_collector);
     if (!s.ok()) {
       LOG_ERROR(s.message());
     }
   }
-  Summary summary = result_collector.summary();
   if (summary.num_failed_snapshots > 0) {
     return EXIT_FAILURE;
   }
