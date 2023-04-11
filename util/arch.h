@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "./util/checks.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -31,6 +32,9 @@ enum class ArchitectureId {
   kX86_64 = 1,
   kAArch64 = 2,
 };
+
+template <>
+extern const char* EnumNameMap<ArchitectureId>[3];
 
 struct X86_64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;

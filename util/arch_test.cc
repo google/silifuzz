@@ -53,6 +53,10 @@ template <class>
 struct ArchTest : testing::Test {};
 TYPED_TEST_SUITE(ArchTest, arch_typelist);
 
+TYPED_TEST(ArchTest, Itoa) {
+  EXPECT_STREQ(TypeParam::arch_name, EnumStr(TypeParam::architecture_id));
+}
+
 TYPED_TEST(ArchTest, ArchDispatchZeroArgs) {
   EXPECT_EQ(ARCH_DISPATCH(ReturnArchValue, TypeParam::architecture_id),
             static_cast<int>(TypeParam::architecture_id));

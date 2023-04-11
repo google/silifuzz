@@ -878,9 +878,18 @@ cc_library_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "arch",
-    hdrs = ["arch.h"],
+    srcs = [
+        "arch.cc",
+    ],
+    hdrs = [
+        "arch.h",
+    ],
+    as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
+    ],
     deps = [
         ":checks",
+        ":itoa",
     ],
 )
 
