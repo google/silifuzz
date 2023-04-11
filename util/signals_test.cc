@@ -18,7 +18,6 @@
 
 #include <unistd.h>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./util/checks.h"
 
