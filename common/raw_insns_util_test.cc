@@ -26,7 +26,7 @@ namespace silifuzz {
 namespace {
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
-  auto config = DEFAULT_X86_64_FUZZING_CONFIG;
+  auto config = DEFAULT_FUZZING_CONFIG<X86_64>;
   absl::StatusOr<Snapshot> snapshot =
       InstructionsToSnapshot<X86_64>("\xCC", config);
   ASSERT_OK(snapshot);
@@ -56,7 +56,7 @@ TEST(RawInsnsUtil, InstructionsToSnapshotId) {
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
-  auto config = DEFAULT_AARCH64_FUZZING_CONFIG;
+  auto config = DEFAULT_FUZZING_CONFIG<AArch64>;
   // nop
   std::string instruction({0x1f, 0x20, 0x03, 0xd5});
   absl::StatusOr<Snapshot> snapshot =

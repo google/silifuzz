@@ -39,10 +39,9 @@ std::string InstructionsToSnapshotId(absl::string_view code);
 // expected end-state at the address immediately following the final `code`
 // byte. The result is guaranteed to be stable.
 template <typename Arch>
-absl::StatusOr<Snapshot> InstructionsToSnapshot(absl::string_view code);
-template <typename Arch>
 absl::StatusOr<Snapshot> InstructionsToSnapshot(
-    absl::string_view code, const FuzzingConfig<Arch>& config);
+    absl::string_view code,
+    const FuzzingConfig<Arch>& config = DEFAULT_FUZZING_CONFIG<Arch>);
 
 }  // namespace silifuzz
 

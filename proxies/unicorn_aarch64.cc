@@ -49,7 +49,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   const size_t max_inst_executed = 0x1000;
   absl::Status status = silifuzz::RunAArch64Instructions(
       absl::string_view(reinterpret_cast<const char *>(data), size),
-      silifuzz::DEFAULT_AARCH64_FUZZING_CONFIG, max_inst_executed);
+      silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::AArch64>, max_inst_executed);
   if (!status.ok()) {
     LOG_ERROR(status.message());
     return -1;

@@ -35,6 +35,16 @@ struct MemoryRange {
 template <typename Arch>
 struct FuzzingConfig;
 
+// This is usually the fuzzing config you should use.
+// Note: static qualifier is needed because const templates are not implicitly
+// static, unlike non-templated consts.
+template <typename Arch>
+static constexpr FuzzingConfig<Arch> DEFAULT_FUZZING_CONFIG;
+
+// The fuzzing config to use for proxies with limited memory.
+template <typename Arch>
+static constexpr FuzzingConfig<Arch> LIMITED_MEMORY_FUZZING_CONFIG;
+
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
 // Can include things like "default GPR value" in the future.
@@ -52,7 +62,8 @@ struct FuzzingConfig<X86_64> {
   MemoryRange data2_range;
 };
 
-constexpr FuzzingConfig<X86_64> DEFAULT_X86_64_FUZZING_CONFIG = {
+template <>
+static constexpr FuzzingConfig<X86_64> DEFAULT_FUZZING_CONFIG<X86_64> = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -89,7 +100,8 @@ struct FuzzingConfig<AArch64> {
   MemoryRange data2_range;
 };
 
-constexpr FuzzingConfig<AArch64> DEFAULT_AARCH64_FUZZING_CONFIG = {
+template <>
+static constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -114,28 +126,30 @@ constexpr FuzzingConfig<AArch64> DEFAULT_AARCH64_FUZZING_CONFIG = {
 };
 
 // This config is used to accommodate proxies with limited physical memory.
-constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_AARCH64_FUZZING_CONFIG = {
-    .code_range =
-        {
-            .start_address = 0x3000'0000,
-            .num_bytes = 0x8000'0000,  // 2 GB
-        },
-    .stack_range =
-        {
-            .start_address = 0x200'0000,
-            .num_bytes = 0x1000,
-        },
+template <>
+static constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
+    {
+        .code_range =
+            {
+                .start_address = 0x3000'0000,
+                .num_bytes = 0x8000'0000,  // 2 GB
+            },
+        .stack_range =
+            {
+                .start_address = 0x200'0000,
+                .num_bytes = 0x1000,
+            },
 
-    .data1_range =
-        {
-            .start_address = 0x7'0000'0000,
-            .num_bytes = 0x4000,  // 16 KB
-        },
-    .data2_range =
-        {
-            .start_address = 0x1007'0000'0000,
-            .num_bytes = 0x4000,  // 16 KB
-        },
+        .data1_range =
+            {
+                .start_address = 0x7'0000'0000,
+                .num_bytes = 0x4000,  // 16 KB
+            },
+        .data2_range =
+            {
+                .start_address = 0x1007'0000'0000,
+                .num_bytes = 0x4000,  // 16 KB
+            },
 };
 
 }  // namespace silifuzz

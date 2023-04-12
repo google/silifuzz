@@ -51,7 +51,8 @@ class UnicornTracer {
 
   // Prepare Unicorn to run a code snippet.
   absl::Status InitSnippet(absl::string_view instructions,
-                           const FuzzingConfig<Arch>& fuzzing_config) {
+                           const FuzzingConfig<Arch>& fuzzing_config =
+                               DEFAULT_FUZZING_CONFIG<Arch>) {
     ASSIGN_OR_RETURN_IF_NOT_OK(
         Snapshot snapshot,
         InstructionsToSnapshot<Arch>(instructions, fuzzing_config));

@@ -35,14 +35,14 @@ void CheckMemoryRanges(std::vector<MemoryRange>& ranges) {
 }
 
 TEST(ProxyConfig, NoOverlap_X86_64) {
-  FuzzingConfig<X86_64> config = DEFAULT_X86_64_FUZZING_CONFIG;
+  FuzzingConfig<X86_64> config = DEFAULT_FUZZING_CONFIG<X86_64>;
   std::vector<MemoryRange> ranges = {config.code_range, config.data1_range,
                                      config.data2_range};
   CheckMemoryRanges(ranges);
 }
 
 TEST(ProxyConfig, NoOverlap_AArch64) {
-  FuzzingConfig<AArch64> config = DEFAULT_AARCH64_FUZZING_CONFIG;
+  FuzzingConfig<AArch64> config = DEFAULT_FUZZING_CONFIG<AArch64>;
   std::vector<MemoryRange> ranges = {config.code_range, config.stack_range,
                                      config.data1_range, config.data2_range};
   CheckMemoryRanges(ranges);
