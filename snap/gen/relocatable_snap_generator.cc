@@ -350,6 +350,9 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
   RelocatableDataBlock::Ref memory_mappings_elements_ref =
       ProcessMemoryMappings(pass, snapshot.memory_mappings(),
                             bytes_per_mapping);
+  // All input snapshots should be Snapify()-ed before they can be compiled.
+  // This means exactly one expected end state.
+  DCHECK_EQ(snapshot.expected_end_states().size(), 1);
   const Snapshot::EndState& end_state = snapshot.expected_end_states()[0];
   RelocatableDataBlock::Ref end_state_memory_bytes_elements_ref =
       ProcessMemoryBytesList(
