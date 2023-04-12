@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./proxies/unicorn_util.h"
+#include "./tracing/unicorn_util.h"
 
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"

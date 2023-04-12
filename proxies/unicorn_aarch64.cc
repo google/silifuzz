@@ -18,7 +18,7 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
-#include "./proxies/unicorn_tracer.h"
+#include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 
