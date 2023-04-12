@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_PROXIES_UNICORN_UTIL_H_
-#define THIRD_PARTY_SILIFUZZ_PROXIES_UNICORN_UTIL_H_
+#ifndef THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_UTIL_H_
+#define THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_UTIL_H_
 
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
@@ -48,4 +48,4 @@ uint64_t GetExitPoint(const Snapshot &snapshot);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_PROXIES_UNICORN_UTIL_H_
+#endif  // THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_UTIL_H_
