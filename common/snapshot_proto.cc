@@ -89,6 +89,8 @@ static_assert(ToInt(Snapshot::Metadata::Origin::kLlvmMca) ==
               ToInt(proto::SnapshotMetadata::LLVM_MCA_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kEmulator1) ==
               ToInt(proto::SnapshotMetadata::EMULATOR1_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kSimulator1) ==
+              ToInt(proto::SnapshotMetadata::SIMULATOR1_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kUnicornCustom) ==
               ToInt(proto::SnapshotMetadata::UNICORNCUSTOM_FUZZING_ORIGIN));
 

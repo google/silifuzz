@@ -516,6 +516,7 @@ class Snapshot::Metadata {
     kLlvmMca = 9,
     kUnicornCustom = 10,
     kEmulator1 = 11,
+    kSimulator1 = 12,
   };
 
   Metadata() : origin_(Origin::kUndefined) {}

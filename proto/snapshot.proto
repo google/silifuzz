@@ -173,7 +173,7 @@ message SnapshotMetadata {
   // * creation from nothing -- all the enum values with _ORIGIN suffix
   // * transfromation from one (or in the future several) snapshots
   //   -- all the enum values with _TRANSFORM suffix.
-  // Next ID: 12
+  // Next ID: 13
   enum Origin {
     // When origin is unknown or unimportant,
     // e.g. snapshot was made by some test-generation logic.
@@ -192,6 +192,7 @@ message SnapshotMetadata {
     IACA_FUZZING_ORIGIN = 8;
     LLVM_MCA_FUZZING_ORIGIN = 9;
     EMULATOR1_FUZZING_ORIGIN = 11;
+    SIMULATOR1_FUZZING_ORIGIN = 12;
 
     // Unicorn fuzzer with a custom input sequence generator.
     // TODO(ksteuck): [cleanup] This is not a very scalable way of defining
