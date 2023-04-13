@@ -21,8 +21,6 @@ namespace silifuzz {
 
 // Common options for tracing a snapshot.
 //
-// Currently consists of just PlayOptions.
-//
 // This class is a thread-compatible value type.
 class TraceOptions {
  public:
@@ -45,6 +43,10 @@ class TraceOptions {
   // platforms.  This option is used to work around a performance issue on
   // some x86 CPUs.
   bool x86_trap_on_split_lock = false;
+
+  // If true, tracer injects a signal when a non-deterministic instruction is
+  // detected in the trace.
+  bool filter_non_deterministic_insn = true;
 };
 
 }  // namespace silifuzz

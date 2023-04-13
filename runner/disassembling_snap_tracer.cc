@@ -94,7 +94,8 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
                 insn_or->DebugString());
       trace_result_.disassembly.emplace_back(insn_or->DebugString());
     }
-    if (!insn_or->is_deterministic()) {
+    if (!insn_or->is_deterministic() &&
+        options_.filter_non_deterministic_insn) {
       trace_result_.early_termination_reason =
           absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());
       return HarnessTracer::kInjectSigusr1;
