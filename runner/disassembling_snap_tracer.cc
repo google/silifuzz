@@ -90,9 +90,10 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
     prev_instruction_decoding_failed_ = false;
     // suppress multiple lines of identical `repn` and `jmp .`.
     if (prev_instruction_addr_ != addr) {
-      VLOG_INFO(1, HexStr(addr), ": [", insn_or->length(), "] ",
-                insn_or->DebugString());
-      trace_result_.disassembly.emplace_back(insn_or->DebugString());
+      trace_result_.disassembly.emplace_back(absl::StrCat(
+          trace_result_.instructions_executed, " addr=", HexStr(addr),
+          " size=", insn_or->length(), " ", insn_or->DebugString()));
+      VLOG_INFO(1, trace_result_.disassembly.back());
     }
     if (!insn_or->is_deterministic() &&
         options_.filter_non_deterministic_insn) {

@@ -304,12 +304,11 @@ cc_test(
         "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snapshots",
-        "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

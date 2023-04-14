@@ -17,19 +17,17 @@
 #include <sys/user.h>
 
 #include <optional>
-#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snapshots.h"
-#include "./snap/testing/snap_test_types.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -44,6 +42,13 @@ RunnerDriver HelperDriver() {
   return RunnerDriver::BakedRunner(RunnerTestHelperLocation());
 }
 
+auto InsnAtAddr(absl::string_view x, int addr, int size) {
+  return ::testing::HasSubstr(
+      absl::StrCat("addr=0x", absl::Hex(addr), " size=", size, " ", x));
+}
+
+auto Insn(absl::string_view x) { return ::testing::HasSubstr(x); }
+
 TEST(DisassemblingSnapTracer, TraceAsExpected) {
   RunnerDriver driver = HelperDriver();
   auto snapshot = MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
@@ -57,7 +62,8 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 2);
   EXPECT_THAT(trace_result.disassembly,
-              ElementsAre("nop", "call qword ptr [rip]"));
+              ElementsAre(InsnAtAddr("nop", 0x12355000, 1),
+                          Insn("call qword ptr [rip]")));
 }
 
 TEST(DisassemblingSnapTracer, TraceSigill) {
@@ -103,8 +109,9 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   EXPECT_EQ(trace_result.instructions_executed, 5);
   EXPECT_THAT(
       trace_result.disassembly,
-      ElementsAre("mov rax, rsp", "dec rax", "xor al, al",
-                  "lock inc dword ptr [rax-0x1]", "call qword ptr [rip]"));
+      ElementsAre(Insn("mov rax, rsp"), Insn("dec rax"), Insn("xor al, al"),
+                  Insn("lock inc dword ptr [rax-0x1]"),
+                  Insn("call qword ptr [rip]")));
 
   // Trace again with split lock trapping enabled.
   options.x86_trap_on_split_lock = true;
