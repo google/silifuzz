@@ -28,9 +28,12 @@
 #include "absl/flags/parse.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "./common/memory_state.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
@@ -308,6 +311,30 @@ absl::Status GetInstructions(const Snapshot& snapshot, int out_fd) {
   return absl::InternalError("Could not find instructions in the memory bytes");
 }
 
+// Actual implementation is platforms-specific. See x86_64/snap_tool_trace.cc
+absl::Status Trace(const Snapshot& snapshot, PlatformId platform_id,
+                   LinePrinter* line_printer);
+
+absl::StatusOr<Snapshot> SetBytes(const Snapshot& snapshot,
+                                  const Snapshot::MemoryBytes& memory_bytes) {
+  MemoryState memory_state =
+      MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
+  if (!memory_state.mapped_memory().Contains(memory_bytes.start_address(),
+                                             memory_bytes.limit_address())) {
+    return absl::OutOfRangeError(
+        absl::StrCat("The range [", HexStr(memory_bytes.start_address()), ";",
+                     HexStr(memory_bytes.limit_address()),
+                     ") isn't mapped by the snapshot"));
+  }
+  memory_state.SetMemoryBytes(memory_bytes);
+  Snapshot::MemoryBytesList memory_bytes_list =
+      memory_state.memory_bytes_list(memory_state.written_memory());
+
+  Snapshot copy = snapshot.Copy();
+  RETURN_IF_NOT_OK(copy.ReplaceMemoryBytes(std::move(memory_bytes_list)));
+  return copy;
+}
+
 absl::StatusOr<int> OpenOutput() {
   std::optional<std::string> out = absl::GetFlag(FLAGS_out);
   if (out.has_value()) {
@@ -345,8 +372,8 @@ bool SnapToolMain(std::vector<char*>& args) {
   if (args.size() < 2) {
     line_printer.Line(
         "Expected one of "
-        "{print,set_id,set_end,make,play,generate_corpus,get_instructions} and "
-        "a snapshot file name(s).");
+        "{print,set_id,set_end,make,play,generate_corpus,get_instructions,"
+        "trace,set_bytes} and a snapshot file name(s).");
     return false;
   } else {
     command = ConsumeArg(args);
@@ -474,6 +501,51 @@ bool SnapToolMain(std::vector<char*>& args) {
       line_printer.Line("Cannot generate corpus: ", s.message());
       return false;
     }
+  } else if (command == "set_bytes") {
+    // Overwrite bytes in existing memory mappings of the snapshot.
+    //
+    // Sample invocation:
+    //   snap_tool set_bytes snapshot.pb 0x123456000 '\x90\x66'
+    // This will overwrite bytes starting at 0x123456000 to 0x90, 0x66.
+    // Bails if the the address isn't mapped (i.e. won't add new mappings).
+    std::string addr = ConsumeArg(args);
+    Snapshot::Address target_addr;
+    if (!absl::SimpleHexAtoi<Snapshot::Address>(addr, &target_addr)) {
+      line_printer.Line("Can't parse memory address: ", addr);
+      return false;
+    }
+    std::string escaped_data = ConsumeArg(args);
+    std::string data;
+    std::string err;
+    if (!absl::StrContains(escaped_data, "\\")) {
+      line_printer.Line(
+          "Didn't find any escape sequences in the data. Make sure you quoted "
+          "the input string correctly");
+      return false;
+    }
+    if (!absl::CUnescape(escaped_data, &data, &err)) {
+      line_printer.Line("Bad C-escaped data: ", err);
+      return false;
+    }
+    if (ExtraArgs(args)) return false;
+    absl::StatusOr<Snapshot> modified =
+        SetBytes(snapshot, Snapshot::MemoryBytes(target_addr, data));
+    if (!modified.ok()) {
+      line_printer.Line("set_bytes: ", modified.status().message());
+      return false;
+    }
+    OutputSnapshotOrDie(std::move(modified).value(), OutputPath(snapshot_file),
+                        &line_printer);
+  } else if (command == "trace") {
+    if (ExtraArgs(args)) return false;
+    PlatformId platform_id = absl::GetFlag(FLAGS_target_platform);
+    if (platform_id == PlatformId::kUndefined) {
+      platform_id = CurrentPlatformId();
+    }
+    if (absl::Status s = Trace(snapshot, platform_id, &line_printer); !s.ok()) {
+      line_printer.Line("trace: ", s.message());
+      return false;
+    }
   } else if (command == "get_instructions") {
     absl::StatusOr<int> out_fd = OpenOutput();
     if (!out_fd.ok()) {
@@ -490,7 +562,6 @@ bool SnapToolMain(std::vector<char*>& args) {
     line_printer.Line("Unknown command is given: ", command);
     return false;
   }
-
   return true;
 }
 

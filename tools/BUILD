@@ -29,8 +29,12 @@ DISABLE_ARM_TAGS = [
 
 cc_binary(
     name = "snap_tool",
-    srcs = ["snap_tool.cc"],
+    srcs = ["snap_tool.cc"] + select({
+        "@silifuzz//build_defs/platform:aarch64": ["aarch64/snap_tool_trace.cc"],
+        "@silifuzz//build_defs/platform:x86_64": ["x86_64/snap_tool_trace.cc"],
+    }),
     deps = [
+        "@silifuzz//common:memory_state",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
@@ -45,14 +49,22 @@ cc_binary(
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:file_util",
+        "@silifuzz//util:line_printer",
         "@silifuzz//util:platform",
         "@silifuzz//util:tool_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-    ],
+    ] + select({
+        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "@silifuzz//player:trace_options",
+            "@silifuzz//runner:disassembling_snap_tracer",
+        ],
+    }),
 )
 
 cc_binary(
