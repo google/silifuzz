@@ -50,6 +50,9 @@
 #include "./util/file_util.h"
 #include "./util/platform.h"
 #include "./util/tool_util.h"
+#include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {  // for ADL
 DEFINE_ENUM_FLAG(SnapshotPrinter::RegsMode);
@@ -335,6 +338,27 @@ absl::StatusOr<Snapshot> SetBytes(const Snapshot& snapshot,
   return copy;
 }
 
+template <typename Arch>
+absl::StatusOr<Snapshot> SetInstructionPointerImpl(const Snapshot& snapshot,
+                                                   Snapshot::Address pc) {
+  GRegSet<Arch> gregs;
+  const Snapshot::RegisterState& current_regs = snapshot.registers();
+  if (!DeserializeGRegs(current_regs.gregs(), &gregs)) {
+    return absl::InvalidArgumentError("Failed to deserialize gregs");
+  }
+  SetInstructionPointer(gregs, pc);
+  std::string serialized_gregs;
+  if (!SerializeGRegs(gregs, &serialized_gregs)) {
+    return absl::InternalError("Failed to serialize gregs");
+  }
+  auto new_regs =
+      Snapshot::RegisterState(serialized_gregs, current_regs.fpregs());
+  RETURN_IF_NOT_OK(snapshot.can_set_registers(new_regs));
+  Snapshot copy = snapshot.Copy();
+  copy.set_registers(new_regs);
+  return copy;
+}
+
 absl::StatusOr<int> OpenOutput() {
   std::optional<std::string> out = absl::GetFlag(FLAGS_out);
   if (out.has_value()) {
@@ -373,7 +397,7 @@ bool SnapToolMain(std::vector<char*>& args) {
     line_printer.Line(
         "Expected one of "
         "{print,set_id,set_end,make,play,generate_corpus,get_instructions,"
-        "trace,set_bytes} and a snapshot file name(s).");
+        "trace,set_bytes,set_pc} and a snapshot file name(s).");
     return false;
   } else {
     command = ConsumeArg(args);
@@ -532,6 +556,29 @@ bool SnapToolMain(std::vector<char*>& args) {
         SetBytes(snapshot, Snapshot::MemoryBytes(target_addr, data));
     if (!modified.ok()) {
       line_printer.Line("set_bytes: ", modified.status().message());
+      return false;
+    }
+    OutputSnapshotOrDie(std::move(modified).value(), OutputPath(snapshot_file),
+                        &line_printer);
+  } else if (command == "set_pc") {
+    // Set initial PC (%RIP on x86) to the specified value. Useful during
+    // snapshot minimization to skip initial NOP instructions.
+    //
+    // Sample invocation:
+    //   snap_tool set_pc snapshot.pb 0x123456000
+    // This will set the initial PC to 0x123456000
+    std::string pc_str = ConsumeArg(args);
+    Snapshot::Address pc;
+    if (!absl::SimpleHexAtoi<Snapshot::Address>(pc_str, &pc)) {
+      line_printer.Line("Can't parse PC value: ", pc_str);
+      return false;
+    }
+    if (ExtraArgs(args)) return false;
+    absl::StatusOr<Snapshot> modified = ARCH_DISPATCH(
+        SetInstructionPointerImpl, snapshot.architecture_id(), snapshot, pc);
+
+    if (!modified.ok()) {
+      line_printer.Line("set_pc: ", modified.status().message());
       return false;
     }
     OutputSnapshotOrDie(std::move(modified).value(), OutputPath(snapshot_file),
