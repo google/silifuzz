@@ -45,7 +45,6 @@ class SnapshotProto : private SnapshotTypeNames {
   static absl::StatusOr<EndState> FromProto(const proto::EndState& proto);
   static void ToProto(const EndState& snap, proto::EndState* proto);
 
- private:
   // FromProto() overloads for snapshot submessage types.
   static absl::StatusOr<MemoryMapping> FromProto(
       const proto::MemoryMapping& proto);
