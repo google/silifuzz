@@ -20,6 +20,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
+#include "./tracing/capstone_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -47,28 +48,37 @@ namespace silifuzz {
 template <typename Arch>
 absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
                         LinePrinter& out) {
+  CapstoneDisassembler disas(Arch::architecture_id);
   uint64_t instruction_count = 0;
   uint64_t code_start = tracer.GetCurrentInstructionPointer();
-  uint64_t expected_next = code_start;
+  bool last_valid = false;
+  uint64_t expected_next = 0;
+  uint8_t insn_buffer[16];
   tracer.SetInstructionCallback(
-      [&](UnicornTracer<Arch>* tracer, uint64_t address, uint32_t size) {
+      [&](UnicornTracer<Arch>* tracer, uint64_t address, size_t max_size) {
         // TODO(ncbray): extract the register state and print diffs.
         // Did we see something other than linear execution?
-        if (address != expected_next) {
+        if (last_valid && address != expected_next) {
           out.Line("    branch");
         }
+
+        // Disassemble the instruction
+        CHECK(max_size < sizeof(insn_buffer));
+        tracer->ReadMemory(address, insn_buffer, max_size);
+        size_t actual_size = max_size;
+        bool valid = disas.Disassemble(address, insn_buffer, &actual_size);
+
         // Display information about the next instruction.
         // Note: formatting assumes the code addresses are in the lower 4GB so
         // that it can ommit 8 leading zeros and be a bit prettier.
         out.Line(absl::Dec(instruction_count, absl::kZeroPad4),
                  " addr=", absl::Hex(address, absl::kZeroPad8),
                  " offset=", absl::Dec(address - code_start, absl::kZeroPad4),
-                 " size=", size);
-        // TODO(ncbray): extract the instruction bytes.
-        // TODO(ncbray): disassemble the instruction bytes.
-        // Set up for the next callback.
+                 " size=", absl::Dec(actual_size, absl::kZeroPad2), "    ",
+                 disas.FullText());
         instruction_count++;
-        expected_next = address + size;
+        last_valid = valid;
+        expected_next = address + actual_size;
       });
   return tracer.Run(max_instructions);
 }

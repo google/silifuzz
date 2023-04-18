@@ -121,6 +121,10 @@ class UnicornTracer {
   uint64_t GetCurrentInstructionPointer();
   uint64_t GetCurrentStackPointer();
 
+  void ReadMemory(uint64_t address, void* buffer, size_t size) {
+    UNICORN_CHECK(uc_mem_read(uc_, address, buffer, size));
+  }
+
  private:
   // Initialize Unicorn and put it in a state that it can execute code snippets
   // and Snapshots. This may involve setting system registers, etc.
@@ -145,6 +149,9 @@ class UnicornTracer {
   static void HookCode(uc_engine* uc, uint64_t address, uint32_t size,
                        void* user_data) {
     UnicornTracer<Arch>* tracer = static_cast<UnicornTracer<Arch>*>(user_data);
+    // Unicorn knows the exact size of the instruction, but other tracers may
+    // not so we treat "size" as a maximum size for the instruction, which
+    // happens to be exact for this particular tracer.
     tracer->instruction_callback_(tracer, address, size);
   }
 

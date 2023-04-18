@@ -120,12 +120,25 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "capstone_disassembler",
+    srcs = ["capstone_disassembler.cc"],
+    hdrs = ["capstone_disassembler.h"],
+    deps = [
+        "//third_party/capstone",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 cc_binary(
     name = "trace_tool",
     srcs = [
         "trace_tool.cc",
     ],
     deps = [
+        ":capstone_disassembler",
         ":unicorn_tracer",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
