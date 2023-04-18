@@ -31,6 +31,7 @@
 namespace silifuzz {
 
 // An architecture-generic class for executing code snippets in Unicorn.
+// This class is not thread safe.  Each thread should have its own instance.
 // Note: this header includes some non-trivial functions. This isn't ideal, but
 // since this a templated class, moving them out of line requires explicitly
 // instantiating them for each arch. Explicitly instantiating them for each arch
@@ -74,6 +75,20 @@ class UnicornTracer {
     end_of_code_ = GetExitPoint(snapshot);
 
     return absl::OkStatus();
+  }
+
+  using InstructionCallback = void(UnicornTracer<Arch>* tracer,
+                                   uint64_t address, uint32_t size);
+
+  // Ask the tracer to invoke `callback` before each instruction is executed.
+  // F should be compatible with InstructionCallback.
+  // This method should not be called more than once.
+  template <typename F>
+  void SetInstructionCallback(F&& callback) {
+    CHECK(!instruction_callback_);
+    instruction_callback_ = callback;
+    UNICORN_CHECK(uc_hook_add(uc_, &hook_code_, UC_HOOK_CODE, (void*)&HookCode,
+                              this, start_of_code_, end_of_code_));
   }
 
   // Run the code snippet. Execution will stop after `max_insn_executed`
@@ -127,10 +142,20 @@ class UnicornTracer {
   // will prevent turning this into a valid Snapshot.
   absl::Status ValidateArchEndState();
 
+  static void HookCode(uc_engine* uc, uint64_t address, uint32_t size,
+                       void* user_data) {
+    UnicornTracer<Arch>* tracer = static_cast<UnicornTracer<Arch>*>(user_data);
+    tracer->instruction_callback_(tracer, address, size);
+  }
+
   uc_engine* uc_;
 
   uint64_t start_of_code_;
   uint64_t end_of_code_;
+
+  uc_hook hook_code_;
+
+  std::function<InstructionCallback> instruction_callback_;
 };
 
 }  // namespace silifuzz

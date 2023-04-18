@@ -97,6 +97,9 @@ enum class TestSnapshot {
   // Snapshot that does lock access across cache lines on x86.
   kSplitLock,
 
+  // Snapshot that sets three general purpose registers.
+  kSetThreeRegisters,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };

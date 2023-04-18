@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <optional>
 #include <vector>
@@ -41,11 +42,43 @@ ABSL_FLAG(size_t, max_instructions, 0x1000,
 
 namespace silifuzz {
 
+// Print information that can help a human understand the dynamic behavior of
+// the code.
 template <typename Arch>
-absl::Status PrintTrace(std::string& instructions, size_t max_instructions) {
+absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
+                        LinePrinter& out) {
+  uint64_t instruction_count = 0;
+  uint64_t code_start = tracer.GetCurrentInstructionPointer();
+  uint64_t expected_next = code_start;
+  tracer.SetInstructionCallback(
+      [&](UnicornTracer<Arch>* tracer, uint64_t address, uint32_t size) {
+        // TODO(ncbray): extract the register state and print diffs.
+        // Did we see something other than linear execution?
+        if (address != expected_next) {
+          out.Line("    branch");
+        }
+        // Display information about the next instruction.
+        // Note: formatting assumes the code addresses are in the lower 4GB so
+        // that it can ommit 8 leading zeros and be a bit prettier.
+        out.Line(absl::Dec(instruction_count, absl::kZeroPad4),
+                 " addr=", absl::Hex(address, absl::kZeroPad8),
+                 " offset=", absl::Dec(address - code_start, absl::kZeroPad4),
+                 " size=", size);
+        // TODO(ncbray): extract the instruction bytes.
+        // TODO(ncbray): disassemble the instruction bytes.
+        // Set up for the next callback.
+        instruction_count++;
+        expected_next = address + size;
+      });
+  return tracer.Run(max_instructions);
+}
+
+template <typename Arch>
+absl::Status PrintSnippetTrace(std::string& instructions,
+                               size_t max_instructions, LinePrinter& out) {
   UnicornTracer<Arch> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
-  return tracer.Run(max_instructions);
+  return PrintTrace(tracer, max_instructions, out);
 }
 
 absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
@@ -62,9 +95,8 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
     size_t max_instructions = absl::GetFlag(FLAGS_max_instructions);
     ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                                GetFileContents(snippet_path.value()));
-    RETURN_IF_NOT_OK(
-        ARCH_DISPATCH(PrintTrace, arch, instructions, max_instructions));
-    out.Line("TODO: install a hook and actually print the trace.");
+    RETURN_IF_NOT_OK(ARCH_DISPATCH(PrintSnippetTrace, arch, instructions,
+                                   max_instructions, out));
     return EXIT_SUCCESS;
   } else {
     return absl::InvalidArgumentError("Must specify an input.");

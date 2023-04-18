@@ -409,6 +409,16 @@ xorb %al,%al
 lock incl -1(%rax)
 """)
 
+  b.snapshot(
+      name="SetThreeRegisters",
+      arch=X86_64,
+      src="""
+mov $0x2, %rdx
+mov $0x3, %rcx
+mov $0x4, %r8
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(
@@ -531,6 +541,17 @@ mov x0, xzr
 // A trivial infinite loop (can only have one end-point value when interrupted):
 b .
 """)
+
+  b.snapshot(
+      name="SetThreeRegisters",
+      arch=AARCH64,
+      normal_end=True,
+      src="""
+mov x2, #0x2
+mov x3, #0x3
+mov x4, #0x4
+""",
+  )
 
 
 def generate_source(b, out):

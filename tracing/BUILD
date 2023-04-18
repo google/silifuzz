@@ -107,6 +107,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "unicorn_tracer_test",
+    srcs = [
+        "unicorn_tracer_test.cc",
+    ],
+    deps = [
+        ":unicorn_tracer",
+        "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_binary(
     name = "trace_tool",
     srcs = [
