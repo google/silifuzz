@@ -168,49 +168,12 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot) {
   return recorded_snapshot;
 }
 
-// Get the bytes of a file.
-absl::StatusOr<std::string> GetContents(absl::string_view file_name) {
-  int fd = open(file_name.data(), O_RDONLY);
-  if (fd == -1) {
-    return absl::PermissionDeniedError(absl::StrCat(
-        "Could not open file ", file_name, " : ", strerror(errno)));
-  }
-  off_t size = lseek(fd, 0, SEEK_END);
-  if (size == -1) {
-    close(fd);
-    return absl::UnknownError(
-        absl::StrCat("Could not seek ", file_name, " : ", strerror(errno)));
-  }
-  if (lseek(fd, 0, SEEK_SET) != 0) {
-    close(fd);
-    return absl::UnknownError(
-        absl::StrCat("Could not seek ", file_name, " : ", strerror(errno)));
-  }
-
-  std::string buffer(size, 0);
-
-  char* data = buffer.data();
-  size_t data_read = 0;
-  while (data_read < size) {
-    int result = read(fd, data, size - data_read);
-    if (result == -1) {
-      close(fd);
-      return absl::UnknownError(absl::StrCat("Could only read ", data_read,
-                                             " bytes from ", file_name, " : ",
-                                             strerror(errno)));
-    }
-    data += result;
-    data_read += result;
-  }
-  close(fd);
-  return buffer;
-}
-
 // Turn a file containing raw instruction bytes into a Snapshot.
 absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
     absl::string_view filename) {
   // Load the instructions.
-  ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions, GetContents(filename));
+  ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
+                             GetFileContents(filename));
 
   // Create the initial snapshot.
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,

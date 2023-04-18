@@ -77,3 +77,49 @@ cc_library(
         "@unicorn//:unicorn_x86",
     ],
 )
+
+cc_library(
+    name = "unicorn_tracer",
+    srcs = [
+        "unicorn_tracer_aarch64.cc",
+        "unicorn_tracer_x86_64.cc",
+        "unicorn_util.cc",
+        "unicorn_util.h",
+    ],
+    hdrs = [
+        "unicorn_tracer.h",
+    ],
+    deps = [
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_util",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:arch_mem",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@silifuzz//util:page_util",
+        "@silifuzz//util/ucontext",
+        "//third_party/unicorn",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_binary(
+    name = "trace_tool",
+    srcs = [
+        "trace_tool.cc",
+    ],
+    deps = [
+        ":unicorn_tracer",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:enum_flag",
+        "@silifuzz//util:line_printer",
+        "@silifuzz//util:tool_util",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/status",
+    ],
+)

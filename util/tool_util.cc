@@ -14,8 +14,14 @@
 
 #include "./util/tool_util.h"
 
+#include <fcntl.h>
+
 #include <vector>
 
+#include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
@@ -33,6 +39,90 @@ bool ExtraArgs(const std::vector<char*>& args) {
     return true;
   }
   return false;
+}
+
+int SubcommandMain(int argc, char** argv, const char* tool_name,
+                   absl::Span<const Subcommand> subcommands) {
+  LinePrinter out(LinePrinter::StdOutPrinter);
+  LinePrinter err(LinePrinter::StdErrPrinter);
+
+  // Generate usage string
+  std::vector<const char*> command_names;
+  for (const Subcommand& subcommand : subcommands) {
+    command_names.push_back(subcommand.name);
+  }
+  absl::SetProgramUsageMessage(absl::StrCat(
+      tool_name, " {", absl::StrJoin(command_names, ","), "} <args>"));
+
+  std::vector<char*> positional_args = absl::ParseCommandLine(argc, argv);
+
+  // Erase the executable path.
+  CHECK(!positional_args.empty());
+  ConsumeArg(positional_args);
+
+  // Parse the subcommand name.
+  if (positional_args.empty()) {
+    err.Line("Must specify subcommand.");
+    err.Line("Usage: ", absl::ProgramUsageMessage());
+    return EXIT_FAILURE;
+  }
+  const char* name = ConsumeArg(positional_args);
+
+  // Call the subcommand.
+  for (const Subcommand& subcommand : subcommands) {
+    if (strcmp(name, subcommand.name) == 0) {
+      absl::StatusOr<int> status_or =
+          subcommand.func(positional_args, out, err);
+      if (status_or.ok()) {
+        return status_or.value();
+      } else {
+        err.Line(status_or.status().message());
+        return EXIT_FAILURE;
+      }
+    }
+  }
+
+  // Or fail if the subcommand is not found.
+  err.Line("Unknown subcommand: ", name);
+  err.Line("Usage: ", absl::ProgramUsageMessage());
+  return EXIT_FAILURE;
+}
+
+absl::StatusOr<std::string> GetFileContents(absl::string_view file_name) {
+  int fd = open(file_name.data(), O_RDONLY);
+  if (fd == -1) {
+    return absl::PermissionDeniedError(
+        absl::StrCat("Could not open file ", file_name, ": ", strerror(errno)));
+  }
+  off_t size = lseek(fd, 0, SEEK_END);
+  if (size == -1) {
+    close(fd);
+    return absl::UnknownError(
+        absl::StrCat("Could not seek ", file_name, ": ", strerror(errno)));
+  }
+  if (lseek(fd, 0, SEEK_SET) != 0) {
+    close(fd);
+    return absl::UnknownError(
+        absl::StrCat("Could not seek ", file_name, ": ", strerror(errno)));
+  }
+
+  std::string buffer(size, 0);
+
+  char* data = buffer.data();
+  size_t data_read = 0;
+  while (data_read < size) {
+    int result = read(fd, data, size - data_read);
+    if (result == -1) {
+      close(fd);
+      return absl::UnknownError(absl::StrCat("Could only read ", data_read,
+                                             " bytes from ", file_name, ": ",
+                                             strerror(errno)));
+    }
+    data += result;
+    data_read += result;
+  }
+  close(fd);
+  return buffer;
 }
 
 }  // namespace silifuzz
