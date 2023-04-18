@@ -43,6 +43,7 @@ namespace silifuzz {
 // }
 //
 // This class is thread-compatible.
+class SnapshotSummaryProto;
 class SnapshotGroup {
  public:
   // Different policies to resolve mapping conflicts. These controls whether
@@ -77,6 +78,11 @@ class SnapshotGroup {
     SnapshotSummary() = default;
     // Constructs a summary of the `snapshot`.
     explicit SnapshotSummary(const Snapshot& snapshot);
+
+    // Constructs Summary instance from bits.
+    SnapshotSummary(const Id& id, const MemoryMappingList& memory_mappings,
+                    int sort_key)
+        : id_(id), memory_mappings_(memory_mappings), sort_key_(sort_key) {}
     ~SnapshotSummary() = default;
 
     // Copyable and movable by default.
@@ -85,6 +91,7 @@ class SnapshotGroup {
     const MemoryMappingList& memory_mappings() const {
       return memory_mappings_;
     }
+    int sort_key() const { return sort_key_; }
 
     // Comparison friend operators.
     friend bool operator<(const SnapshotSummary& lhs,

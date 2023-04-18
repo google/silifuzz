@@ -119,3 +119,16 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "snapshot_summary_proto_util",
+    srcs = ["snapshot_summary_proto_util.cc"],
+    hdrs = ["snapshot_summary_proto_util.h"],
+    deps = [
+        ":snap_group",
+        "@silifuzz//common:snapshot_proto",
+        "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)

@@ -287,3 +287,16 @@ message SnapshotId {
   // Same as Snapshot.id
   optional string value = 1;  // semantically required
 }
+
+// Describes a single Snapshot for the purposes of sharding. See
+// PartitionCorpus() for details.
+message SnapshotSummary {
+  // Id of the snapshot.
+  optional string id = 1;
+
+  // Snapshot memory mappings.
+  repeated MemoryMapping memory_mappings = 2;
+
+  // Opaque sort key.
+  optional int32 sort_key = 3;
+}
