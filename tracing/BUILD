@@ -101,9 +101,9 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext",
-        "//third_party/unicorn",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
+        "@unicorn",
     ],
 )
 
