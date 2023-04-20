@@ -402,6 +402,39 @@ cc_library(
 )
 
 cc_library(
+    name = "unicorn",
+    srcs = [
+        "list.c",
+        "include/list.h",
+        "uc.c",
+    ] + glob([
+        "qemu/target-*/unicorn.h",
+    ]),
+    hdrs = [":unicorn-headers"],
+    include_prefix = "third_party",
+    strip_include_prefix = "include",
+    defines = [
+        BUILD_VARIANT_FULL,
+    ],
+    copts = DEFAULT_COPTS + [
+        "-UUNICORN_HAS_ARM",
+        "-UUNICORN_HAS_ARMEB",
+        "-UUNICORN_HAS_M68K",
+        "-UUNICORN_HAS_MIPS",
+        "-UUNICORN_HAS_MIPS64",
+        "-UUNICORN_HAS_MIPS64EL",
+        "-UUNICORN_HAS_MIPSEL",
+        "-UUNICORN_HAS_SPARC",
+    ],
+    includes = unicorn_includes,
+    deps = [
+        ":unicorn_qemu_aarch64",
+        ":unicorn_qemu_aarch64eb",
+        ":unicorn_qemu_x86_64",
+    ],
+)
+
+cc_library(
     name = "unicorn_arm64",
     srcs = [
         "list.c",
