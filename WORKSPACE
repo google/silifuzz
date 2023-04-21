@@ -156,6 +156,14 @@ http_archive(
     urls = ["https://github.com/google/benchmark/archive/refs/tags/v1.7.0.tar.gz"],
 )
 
+# Capstone disassembler
+new_git_repository(
+    name = "capstone",
+    build_file = "@silifuzz//:third_party/BUILD.capstone",
+    commit = "702dbe78ca116de8ec65f122d9202c2c1f4a2b4c",
+    remote = "https://github.com/capstone-engine/capstone.git",
+)
+
 # Unicorn for the proxies
 new_git_repository(
     name = "unicorn",

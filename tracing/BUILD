@@ -125,9 +125,9 @@ cc_library(
     srcs = ["capstone_disassembler.cc"],
     hdrs = ["capstone_disassembler.h"],
     deps = [
-        "//third_party/capstone",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@capstone",
         "@com_google_absl//absl/strings",
     ],
 )
