@@ -18,11 +18,13 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "./util/data_dependency.h"
 #include "./util/subprocess.h"
 #include "./util/testing/status_macros.h"
@@ -44,6 +46,8 @@ TEST(OrchestratorUtil, ListChildrenPids) {
   ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
   EXPECT_THAT(ListChildrenPids(getpid()), ElementsAre(s.pid()));
   kill(s.pid(), SIGKILL);
+  std::string out;
+  s.Communicate(&out);
 }
 
 TEST(OrchestratorUtil, NoThrow) {
@@ -68,6 +72,8 @@ TEST(OrchestratorUtil, MaxRunnerRssSizeBytes) {
   ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
   EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), ""), 0);
   kill(s.pid(), SIGKILL);
+  std::string out;
+  s.Communicate(&out);
 }
 
 TEST(OrchestratorUtil, AvailableMemoryMb) {
