@@ -15,7 +15,12 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
 
+#include <sys/types.h>
 #include <sys/user.h>
+
+#include <cstddef>
+#include <cstdint>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -129,6 +134,9 @@ class DecodedInsn {
 
  private:
   friend class DecodedInsnTestPeer;
+
+  // Initialize XED.
+  static void InitXed();
 
   absl::Status Decode(absl::string_view data, uint64_t start_address = 0x0);
 

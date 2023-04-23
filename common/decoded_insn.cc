@@ -15,10 +15,13 @@
 #include "./common/decoded_insn.h"
 
 #include <sys/ptrace.h>
+#include <sys/types.h>
 #include <sys/user.h>
 #include <unistd.h>
 
+#include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "absl/base/call_once.h"
 #include "absl/base/macros.h"
@@ -30,6 +33,7 @@
 #include "./common/snapshot.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/misc_util.h"
 
 extern "C" {
 #include "third_party/libxed/xed-agen.h"
@@ -240,8 +244,7 @@ std::string DecodedInsn::mnemonic() const {
   return xed_iclass_enum_t2str(iclass);
 }
 
-absl::Status DecodedInsn::Decode(absl::string_view data,
-                                 uint64_t start_address) {
+void DecodedInsn::InitXed() {
   auto init = []() {
     xed_tables_init();
     // The callbacks are global and visible to all xed clients.
@@ -252,8 +255,12 @@ absl::Status DecodedInsn::Decode(absl::string_view data,
     DCHECK_GE(l1_cache_line_size, 0);
     DCHECK_EQ(l1_cache_line_size & (l1_cache_line_size - 1), 0);
   };
-
   absl::call_once(xed_initialized_once_, init);
+}
+
+absl::Status DecodedInsn::Decode(absl::string_view data,
+                                 uint64_t start_address) {
+  InitXed();
   xed_decoded_inst_zero(&xed_insn_);
   xed_decoded_inst_set_mode(&xed_insn_, XED_MACHINE_MODE_LONG_64,
                             XED_ADDRESS_WIDTH_64b);
@@ -315,6 +322,7 @@ absl::StatusOr<Snapshot::MemoryBytes> DecodedInsn::FetchInstruction(
 // static
 absl::StatusOr<uint64_t> DecodedInsn::get_reg(
     xed_reg_enum_t reg, const struct user_regs_struct& regs) {
+  InitXed();
   // Handle FS and GS segments.  The rest are all GPRs.
   switch (reg) {
     case XED_REG_FSBASE:

@@ -16,17 +16,20 @@
 
 #include <sys/user.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "./util/testing/status_matchers.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
+#include "third_party/libxed/xed-reg-enum.h"
 };
 
 namespace silifuzz {
