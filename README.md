@@ -132,7 +132,7 @@ paper
 
 ## Related projects
 
-*   [Centipede](https://github.com/google/centipede) is a fuzzing engine
+*   [Centipede](https://github.com/google/fuzztest/blob/main/centipede/README.md) is a fuzzing engine
     developed at Google for fuzzing large and slow targets like CPU emulators.
 
 ## Prework
@@ -159,21 +159,21 @@ type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian /bin/bash -c "cd /app &&
 
 ```shell
 cd "${SILIFUZZ_SRC_DIR}"
-COV_FLAGS_FILE="$(bazel info output_base)/external/centipede/clang-flags.txt"
+COV_FLAGS_FILE="$(bazel info output_base)/external/com_google_fuzztest/centipede/clang-flags.txt"
 bazel build -c opt --copt=-UNDEBUG --dynamic_mode=off \
   --per_file_copt=unicorn/.*@$(xargs < "${COV_FLAGS_FILE}" |sed -e 's/,/\\,/g' -e 's/ /,/g') @//proxies:unicorn_x86_64
-bazel build -c opt @centipede//:centipede
+bazel build -c opt @com_google_fuzztest//centipede:centipede
 mkdir -p /tmp/wd
 
 # Fuzz the Unicorn proxy under Centipede with parallelism of 30.
-"${SILIFUZZ_BIN_DIR}/external/centipede/centipede" \
+"${SILIFUZZ_BIN_DIR}/external/com_google_fuzztest/centipede/centipede" \
   --binary="${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
   --workdir=/tmp/wd \
   -j=30
 ```
 
 NOTE: Please refer to
-[Centipede](https://github.com/google/centipede/blob/main/README.md#run-centipede-locally-run-step)
+[Centipede](https://github.com/google/fuzztest/blob/main/centipede/README.md#run-centipede-locally-)
 documentation on how to efficiently run the fuzzing engine.
 
 ### Using pre-generated corpus
@@ -206,7 +206,7 @@ The
 [fuzz_filter_tool](https://github.com/google/silifuzz/blob/main/tools/fuzz_filter_tool.cc)
 converts raw instructions into Snap-compatible Snapshots. It returns 0 when the
 conversion is possible and 1 otherwise. This interface is compatible with
-Centipede [input_filter](https://github.com/google/centipede/blob/main/environment.cc)
+Centipede [input_filter](https://github.com/google/fuzztest/blob/main/centipede/environment.cc)
 
 ```
 fuzz_filter_tool raw_input_sequence [optional output proto]

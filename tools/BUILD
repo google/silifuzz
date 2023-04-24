@@ -107,9 +107,9 @@ cc_binary(
         "@silifuzz//util:path_util",
         "@silifuzz//util:proto_util",
         "@silifuzz//util:tool_util",
-        "@centipede//:runner_fork_server",  # Note: external dependency.
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",
+        "@com_google_fuzztest//centipede:runner_fork_server",  # Note: external dependency.
     ],
 )
 
@@ -172,7 +172,6 @@ cc_library(
         "@silifuzz//tool_libs:simple_fix_tool_counters",
         "@silifuzz//tool_libs:snap_group",
         "@silifuzz//util:span_util",
-        "@centipede//:blob_file",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
@@ -180,6 +179,7 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+        "@com_google_fuzztest//centipede:blob_file",
     ],
 )
 
@@ -209,11 +209,11 @@ cc_test(
         "@silifuzz//util:path_util",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@centipede//:blob_file",
         "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_fuzztest//centipede:blob_file",
         "@com_google_googletest//:gtest_main",
     ],
 )

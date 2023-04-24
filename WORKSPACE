@@ -131,12 +131,6 @@ new_git_repository(
     shallow_since = "1522099305 -0400",
 )
 
-git_repository(
-    name = "centipede",
-    branch = "main",
-    remote = "https://github.com/google/centipede",
-)
-
 http_archive(
     name = "liblzma",
     build_file = "@silifuzz//:third_party/BUILD.liblzma",
@@ -186,11 +180,12 @@ http_archive(
 
 # To use the latest version of FuzzTest, update this regularly to the latest
 # commit in the main branch: https://github.com/google/fuzztest/commits/main
-FUZZTEST_COMMIT = "62cf00c7341eb05d128d0a3cbce79ac31dbda032"
+FUZZTEST_COMMIT = "b43cdfd00741833d6a8e7601d1be03b6b6b0233e"
 
 http_archive(
     name = "com_google_fuzztest",
     strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
+    sha256 = "0c3383177c108d1c7e5286edae808a143684e0a51334b3eff86e0f93aa6e7047",
     url = "https://github.com/google/fuzztest/archive/" + FUZZTEST_COMMIT + ".zip",
 )
 

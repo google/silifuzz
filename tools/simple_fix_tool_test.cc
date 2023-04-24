@@ -28,7 +28,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "external/centipede/blob_file.h"
+#include "external/com_google_fuzztest/centipede/blob_file.h"
 #include "./snap/snap_relocator.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 #include "./util/checks.h"
