@@ -49,29 +49,18 @@ std::string GetTestInstructions(TestSnapshot test) {
 
 #define EXPECT_FILTER_REJECT(insn) EXPECT_FALSE(FilterToolMain("Test", insn))
 
-constexpr bool WillRepairTraps() {
-#if defined(__x86_64__)
-  // x86_64 tries to repair instruction sequences that jump into padding bytes.
-  return true;
-#else
-  return false;
-#endif
-}
-
 TEST(FuzzFilterTool, Nop) {
   EXPECT_FILTER_ACCEPT(GetTestInstructions(TestSnapshot::kEndsAsExpected));
 }
 
 TEST(FuzzFilterTool, Padding) {
-  EXPECT_EQ(FilterToolMain(
-                "Test", GetTestInstructions(TestSnapshot::kEndsUnexpectedly)),
-            WillRepairTraps());
+  EXPECT_FALSE(FilterToolMain(
+      "Test", GetTestInstructions(TestSnapshot::kEndsUnexpectedly)));
 }
 
 TEST(FuzzFilterTool, Breakpoint) {
-  EXPECT_EQ(
-      FilterToolMain("Test", GetTestInstructions(TestSnapshot::kBreakpoint)),
-      WillRepairTraps());
+  EXPECT_FALSE(
+      FilterToolMain("Test", GetTestInstructions(TestSnapshot::kBreakpoint)));
 }
 
 TEST(FuzzFilterTool, Syscall) {
@@ -85,8 +74,7 @@ TEST(FuzzFilterTool, NopBytes) { EXPECT_FILTER_ACCEPT(FromBytes({0x90})); }
 
 TEST(FuzzFilterTool, JumpOutOfBounds) {
   // JMP .+0x10
-  // Accepted due to agressive snapshot repair.
-  EXPECT_FILTER_ACCEPT(FromBytes({0xeb, 0x10}));
+  EXPECT_FILTER_REJECT(FromBytes({0xeb, 0x10}));
 }
 
 TEST(FuzzFilterTool, Int1) { EXPECT_FILTER_REJECT(FromBytes({0xf1})); }

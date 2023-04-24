@@ -327,6 +327,7 @@ cc_library(
         "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//util:checks",
         "@silifuzz//util:line_printer",
+        "@silifuzz//util:page_util",
         "@silifuzz//util:platform",
         "@com_google_absl//absl/functional:bind_front",
         "@com_google_absl//absl/status",

@@ -34,6 +34,7 @@
 #include "./snap/gen/snap_generator.h"
 #include "./util/checks.h"
 #include "./util/line_printer.h"
+#include "./util/page_util.h"
 #include "./util/platform.h"
 
 #if defined(__x86_64__)
@@ -47,47 +48,6 @@ using snapshot_types::MakerStopReason;
 using snapshot_types::PlaybackOutcome;
 using snapshot_types::SigCause;
 using snapshot_types::SigNum;
-
-namespace {
-
-snapshot_types::Address PageAddress(snapshot_types::Address addr,
-                                    uint64_t page_size) {
-  return (addr / page_size) * page_size;
-}
-
-// Returns a "repaired" EndPoint corresponding to the actual endpoint.
-// Currently, this only repairs kSigTrap but converting it into an instruction-
-// based endpoint.
-absl::StatusOr<Endpoint> RepairEndPoint(const Endpoint& actual_endpoint,
-                                        MakerStopReason stop_reason) {
-  if (stop_reason == MakerStopReason::kEndpoint) {
-    return actual_endpoint;
-  }
-  // On x86_64 we'll accept instruction sequences that contain INT3 or jump past
-  // the end of the instruction sequence into the instructions that pad the
-  // executable page. This is mostly due to historical snap corpuses - the
-  // generated instruction sequences depend on this behavior. Modern proxies
-  // should signal the fuzzer that the instruction sequence is bad in these
-  // cases and this repair should not be needed.
-  // Don't do this on aarch64 since there is no need for back compat.
-#if defined(__x86_64__)
-  if (stop_reason == MakerStopReason::kSigTrap) {
-    snapshot_types::Address sig_addr =
-        actual_endpoint.sig_instruction_address();
-    VLOG_INFO(1, "Fixing ", EnumStr(stop_reason), " at ", HexStr(sig_addr));
-    return Endpoint(sig_addr);
-  }
-#endif
-  std::string msg =
-      absl::StrCat(EnumStr(stop_reason), " isn't Snap-compatible.");
-  if (actual_endpoint.type() == Endpoint::kSignal) {
-    absl::StrAppend(&msg, " Endpoint = {", EnumStr(actual_endpoint.sig_num()),
-                    "/", EnumStr(actual_endpoint.sig_cause()), "}");
-  }
-  return absl::InternalError(msg);
-}
-
-}  // namespace
 
 SnapMaker::SnapMaker(const Options& opts) : opts_(opts) {
   CHECK_STATUS(opts_.Validate());
@@ -115,13 +75,18 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
   copy.add_expected_end_state(undef_end_state);
 
   MakerStopReason stop_reason;
-  absl::StatusOr<Endpoint> actual_endpoint = MakeLoop(&copy, &stop_reason);
-  RETURN_IF_NOT_OK(actual_endpoint.status());
-  absl::StatusOr<Snapshot::Endpoint> repaired_end_point =
-      RepairEndPoint(*actual_endpoint, stop_reason);
-  RETURN_IF_NOT_OK(repaired_end_point.status());
-  Snapshot::EndState repaired_end_state =
-      Snapshot::EndState(*repaired_end_point);
+  ASSIGN_OR_RETURN_IF_NOT_OK(Endpoint actual_endpoint,
+                             MakeLoop(&copy, &stop_reason));
+  if (stop_reason != MakerStopReason::kEndpoint) {
+    std::string msg =
+        absl::StrCat(EnumStr(stop_reason), " isn't Snap-compatible.");
+    if (actual_endpoint.type() == Endpoint::kSignal) {
+      absl::StrAppend(&msg, " Endpoint = {", EnumStr(actual_endpoint.sig_num()),
+                      "/", EnumStr(actual_endpoint.sig_cause()), "}");
+    }
+    return absl::InternalError(msg);
+  }
+  Snapshot::EndState repaired_end_state = Snapshot::EndState(actual_endpoint);
 
   copy.set_expected_end_states({});
   RETURN_IF_NOT_OK(copy.can_add_expected_end_state(repaired_end_state));
@@ -217,7 +182,8 @@ absl::Status SnapMaker::AddWritableMemoryForAddress(
   const uint64_t kPageSizeBytes = snapshot->page_size();
 
   // Starting address of the page containing `addr`.
-  snapshot_types::Address page_address = PageAddress(addr, kPageSizeBytes);
+  snapshot_types::Address page_address =
+      RoundDownToPageAlignment(addr, kPageSizeBytes);
 
   RETURN_IF_NOT_OK(
       Snapshot::MemoryMapping::CanMakeSized(page_address, kPageSizeBytes));
