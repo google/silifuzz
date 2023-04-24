@@ -218,9 +218,9 @@ int strncmp(const char* str1, const char* str2, size_t n) {
 }
 
 // TODO(ksteuck): [as-needed] Provide memmove() if necessary.
-static void* no_memmove(void* dest, const void* src, size_t n) {
-  return nullptr;
-}
+// static void* no_memmove(void* dest, const void* src, size_t n) {
+//   return nullptr;
+// }
 
 // This works almost like getauxval() in libc except it does not set errno
 // if no value of the given type is found. errno is not supported.
