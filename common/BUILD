@@ -38,6 +38,7 @@ cc_library(
         ":snapshot_enums",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
@@ -65,6 +66,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -86,7 +88,6 @@ cc_library(
         ":snapshot_enums",
         "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -218,6 +219,7 @@ cc_library(
         ":snapshot_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:proto_util",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -235,11 +237,13 @@ cc_library(
         ":snapshot_types",
         ":snapshot_util",
         "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -261,6 +265,8 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -327,6 +333,7 @@ cc_library(
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:endian",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 
@@ -350,6 +357,7 @@ cc_library(
         ":snapshot_util",
         ":static_insn_filter",
         "@silifuzz//util:arch_mem",
+        "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
         "@cityhash",
         "@com_google_absl//absl/status",
@@ -367,6 +375,7 @@ cc_test(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )

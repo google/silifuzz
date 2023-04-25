@@ -14,6 +14,8 @@
 
 #include "./common/memory_state.h"
 
+#include <string>
+
 #include "benchmark/benchmark.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"

@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include "./common/snapshot_test_config.h"
+
+#include <stddef.h>
+
 #include "./util/checks.h"
 
 namespace silifuzz {

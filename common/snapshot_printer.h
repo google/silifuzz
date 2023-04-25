@@ -15,8 +15,12 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_PRINTER_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_PRINTER_H_
 
-#include <optional>
+#include <stdint.h>
 
+#include <optional>
+#include <utility>
+
+#include "absl/strings/string_view.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_types.h"
 #include "./util/itoa.h"

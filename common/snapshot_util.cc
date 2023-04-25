@@ -14,6 +14,11 @@
 
 #include "./common/snapshot_util.h"
 
+#include <stddef.h>
+
+#include <vector>
+
+#include "absl/status/status.h"
 #include "./util/checks.h"
 #include "./util/ucontext/serialize.h"
 

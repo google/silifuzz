@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_UTIL_H_
 
+#include <vector>
+
 #include "absl/status/status.h"
 #include "./common/snapshot.h"
 #include "./util/ucontext/ucontext_types.h"

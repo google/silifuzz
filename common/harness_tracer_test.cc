@@ -14,13 +14,14 @@
 
 #include "./common/harness_tracer.h"
 
-#include <errno.h>
-#include <signal.h>
 #include <sys/ptrace.h>
 #include <sys/types.h>
 #include <sys/user.h>
 #include <syscall.h>
 
+#include <cerrno>
+#include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <optional>
@@ -71,7 +72,7 @@ TEST(HarnessTracerTest, CrashAndExit) {
     }
     std::string stdout_str;
     helper_process->Communicate(&stdout_str);
-    LOG(INFO) << "Helper stdout for " << test_mode << ":\n" << stdout_str;
+    LOG_INFO("Helper stdout for ", test_mode, ":\n", stdout_str);
   }
 }
 
@@ -112,7 +113,7 @@ TEST(HarnessTracerTest, SingleStep) {
   EXPECT_THAT(tracer.Join(), Optional(0));
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
-  LOG(INFO) << "Helper stdout:\n" << stdout_str;
+  LOG_INFO("Helper stdout:\n", stdout_str);
   // Expecting exactly 100 (50+50) loops executed while the tracer is active.
   EXPECT_EQ(n_loop_head_seen, 100);
 }
@@ -138,7 +139,7 @@ TEST(HarnessTracerTest, Syscall) {
   EXPECT_THAT(tracer.Join(), Optional(0));
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
-  LOG(INFO) << "Helper stdout:\n" << stdout_str;
+  LOG_INFO("Helper stdout:\n", stdout_str);
   EXPECT_EQ(num_seen_getcpu, 2);
 }
 
@@ -171,7 +172,7 @@ TEST(HarnessTracerTest, Signal) {
     }
     std::string stdout_str;
     helper_process->Communicate(&stdout_str);
-    LOG(INFO) << "Helper stdout for mode=" << mode << ":\n" << stdout_str;
+    LOG_INFO("Helper stdout for mode=", mode, ":\n", stdout_str);
   }
 }
 
@@ -202,7 +203,7 @@ TEST(HarnessTracerTest, SignalInjection) {
   EXPECT_EQ(WEXITSTATUS(*status), 1);
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
-  LOG(INFO) << "Helper stdout:\n" << stdout_str;
+  LOG_INFO("Helper stdout:\n", stdout_str);
 }
 
 }  // namespace

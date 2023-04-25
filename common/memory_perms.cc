@@ -16,6 +16,9 @@
 
 #include <sys/mman.h>
 
+#include <string>
+
+#include "absl/strings/string_view.h"
 #include "./util/checks.h"
 
 namespace silifuzz {

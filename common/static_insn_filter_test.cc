@@ -14,6 +14,11 @@
 
 #include "./common/static_insn_filter.h"
 
+#include <stdint.h>
+
+#include <string>
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "./util/arch.h"
 

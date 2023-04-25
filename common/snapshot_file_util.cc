@@ -14,7 +14,11 @@
 
 #include "./common/snapshot_file_util.h"
 
+#include <utility>
+
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "./common/snapshot_proto.h"
 #include "./util/checks.h"
 #include "./util/proto_util.h"

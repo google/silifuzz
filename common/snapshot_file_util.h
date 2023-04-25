@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_FILE_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_FILE_UTIL_H_
 
+#include "absl/base/attributes.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"

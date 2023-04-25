@@ -14,6 +14,9 @@
 
 #include "./common/proxy_config.h"
 
+#include <stddef.h>
+
+#include <algorithm>
 #include <vector>
 
 #include "gtest/gtest.h"

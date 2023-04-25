@@ -14,6 +14,14 @@
 
 #include "./common/memory_state.h"
 
+#include <stddef.h>
+
+#include <optional>
+#include <string>
+#include <utility>
+
+#include "absl/base/attributes.h"
+#include "absl/strings/str_cat.h"
 #include "./util/checks.h"
 
 namespace silifuzz {

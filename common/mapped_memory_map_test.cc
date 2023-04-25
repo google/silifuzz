@@ -15,8 +15,8 @@
 #include "./common/mapped_memory_map.h"
 
 #include <optional>
+#include <string>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
 

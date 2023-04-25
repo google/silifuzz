@@ -14,10 +14,8 @@
 
 #include "./common/memory_bytes_set.h"
 
-#include <memory>
-#include <string>
+#include <utility>
 
-#include "absl/strings/str_cat.h"
 #include "./util/itoa.h"
 
 namespace silifuzz {

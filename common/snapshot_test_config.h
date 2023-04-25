@@ -15,6 +15,10 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_TEST_CONFIG_H_
 
+#include <stdint.h>
+
+#include <string>
+
 #include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
 

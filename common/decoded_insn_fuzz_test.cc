@@ -14,7 +14,7 @@
 
 #include <sys/user.h>
 
-#include <cstddef>
+#include <cstring>
 #include <string>
 
 #include "gmock/gmock.h"

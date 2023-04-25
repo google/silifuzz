@@ -15,7 +15,12 @@
 #ifndef THIRD_PARTY_SILIFUZZ_MAPPED_MEMORY_MAP_H_
 #define THIRD_PARTY_SILIFUZZ_MAPPED_MEMORY_MAP_H_
 
+#include <stddef.h>
+
+#include <functional>
 #include <optional>
+#include <string>
+#include <utility>
 
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"

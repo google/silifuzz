@@ -17,6 +17,7 @@
 #include <openssl/sha.h>  // IWYU pragma: keep
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #include "absl/status/status.h"
@@ -30,6 +31,7 @@
 #include "./common/snapshot_util.h"
 #include "./common/static_insn_filter.h"
 #include "./util/arch_mem.h"
+#include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {

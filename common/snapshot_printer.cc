@@ -14,16 +14,22 @@
 
 #include "./common/snapshot_printer.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <cstring>
 #include <limits>
-#include <optional>
+#include <string>
+#include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
 #include "./util/arch.h"
+#include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
 

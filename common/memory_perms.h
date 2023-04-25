@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_MEMORY_PERMS_H_
 
 #include <initializer_list>
+#include <string>
 
 #include "absl/strings/string_view.h"
 #include "./util/misc_util.h"

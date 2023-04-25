@@ -14,10 +14,12 @@
 
 #include "./common/raw_insns_util.h"
 
+#include <stdint.h>
+
 #include <string>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"

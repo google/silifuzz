@@ -14,6 +14,8 @@
 
 #include "./common/snapshot_test_enum.h"
 
+#include <stddef.h>
+
 #include "gtest/gtest.h"
 #include "absl/base/macros.h"
 #include "./util/itoa.h"

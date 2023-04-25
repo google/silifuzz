@@ -14,6 +14,11 @@
 
 #include "./common/mapped_memory_map.h"
 
+#include <optional>
+#include <string>
+#include <utility>
+
+#include "absl/strings/str_cat.h"
 #include "./common/memory_perms.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"

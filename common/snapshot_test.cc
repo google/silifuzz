@@ -14,7 +14,10 @@
 
 #include "./common/snapshot.h"
 
+#include <cstring>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

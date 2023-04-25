@@ -14,6 +14,9 @@
 
 #include "./common/memory_mapping.h"
 
+#include <string>
+
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"

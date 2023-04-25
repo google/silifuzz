@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "absl/base/attributes.h"
 #include "absl/status/status.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot_enums.h"

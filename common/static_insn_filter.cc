@@ -14,8 +14,10 @@
 
 #include "./common/static_insn_filter.h"
 
+#include <cassert>
 #include <cstdint>
 
+#include "absl/strings/string_view.h"
 #include "./util/arch.h"
 
 namespace silifuzz {

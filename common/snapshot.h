@@ -24,12 +24,16 @@
 // snapshot_proto.h lib does.
 // This way we could easily change the externalization format if needed.
 
+#include <stdint.h>
+
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/base/attributes.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_bytes_set.h"
 #include "./common/memory_mapping.h"
@@ -84,6 +88,7 @@ class Snapshot final {
   // Each T corresponds to a proto::T from silifuzz/proto/snapshot.proto.
   class MemoryBytes;
   class RegisterState;
+
   using Endpoint = snapshot_types::Endpoint;
   class EndState;
   class Metadata;

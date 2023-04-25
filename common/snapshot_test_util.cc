@@ -15,11 +15,12 @@
 #include "./common/snapshot_test_util.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
-#include <vector>
 
 #include "absl/base/internal/endian.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_proto.h"
 #include "./common/snapshot_test_config.h"

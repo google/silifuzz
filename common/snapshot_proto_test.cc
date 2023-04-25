@@ -14,7 +14,8 @@
 
 #include "./common/snapshot_proto.h"
 
-#include "gmock/gmock.h"
+#include <string>
+
 #include "gtest/gtest.h"
 #include "./common/raw_insns_util.h"
 #include "./proto/snapshot.pb.h"

@@ -15,7 +15,9 @@
 #ifndef THIRD_PARTY_SILIFUZZ_MEMORY_BYTES_SET_H_
 #define THIRD_PARTY_SILIFUZZ_MEMORY_BYTES_SET_H_
 
+#include <functional>
 #include <optional>
+#include <utility>
 
 #include "./common/snapshot_enums.h"
 #include "./util/range_map.h"
