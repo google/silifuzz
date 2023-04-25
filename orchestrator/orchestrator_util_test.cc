@@ -14,7 +14,6 @@
 
 #include "./orchestrator/orchestrator_util.h"
 
-#include <sys/types.h>
 #include <unistd.h>
 
 #include <csignal>

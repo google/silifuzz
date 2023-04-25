@@ -20,10 +20,11 @@
 #include <unistd.h>
 
 #include <array>
+#include <cerrno>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"

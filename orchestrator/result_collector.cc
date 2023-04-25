@@ -17,12 +17,13 @@
 #include <sched.h>
 #include <stdint.h>
 #include <sys/resource.h>
+#include <unistd.h>
 
 #include <algorithm>
 #include <cerrno>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "google/protobuf/duration.pb.h"
 #include "google/protobuf/timestamp.pb.h"

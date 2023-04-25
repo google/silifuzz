@@ -16,9 +16,7 @@
 
 #include <unistd.h>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/status/statusor.h"
 #include "absl/time/clock.h"
 #include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"

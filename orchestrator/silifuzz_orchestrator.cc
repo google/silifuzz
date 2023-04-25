@@ -14,18 +14,20 @@
 
 #include "./orchestrator/silifuzz_orchestrator.h"
 
-#include <cstdint>
 #include <functional>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/log_severity.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/checks.h"

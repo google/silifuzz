@@ -19,6 +19,8 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <csignal>
+#include <cstdlib>
 #include <string>
 #include <thread>  // NOLINT
 

@@ -24,10 +24,10 @@
 #include <string>
 
 #include "absl/base/internal/endian.h"
+#include "absl/log/absl_check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"

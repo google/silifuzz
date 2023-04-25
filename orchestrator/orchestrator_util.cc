@@ -14,13 +14,14 @@
 
 #include "./orchestrator/orchestrator_util.h"
 
+#include <stdint.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cerrno>
+#include <cstdio>
 #include <filesystem>  // NOLINT
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <system_error>  // NOLINT
@@ -29,6 +30,7 @@
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/match.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"

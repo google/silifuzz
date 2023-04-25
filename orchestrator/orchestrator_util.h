@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <string>
 #include <vector>
 
 #include "absl/status/statusor.h"
