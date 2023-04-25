@@ -22,8 +22,6 @@
 // 2) READING MODE (//third_party/silifuzz/runner:reading_runner_main_nolibc).
 //  Link with :loading_snap_corpus. Then pass the file name containing a
 //  relocatable corpus as a command line argument.
-#include <errno.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include <cstdlib>

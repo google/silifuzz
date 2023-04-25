@@ -14,8 +14,9 @@
 
 #include "./runner/snap_maker.h"
 
+#include <sys/user.h>
+
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <utility>

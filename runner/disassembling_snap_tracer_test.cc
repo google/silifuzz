@@ -17,12 +17,14 @@
 #include <sys/user.h>
 
 #include <optional>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
 #include "./runner/driver/runner_driver.h"

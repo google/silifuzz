@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_RUNNER_SNAP_MAKER_H_
 
 #include <memory>
+#include <string>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"

@@ -15,11 +15,8 @@
 #include "./runner/snap_runner_util.h"
 
 #include <signal.h>
-#include <sys/mman.h>
 #include <ucontext.h>
-#include <unistd.h>
 
-#include <cstddef>
 #include <cstdint>
 
 #include "./snap/exit_sequence.h"

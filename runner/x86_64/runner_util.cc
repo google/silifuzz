@@ -14,6 +14,9 @@
 
 #include <signal.h>
 
+#include <cstdint>
+#include <optional>
+
 #include "./common/snapshot_enums.h"
 #include "./runner/endspot.h"
 #include "./util/checks.h"

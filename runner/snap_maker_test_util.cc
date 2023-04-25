@@ -14,6 +14,8 @@
 
 #include "./runner/snap_maker_test_util.h"
 
+#include <string>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./runner/runner_provider.h"

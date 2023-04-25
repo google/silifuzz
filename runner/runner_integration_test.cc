@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <cstdint>
+#include <optional>
 #include <string>
 
 #include "gmock/gmock.h"

@@ -22,13 +22,11 @@
 
 #include <algorithm>
 #include <cerrno>
-#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <optional>
 #include <random>
-#include <type_traits>
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./common/snapshot_enums.h"

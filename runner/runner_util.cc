@@ -19,13 +19,13 @@
 #include <linux/bpf_common.h>
 #include <linux/filter.h>
 #include <linux/seccomp.h>  // SECCOMP constants.
-#include <signal.h>
 #include <string.h>
 #include <sys/prctl.h>
-#include <sys/syscall.h>
+#include <syscall.h>
 #include <unistd.h>
 
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 

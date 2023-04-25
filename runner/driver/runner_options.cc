@@ -14,6 +14,11 @@
 
 #include "./runner/driver/runner_options.h"
 
+#include <string>
+#include <vector>
+
+#include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "./util/checks.h"
 
 namespace silifuzz {

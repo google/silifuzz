@@ -28,6 +28,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./runner/driver/runner_options.h"
+#include "./util/checks.h"
 
 namespace silifuzz {
 

@@ -22,12 +22,10 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <cstddef>
 #include <cstdlib>
 #include <memory>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "google/protobuf/text_format.h"
