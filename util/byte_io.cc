@@ -14,6 +14,7 @@
 
 #include "./util/byte_io.h"
 
+#include <stddef.h>
 #include <unistd.h>
 
 #include <cerrno>

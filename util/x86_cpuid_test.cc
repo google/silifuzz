@@ -15,7 +15,7 @@
 #if defined(__x86_64__)
 #include "./util/x86_cpuid.h"
 
-#include <cstring>
+#include <stdint.h>
 
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"

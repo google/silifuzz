@@ -14,10 +14,9 @@
 
 #include "./tool_libs/snap_group.h"
 
-#include <sys/mman.h>
-
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -26,6 +25,7 @@
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/snapshot_test_util.h"
+#include "./util/checks.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 

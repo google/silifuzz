@@ -19,6 +19,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <cstdio>
 #include <memory>
 #include <utility>
 

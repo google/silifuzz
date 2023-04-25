@@ -90,6 +90,7 @@ cc_test(
     ],
     deps = [
         ":avx",
+        ":checks",
         ":platform",
         "@com_google_googletest//:gtest_main",
     ],
@@ -218,6 +219,7 @@ cc_test(
     srcs = ["hostname_test.cc"],
     deps = [
         ":hostname",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -520,6 +522,7 @@ cc_library(
     hdrs = ["proto_util.h"],
     deps = [
         ":checks",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -543,7 +546,6 @@ cc_test(
         ":range_map",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/random",
-        "@com_google_absl//absl/random:seed_sequences",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
@@ -777,6 +779,7 @@ cc_library(
         ":itoa",
         ":signals",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
@@ -792,6 +795,7 @@ cc_test(
         ":subprocess",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
@@ -869,10 +873,12 @@ cc_library(
     srcs = ["tool_util.cc"],
     hdrs = ["tool_util.h"],
     deps = [
-        "@silifuzz//util:checks",
-        "@silifuzz//util:line_printer",
+        ":checks",
+        ":line_printer",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/flags:usage",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
@@ -901,6 +907,7 @@ cc_test(
     srcs = ["arch_test.cc"],
     deps = [
         ":arch",
+        ":checks",
         "@com_google_googletest//:gtest_main",
     ],
 )

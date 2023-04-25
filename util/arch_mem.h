@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ARCH_MEM_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ARCH_MEM_H_
 
+#include <stddef.h>
+
 #include <string>
 
 #include "./util/arch.h"

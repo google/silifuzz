@@ -14,7 +14,11 @@
 
 #include "./util/cpu_id.h"
 
+#include <sched.h>
+#include <stddef.h>
+
 #include <atomic>
+#include <cerrno>
 #include <climits>
 
 #include "third_party/lss/lss/linux_syscall_support.h"

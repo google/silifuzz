@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "./tracing/capstone_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"

@@ -14,10 +14,9 @@
 
 #include "./snap/exit_sequence.h"
 
+#include <stddef.h>
 #include <sys/mman.h>
 #include <unistd.h>
-
-#include <cstdint>
 
 #include "./util/arch.h"
 #include "./util/checks.h"

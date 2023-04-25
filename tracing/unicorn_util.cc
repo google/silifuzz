@@ -14,6 +14,10 @@
 
 #include "./tracing/unicorn_util.h"
 
+#include <stdint.h>
+
+#include <vector>
+
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"

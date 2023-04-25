@@ -17,6 +17,7 @@
 
 #include <algorithm>  // for swap
 #include <cstddef>
+#include <functional>
 #include <iosfwd>
 #include <iostream>  // for ostream; NOLINT
 #include <iterator>

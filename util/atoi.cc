@@ -14,6 +14,9 @@
 
 #include "./util/atoi.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include <limits>
 
 #include "./util/atoi_internal.h"

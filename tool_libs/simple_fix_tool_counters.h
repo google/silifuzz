@@ -16,8 +16,11 @@
 #define THIRD_PARTY_SILIFUZZ_TOOL_LIBS_SIMPLE_FIX_TOOL_COUNTERS_H_
 #include <cstdint>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/meta/type_traits.h"
 #include "absl/strings/string_view.h"
 #include "./tool_libs/fix_tool_common.h"
 

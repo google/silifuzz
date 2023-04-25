@@ -14,6 +14,7 @@
 
 #include "./util/data_dependency.h"
 
+#include <cstdlib>
 #include <filesystem>  // NOLINT(build/c++17)
 #include <string>
 

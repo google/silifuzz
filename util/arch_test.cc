@@ -15,6 +15,7 @@
 #include "./util/arch.h"
 
 #include "gtest/gtest.h"
+#include "./util/checks.h"
 
 namespace silifuzz {
 

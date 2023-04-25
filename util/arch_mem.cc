@@ -14,6 +14,10 @@
 
 #include "./util/arch_mem.h"
 
+#include <stddef.h>
+
+#include <string>
+
 #include "./util/checks.h"
 
 namespace silifuzz {

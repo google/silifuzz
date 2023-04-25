@@ -14,8 +14,6 @@
 
 #include "./util/text_proto_printer.h"
 
-#include <cstring>
-
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
 

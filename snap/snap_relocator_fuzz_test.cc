@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include <cstring>
+#include <utility>
 
-#include "gtest/gtest.h"
 #include "fuzztest/fuzztest.h"
 #include "./snap/snap_relocator.h"
 #include "./util/mmapped_memory_ptr.h"

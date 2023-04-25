@@ -14,6 +14,8 @@
 
 #include "./util/page_util.h"
 
+#include <stdint.h>
+
 #include <cstddef>
 
 #include "./util/checks.h"

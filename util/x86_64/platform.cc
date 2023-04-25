@@ -14,6 +14,10 @@
 
 #include "./util/platform.h"
 
+#include <stdint.h>
+
+#include <utility>
+
 #include "absl/container/flat_hash_map.h"
 #include "./util/checks.h"
 #include "./util/x86_cpuid.h"

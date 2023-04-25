@@ -14,6 +14,11 @@
 
 #include "./tracing/unicorn_tracer.h"
 
+#include <stdint.h>
+
+#include <string>
+
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./common/snapshot_test_config.h"
 #include "./util/testing/status_matchers.h"

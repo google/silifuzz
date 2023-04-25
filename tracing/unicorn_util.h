@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_UTIL_H_
 
+#include <stdint.h>
+
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"

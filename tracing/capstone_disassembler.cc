@@ -14,7 +14,10 @@
 
 #include "./tracing/capstone_disassembler.h"
 
+#include <stdint.h>
+
 #include <cstddef>
+#include <string>
 
 #include "absl/strings/str_cat.h"
 #include "third_party/capstone/capstone.h"

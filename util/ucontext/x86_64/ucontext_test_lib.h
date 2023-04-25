@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_UCONTEXT_TEST_LIB_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_UCONTEXT_TEST_LIB_H_
 
+#include <stdint.h>
+
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {

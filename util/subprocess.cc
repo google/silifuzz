@@ -20,14 +20,19 @@
 #include <sys/personality.h>
 #include <sys/prctl.h>  // prctl(), PR_SET_PDEATHSIG
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
-#include <csignal>
 #include <cstring>
 #include <memory>
+#include <string>
+#include <vector>
 
+#include "absl/base/attributes.h"
 #include "absl/base/call_once.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"

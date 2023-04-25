@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdint.h>
+
+#include "./util/checks.h"
 #include "./util/platform.h"
 #ifdef __x86_64__
 #include <immintrin.h>
 
 #include <cstring>
 #include <fstream>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 #include "gtest/gtest.h"

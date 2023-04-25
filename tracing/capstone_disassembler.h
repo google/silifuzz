@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
 #define THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include <string>

@@ -21,12 +21,13 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
@@ -37,6 +38,7 @@
 #include "./snap/snap_util.h"
 #include "./snap/testing/snap_generator_test_lib.h"
 #include "./snap/testing/snap_test_snapshots.h"
+#include "./util/checks.h"
 #include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/platform.h"

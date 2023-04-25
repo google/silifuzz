@@ -16,6 +16,8 @@
 
 #include <sys/stat.h>
 
+#include <string>
+
 #include "gtest/gtest.h"
 
 namespace silifuzz {

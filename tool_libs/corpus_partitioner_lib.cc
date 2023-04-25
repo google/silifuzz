@@ -14,7 +14,7 @@
 
 #include "./tool_libs/corpus_partitioner_lib.h"
 
-#include <algorithm>
+#include <stdint.h>
 
 #include "absl/algorithm/container.h"
 #include "./tool_libs/snap_group.h"

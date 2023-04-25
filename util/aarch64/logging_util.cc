@@ -14,6 +14,8 @@
 
 #include "./util/logging_util.h"
 
+#include <stdint.h>
+
 #include "absl/base/macros.h"
 #include "./util/itoa.h"
 #include "./util/strcat.h"

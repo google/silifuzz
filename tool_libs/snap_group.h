@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_TOOL_LIBS_SNAP_GROUP_H_
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
@@ -44,6 +45,7 @@ namespace silifuzz {
 //
 // This class is thread-compatible.
 class SnapshotSummaryProto;
+
 class SnapshotGroup {
  public:
   // Different policies to resolve mapping conflicts. These controls whether

@@ -19,6 +19,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <memory>
 
 #include "./util/checks.h"
 

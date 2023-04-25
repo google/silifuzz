@@ -13,13 +13,17 @@
 // limitations under the License.
 #include "./tool_libs/corpus_partitioner_lib.h"
 
+#include <stdint.h>
+
 #include <algorithm>
 #include <cstddef>
-#include <memory>
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"

@@ -19,7 +19,9 @@
 
 #include <string.h>
 #include <sys/ptrace.h>
+#include <sys/types.h>
 
+#include <cerrno>
 #include <optional>
 
 #include "./util/checks.h"

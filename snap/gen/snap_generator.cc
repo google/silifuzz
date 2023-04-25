@@ -14,12 +14,10 @@
 
 #include "./snap/gen/snap_generator.h"
 
-#include <string.h>
 #include <sys/types.h>
 
 #include <cstddef>
-#include <optional>
-#include <type_traits>
+#include <string>
 #include <vector>
 
 #include "absl/base/macros.h"

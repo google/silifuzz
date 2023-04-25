@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_SIMPLE_SERIALIZE_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_SIMPLE_SERIALIZE_H_
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <cstring>
 

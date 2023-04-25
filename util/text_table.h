@@ -15,8 +15,11 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_TEXT_TABLE_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_TEXT_TABLE_H_
 
+#include <stddef.h>
+
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/str_cat.h"

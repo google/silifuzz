@@ -14,6 +14,8 @@
 
 #include "./util/cpu_id.h"
 
+#include <stdint.h>
+
 #include <atomic>
 
 #include "./util/x86_cpuid.h"

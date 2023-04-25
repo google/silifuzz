@@ -14,7 +14,10 @@
 
 #include "./util/hostname.h"
 
+#include <string>
+
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 
 namespace silifuzz {
 namespace {

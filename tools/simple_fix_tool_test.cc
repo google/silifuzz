@@ -15,19 +15,24 @@
 #include "./tools/simple_fix_tool.h"
 
 #include <fcntl.h>
+#include <stdint.h>
 #include <sys/mman.h>
+#include <unistd.h>
 
 #include <filesystem>  // NOLINT(build/c++17)
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/cleanup/cleanup.h"
-#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "external/com_google_fuzztest/centipede/blob_file.h"
 #include "./snap/snap_relocator.h"
 #include "./tool_libs/simple_fix_tool_counters.h"

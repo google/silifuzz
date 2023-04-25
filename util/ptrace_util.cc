@@ -14,8 +14,12 @@
 
 #include "./util/ptrace_util.h"
 
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#include <cerrno>
+#include <optional>
 
 #include "./util/checks.h"
 #include "./util/itoa.h"

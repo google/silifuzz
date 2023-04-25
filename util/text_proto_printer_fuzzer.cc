@@ -14,11 +14,13 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "google/protobuf/text_format.h"
 #include "absl/strings/string_view.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/checks.h"
 #include "./util/text_proto_printer.h"
 
 using silifuzz::proto::PlayerResult;

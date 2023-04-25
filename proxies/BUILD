@@ -64,8 +64,6 @@ cc_test(
         ":unicorn_x86_64_lib",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/random",
-        "@com_google_absl//absl/random:distributions",
-        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
         "@unicorn//:unicorn_x86",
     ],

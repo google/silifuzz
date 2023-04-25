@@ -14,6 +14,9 @@
 
 #include "./util/logging_util.h"
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "gtest/gtest.h"
 #include "./util/ucontext/ucontext.h"
 

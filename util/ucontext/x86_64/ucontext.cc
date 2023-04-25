@@ -14,11 +14,13 @@
 
 #include "./util/ucontext/ucontext.h"
 
+#include <stdint.h>
+
+#include <cstring>
+
 #ifdef MEMORY_SANITIZER
 #include <sanitizer/msan_interface.h>
 #endif
-
-#include <cstddef>
 
 namespace silifuzz {
 

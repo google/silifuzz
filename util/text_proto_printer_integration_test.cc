@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+
 #include "google/protobuf/duration.pb.h"
 #include "google/protobuf/text_format.h"
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"

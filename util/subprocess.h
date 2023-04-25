@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_SUBPROCESS_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_SUBPROCESS_H_
 
+#include <sys/time.h>
 #include <sys/types.h>
 
 #include <string>

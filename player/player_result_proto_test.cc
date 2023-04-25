@@ -17,7 +17,6 @@
 #include <array>
 #include <optional>
 #include <string>
-#include <type_traits>
 
 #include "google/protobuf/duration.pb.h"
 #include "gmock/gmock.h"

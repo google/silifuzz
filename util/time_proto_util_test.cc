@@ -14,8 +14,9 @@
 
 #include "./util/time_proto_util.h"
 
+#include <stdint.h>
+
 #include <string>
-#include <vector>
 
 #include "google/protobuf/duration.pb.h"
 #include "google/protobuf/timestamp.pb.h"

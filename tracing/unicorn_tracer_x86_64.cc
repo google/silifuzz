@@ -14,7 +14,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
+#include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -22,6 +24,7 @@
 #include "./tracing/unicorn_util.h"
 #include "./util/arch.h"
 #include "./util/arch_mem.h"
+#include "./util/checks.h"
 #include "./util/page_util.h"
 #include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"

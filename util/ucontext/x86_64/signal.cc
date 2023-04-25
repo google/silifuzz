@@ -14,6 +14,11 @@
 
 #include "./util/ucontext/signal.h"
 
+#include <ucontext.h>
+
+#include <cstddef>
+#include <cstring>
+
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext.h"
 

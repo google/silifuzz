@@ -14,6 +14,8 @@
 
 #include "./util/ucontext/ucontext.h"
 
+#include <stdint.h>
+
 #include "absl/base/attributes.h"
 
 namespace silifuzz {

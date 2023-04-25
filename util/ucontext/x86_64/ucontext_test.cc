@@ -14,6 +14,12 @@
 
 #include "./util/ucontext/ucontext.h"
 
+#include <stdint.h>
+
+#include <cstddef>
+#include <cstring>
+#include <string>
+
 #include "gtest/gtest.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"

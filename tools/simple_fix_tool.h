@@ -25,6 +25,7 @@
 #define THIRD_PARTY_SILIFUZZ_TOOLS_SIMPLE_FIX_TOOL_H_
 
 #include <cstddef>
+#include <string>
 #include <vector>
 
 #include "absl/strings/string_view.h"

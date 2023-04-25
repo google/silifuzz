@@ -14,19 +14,29 @@
 
 #include "./tools/simple_fix_tool.h"
 
+#include <stdint.h>
+
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <fstream>
+#include <functional>
 #include <iostream>
+#include <iterator>
+#include <memory>
+#include <string>
 #include <thread>  // NOLINT(build/c++11)
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/meta/type_traits.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "external/com_google_fuzztest/centipede/blob_file.h"
@@ -38,6 +48,7 @@
 #include "./tool_libs/fix_tool_common.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 #include "./tool_libs/snap_group.h"
+#include "./util/checks.h"
 #include "./util/span_util.h"
 
 namespace silifuzz {

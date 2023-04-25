@@ -14,6 +14,7 @@
 
 #include "./util/strcat.h"
 
+#include <cstring>
 #include <initializer_list>
 
 #include "absl/strings/string_view.h"

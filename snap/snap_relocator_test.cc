@@ -14,12 +14,14 @@
 
 #include "./snap/snap_relocator.h"
 
+#include <cstdint>
 #include <cstring>
 #include <limits>
+#include <utility>
 #include <vector>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/gen/snap_generator.h"

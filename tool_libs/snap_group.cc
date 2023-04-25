@@ -20,10 +20,12 @@
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./util/checks.h"
 #include "./util/thread_pool.h"
 
 namespace silifuzz {

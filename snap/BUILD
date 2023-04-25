@@ -85,6 +85,7 @@ cc_test(
         "@silifuzz//snap/testing:snap_test_types",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util/testing:status_macros",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -19,10 +19,11 @@
 // is the same as what our fuzzers and the fix pipeline use.
 
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/flags/parse.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "./tools/fuzz_filter_tool.h"
 #include "./util/checks.h"

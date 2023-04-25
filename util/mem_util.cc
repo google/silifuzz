@@ -14,6 +14,8 @@
 
 #include "./util/mem_util.h"
 
+#include <strings.h>
+
 #include <cstdint>
 #include <cstring>
 

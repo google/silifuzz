@@ -18,6 +18,8 @@
 // Internal header for atoi.cc.
 // This should only be included by atoi.cc and atoi_test.cc.
 
+#include <stddef.h>
+
 #include <cstdint>
 
 #include "./util/checks.h"

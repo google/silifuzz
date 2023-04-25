@@ -14,6 +14,10 @@
 
 #include "./util/ucontext/serialize.h"
 
+#include <sys/types.h>
+
+#include <cstring>
+
 #include "./util/checks.h"
 #include "./util/ucontext/simple_serialize.h"
 #include "./util/ucontext/ucontext_types.h"

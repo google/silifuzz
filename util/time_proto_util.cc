@@ -14,8 +14,15 @@
 
 #include "./util/time_proto_util.h"
 
-#include <cstdlib>  // std::abs()
+#include <stdint.h>
 
+#include <cstdlib>  // std::abs()
+#include <string>
+
+#include "google/protobuf/duration.pb.h"
+#include "google/protobuf/timestamp.pb.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 

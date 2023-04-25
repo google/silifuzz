@@ -17,14 +17,18 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <string>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
 #include "./tracing/unicorn_util.h"
+#include "./util/checks.h"
 #include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"
 

@@ -17,12 +17,12 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <string>
 #include <utility>
 
 #include "gtest/gtest.h"
 #include "absl/base/macros.h"
 #include "absl/random/random.h"
-#include "absl/random/seed_sequences.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "./util/checks.h"

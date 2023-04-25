@@ -14,6 +14,9 @@
 
 #include "./util/ucontext/serialize.h"
 
+#include <sys/types.h>
+
+#include <cstring>
 #include <string>
 #include <type_traits>
 

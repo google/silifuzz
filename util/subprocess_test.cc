@@ -14,14 +14,20 @@
 
 #include "./util/subprocess.h"
 
+#include <signal.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 
+#include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <thread>  // NOLINT
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 

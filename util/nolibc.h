@@ -28,6 +28,7 @@
 #if defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
 #include <stdint.h>  // for uintptr_t
+
 #include <cstddef>  // for std::size_t
 
 // Provide an equivalent of std::align(); silifuzz code calls it.

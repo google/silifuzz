@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_UTIL_BYTE_IO_H_
 // Byte I/O utility
 
+#include <stddef.h>
 #include <sys/types.h>  // ssize_t
 
 namespace silifuzz {

@@ -15,6 +15,7 @@
 #include "./util/mem_util.h"
 
 #include <cstdint>
+#include <cstring>
 
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"

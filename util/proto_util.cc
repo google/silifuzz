@@ -15,12 +15,17 @@
 #include "./util/proto_util.h"
 
 #include <fcntl.h>
+#include <unistd.h>
 
+#include <cerrno>
+#include <cstring>
 #include <string>
 
 #include "google/protobuf/text_format.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./util/checks.h"
 
 namespace silifuzz {

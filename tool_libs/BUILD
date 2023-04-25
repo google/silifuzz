@@ -50,6 +50,8 @@ cc_test(
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -64,6 +66,7 @@ cc_library(
         "@silifuzz//common:snapshot_util",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner:snap_maker",
+        "@silifuzz//util:checks",
         "@silifuzz//util:hostname",
         "@silifuzz//util:platform",
         "@com_google_absl//absl/status",
@@ -78,6 +81,7 @@ cc_library(
     deps = [
         ":fix_tool_common",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/meta:type_traits",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -99,6 +103,7 @@ cc_library(
         "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
+        "@silifuzz//util:checks",
         "@silifuzz//util:thread_pool",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
@@ -112,6 +117,7 @@ cc_test(
         ":snap_group",
         "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//util:checks",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/container:flat_hash_set",

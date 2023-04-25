@@ -16,6 +16,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_SPAN_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_SPAN_UTIL_H_
 
+#include <stddef.h>
+
 #include <string>
 #include <type_traits>
 #include <vector>

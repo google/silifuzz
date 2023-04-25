@@ -14,15 +14,14 @@
 
 #include "./snap/gen/snap_generator.h"
 
+#include <stddef.h>
 #include <sys/mman.h>
 
-#include <cstdint>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"

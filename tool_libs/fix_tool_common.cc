@@ -15,9 +15,8 @@
 #include "./tool_libs/fix_tool_common.h"
 
 #include <cstdint>
-#include <iterator>
-#include <memory>
 #include <string>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -28,6 +27,7 @@
 #include "./common/snapshot_util.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
+#include "./util/checks.h"
 #include "./util/hostname.h"
 #include "./util/platform.h"
 

@@ -18,6 +18,11 @@
 
 #include <unistd.h>
 
+#include <cerrno>
+#include <csignal>
+#include <cstdlib>
+#include <cstring>
+
 #include "gtest/gtest.h"
 #include "./util/checks.h"
 

@@ -14,6 +14,8 @@
 
 #include "./util/ucontext/serialize.h"
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <cstring>
 

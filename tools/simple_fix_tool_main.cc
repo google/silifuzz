@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 // simple fix tool that converts raw instruction blobs into a runnable Snap
 // corpus.
 //
@@ -25,10 +26,11 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
-#include "absl/log/flags.h"
 #include "absl/log/initialize.h"
+#include "absl/strings/string_view.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 #include "./tools/simple_fix_tool.h"
+#include "./util/checks.h"
 
 ABSL_FLAG(std::string, output_path_prefix, "",
           "path prefix for output file shards, e.g. /tmp/corpus.  "

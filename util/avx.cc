@@ -16,9 +16,9 @@
 #include "./util/avx.h"
 
 #include <immintrin.h>
+#include <stdint.h>
 
 #include <atomic>
-#include <cstring>
 
 #include "./util/x86_cpuid.h"
 

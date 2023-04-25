@@ -23,6 +23,11 @@
 
 #include "./tools/fuzz_filter_tool.h"
 
+#include <stdint.h>
+
+#include <string>
+#include <vector>
+
 #include "gtest/gtest.h"
 #include "./common/snapshot_test_config.h"
 

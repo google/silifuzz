@@ -14,6 +14,8 @@
 
 #include "./util/ucontext/ucontext.h"
 
+#include <stdint.h>
+
 #ifdef MEMORY_SANITIZER
 #include <sanitizer/msan_interface.h>
 #endif

@@ -15,17 +15,17 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_SERIALIZE_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_SERIALIZE_H_
 
+#include <stddef.h>
 #include <sys/types.h>
 
 #include <cstdint>
 
 #include "absl/base/attributes.h"
+#include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 #include <string>
-
-#include "./util/checks.h"
 #endif
 
 namespace silifuzz {
