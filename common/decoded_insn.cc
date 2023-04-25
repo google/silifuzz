@@ -156,19 +156,6 @@ bool DecodedInsn::is_rep_byte_store() const {
   return iclass == XED_ICLASS_REP_MOVSB || iclass == XED_ICLASS_REP_STOSB;
 }
 
-uint8_t DecodedInsn::rex_bits() const {
-  DCHECK_STATUS(status_);
-  if (xed3_operand_get_rex(&xed_insn_) != 0) {
-    const uint8_t w = xed3_operand_get_rexw(&xed_insn_) ? kRexW : 0;
-    const uint8_t r = xed3_operand_get_rexr(&xed_insn_) ? kRexR : 0;
-    const uint8_t x = xed3_operand_get_rexx(&xed_insn_) ? kRexX : 0;
-    const uint8_t b = xed3_operand_get_rexb(&xed_insn_) ? kRexB : 0;
-    return w | r | x | b;
-  } else {
-    return 0;
-  }
-}
-
 absl::StatusOr<bool> DecodedInsn::may_have_split_lock(
     const struct user_regs_struct& regs) {
   DCHECK_STATUS(status_);
