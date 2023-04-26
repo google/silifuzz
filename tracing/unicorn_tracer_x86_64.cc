@@ -31,6 +31,147 @@
 
 namespace silifuzz {
 
+namespace {
+
+const size_t kNumUnicornX86_64Reg = 51;
+
+const int kUnicornX86_64RegNames[] = {
+    // GP Reg
+    UC_X86_REG_R8,
+    UC_X86_REG_R9,
+    UC_X86_REG_R10,
+    UC_X86_REG_R11,
+    UC_X86_REG_R12,
+    UC_X86_REG_R13,
+    UC_X86_REG_R14,
+    UC_X86_REG_R15,
+    UC_X86_REG_RDI,
+    UC_X86_REG_RSI,
+    UC_X86_REG_RBP,
+    UC_X86_REG_RBX,
+    UC_X86_REG_RDX,
+    UC_X86_REG_RAX,
+    UC_X86_REG_RCX,
+
+    UC_X86_REG_RSP,
+    UC_X86_REG_RIP,
+    UC_X86_REG_EFLAGS,
+
+    UC_X86_REG_CS,
+    UC_X86_REG_ES,
+    UC_X86_REG_DS,
+    UC_X86_REG_FS,
+    UC_X86_REG_GS,
+    UC_X86_REG_SS,
+
+    UC_X86_REG_FS_BASE,
+    UC_X86_REG_GS_BASE,
+
+    // FP Reg
+    // missing: fcw, fsw, ftw, fop, rip, rdp
+
+    UC_X86_REG_MXCSR,
+
+    // missing: mxcsr_mask
+
+    UC_X86_REG_ST0,
+    UC_X86_REG_ST1,
+    UC_X86_REG_ST2,
+    UC_X86_REG_ST3,
+    UC_X86_REG_ST4,
+    UC_X86_REG_ST5,
+    UC_X86_REG_ST6,
+    UC_X86_REG_ST7,
+
+    UC_X86_REG_XMM0,
+    UC_X86_REG_XMM1,
+    UC_X86_REG_XMM2,
+    UC_X86_REG_XMM3,
+    UC_X86_REG_XMM4,
+    UC_X86_REG_XMM5,
+    UC_X86_REG_XMM6,
+    UC_X86_REG_XMM7,
+    UC_X86_REG_XMM8,
+    UC_X86_REG_XMM9,
+    UC_X86_REG_XMM10,
+    UC_X86_REG_XMM11,
+    UC_X86_REG_XMM12,
+    UC_X86_REG_XMM13,
+    UC_X86_REG_XMM14,
+    UC_X86_REG_XMM15,
+};
+
+static_assert(ABSL_ARRAYSIZE(kUnicornX86_64RegNames) == kNumUnicornX86_64Reg);
+
+std::array<const void *, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
+    const UContext<X86_64> &ucontext) {
+  const GRegSet<X86_64> &gregs = ucontext.gregs;
+  const FPRegSet<X86_64> &fpregs = ucontext.fpregs;
+
+  return {
+      // GP Reg
+      &gregs.r8,
+      &gregs.r9,
+      &gregs.r10,
+      &gregs.r11,
+      &gregs.r12,
+      &gregs.r13,
+      &gregs.r14,
+      &gregs.r15,
+      &gregs.rdi,
+      &gregs.rsi,
+      &gregs.rbp,
+      &gregs.rbx,
+      &gregs.rdx,
+      &gregs.rax,
+      &gregs.rcx,
+      &gregs.rsp,
+      &gregs.rip,
+      &gregs.eflags,
+
+      &gregs.cs,
+      &gregs.es,
+      &gregs.ds,
+      &gregs.fs,
+      &gregs.gs,
+      &gregs.ss,
+
+      &gregs.fs_base,
+      &gregs.gs_base,
+
+      // FP Reg
+      &fpregs.mxcsr,
+
+      &fpregs.st[0],
+      &fpregs.st[1],
+      &fpregs.st[2],
+      &fpregs.st[3],
+      &fpregs.st[4],
+      &fpregs.st[5],
+      &fpregs.st[6],
+      &fpregs.st[7],
+
+      &fpregs.xmm[0],
+      &fpregs.xmm[1],
+      &fpregs.xmm[2],
+      &fpregs.xmm[3],
+      &fpregs.xmm[4],
+      &fpregs.xmm[5],
+      &fpregs.xmm[6],
+      &fpregs.xmm[7],
+      &fpregs.xmm[8],
+      &fpregs.xmm[9],
+      &fpregs.xmm[10],
+      &fpregs.xmm[11],
+      &fpregs.xmm[12],
+      &fpregs.xmm[13],
+      &fpregs.xmm[14],
+      &fpregs.xmm[15],
+  };
+}
+
+}  // namespace
+
 template <>
 uint64_t UnicornTracer<X86_64>::GetCurrentInstructionPointer() {
   uint64_t pc = 0;
@@ -88,9 +229,35 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
 }
 
 template <>
+void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64> &ucontext) {
+  // Not all registers will be read. Unicorn also does not set the upper bits of
+  // st registers. memset so the result is consistent.
+  memset(&ucontext, 0, sizeof(ucontext));
+  std::array<const void *, kNumUnicornX86_64Reg> ptrs =
+      UnicornX86_64RegValue(ucontext);
+  for (size_t i = 0; i < kNumUnicornX86_64Reg; ++i) {
+    // It's a bit hackish to cast away the constness of UnicornX86_64RegValue,
+    // but it's cleaner than having two const and non-const versions of the
+    // function.
+    uc_reg_read(uc_, kUnicornX86_64RegNames[i], const_cast<void *>(ptrs[i]));
+  }
+}
+
+template <>
+void UnicornTracer<X86_64>::SetRegisters(const UContext<X86_64> &ucontext) {
+  // uc_reg_write_batch does not seem to set all of the registers correctly,
+  // (the higher XMM registers for example) but individual uc_reg_write calls
+  // seem to work fine.
+  std::array<const void *, kNumUnicornX86_64Reg> ptrs =
+      UnicornX86_64RegValue(ucontext);
+  for (size_t i = 0; i < kNumUnicornX86_64Reg; ++i) {
+    uc_reg_write(uc_, kUnicornX86_64RegNames[i], ptrs[i]);
+  }
+}
+
+template <>
 void UnicornTracer<X86_64>::SetInitialRegisters(
     const UContext<X86_64> &ucontext) {
-  const GRegSet<X86_64> &gregs = ucontext.gregs;
   const FPRegSet<X86_64> &fpregs = ucontext.fpregs;
 
   constexpr size_t kFPRegsSize = sizeof(fpregs);
@@ -114,36 +281,9 @@ void UnicornTracer<X86_64>::SetInitialRegisters(
   UNICORN_CHECK(uc_emu_start(uc_, addr + kFPRegsSize, 0, 0, /* count = */ 1));
   UNICORN_CHECK(uc_mem_unmap(uc_, addr, kPageSize));
 
-  // List of all general purpose registers to write to Unicorn.
-  // uc_reg_write_batch() is smart enough to distinguish the sizes of
-  // underlying registers (e.g. 64 bit %RAX vs 32 bit %SS).
-  int kX86UnicornGregs[] = {
-      UC_X86_REG_RAX,     UC_X86_REG_RBX,    UC_X86_REG_RCX, UC_X86_REG_RDX,
-      UC_X86_REG_RSP,     UC_X86_REG_RBP,    UC_X86_REG_RDI, UC_X86_REG_RSI,
-      UC_X86_REG_RIP,     UC_X86_REG_EFLAGS, UC_X86_REG_R8,  UC_X86_REG_R9,
-      UC_X86_REG_R10,     UC_X86_REG_R11,    UC_X86_REG_R12, UC_X86_REG_R13,
-      UC_X86_REG_R14,     UC_X86_REG_R15,    UC_X86_REG_CS,  UC_X86_REG_ES,
-      UC_X86_REG_DS,      UC_X86_REG_FS,     UC_X86_REG_GS,  UC_X86_REG_SS,
-      UC_X86_REG_FS_BASE, UC_X86_REG_GS_BASE};
-
-  const void *gregs_srs[] = {
-      &gregs.rax,    &gregs.rbx, &gregs.rcx, &gregs.rdx, &gregs.rsp,
-      &gregs.rbp,    &gregs.rdi, &gregs.rsi, &gregs.rip, &gregs.eflags,
-      &gregs.r8,     &gregs.r9,  &gregs.r10, &gregs.r11, &gregs.r12,
-      &gregs.r13,    &gregs.r14, &gregs.r15, &gregs.cs,  &gregs.es,
-      &gregs.ds,     &gregs.fs,  &gregs.gs,  &gregs.ss,  &gregs.fs_base,
-      &gregs.gs_base};
-  static_assert(ABSL_ARRAYSIZE(gregs_srs) == ABSL_ARRAYSIZE(kX86UnicornGregs));
-
-  // uc_reg_write_batch wants vals of type (void* const*) which is an
-  // "array of const pointer to void" but it should have been "array of pointer
-  // to const void" (i.e. the value under the pointer cannot change). Therefore
-  // the cast.
-  UNICORN_CHECK(
-      uc_reg_write_batch(uc_,
-                         /* regs = */ kX86UnicornGregs,
-                         /* vals = */ const_cast<void *const *>(gregs_srs),
-                         ABSL_ARRAYSIZE(gregs_srs)));
+  // This will redundantly set some of the floating point registers, but that
+  // keeps the code simpler.
+  SetRegisters(ucontext);
 }
 
 template <>

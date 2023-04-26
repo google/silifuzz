@@ -119,6 +119,8 @@ cc_test(
         ":unicorn_tracer",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util/testing:status_matchers",
+        "@silifuzz//util/ucontext",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ],
 )

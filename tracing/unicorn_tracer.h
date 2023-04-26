@@ -125,6 +125,14 @@ class UnicornTracer {
   uint64_t GetCurrentInstructionPointer();
   uint64_t GetCurrentStackPointer();
 
+  // Read the current register state. Not all platforms can read all registers,
+  // so some registers may be set to zero instead of their actual values.
+  void GetRegisters(UContext<Arch>& ucontext);
+
+  // Write the current register state. Not all platforms can write all
+  // registers, so some registers may not be updated.
+  void SetRegisters(const UContext<Arch>& ucontext);
+
   void ReadMemory(uint64_t address, void* buffer, size_t size) {
     UNICORN_CHECK(uc_mem_read(uc_, address, buffer, size));
   }

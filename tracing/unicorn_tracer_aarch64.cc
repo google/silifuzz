@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 
@@ -74,6 +76,118 @@ void SetupCPUState(uc_engine *uc) {
   UNICORN_CHECK(uc_mem_unmap(uc, kEntrySequenceAddress, 0x1000));
 }
 
+const size_t kNumUnicornAArch64Reg = 68;
+
+const int kUnicornAArch64RegNames[] = {
+    // GP Reg
+    UC_ARM64_REG_X0, UC_ARM64_REG_X1, UC_ARM64_REG_X2, UC_ARM64_REG_X3,
+    UC_ARM64_REG_X4, UC_ARM64_REG_X5, UC_ARM64_REG_X6, UC_ARM64_REG_X7,
+    UC_ARM64_REG_X8, UC_ARM64_REG_X9, UC_ARM64_REG_X10, UC_ARM64_REG_X11,
+    UC_ARM64_REG_X12, UC_ARM64_REG_X13, UC_ARM64_REG_X14, UC_ARM64_REG_X15,
+    UC_ARM64_REG_X16, UC_ARM64_REG_X17, UC_ARM64_REG_X18, UC_ARM64_REG_X19,
+    UC_ARM64_REG_X20, UC_ARM64_REG_X21, UC_ARM64_REG_X22, UC_ARM64_REG_X23,
+    UC_ARM64_REG_X24, UC_ARM64_REG_X25, UC_ARM64_REG_X26, UC_ARM64_REG_X27,
+    UC_ARM64_REG_X28, UC_ARM64_REG_X29, UC_ARM64_REG_X30,
+
+    UC_ARM64_REG_SP, UC_ARM64_REG_PC, UC_ARM64_REG_NZCV, UC_ARM64_REG_TPIDR_EL0,
+    UC_ARM64_REG_TPIDRRO_EL0,
+
+    // FP Reg
+    UC_ARM64_REG_V0, UC_ARM64_REG_V1, UC_ARM64_REG_V2, UC_ARM64_REG_V3,
+    UC_ARM64_REG_V4, UC_ARM64_REG_V5, UC_ARM64_REG_V6, UC_ARM64_REG_V7,
+    UC_ARM64_REG_V8, UC_ARM64_REG_V9, UC_ARM64_REG_V10, UC_ARM64_REG_V11,
+    UC_ARM64_REG_V12, UC_ARM64_REG_V13, UC_ARM64_REG_V14, UC_ARM64_REG_V15,
+    UC_ARM64_REG_V16, UC_ARM64_REG_V17, UC_ARM64_REG_V18, UC_ARM64_REG_V19,
+    UC_ARM64_REG_V20, UC_ARM64_REG_V21, UC_ARM64_REG_V22, UC_ARM64_REG_V23,
+    UC_ARM64_REG_V24, UC_ARM64_REG_V25, UC_ARM64_REG_V26, UC_ARM64_REG_V27,
+    UC_ARM64_REG_V28, UC_ARM64_REG_V29, UC_ARM64_REG_V30, UC_ARM64_REG_V31,
+
+    // missing: fpsr, fpcr - upgrading Unicorn can fix this
+};
+
+static_assert(ABSL_ARRAYSIZE(kUnicornAArch64RegNames) == kNumUnicornAArch64Reg);
+
+std::array<const void *, kNumUnicornAArch64Reg> UnicornAArch64RegValue(
+    const UContext<AArch64> &ucontext) {
+  const GRegSet<AArch64> &gregs = ucontext.gregs;
+  const FPRegSet<AArch64> &fpregs = ucontext.fpregs;
+
+  return {
+      // GP Reg
+      &gregs.x[0],
+      &gregs.x[1],
+      &gregs.x[2],
+      &gregs.x[3],
+      &gregs.x[4],
+      &gregs.x[5],
+      &gregs.x[6],
+      &gregs.x[7],
+      &gregs.x[8],
+      &gregs.x[9],
+      &gregs.x[10],
+      &gregs.x[11],
+      &gregs.x[12],
+      &gregs.x[13],
+      &gregs.x[14],
+      &gregs.x[15],
+      &gregs.x[16],
+      &gregs.x[17],
+      &gregs.x[18],
+      &gregs.x[19],
+      &gregs.x[20],
+      &gregs.x[21],
+      &gregs.x[22],
+      &gregs.x[23],
+      &gregs.x[24],
+      &gregs.x[25],
+      &gregs.x[26],
+      &gregs.x[27],
+      &gregs.x[28],
+      &gregs.x[29],
+      &gregs.x[30],
+
+      &gregs.sp,
+      &gregs.pc,
+      &gregs.pstate,
+      &gregs.tpidr,
+      &gregs.tpidrro,
+
+      // FP Reg
+      &fpregs.v[0],
+      &fpregs.v[1],
+      &fpregs.v[2],
+      &fpregs.v[3],
+      &fpregs.v[4],
+      &fpregs.v[5],
+      &fpregs.v[6],
+      &fpregs.v[7],
+      &fpregs.v[8],
+      &fpregs.v[9],
+      &fpregs.v[10],
+      &fpregs.v[11],
+      &fpregs.v[12],
+      &fpregs.v[13],
+      &fpregs.v[14],
+      &fpregs.v[15],
+      &fpregs.v[16],
+      &fpregs.v[17],
+      &fpregs.v[18],
+      &fpregs.v[19],
+      &fpregs.v[20],
+      &fpregs.v[21],
+      &fpregs.v[22],
+      &fpregs.v[23],
+      &fpregs.v[24],
+      &fpregs.v[25],
+      &fpregs.v[26],
+      &fpregs.v[27],
+      &fpregs.v[28],
+      &fpregs.v[29],
+      &fpregs.v[30],
+      &fpregs.v[31],
+  };
+}
+
 }  // namespace
 
 template <>
@@ -124,67 +238,34 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
 }
 
 template <>
+void UnicornTracer<AArch64>::GetRegisters(UContext<AArch64> &ucontext) {
+  // Not all registers will be read. memset so the result is consistent.
+  memset(&ucontext, 0, sizeof(ucontext));
+  std::array<const void *, kNumUnicornAArch64Reg> ptrs =
+      UnicornAArch64RegValue(ucontext);
+  for (size_t i = 0; i < kNumUnicornAArch64Reg; ++i) {
+    // It's a bit hackish to cast away the constness of UnicornAArch64RegValue,
+    // but it's cleaner than having two const and non-const versions of the
+    // function.
+    uc_reg_read(uc_, kUnicornAArch64RegNames[i], const_cast<void *>(ptrs[i]));
+  }
+}
+
+template <>
+void UnicornTracer<AArch64>::SetRegisters(const UContext<AArch64> &ucontext) {
+  // uc_reg_write_batch appears to work fine for aarch64, but we're writing the
+  // registers one by one to match the x86_64 implementation.
+  std::array<const void *, kNumUnicornAArch64Reg> ptrs =
+      UnicornAArch64RegValue(ucontext);
+  for (size_t i = 0; i < kNumUnicornAArch64Reg; ++i) {
+    uc_reg_write(uc_, kUnicornAArch64RegNames[i], ptrs[i]);
+  }
+}
+
+template <>
 void UnicornTracer<AArch64>::SetInitialRegisters(
     const UContext<AArch64> &ucontext) {
-  const GRegSet<AArch64> &gregs = ucontext.gregs;
-  const FPRegSet<AArch64> &fpregs = ucontext.fpregs;
-
-  int reg_names[] = {
-      UC_ARM64_REG_X0,   UC_ARM64_REG_X1,        UC_ARM64_REG_X2,
-      UC_ARM64_REG_X3,   UC_ARM64_REG_X4,        UC_ARM64_REG_X5,
-      UC_ARM64_REG_X6,   UC_ARM64_REG_X7,        UC_ARM64_REG_X8,
-      UC_ARM64_REG_X9,   UC_ARM64_REG_X10,       UC_ARM64_REG_X11,
-      UC_ARM64_REG_X12,  UC_ARM64_REG_X13,       UC_ARM64_REG_X14,
-      UC_ARM64_REG_X15,  UC_ARM64_REG_X16,       UC_ARM64_REG_X17,
-      UC_ARM64_REG_X18,  UC_ARM64_REG_X19,       UC_ARM64_REG_X20,
-      UC_ARM64_REG_X21,  UC_ARM64_REG_X22,       UC_ARM64_REG_X23,
-      UC_ARM64_REG_X24,  UC_ARM64_REG_X25,       UC_ARM64_REG_X26,
-      UC_ARM64_REG_X27,  UC_ARM64_REG_X28,       UC_ARM64_REG_X29,
-      UC_ARM64_REG_X30,  UC_ARM64_REG_SP,        UC_ARM64_REG_PC,
-      UC_ARM64_REG_NZCV, UC_ARM64_REG_TPIDR_EL0, UC_ARM64_REG_TPIDRRO_EL0,
-      UC_ARM64_REG_V0,   UC_ARM64_REG_V1,        UC_ARM64_REG_V2,
-      UC_ARM64_REG_V3,   UC_ARM64_REG_V4,        UC_ARM64_REG_V5,
-      UC_ARM64_REG_V6,   UC_ARM64_REG_V7,        UC_ARM64_REG_V8,
-      UC_ARM64_REG_V9,   UC_ARM64_REG_V10,       UC_ARM64_REG_V11,
-      UC_ARM64_REG_V12,  UC_ARM64_REG_V13,       UC_ARM64_REG_V14,
-      UC_ARM64_REG_V15,  UC_ARM64_REG_V16,       UC_ARM64_REG_V17,
-      UC_ARM64_REG_V18,  UC_ARM64_REG_V19,       UC_ARM64_REG_V20,
-      UC_ARM64_REG_V21,  UC_ARM64_REG_V22,       UC_ARM64_REG_V23,
-      UC_ARM64_REG_V24,  UC_ARM64_REG_V25,       UC_ARM64_REG_V26,
-      UC_ARM64_REG_V27,  UC_ARM64_REG_V28,       UC_ARM64_REG_V29,
-      UC_ARM64_REG_V30,  UC_ARM64_REG_V31,
-  };
-
-  const void *reg_values[] = {
-      &gregs.x[0],   &gregs.x[1],   &gregs.x[2],   &gregs.x[3],
-      &gregs.x[4],   &gregs.x[5],   &gregs.x[6],   &gregs.x[7],
-      &gregs.x[8],   &gregs.x[9],   &gregs.x[10],  &gregs.x[11],
-      &gregs.x[12],  &gregs.x[13],  &gregs.x[14],  &gregs.x[15],
-      &gregs.x[16],  &gregs.x[17],  &gregs.x[18],  &gregs.x[19],
-      &gregs.x[20],  &gregs.x[21],  &gregs.x[22],  &gregs.x[23],
-      &gregs.x[24],  &gregs.x[25],  &gregs.x[26],  &gregs.x[27],
-      &gregs.x[28],  &gregs.x[29],  &gregs.x[30],  &gregs.sp,
-      &gregs.pc,     &gregs.pstate, &gregs.tpidr,  &gregs.tpidrro,
-      &fpregs.v[0],  &fpregs.v[1],  &fpregs.v[2],  &fpregs.v[3],
-      &fpregs.v[4],  &fpregs.v[5],  &fpregs.v[6],  &fpregs.v[7],
-      &fpregs.v[8],  &fpregs.v[9],  &fpregs.v[10], &fpregs.v[11],
-      &fpregs.v[12], &fpregs.v[13], &fpregs.v[14], &fpregs.v[15],
-      &fpregs.v[16], &fpregs.v[17], &fpregs.v[18], &fpregs.v[19],
-      &fpregs.v[20], &fpregs.v[21], &fpregs.v[22], &fpregs.v[23],
-      &fpregs.v[24], &fpregs.v[25], &fpregs.v[26], &fpregs.v[27],
-      &fpregs.v[28], &fpregs.v[29], &fpregs.v[30], &fpregs.v[31],
-  };
-  static_assert(ABSL_ARRAYSIZE(reg_names) == ABSL_ARRAYSIZE(reg_values));
-
-  // TODO(ncbray): set fpsr and fpcr. This will likely require patching upstream
-  // Unicorn or executing ASM inside the emulator.
-
-  // uc_reg_write_batch wants vals of type (void* const*) which is an
-  // "array of const pointer to void" but it should have been "array of pointer
-  // to const void" (i.e. the value under the pointer cannot change). Therefore
-  // the cast.
-  uc_reg_write_batch(uc_, reg_names, const_cast<void *const *>(reg_values),
-                     ABSL_ARRAYSIZE(reg_values));
+  SetRegisters(ucontext);
 }
 
 template <>
