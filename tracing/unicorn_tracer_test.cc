@@ -41,21 +41,28 @@ std::string SimpleTestSnippet() {
 }
 
 // Check the registers are what we expect after executing the SimpleTestSnippet.
+// `skip` indicates an instruction that has been skipped by the test, otherwise
+// -1 if no instruction has been skipped.
+// The snippet was designed to add three different constants (2, 3, 4) to three
+// different registers that should have an initial value of zero. If the value
+// of a register is zero at the end of execution, this indicates the instruction
+// has been skipped. If the constant is otherwise not what we expected, this
+// indicates the instruction may have been executed twice.
 template <typename Arch>
-void CheckRegisters(const UContext<Arch>& ucontext);
+void CheckRegisters(const UContext<Arch>& ucontext, int skip = -1);
 
 template <>
-void CheckRegisters(const UContext<X86_64>& ucontext) {
-  EXPECT_EQ(ucontext.gregs.rdx, 2);
-  EXPECT_EQ(ucontext.gregs.rcx, 3);
-  EXPECT_EQ(ucontext.gregs.r8, 4);
+void CheckRegisters(const UContext<X86_64>& ucontext, int skip) {
+  EXPECT_EQ(ucontext.gregs.rdx, skip == 0 ? 0 : 2);
+  EXPECT_EQ(ucontext.gregs.rcx, skip == 1 ? 0 : 3);
+  EXPECT_EQ(ucontext.gregs.r8, skip == 2 ? 0 : 4);
 }
 
 template <>
-void CheckRegisters(const UContext<AArch64>& ucontext) {
-  EXPECT_EQ(ucontext.gregs.x[2], 2);
-  EXPECT_EQ(ucontext.gregs.x[3], 3);
-  EXPECT_EQ(ucontext.gregs.x[4], 4);
+void CheckRegisters(const UContext<AArch64>& ucontext, int skip) {
+  EXPECT_EQ(ucontext.gregs.x[2], skip == 0 ? 0 : 2);
+  EXPECT_EQ(ucontext.gregs.x[3], skip == 1 ? 0 : 3);
+  EXPECT_EQ(ucontext.gregs.x[4], skip == 2 ? 0 : 4);
 }
 
 // Typed test boilerplate
@@ -98,6 +105,34 @@ TYPED_TEST(UnicornTracerTest, InstructionCallback) {
   UContext<TypeParam> ucontext;
   tracer.GetRegisters(ucontext);
   CheckRegisters(ucontext);
+}
+
+TYPED_TEST(UnicornTracerTest, SkipInstruction) {
+  std::string instructions = SimpleTestSnippet<TypeParam>();
+
+  for (int skip = 0; skip < 3; ++skip) {
+    UnicornTracer<TypeParam> tracer;
+    ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
+
+    int instruction = 0;
+    tracer.SetInstructionCallback(
+        [&](UnicornTracer<TypeParam>* tracer, uint64_t address, uint32_t size) {
+          if (instruction == skip) {
+            // Relies on Unicorn's instruction size being exact.
+            tracer->SetCurrentInstructionPointer(address + size);
+          }
+          instruction++;
+        });
+
+    ASSERT_THAT(tracer.Run(3), IsOk());
+    // Check that advancing the PC does not cause the next instruction callback
+    // to be lost.
+    CHECK_EQ(instruction, 3);
+
+    UContext<TypeParam> ucontext;
+    tracer.GetRegisters(ucontext);
+    CheckRegisters(ucontext, skip);
+  }
 }
 
 // Unicorn doesn't provide access to some registers, zero them out to make the

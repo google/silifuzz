@@ -123,6 +123,8 @@ class UnicornTracer {
   }
 
   uint64_t GetCurrentInstructionPointer();
+  void SetCurrentInstructionPointer(uint64_t address);
+
   uint64_t GetCurrentStackPointer();
 
   // Read the current register state. Not all platforms can read all registers,

@@ -180,6 +180,11 @@ uint64_t UnicornTracer<X86_64>::GetCurrentInstructionPointer() {
 }
 
 template <>
+void UnicornTracer<X86_64>::SetCurrentInstructionPointer(uint64_t address) {
+  UNICORN_CHECK(uc_reg_write(uc_, UC_X86_REG_RIP, &address));
+}
+
+template <>
 uint64_t UnicornTracer<X86_64>::GetCurrentStackPointer() {
   uint64_t sp = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_X86_REG_RSP, &sp));

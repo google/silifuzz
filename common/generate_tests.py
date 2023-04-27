@@ -413,9 +413,10 @@ lock incl -1(%rax)
       name="SetThreeRegisters",
       arch=X86_64,
       src="""
-mov $0x2, %rdx
-mov $0x3, %rcx
-mov $0x4, %r8
+// Use 'add' so we can detect if an instruction executes twice.
+add $0x2, %rdx
+add $0x3, %rcx
+add $0x4, %r8
 """,
   )
 
@@ -547,9 +548,10 @@ b .
       arch=AARCH64,
       normal_end=True,
       src="""
-mov x2, #0x2
-mov x3, #0x3
-mov x4, #0x4
+// Use 'add' so we can detect if an instruction executes twice.
+add x2, x2, #0x2
+add x3, x3, #0x3
+add x4, x4, #0x4
 """,
   )
 
@@ -571,6 +573,8 @@ def generate_source(b, out):
 // limitations under the License.
 
 #include "third_party/silifuzz/common/snapshot_test_config.h"
+
+#include <cstddef>
 
 #include "third_party/silifuzz/util/checks.h"
 

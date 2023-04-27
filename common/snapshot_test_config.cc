@@ -14,7 +14,7 @@
 
 #include "./common/snapshot_test_config.h"
 
-#include <stddef.h>
+#include <cstddef>
 
 #include "./util/checks.h"
 
@@ -323,12 +323,11 @@ const TestSnapshotConfig configs[37] = {
         .code_num_bytes = 0x1000,
         .data_addr = 0x124a6000,
         .data_num_bytes = 0x1000,
-        //     124a5000:   48 c7 c2 02 00 00 00    mov    $0x2,%rdx
-        //     124a5007:   48 c7 c1 03 00 00 00    mov    $0x3,%rcx
-        //     124a500e:   49 c7 c0 04 00 00 00    mov    $0x4,%r8
-        .instruction_bytes = {0x48, 0xc7, 0xc2, 0x2, 0x0, 0x0, 0x0,
-                              0x48, 0xc7, 0xc1, 0x3, 0x0, 0x0, 0x0,
-                              0x49, 0xc7, 0xc0, 0x4, 0x0, 0x0, 0x0},
+        //     124a5000:   48 83 c2 02             add    $0x2,%rdx
+        //     124a5004:   48 83 c1 03             add    $0x3,%rcx
+        //     124a5008:   49 83 c0 04             add    $0x4,%r8
+        .instruction_bytes = {0x48, 0x83, 0xc2, 0x2, 0x48, 0x83, 0xc1, 0x3,
+                              0x49, 0x83, 0xc0, 0x4},
         .normal_end = true,
     },
     {
@@ -488,11 +487,11 @@ const TestSnapshotConfig configs[37] = {
         .code_num_bytes = 0x1000,
         .data_addr = 0x12406000,
         .data_num_bytes = 0x1000,
-        //     12405000:   d2800042        mov     x2, #0x2
-        //     12405004:   d2800063        mov     x3, #0x3
-        //     12405008:   d2800084        mov     x4, #0x4
-        .instruction_bytes = {0x42, 0x0, 0x80, 0xd2, 0x63, 0x0, 0x80, 0xd2,
-                              0x84, 0x0, 0x80, 0xd2},
+        //     12405000:   91000842        add     x2, x2, #0x2
+        //     12405004:   91000c63        add     x3, x3, #0x3
+        //     12405008:   91001084        add     x4, x4, #0x4
+        .instruction_bytes = {0x42, 0x8, 0x0, 0x91, 0x63, 0xc, 0x0, 0x91, 0x84,
+                              0x10, 0x0, 0x91},
         .normal_end = true,
     },
 };

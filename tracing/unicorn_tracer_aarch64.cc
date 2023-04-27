@@ -198,6 +198,11 @@ uint64_t UnicornTracer<AArch64>::GetCurrentInstructionPointer() {
 }
 
 template <>
+void UnicornTracer<AArch64>::SetCurrentInstructionPointer(uint64_t address) {
+  UNICORN_CHECK(uc_reg_write(uc_, UC_ARM64_REG_PC, &address));
+}
+
+template <>
 uint64_t UnicornTracer<AArch64>::GetCurrentStackPointer() {
   uint64_t sp = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_ARM64_REG_SP, &sp));
