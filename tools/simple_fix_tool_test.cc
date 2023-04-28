@@ -67,7 +67,7 @@ absl::StatusOr<std::string> CreateTempBlobFile(
   absl::Cleanup file_deleter =
       absl::MakeCleanup([filename] { std::filesystem::remove(filename); });
   auto writer = DefaultBlobFileAppenderFactory();
-  RETURN_IF_NOT_OK(writer->Open(filename));
+  RETURN_IF_NOT_OK(writer->Open(filename, "w"));
   for (const auto& blob : blobs) {
     absl::Span<const uint8_t> s(reinterpret_cast<const uint8_t*>(blob.data()),
                                 blob.size());
