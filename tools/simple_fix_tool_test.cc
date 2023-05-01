@@ -42,7 +42,7 @@
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
-using centipede::DefaultBlobFileAppenderFactory;
+using centipede::DefaultBlobFileWriterFactory;
 using testing::SizeIs;
 using testing::UnorderedElementsAre;
 
@@ -66,12 +66,12 @@ absl::StatusOr<std::string> CreateTempBlobFile(
   std::string filename = filename_or.value();
   absl::Cleanup file_deleter =
       absl::MakeCleanup([filename] { std::filesystem::remove(filename); });
-  auto writer = DefaultBlobFileAppenderFactory();
+  auto writer = DefaultBlobFileWriterFactory();
   RETURN_IF_NOT_OK(writer->Open(filename, "w"));
   for (const auto& blob : blobs) {
     absl::Span<const uint8_t> s(reinterpret_cast<const uint8_t*>(blob.data()),
                                 blob.size());
-    RETURN_IF_NOT_OK(writer->Append(s));
+    RETURN_IF_NOT_OK(writer->Write(s));
   }
   RETURN_IF_NOT_OK(writer->Close());
   std::move(file_deleter).Cancel();
