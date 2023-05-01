@@ -82,7 +82,7 @@ AVX512Info GetAVX512Info() {
   }
 
   // GetAVX512InfoOnce() should always return the same result.
-  // So we just return new_info intead of loading avx_512_info again.
+  // So we just return new_info instead of loading avx_512_info again.
   return new_info;
 }
 
