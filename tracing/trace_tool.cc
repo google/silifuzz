@@ -24,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "./tracing/analysis.h"
 #include "./tracing/capstone_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
@@ -117,10 +118,48 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
   }
 }
 
+template <typename Arch>
+absl::Status AnalyzeSnippet(const std::string& instructions,
+                            size_t max_instructions, LinePrinter& out) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      FaultInjectionResult result,
+      AnalyzeSnippetWithFaultInjection<Arch>(instructions, max_instructions));
+  out.Line("Detected ", result.fault_detection_count, "/",
+           result.fault_injection_count, " faults - ",
+           static_cast<int>(100 * result.sensitivity), "% sensitive");
+  return absl::OkStatus();
+}
+
+absl::StatusOr<int> Analyze(std::vector<char*>& positional_args,
+                            LinePrinter& out, LinePrinter& err) {
+  std::optional<std::string> snippet_path = absl::GetFlag(FLAGS_snippet);
+  if (snippet_path.has_value()) {
+    ArchitectureId arch = absl::GetFlag(FLAGS_arch);
+    if (arch == ArchitectureId::kUndefined) {
+      return absl::InvalidArgumentError("--arch is required for snippets.");
+    }
+    if (!positional_args.empty()) {
+      return absl::InvalidArgumentError("Too many positional arguments.");
+    }
+    size_t max_instructions = absl::GetFlag(FLAGS_max_instructions);
+    ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
+                               GetFileContents(snippet_path.value()));
+    RETURN_IF_NOT_OK(ARCH_DISPATCH(AnalyzeSnippet, arch, instructions,
+                                   max_instructions, out));
+    return EXIT_SUCCESS;
+  } else {
+    return absl::InvalidArgumentError("Must specify an input.");
+  }
+}
+
 constexpr Subcommand subcommands[] = {
     {
         .name = "print",
         .func = Print,
+    },
+    {
+        .name = "analyze",
+        .func = Analyze,
     },
 };
 

@@ -137,12 +137,26 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "analysis",
+    srcs = ["analysis.cc"],
+    hdrs = ["analysis.h"],
+    deps = [
+        ":unicorn_tracer",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
 cc_binary(
     name = "trace_tool",
     srcs = [
         "trace_tool.cc",
     ],
     deps = [
+        ":analysis",
         ":capstone_disassembler",
         ":unicorn_tracer",
         "@silifuzz//util:arch",
