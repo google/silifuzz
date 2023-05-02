@@ -406,8 +406,21 @@ constexpr uint32_t sysreg(uint32_t op0, uint32_t op1, uint32_t CRn,
   return op0 << 19 | op1 << 16 | CRn << 12 | CRm << 8 | op2 << 5;
 }
 
+// The bits of the sysreg instruction that select which sysreg is being read or
+// written.
 const uint32_t kSysregMask = sysreg(0b11, 0b111, 0b1111, 0b1111, 0b111);
 
+// All of the registers that can be accessed in EL0 without trapping appear to
+// be op0=11 op1=011. This is an emperical observation, however, and not
+// explicitly specified. This may change as the spec evolves. There are still
+// registers inside this space we should not access, but there is nothing
+// outside the space we should access.
+constexpr InstructionBits kUserspaceSysreg = {
+    .mask = sysreg(0b11, 0b111, 0, 0, 0),
+    .bits = sysreg(0b11, 0b011, 0, 0, 0),
+};
+
+// Specific banned sysregs that are not caught by more general filters.
 constexpr uint32_t kBannedSysregs[] = {
     // CNTP_TVAL_EL0 - older versions of QEMU do not control access to this
     // register so we need to explicitly ban it.
@@ -429,6 +442,7 @@ constexpr bool InstructionIsOK(uint32_t insn) {
     }
   }
   if (kSysregInstruction.matches(insn)) {
+    if (!kUserspaceSysreg.matches(insn)) return false;
     for (uint32_t sysreg : kBannedSysregs) {
       if ((insn & kSysregMask) == sysreg) return false;
     }

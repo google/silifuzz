@@ -58,6 +58,11 @@ TEST(StaticInsnFilter, SystemRegister) {
   EXPECT_AARCH64_FILTER_REJECT({0xd53be21c});
   // mrs     x0, cntv_tval_el0
   EXPECT_AARCH64_FILTER_REJECT({0xd53be300});
+
+  // Linux can emulate access to this register, and different kernel versions
+  // can give different results.
+  // mrs     x0, id_aa64mmfr0_el1
+  EXPECT_AARCH64_FILTER_REJECT({0xd5380700});
 }
 
 TEST(StaticInsnFilter, LDXRB) {
