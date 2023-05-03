@@ -78,7 +78,7 @@ cc_library_plus_nolibc(
     hdrs = ["avx.h"],
     deps = [
         ":checks",
-        ":x86_cpuid",
+        ":x86_cpu_features",
     ],
 )
 
@@ -151,6 +151,23 @@ cc_test_plus_nolibc(
         ":checks",
         ":itoa",
         ":nolibc_gunit",
+    ],
+)
+
+cc_library_plus_nolibc(
+    name = "x86_cpu_features",
+    srcs = ["x86_64/cpu_features.cc"],
+    hdrs = ["x86_64/cpu_features.h"],
+    deps = [":x86_cpuid"],
+)
+
+cc_test(
+    name = "x86_cpu_features_test",
+    srcs = ["x86_64/cpu_features_test.cc"],
+    deps = [
+        ":x86_cpu_features",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

@@ -20,7 +20,7 @@
 
 #include <atomic>
 
-#include "./util/x86_cpuid.h"
+#include "./util/x86_64/cpu_features.h"
 
 namespace silifuzz {
 namespace {
@@ -46,17 +46,8 @@ std::atomic<AVX512Info> avx_512_info{AVX512Info::kUninitialized};
 AVX512Info __attribute__((target("xsave"))) GetAVX512InfoOnce() {
   // Check CPU OSXSAVE feature. We need xgetbv instruction to check whether
   // all AVX-512 registers are enabled.
-  X86CPUIDResult result;
-  X86CPUID(1, &result);
-  constexpr uint32_t kOSXSAVEFeatureBit = 1UL << 27;
-  if ((result.ecx & kOSXSAVEFeatureBit) == 0) {
-    return AVX512Info::kUnavailable;
-  }
-
-  // Detect AVX-512 foundation instruction support.
-  X86CPUID(7, &result);
-  constexpr uint32_t kAVX512FeatureBit = 1UL << 16;
-  if ((result.ebx & kAVX512FeatureBit) == 0) {
+  if (!HasX86CPUFeature(X86CPUFeatures::kOSXSAVE) ||
+      !HasX86CPUFeature(X86CPUFeatures::kAVX512F)) {
     return AVX512Info::kUnavailable;
   }
 
