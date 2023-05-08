@@ -85,10 +85,6 @@ static_assert(ToInt(Snapshot::Metadata::Origin::kXed) ==
               ToInt(proto::SnapshotMetadata::XED_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kGem5) ==
               ToInt(proto::SnapshotMetadata::GEM5_FUZZING_ORIGIN));
-static_assert(ToInt(Snapshot::Metadata::Origin::kIaca) ==
-              ToInt(proto::SnapshotMetadata::IACA_FUZZING_ORIGIN));
-static_assert(ToInt(Snapshot::Metadata::Origin::kLlvmMca) ==
-              ToInt(proto::SnapshotMetadata::LLVM_MCA_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kEmulator1) ==
               ToInt(proto::SnapshotMetadata::EMULATOR1_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kSimulator1) ==

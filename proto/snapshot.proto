@@ -169,11 +169,7 @@ message EndState {
 // NEXT ID: 8
 message SnapshotMetadata {
   // How snapshot originated.
-  // There are two classes of origin:
-  // * creation from nothing -- all the enum values with _ORIGIN suffix
-  // * transfromation from one (or in the future several) snapshots
-  //   -- all the enum values with _TRANSFORM suffix.
-  // Next ID: 13
+  // NEXT ID: 13
   enum Origin {
     // When origin is unknown or unimportant,
     // e.g. snapshot was made by some test-generation logic.
@@ -183,24 +179,17 @@ message SnapshotMetadata {
     IFUZZ_ORIGIN = 2;
 
     // Snapshot was made by fuzzing {Unicorn,Bochs,etc} with libFuzzer.
-    // TODO(ksteuck): [impl] It might be possible to capture the facts when
-    // a specific snapshot was made by fuzzing a specific another snapshot.
     UNICORN_FUZZING_ORIGIN = 3;
     BOCHS_FUZZING_ORIGIN = 5;
     XED_FUZZING_ORIGIN = 6;
     GEM5_FUZZING_ORIGIN = 7;
-    IACA_FUZZING_ORIGIN = 8;
-    LLVM_MCA_FUZZING_ORIGIN = 9;
     EMULATOR1_FUZZING_ORIGIN = 11;
     SIMULATOR1_FUZZING_ORIGIN = 12;
 
     // Unicorn fuzzer with a custom input sequence generator.
-    // TODO(ksteuck): [cleanup] This is not a very scalable way of defining
-    // origin metadata. If we see more dimensions to origin we will need
-    // to capture such metadata separately from the origin.
     UNICORNCUSTOM_FUZZING_ORIGIN = 10;
 
-    reserved 1, 4;
+    reserved 1, 4, 8, 9;
   }
   optional Origin origin = 2;  // semantically required
 

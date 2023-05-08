@@ -517,8 +517,6 @@ class Snapshot::Metadata {
     kBochs = 5,
     kXed = 6,
     kGem5 = 7,
-    kIaca = 8,
-    kLlvmMca = 9,
     kUnicornCustom = 10,
     kEmulator1 = 11,
     kSimulator1 = 12,
