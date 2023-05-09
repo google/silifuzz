@@ -369,7 +369,7 @@ void SnapshotProto::ToProto(const Snapshot::Metadata& metadata,
   proto->set_origin(
       static_cast<proto::SnapshotMetadata_Origin>(metadata.origin()));
   if (proto->origin() == proto::SnapshotMetadata::USE_STRING_ORIGIN) {
-    proto->set_origin_string(metadata.origin_string());
+    proto->set_origin_string(std::string(metadata.origin_string()));
   } else {
     proto->clear_origin_string();
   }
