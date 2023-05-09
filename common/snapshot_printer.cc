@@ -68,6 +68,14 @@ void SnapshotPrinter::Print(const Snapshot& snapshot) {
     Indent();
     Line("Id: ", snapshot.id());
     Line("Architecture: ", snapshot.architecture_name());
+    Snapshot::Metadata::Origin origin = snapshot.metadata().origin();
+    std::string origin_string;
+    if (origin == Snapshot::Metadata::Origin::kUseString) {
+      origin_string = snapshot.metadata().origin_string();
+    } else {
+      origin_string = EnumStr(origin);
+    }
+    Line("Origin: ", origin_string);
     PrintCompleteness(snapshot);
     Unindent();
   }

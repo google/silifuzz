@@ -538,6 +538,11 @@ class Snapshot::Metadata {
   std::string origin_string_;
 };
 
+template <>
+extern const char* EnumNameMap<
+    Snapshot::Metadata::Origin>[ToInt(Snapshot::Metadata::Origin::kUseString) +
+                                1];
+
 // ========================================================================= //
 
 // Describes a single contiguous range of byte values in memory.
