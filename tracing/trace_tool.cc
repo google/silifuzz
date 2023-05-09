@@ -32,6 +32,7 @@
 #include "./util/enum_flag.h"
 #include "./util/line_printer.h"
 #include "./util/tool_util.h"
+#include "./util/ucontext/ucontext_bitops.h"
 
 namespace silifuzz {
 DEFINE_ENUM_FLAG(ArchitectureId);
@@ -59,8 +60,20 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
   bool last_valid = false;
   uint64_t expected_next = 0;
   uint8_t insn_buffer[16];
+
+  UContext<Arch> first, prev, zero_one, one_zero;
+  tracer.GetRegisters(first);
+  prev = first;
+  UContextClear(zero_one);
+  UContextClear(one_zero);
+
   tracer.SetInstructionCallback(
       [&](UnicornTracer<Arch>* tracer, uint64_t address, size_t max_size) {
+        UContext<Arch> current;
+        tracer->GetRegisters(current);
+        UContextAccumulateToggle(prev, current, zero_one, one_zero);
+        prev = current;
+
         // TODO(ncbray): extract the register state and print diffs.
         // Did we see something other than linear execution?
         if (last_valid && address != expected_next) {
@@ -85,7 +98,14 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
         last_valid = valid;
         expected_next = address + actual_size;
       });
-  return tracer.Run(max_instructions);
+  absl::Status result = tracer.Run(max_instructions);
+  out.Line();
+  out.Line("Register toggle 0=>1: ", UContextPopCount(zero_one),
+           " 1=>0: ", UContextPopCount(one_zero));
+  UContext<Arch> diff;
+  UContextDiff(first, prev, diff);
+  out.Line("Final register hamming distance: ", UContextPopCount(diff));
+  return result;
 }
 
 template <typename Arch>

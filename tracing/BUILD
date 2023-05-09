@@ -164,6 +164,7 @@ cc_binary(
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:tool_util",
+        "@silifuzz//util/ucontext:ucontext_bitops",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
