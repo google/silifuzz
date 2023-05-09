@@ -166,10 +166,10 @@ message EndState {
 // or wide code consumption and for many snapshot origin types there are
 // no extra details, so the one_of messages would be empty.
 //
-// NEXT ID: 8
+// NEXT ID: 9
 message SnapshotMetadata {
   // How snapshot originated.
-  // NEXT ID: 13
+  // NEXT ID: 14
   enum Origin {
     // When origin is unknown or unimportant,
     // e.g. snapshot was made by some test-generation logic.
@@ -189,9 +189,16 @@ message SnapshotMetadata {
     // Unicorn fuzzer with a custom input sequence generator.
     UNICORNCUSTOM_FUZZING_ORIGIN = 10;
 
+    // Special value to direct the consumers to use
+    // SnapshotMetadata.origin_string value instead.
+    USE_STRING_ORIGIN = 13;
+
     reserved 1, 4, 8, 9;
   }
   optional Origin origin = 2;  // semantically required
+
+  // Free-form origin.
+  optional string origin_string = 8;
 
   reserved 1, 3 to 7;
 }

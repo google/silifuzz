@@ -91,6 +91,8 @@ static_assert(ToInt(Snapshot::Metadata::Origin::kSimulator1) ==
               ToInt(proto::SnapshotMetadata::SIMULATOR1_FUZZING_ORIGIN));
 static_assert(ToInt(Snapshot::Metadata::Origin::kUnicornCustom) ==
               ToInt(proto::SnapshotMetadata::UNICORNCUSTOM_FUZZING_ORIGIN));
+static_assert(ToInt(Snapshot::Metadata::Origin::kUseString) ==
+              ToInt(proto::SnapshotMetadata::USE_STRING_ORIGIN));
 
 // Make sure that PlatformId values match.
 static_assert(ToInt(PlatformId::kUndefined) ==
@@ -233,7 +235,8 @@ absl::StatusOr<Snapshot::Metadata> SnapshotProto::FromProto(
   // We aren't strictly validating the presence of metadata fields because old
   // protos may not have them. Silently set them to the default.
   return Snapshot::Metadata{
-      static_cast<Snapshot::Metadata::Origin>(proto.origin())};
+      static_cast<Snapshot::Metadata::Origin>(proto.origin()),
+      proto.origin_string()};
 }
 
 // static
@@ -365,6 +368,11 @@ void SnapshotProto::ToProto(const Snapshot::Metadata& metadata,
                             proto::SnapshotMetadata* proto) {
   proto->set_origin(
       static_cast<proto::SnapshotMetadata_Origin>(metadata.origin()));
+  if (proto->origin() == proto::SnapshotMetadata::USE_STRING_ORIGIN) {
+    proto->set_origin_string(metadata.origin_string());
+  } else {
+    proto->clear_origin_string();
+  }
 }
 
 // static

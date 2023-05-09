@@ -130,8 +130,6 @@ cc_library(
         ":snapshot_enums",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
-        "@silifuzz//util:misc_util",
         "@silifuzz//util:platform",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:serialize",
@@ -192,7 +190,6 @@ cc_test(
         ":snapshot_proto",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util/testing:status_macros",
-        "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],
 )

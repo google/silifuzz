@@ -20,7 +20,6 @@
 #include "./common/raw_insns_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
@@ -38,6 +37,27 @@ TEST(SnapshotProto, MetadataRoundtrip) {
   proto.Clear();
   SnapshotProto::ToProto(snapshot, &proto);
   ASSERT_EQ(proto.metadata().origin(), kOrigin);
+}
+
+TEST(SnapshotProto, MetadataStringRoundtrip) {
+  constexpr proto::SnapshotMetadata_Origin kOrigin =
+      proto::SnapshotMetadata::USE_STRING_ORIGIN;
+  const std::string kCustomOrigin = "SOME_CUSTOM_ORIGIN";
+
+  ASSERT_OK_AND_ASSIGN(Snapshot snapshot,
+                       InstructionsToSnapshot<X86_64>("\xCC"));
+  proto::Snapshot proto;
+  SnapshotProto::ToProto(snapshot, &proto);
+  proto.mutable_metadata()->set_origin(kOrigin);
+  proto.mutable_metadata()->set_origin_string(kCustomOrigin);
+  ASSERT_OK_AND_ASSIGN(snapshot, SnapshotProto::FromProto(proto));
+  EXPECT_EQ(snapshot.metadata().origin_string(), kCustomOrigin);
+  EXPECT_EQ(snapshot.metadata().origin(),
+            Snapshot::Metadata::Origin::kUseString);
+  proto.Clear();
+  SnapshotProto::ToProto(snapshot, &proto);
+  EXPECT_EQ(proto.metadata().origin(), kOrigin);
+  EXPECT_EQ(proto.metadata().origin_string(), kCustomOrigin);
 }
 
 TEST(SnapshotProto, ArchRoundtrip) {

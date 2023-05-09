@@ -40,8 +40,6 @@
 #include "./common/memory_perms.h"
 #include "./common/snapshot_enums.h"
 #include "./util/arch.h"
-#include "./util/itoa.h"
-#include "./util/misc_util.h"
 #include "./util/platform.h"
 
 namespace silifuzz {
@@ -520,17 +518,24 @@ class Snapshot::Metadata {
     kUnicornCustom = 10,
     kEmulator1 = 11,
     kSimulator1 = 12,
+    kUseString = 13,
   };
 
-  Metadata() : origin_(Origin::kUndefined) {}
+  Metadata() : origin_(Origin::kUndefined), origin_string_() {}
+  explicit Metadata(Origin origin, absl::string_view origin_string)
+      : origin_(origin), origin_string_(origin_string) {}
+  // Moveable and copyable data container.
   Metadata(const Metadata& other) = default;
   Metadata(Metadata&& other) = default;
-  explicit Metadata(Origin origin) : origin_(origin) {}
+  Metadata& operator=(const Metadata& other) = default;
+  Metadata& operator=(Metadata&& other) = default;
 
   Origin origin() const { return origin_; }
+  absl::string_view origin_string() const { return origin_string_; }
 
  private:
   Origin origin_;
+  std::string origin_string_;
 };
 
 // ========================================================================= //
