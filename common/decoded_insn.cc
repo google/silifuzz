@@ -139,6 +139,10 @@ bool DecodedInsn::is_deterministic() const {
     case XED_ICLASS_XBEGIN:
     case XED_ICLASS_XEND:
     case XED_ICLASS_XABORT:
+    case XED_ICLASS_MWAIT:
+    case XED_ICLASS_MWAITX:
+    case XED_ICLASS_MONITOR:
+    case XED_ICLASS_MONITORX:
       return false;
     default:
       return true;
