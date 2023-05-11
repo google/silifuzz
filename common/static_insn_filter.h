@@ -16,8 +16,34 @@
 #define THIRD_PARTY_SILIFUZZ_COMMON_STATIC_INSN_FILTER_H_
 
 #include "absl/strings/string_view.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
+
+template <typename Arch>
+struct InstructionFilterConfig;
+
+template <typename Arch>
+static constexpr InstructionFilterConfig<Arch>
+    DEFAULT_INSTRUCTION_FILTER_CONFIG;
+
+template <>
+struct InstructionFilterConfig<X86_64> {};
+
+template <>
+static constexpr InstructionFilterConfig<X86_64>
+    DEFAULT_INSTRUCTION_FILTER_CONFIG<X86_64> = {};
+
+template <>
+struct InstructionFilterConfig<AArch64> {
+  bool sve_instructions_allowed;
+};
+
+template <>
+static constexpr InstructionFilterConfig<AArch64>
+    DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64> = {
+        .sve_instructions_allowed = false,
+};
 
 // Accept or reject this instruction sequence using simple static analysis.
 // Returns true if the static analysis believes `code` is OK.
@@ -29,7 +55,9 @@ namespace silifuzz {
 // Some architectures may not filter any instruction sequence at this stage and
 // always return true.
 template <typename Arch>
-bool StaticInstructionFilter(absl::string_view code);
+bool StaticInstructionFilter(absl::string_view code,
+                             const InstructionFilterConfig<Arch>& config =
+                                 DEFAULT_INSTRUCTION_FILTER_CONFIG<Arch>);
 
 }  // namespace silifuzz
 

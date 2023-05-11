@@ -30,6 +30,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
 #include "./common/static_insn_filter.h"
+#include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -161,7 +162,10 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
         "instructions.");
   }
 
-  if (!StaticInstructionFilter<AArch64>(code)) {
+  InstructionFilterConfig<AArch64> filter_config =
+      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
+  filter_config.sve_instructions_allowed = config.sve_instructions_allowed;
+  if (!StaticInstructionFilter<AArch64>(code, filter_config)) {
     return absl::InvalidArgumentError(
         "code snippet contains problematic instructions.");
   }

@@ -23,7 +23,8 @@
 namespace silifuzz {
 
 template <>
-bool StaticInstructionFilter<X86_64>(absl::string_view code) {
+bool StaticInstructionFilter<X86_64>(
+    absl::string_view code, const InstructionFilterConfig<X86_64>& config) {
   // It's difficult to reliably disassemble x86_64 instructions, so for now we
   // don't try.
   return true;
@@ -385,6 +386,13 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
     },
 };
 
+// C4.1 A64 instruction set encoding
+// op1 = 0010 is SVE encodings
+constexpr InstructionBits kSVEInstruction = {
+    .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
+    .bits = 0b0000'0100'0000'0000'0000'0000'0000'0000,
+};
+
 // C4.1.66 Branches, Exception Generating and System instructions
 // System register move
 // Should match MRS and MSR instructions.  Bit 21 controls if this is a read or
@@ -430,11 +438,15 @@ constexpr uint32_t kBannedSysregs[] = {
     sysreg(0b11, 0b011, 0b1110, 0b0011, 0b000),
 };
 
-constexpr bool InstructionIsOK(uint32_t insn) {
+constexpr bool InstructionIsOK(uint32_t insn,
+                               const InstructionFilterConfig<AArch64>& config) {
   for (const InstructionBits& bits : kBannedInstructions) {
     if (bits.matches(insn)) {
       return false;
     }
+  }
+  if (!config.sve_instructions_allowed && kSVEInstruction.matches(insn)) {
+    return false;
   }
   for (const RequiredInstructionBits& bits : kRequiredInstructionBits) {
     if (bits.violates_requirements(insn)) {
@@ -456,14 +468,15 @@ constexpr bool InstructionIsOK(uint32_t insn) {
 // questionable instruction, even though we don't know for certain those bytes
 // will be executed. A later mutation could make the instruction live.
 template <>
-bool StaticInstructionFilter<AArch64>(absl::string_view code) {
+bool StaticInstructionFilter<AArch64>(
+    absl::string_view code, const InstructionFilterConfig<AArch64>& config) {
   if (code.size() % 4 != 0) return false;
 
   const uint32_t* begin = reinterpret_cast<const uint32_t*>(code.data());
   const uint32_t* end = begin + code.size() / sizeof(uint32_t);
 
   for (const uint32_t* insn = begin; insn < end; ++insn) {
-    if (!InstructionIsOK(*insn)) return false;
+    if (!InstructionIsOK(*insn, config)) return false;
   }
 
   return true;

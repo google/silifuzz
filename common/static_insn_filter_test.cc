@@ -34,8 +34,14 @@ std::string FromInts(std::vector<uint32_t>&& data) {
 #define EXPECT_AARCH64_FILTER_ACCEPT(insn) \
   EXPECT_TRUE(StaticInstructionFilter<AArch64>(FromInts(insn)))
 
+#define EXPECT_AARCH64_FILTER_ACCEPT_CONFIG(insn, config) \
+  EXPECT_TRUE(StaticInstructionFilter<AArch64>(FromInts(insn), config))
+
 #define EXPECT_AARCH64_FILTER_REJECT(insn) \
   EXPECT_FALSE(StaticInstructionFilter<AArch64>(FromInts(insn)))
+
+#define EXPECT_AARCH64_FILTER_REJECT_CONFIG(insn, config) \
+  EXPECT_FALSE(StaticInstructionFilter<AArch64>(FromInts(insn), config))
 
 TEST(StaticInsnFilter, SystemRegister) {
   // We'll want to filter our a number of system register accesses in the
@@ -87,6 +93,27 @@ TEST(StaticInsnFilter, STXP) {
   // Store exclusive is effectively non-deterministic.
   // stxp     w11, w13, w21, [x6]
   EXPECT_AARCH64_FILTER_REJECT({0x882b54cd});
+}
+
+TEST(StaticInsnFilter, SVE) {
+  InstructionFilterConfig<AArch64> banned =
+      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
+  banned.sve_instructions_allowed = false;
+  InstructionFilterConfig<AArch64> allowed =
+      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
+  allowed.sve_instructions_allowed = true;
+
+  // sqdecb    x11, vl8, mul #16
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x043ff90b}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x043ff90b}, allowed);
+
+  // ldff1sb   {z26.d}, p0/z, [x7, x4]
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0xa58460fa}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xa58460fa}, allowed);
+
+  // ldff1h    {z11.s}, p3/z, [x17, z8.s, sxtw]
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x84c86e2b}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x84c86e2b}, allowed);
 }
 
 TEST(StaticInsnFilter, Reserved) { EXPECT_AARCH64_FILTER_REJECT({0x00000000}); }
@@ -173,9 +200,6 @@ TEST(StaticInsnFilter, DataPAC) {
 }
 
 TEST(StaticInsnFilter, LoadStore) {
-  // ldff1h    {z11.s}, p3/z, [x17, z8.s, sxtw]
-  EXPECT_AARCH64_FILTER_ACCEPT({0x84c86e2b});
-
   // Some sort of load / store, unsure what QEMU thinks it is.
   EXPECT_AARCH64_FILTER_REJECT({0xcd8070e5});
 

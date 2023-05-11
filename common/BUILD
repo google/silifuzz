@@ -353,6 +353,7 @@ cc_library(
         ":snapshot",
         ":snapshot_util",
         ":static_insn_filter",
+        "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
