@@ -959,3 +959,31 @@ cc_test_plus_nolibc(
         ":page_util",
     ],
 )
+
+cc_library_plus_nolibc(
+    name = "x86_extension_registers",
+    srcs = [
+        "x86_64/opmask.S",
+        "x86_64/xmm.S",
+        "x86_64/ymm.S",
+        "x86_64/zmm.S",
+    ],
+    hdrs = ["x86_64/extension_registers.h"],
+)
+
+cc_test(
+    name = "x86_extention_registers_test",
+    srcs = [
+        "x86_64/extension_registers_test.cc",
+        "x86_64/extension_registers_test_helpers.S",
+        "x86_64/extension_registers_test_helpers.h",
+    ],
+    # We don't want calls in test helpers to go through PLTs.
+    # The dynamic linker may clobber some extention registers.
+    linkstatic = True,
+    deps = [
+        ":x86_cpu_features",
+        ":x86_extension_registers",  # buildcleaner: keep
+        "@com_google_googletest//:gtest_main",
+    ],
+)
