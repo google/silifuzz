@@ -43,18 +43,18 @@ void VerifySnapField(absl::string_view name, const T1& expect, const T2& got) {
   CHECK_EQ(expect, got);
 }
 
-// Verifies Snapshot::MemoryMapping -> Snap::MemoryMapping conversion.
+// Verifies Snapshot::MemoryMapping -> SnapMemoryMapping conversion.
 void VerifySnapMemoryMapping(const Snapshot::MemoryMapping& mapping,
-                             const Snap::MemoryMapping& snap_mapping) {
+                             const SnapMemoryMapping& snap_mapping) {
   VerifySnapField("start_address", mapping.start_address(),
                   snap_mapping.start_address);
   VerifySnapField("num_bytes", mapping.num_bytes(), snap_mapping.num_bytes);
   CHECK(MemoryPerms::FromMProtect(snap_mapping.perms) == mapping.perms());
 }
 
-// Verifies Snapshot::ByteData -> Snap::Array<uint8_t> conversion.
+// Verifies Snapshot::ByteData -> SnapArray<uint8_t> conversion.
 void VerifyByteData(absl::string_view name, const Snapshot::ByteData byte_data,
-                    const Snap::Array<uint8_t>& snap_byte_data) {
+                    const SnapArray<uint8_t>& snap_byte_data) {
   VerifySnapField(absl::StrCat(name, " size"), byte_data.size(),
                   snap_byte_data.size);
   for (int i = 0; i < byte_data.size(); ++i) {
@@ -63,18 +63,18 @@ void VerifyByteData(absl::string_view name, const Snapshot::ByteData byte_data,
   }
 }
 
-// Verifies Snapshot::ByteData -> Snap::Array<uint8_t> conversion.
+// Verifies Snapshot::ByteData -> SnapArray<uint8_t> conversion.
 void VerifyByteRun(absl::string_view name, const Snapshot::ByteData byte_data,
-                   const Snap::MemoryBytes::ByteRun snap_byte_run) {
+                   const SnapMemoryBytes::ByteRun snap_byte_run) {
   VerifySnapField(absl::StrCat(name, " size"), byte_data.size(),
                   snap_byte_run.size);
   CHECK(
       MemAllEqualTo(byte_data.data(), snap_byte_run.value, snap_byte_run.size));
 }
 
-// Verifies Snapshot::MemoryBytes -> Snap::MemoryBytes conversion.
+// Verifies Snapshot::MemoryBytes -> SnapMemoryBytes conversion.
 void VerifySnapMemoryBytes(const Snapshot::MemoryBytes& memory_bytes,
-                           const Snap::MemoryBytes& snap_memory_bytes,
+                           const SnapMemoryBytes& snap_memory_bytes,
                            const MappedMemoryMap& mapped_memory_map) {
   VerifySnapField("start_address", memory_bytes.start_address(),
                   snap_memory_bytes.start_address);
@@ -109,11 +109,11 @@ void VerifySnapRegisterState(const Snapshot::RegisterState& registers,
   CHECK_EQ(registers.fpregs(), fpregs_bytes);
 }
 
-// Verifies Snapshot::MemoryBytesList -> Snap::Array<Snap::MemoryBytes>
+// Verifies Snapshot::MemoryBytesList -> SnapArray<SnapMemoryBytes>
 // conversion.
 void VerifySnapMemoryBytesArray(
     absl::string_view name, const BorrowedMemoryBytesList& memory_bytes_list,
-    const Snap::Array<Snap::MemoryBytes>& snap_memory_bytes_list,
+    const SnapArray<SnapMemoryBytes>& snap_memory_bytes_list,
     const MappedMemoryMap& mapped_memory_map) {
   VerifySnapField(absl::StrCat(name, " size"), memory_bytes_list.size(),
                   snap_memory_bytes_list.size);
@@ -126,11 +126,11 @@ void VerifySnapMemoryBytesArray(
   }
 }
 
-// Verifies Snapshot::MemoryMappingList -> Snap::Array<Snap::MemoryMappging>
+// Verifies Snapshot::MemoryMappingList -> SnapArray<SnapMemoryMappging>
 // conversion.
 void VerifySnapMemoryMappingArray(
     absl::string_view name, const Snapshot::MemoryMappingList& memory_mappings,
-    const Snap::Array<Snap::MemoryMapping>& snap_memory_mappings) {
+    const SnapArray<SnapMemoryMapping>& snap_memory_mappings) {
   VerifySnapField(absl::StrCat(name, " size"), memory_mappings.size(),
                   snap_memory_mappings.size);
   size_t snap_array_index = 0;

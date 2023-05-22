@@ -53,7 +53,7 @@ T read_once(T& value) {
 template <typename T>
 class RelocationIterator {
  public:
-  explicit RelocationIterator(const Snap::Array<T>& array) {
+  explicit RelocationIterator(const SnapArray<T>& array) {
     // If the Corpus is malformed, future relocations could corrupt these values
     // so copy them.
     // This iterator should be created immediately after relocating the array
@@ -73,7 +73,7 @@ class RelocationIterator {
 
 // Satisfy -Wctad-maybe-unsupported
 template <typename T>
-RelocationIterator(Snap::Array<T>&) -> RelocationIterator<T>;
+RelocationIterator(SnapArray<T>&) -> RelocationIterator<T>;
 
 }  // namespace
 
@@ -120,7 +120,7 @@ SnapRelocator::Error SnapRelocator::AdjustPointer(T*& ptr) {
 }
 
 template <typename T>
-SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
+SnapRelocator::Error SnapRelocator::AdjustArray(SnapArray<T>& array) {
   if (array.size > 0) {
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(array.elements));
 
@@ -147,10 +147,9 @@ SnapRelocator::Error SnapRelocator::AdjustArray(Snap::Array<T>& array) {
 }
 
 SnapRelocator::Error SnapRelocator::RelocateMemoryBytesArray(
-    Snap::Array<Snap::MemoryBytes>& memory_bytes_array) {
+    SnapArray<SnapMemoryBytes>& memory_bytes_array) {
   RETURN_IF_RELOCATION_FAILED(AdjustArray(memory_bytes_array));
-  for (Snap::MemoryBytes& memory_byte :
-       RelocationIterator(memory_bytes_array)) {
+  for (SnapMemoryBytes& memory_byte : RelocationIterator(memory_bytes_array)) {
     if (!memory_byte.repeating()) {
       RETURN_IF_RELOCATION_FAILED(
           AdjustPointer(memory_byte.data.byte_values.elements));
@@ -191,7 +190,7 @@ SnapRelocator::Error SnapRelocator::RelocateCorpus() {
     RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.id));
 
     RETURN_IF_RELOCATION_FAILED(AdjustArray(snap.memory_mappings));
-    for (Snap::MemoryMapping& mapping :
+    for (SnapMemoryMapping& mapping :
          RelocationIterator(snap.memory_mappings)) {
       // Adjust memory bytes for initial mappings.
       RETURN_IF_RELOCATION_FAILED(

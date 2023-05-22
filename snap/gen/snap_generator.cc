@@ -77,7 +77,7 @@ std::string UIntString(__uint128_t value) {
   }
 }
 
-//  Returns string containing C++ code for initilizer of an Snap::Array of given
+//  Returns string containing C++ code for initilizer of an SnapArray of given
 //  'size' and  whose elements are stored out-of-line in variable
 //  'elements_var'.
 std::string ArrayString(size_t size, absl::string_view elements_var) {
@@ -271,7 +271,7 @@ std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
   CHECK_EQ(memory_bytes_list.size(), byte_values_var_names.size());
   std::string memory_bytes_list_var_name = LocalVarName("local_memory_bytes");
 
-  PrintLn(absl::StrFormat("static const Snap::MemoryBytes %s[%zd] = {",
+  PrintLn(absl::StrFormat("static const SnapMemoryBytes %s[%zd] = {",
                           memory_bytes_list_var_name,
                           memory_bytes_list.size()));
   for (size_t i = 0; i < memory_bytes_list.size(); ++i) {
@@ -282,7 +282,7 @@ std::string SnapGenerator<Arch>::GenerateMemoryBytesList(
         IsRepeatingByteRun(memory_bytes.byte_values());
     PrintLn(absl::StrFormat(
         "{ .start_address = %s, .flags = %s,", AddressString(start),
-        compress_repeating_bytes ? "Snap::MemoryBytes::kRepeating" : "0"));
+        compress_repeating_bytes ? "SnapMemoryBytes::kRepeating" : "0"));
     if (compress_repeating_bytes) {
       CHECK(byte_values_var_names[i].empty());
       Print(absl::StrFormat(
@@ -318,7 +318,7 @@ std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
   // Output the mapping.
   std::string memory_mapping_list_var_name =
       LocalVarName("local_memory_mapping");
-  PrintLn(absl::StrFormat("static const Snap::MemoryMapping %s[%zd] = {",
+  PrintLn(absl::StrFormat("static const SnapMemoryMapping %s[%zd] = {",
                           memory_mapping_list_var_name,
                           memory_mapping_list.size()));
   for (size_t i = 0; i < memory_mapping_list.size(); ++i) {

@@ -20,12 +20,12 @@ namespace silifuzz {
 namespace {
 
 TEST(Snap, ConstIterator) {
-  Snap::Array<int> empty = {.size = 0, .elements = nullptr};
+  SnapArray<int> empty = {.size = 0, .elements = nullptr};
   EXPECT_EQ(empty.begin(), empty.end());
 
   constexpr int kElements[] = {1, 1, 2, 3, 5, 8};
   constexpr int kNumElements = sizeof(kElements) / sizeof(kElements[0]);
-  Snap::Array<int> array = {.size = kNumElements, .elements = kElements};
+  SnapArray<int> array = {.size = kNumElements, .elements = kElements};
 
   int i = 0;
   for (const auto& element : array) {

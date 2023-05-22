@@ -33,96 +33,96 @@
 
 namespace silifuzz {
 
-// A simplified snapshot representation.
-struct Snap {
-  // Linker-initialized array.
-  template <typename T>
-  struct Array {
-    // number of elements in elements[].
-    size_t size;
+// Linker-initialized array.
+template <typename T>
+struct SnapArray {
+  // number of elements in elements[].
+  size_t size;
 
-    // The array itself has a fixed size.  So data are placed elsewhere.
-    const T* elements;
+  // The array itself has a fixed size.  So data are placed elsewhere.
+  const T* elements;
 
-    typedef const T* const_iterator;
-    const_iterator begin() const { return &elements[0]; }
-    const_iterator end() const { return &elements[size]; }
+  typedef const T* const_iterator;
+  const_iterator begin() const { return &elements[0]; }
+  const_iterator end() const { return &elements[size]; }
 
-    const T& operator[](size_t idx) const { return elements[idx]; }
+  const T& operator[](size_t idx) const { return elements[idx]; }
 
-    const T& at(size_t idx) const {
-      CHECK(idx < size);
-      return elements[idx];
-    }
+  const T& at(size_t idx) const {
+    CHECK(idx < size);
+    return elements[idx];
+  }
+};
+
+// Describes a single contiguous range of byte values in memory.
+// This is a linker-initialized equivalent of Snapshot::MemoryBytes
+struct SnapMemoryBytes {
+  // Flags
+  enum {
+    kRepeating = 1 << 0,  // If set, memory bytes are repeating. This
+                          // determines how data below are interpreted.
   };
 
+  // If memory bytes are all the same value, they are stored as
+  // a run of single value.
+  struct ByteRun {
+    uint8_t value;  // repeated value
+    size_t size;    // number of bytes in run.
+  };
+
+  // Tells if memory bytes are repeating.
+  bool repeating() const { return (flags & kRepeating) != 0; }
+
+  // Returns byte size of the memory bytes.
+  size_t size() const {
+    return repeating() ? data.byte_run.size : data.byte_values.size;
+  }
+
+  // Where `byte_values` start.
+  uint64_t start_address;
+
+  // Flags
+  uint8_t flags = 0;
+
+  union {
+    // The memory byte values to exist at start_address. This is set only when
+    // repeating == false.
+    SnapArray<uint8_t> byte_values;
+
+    // A repeated run of a single byte value at start_address. This is set
+    // only when repeating == true.
+    ByteRun byte_run;
+  } data;
+};
+
+// Describes a single contiguous page-aligned memory mapping.
+// Linker-initialized equivalent of Snapshot::MemoryMapping.
+struct SnapMemoryMapping {
+  // Returns true if memory mapping is writable.
+  bool writable() const { return (perms & PROT_WRITE) != 0; }
+
+  // Start address of region mapped.
+  uint64_t start_address;
+
+  // Byte size of region.
+  uint64_t num_bytes;
+
+  // Bit mask of memory protections. Same as those used in mprotect().
+  // This information is duplicated in MemoryBytes above.
+  int32_t perms;
+
+  // The memory state that exists at the start of the snapshot for this
+  // mapping. This is Snapshot::memory_bytes(), but split and associated with
+  // the mapping that contains the bytes.
+  SnapArray<SnapMemoryBytes> memory_bytes;
+};
+
+// A simplified snapshot representation.
+struct Snap {
   // Describe register state of a Snapshot. This is stored in UContext/
   // and can be used directly as the context for running a Snap without any
   // conversion or copying.
   using RegisterState = UContext<Host>;
-
-  // Describes a single contiguous range of byte values in memory.
-  // This is a linker-initialized equivalent of Snapshot::MemoryBytes
-  struct MemoryBytes {
-    // Flags
-    enum {
-      kRepeating = 1 << 0,  // If set, memory bytes are repeating. This
-                            // determines how data below are interpreted.
-    };
-
-    // If memory bytes are all the same value, they are stored as
-    // a run of single value.
-    struct ByteRun {
-      uint8_t value;  // repeated value
-      size_t size;    // number of bytes in run.
-    };
-
-    // Tells if memory bytes are repeating.
-    bool repeating() const { return (flags & kRepeating) != 0; }
-
-    // Returns byte size of the memory bytes.
-    size_t size() const {
-      return repeating() ? data.byte_run.size : data.byte_values.size;
-    }
-
-    // Where `byte_values` start.
-    uint64_t start_address;
-
-    // Flags
-    uint8_t flags = 0;
-
-    union {
-      // The memory byte values to exist at start_address. This is set only when
-      // repeating == false.
-      Array<uint8_t> byte_values;
-
-      // A repeated run of a single byte value at start_address. This is set
-      // only when repeating == true.
-      ByteRun byte_run;
-    } data;
-  };
-
-  // Describes a single contiguous page-aligned memory mapping.
-  // Linker-initialized equivalent of Snapshot::MemoryMapping.
-  struct MemoryMapping {
-    // Returns true if memory mapping is writable.
-    bool writable() const { return (perms & PROT_WRITE) != 0; }
-
-    // Start address of region mapped.
-    uint64_t start_address;
-
-    // Byte size of region.
-    uint64_t num_bytes;
-
-    // Bit mask of memory protections. Same as those used in mprotect().
-    // This information is duplicated in MemoryBytes above.
-    int32_t perms;
-
-    // The memory state that exists at the start of the snapshot for this
-    // mapping. This is Snapshot::memory_bytes(), but split and associated with
-    // the mapping that contains the bytes.
-    Array<MemoryBytes> memory_bytes;
-  };
 
   // Identifier for this snapshot.
   const char* id;
@@ -134,7 +134,7 @@ struct Snap {
   // All the memory mappings that exist at the start of the snapshot.
   // See Snapshot::memory_mappings().
   // We do not support negative memory mappings for now.
-  Array<MemoryMapping> memory_mappings;
+  SnapArray<SnapMemoryMapping> memory_mappings;
 
   // The state of the registers at the start of the snapshot.
   RegisterState* registers;
@@ -155,7 +155,7 @@ struct Snap {
   //
   // TODO(dougkwan): [as-needed] We may support other modes of memory checking
   // like just checking only the memory that a snapshot changes.
-  Array<MemoryBytes> end_state_memory_bytes;
+  SnapArray<SnapMemoryBytes> end_state_memory_bytes;
 };
 
 namespace snap_internal {
@@ -197,7 +197,7 @@ struct SnapCorpus {
   uint8_t padding[3];
 
   // The corpus data.
-  Snap::Array<const Snap*> snaps;
+  SnapArray<const Snap*> snaps;
 
   template <typename Arch>
   bool IsArch() const {

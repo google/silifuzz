@@ -27,8 +27,8 @@ namespace silifuzz {
 
 namespace {
 
-// Creates a Snapshot::ByteData from a Snap::MemoryBytes `memory_bytes`.
-Snapshot::ByteData SnapMemoryBytesData(const Snap::MemoryBytes& memory_bytes) {
+// Creates a Snapshot::ByteData from a SnapMemoryBytes `memory_bytes`.
+Snapshot::ByteData SnapMemoryBytesData(const SnapMemoryBytes& memory_bytes) {
   if (memory_bytes.repeating()) {
     return Snapshot::ByteData(memory_bytes.size(),
                               memory_bytes.data.byte_run.value);
@@ -43,13 +43,13 @@ Snapshot::ByteData SnapMemoryBytesData(const Snap::MemoryBytes& memory_bytes) {
 
 absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
   Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Host>(), snap.id);
-  for (const Snap::MemoryMapping& m : snap.memory_mappings) {
+  for (const SnapMemoryMapping& m : snap.memory_mappings) {
     RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(m.start_address, m.num_bytes));
     MemoryMapping mapping = MemoryMapping::MakeSized(
         m.start_address, m.num_bytes, MemoryPerms::FromMProtect(m.perms));
     RETURN_IF_NOT_OK(snapshot.can_add_memory_mapping(mapping));
     snapshot.add_memory_mapping(mapping);
-    for (const Snap::MemoryBytes& snap_mb : m.memory_bytes) {
+    for (const SnapMemoryBytes& snap_mb : m.memory_bytes) {
       Snapshot::ByteData data = SnapMemoryBytesData(snap_mb);
       Snapshot::MemoryBytes mb = {snap_mb.start_address, data};
       RETURN_IF_NOT_OK(snapshot.can_add_memory_bytes(mb));
@@ -64,7 +64,7 @@ absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
       Snapshot::Endpoint(snap.end_state_instruction_address),
       ConvertRegsToSnapshot(snap.end_state_registers->gregs,
                             snap.end_state_registers->fpregs));
-  for (const Snap::MemoryBytes& snap_mb : snap.end_state_memory_bytes) {
+  for (const SnapMemoryBytes& snap_mb : snap.end_state_memory_bytes) {
     Snapshot::ByteData data = SnapMemoryBytesData(snap_mb);
     Snapshot::MemoryBytes mb = {snap_mb.start_address, data};
     RETURN_IF_NOT_OK(es.can_add_memory_bytes(mb));

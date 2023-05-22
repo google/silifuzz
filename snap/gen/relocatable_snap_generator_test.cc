@@ -171,7 +171,7 @@ TEST(RelocatableSnapGenerator, SupportDirectMMap) {
     if (memory_mapping.perms & PROT_EXEC) {
       found = true;
       ASSERT_EQ(memory_mapping.memory_bytes.size, 1);
-      const Snap::MemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
+      const SnapMemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
       ASSERT_FALSE(memory_bytes.repeating());
       EXPECT_EQ(
           reinterpret_cast<uintptr_t>(memory_bytes.data.byte_values.elements) %

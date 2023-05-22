@@ -67,7 +67,7 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
   // must 1) completely lie inside [start, limit) and 2) is not writable.
   auto validate_memory_bytes_list =
       [](Snapshot::Address start, Snapshot::Address limit,
-         const Snap::Array<Snap::MemoryBytes>& memory_bytes_list) {
+         const SnapArray<SnapMemoryBytes>& memory_bytes_list) {
         for (const auto& memory_bytes : memory_bytes_list) {
           const Snapshot::Address memory_bytes_limit =
               memory_bytes.start_address + memory_bytes.size();

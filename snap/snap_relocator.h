@@ -78,21 +78,21 @@ class SnapRelocator {
   template <typename T>
   Error AdjustPointer(T*&);
 
-  // Similar to AdjustPointer() but for Snap::Array<T>.
+  // Similar to AdjustPointer() but for SnapArray<T>.
   // Adjusts array.elements if array.size>0 otherwise sets array.elements to
   // nullptr.
   //
   // RETURNS: whether adjustment succeeded. If adjustment failed, contents of
   // `array` are undefined.
   template <typename T>
-  Error AdjustArray(Snap::Array<T>& array);
+  Error AdjustArray(SnapArray<T>& array);
 
-  // Relocates a Snap::Array<MemoryBytes>.
+  // Relocates a SnapArray<SnapMemoryBytes>.
   //
   // RETURNS: whether relocation succeeded. If it failed, contents of
   // `memory_byte_array` are undefined.
   Error RelocateMemoryBytesArray(
-      Snap::Array<Snap::MemoryBytes>& memory_bytes_array);
+      SnapArray<SnapMemoryBytes>& memory_bytes_array);
 
   // Relocates corpus by adjusting all pointers inside the corpus.
   // REQUIRES: Only called once.

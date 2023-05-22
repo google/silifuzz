@@ -114,12 +114,12 @@ class Traversal {
 
  private:
   // Processes the data contained in `memory_bytes` for `pass`. Allocates a ref
-  // element bytes of the generated Snap::ByteData. Returns element ref.
+  // element bytes of the generated SnapByteData. Returns element ref.
   RelocatableDataBlock::Ref ProcessMemoryBytes(
       PassType pass, const Snapshot::MemoryBytes& memory_bytes);
 
   // Processes `memory_mappings` for `pass`. Allocates a ref for the
-  // elements of the Snap::MemoryMapping array and returns it.
+  // elements of the SnapMemoryMapping array and returns it.
   RelocatableDataBlock::Ref ProcessMemoryMappings(
       PassType pass, const Snapshot::MemoryMappingList& memory_mappings,
       const BorrowedMappingBytesList& bytes_per_mapping);
@@ -139,7 +139,7 @@ class Traversal {
   // Processes a Snapshot::MemoryBytesList object `memory_bytes_list` for
   // `pass`. `mapped_memory_map` contains information of all memory mappings
   // in the source Snapshot. This allocates a ref the elements of the
-  // Snap::MemoryBytes array and returns it.
+  // SnapMemoryBytes array and returns it.
   RelocatableDataBlock::Ref ProcessMemoryBytesList(
       PassType pass, const BorrowedMemoryBytesList& memory_bytes_list);
 
@@ -248,19 +248,19 @@ void Traversal::ProcessMemoryMapping(
       ProcessMemoryBytesList(pass, memory_bytes_list);
 
   if (pass == PassType::kGeneration) {
-    new (memory_mapping_ref.contents_as_pointer_of<Snap::MemoryMapping>())
-        Snap::MemoryMapping{
-            .start_address = memory_mapping.start_address(),
-            .num_bytes = memory_mapping.num_bytes(),
-            .perms = memory_mapping.perms().ToMProtect(),
-            .memory_bytes =
-                {
-                    .size = memory_bytes_list.size(),
-                    .elements =
-                        memory_bytes_elements_ref.load_address_as_pointer_of<
-                            const Snap::MemoryBytes>(),
-                },
-        };
+    new (memory_mapping_ref
+             .contents_as_pointer_of<SnapMemoryMapping>()) SnapMemoryMapping{
+        .start_address = memory_mapping.start_address(),
+        .num_bytes = memory_mapping.num_bytes(),
+        .perms = memory_mapping.perms().ToMProtect(),
+        .memory_bytes =
+            {
+                .size = memory_bytes_list.size(),
+                .elements =
+                    memory_bytes_elements_ref
+                        .load_address_as_pointer_of<const SnapMemoryBytes>(),
+            },
+    };
   }
 }
 
@@ -269,7 +269,7 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryMappings(
     const BorrowedMappingBytesList& bytes_per_mapping) {
   // Allocate space for elements of SnapArray<MemoryMapping>.
   const RelocatableDataBlock::Ref snap_memory_mappings_array_elements_ref =
-      memory_mapping_block_.AllocateObjectsOfType<Snap::MemoryMapping>(
+      memory_mapping_block_.AllocateObjectsOfType<SnapMemoryMapping>(
           memory_mappings.size());
 
   RelocatableDataBlock::Ref memory_mapping_ref =
@@ -277,7 +277,7 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryMappings(
   for (size_t i = 0; i < memory_mappings.size(); ++i) {
     ProcessMemoryMapping(pass, memory_mappings[i], bytes_per_mapping[i],
                          memory_mapping_ref);
-    memory_mapping_ref += sizeof(Snap::MemoryMapping);
+    memory_mapping_ref += sizeof(SnapMemoryMapping);
   }
 
   return snap_memory_mappings_array_elements_ref;
@@ -297,18 +297,18 @@ void Traversal::ProcessAllocated(PassType pass,
   if (pass == PassType::kGeneration) {
     // Construct MemoryBytes in contents buffer.
     if (compress_repeating_bytes) {
-      new (memory_bytes_ref.contents_as_pointer_of<Snap::MemoryBytes>())
-          Snap::MemoryBytes{
+      new (memory_bytes_ref.contents_as_pointer_of<SnapMemoryBytes>())
+          SnapMemoryBytes{
               .start_address = memory_bytes.start_address(),
-              .flags = Snap::MemoryBytes::kRepeating,
+              .flags = SnapMemoryBytes::kRepeating,
               .data{.byte_run{
                   .value = memory_bytes.byte_values()[0],
                   .size = memory_bytes.num_bytes(),
               }},
           };
     } else {
-      new (memory_bytes_ref.contents_as_pointer_of<Snap::MemoryBytes>())
-          Snap::MemoryBytes{
+      new (memory_bytes_ref.contents_as_pointer_of<SnapMemoryBytes>())
+          SnapMemoryBytes{
               .start_address = memory_bytes.start_address(),
               .flags = 0,
               .data{.byte_values{
@@ -325,13 +325,13 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryBytesList(
     PassType pass, const BorrowedMemoryBytesList& memory_bytes_list) {
   // Allocate space for elements of SnapArray<MemoryBytes>.
   const RelocatableDataBlock::Ref ref =
-      memory_bytes_block_.AllocateObjectsOfType<Snap::MemoryBytes>(
+      memory_bytes_block_.AllocateObjectsOfType<SnapMemoryBytes>(
           memory_bytes_list.size());
 
   RelocatableDataBlock::Ref snap_memory_bytes_ref = ref;
   for (const auto& memory_bytes : memory_bytes_list) {
     ProcessAllocated(pass, *memory_bytes, snap_memory_bytes_ref);
-    snap_memory_bytes_ref += sizeof(Snap::MemoryBytes);
+    snap_memory_bytes_ref += sizeof(SnapMemoryBytes);
   }
   return ref;
 }
@@ -373,7 +373,7 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
             .size = snapshot.memory_mappings().size(),
             .elements =
                 memory_mappings_elements_ref
-                    .load_address_as_pointer_of<const Snap::MemoryMapping>(),
+                    .load_address_as_pointer_of<const SnapMemoryMapping>(),
         },
         .registers =
             registers_ref.load_address_as_pointer_of<Snap::RegisterState>(),
@@ -386,7 +386,7 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
             .size = end_state.memory_bytes().size(),
             .elements =
                 end_state_memory_bytes_elements_ref
-                    .load_address_as_pointer_of<const Snap::MemoryBytes>(),
+                    .load_address_as_pointer_of<const SnapMemoryBytes>(),
         },
     };
     SetRegisterState(
@@ -403,8 +403,8 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
 
 void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   // For compatiblity with an older Silifuzz version, we use a corpus containing
-  // Snap::Array<const Snap*>.  We can get rid of the redirection when we
-  // change the runner to take Snap::Array<Snap> later.
+  // SnapArray<const Snap*>.  We can get rid of the redirection when we
+  // change the runner to take SnapArray<Snap> later.
 
   RelocatableDataBlock::Ref corpus_ref =
       snap_block_.AllocateObjectsOfType<SnapCorpus>(1);

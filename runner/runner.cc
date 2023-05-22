@@ -146,7 +146,7 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
 }
 
 // Returns true iff current memory contents match memory byte data.
-bool VerifyMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
+bool VerifyMemoryBytes(const SnapMemoryBytes& memory_bytes) {
   const void* address = AsPtr(memory_bytes.start_address);
   const size_t size = memory_bytes.size();
   return memory_bytes.repeating()
@@ -155,7 +155,7 @@ bool VerifyMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
 }
 
 // Copies memory bytes from Snap to runtime address.
-void SetupMemoryBytes(const Snap::MemoryBytes& memory_bytes) {
+void SetupMemoryBytes(const SnapMemoryBytes& memory_bytes) {
   void* target_address = AsPtr(memory_bytes.start_address);
   if (memory_bytes.repeating()) {
     MemSet(target_address, memory_bytes.data.byte_run.value,
@@ -178,7 +178,7 @@ void CheckFixedMmapOK(void* mapped_address, void* target_address) {
 }
 
 // Can this memory mapping be mapped directly from the backing file?
-bool CanDirectMap(const Snap::MemoryMapping& memory_mapping) {
+bool CanDirectMap(const SnapMemoryMapping& memory_mapping) {
   // We could support mmapping writeable pages with COW, but that's not a
   // feature we need right now and it makes the code a little more complicated.
   if ((memory_mapping.perms & PROT_WRITE) != 0) {
@@ -188,7 +188,7 @@ bool CanDirectMap(const Snap::MemoryMapping& memory_mapping) {
   if (memory_mapping.memory_bytes.size != 1) {
     return false;
   }
-  const Snap::MemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
+  const SnapMemoryBytes& memory_bytes = memory_mapping.memory_bytes[0];
   // The bytes must be uncompressed.
   if (memory_bytes.repeating()) {
     return false;
@@ -251,8 +251,8 @@ void InstallSigHandler() {
   }
 }
 
-void CreateMemoryMapping(const Snap::MemoryMapping& memory_mapping,
-                         int corpus_fd, const void* corpus_mapping) {
+void CreateMemoryMapping(const SnapMemoryMapping& memory_mapping, int corpus_fd,
+                         const void* corpus_mapping) {
   const uint64_t start_address = memory_mapping.start_address;
   VLOG_INFO(2, "Mapping ", HexStr(start_address));
 
