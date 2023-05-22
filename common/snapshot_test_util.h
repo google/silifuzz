@@ -42,17 +42,17 @@ class CreateTestSnapshotOptions {
 
 // Not every test snapshot exists for every architecture.
 // Check if this test snapshot exists for this architecture.
-template <typename Arch = Host>
+template <typename Arch>
 bool TestSnapshotExists(TestSnapshot type);
 
 // Creates a minimal snapshot for testing on the current architecture.
-template <typename Arch = Host>
+template <typename Arch>
 Snapshot CreateTestSnapshot(
     TestSnapshot type,
     CreateTestSnapshotOptions options = CreateTestSnapshotOptions::Default());
 
 // Like Create() but returns the snapshot as a proto.
-template <typename Arch = Host>
+template <typename Arch>
 proto::Snapshot CreateTestSnapshotProto(
     TestSnapshot type,
     CreateTestSnapshotOptions options = CreateTestSnapshotOptions::Default());

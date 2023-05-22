@@ -34,26 +34,27 @@ using ::testing::IsEmpty;
 
 TEST(SnapMaker, AsExpected) {
   auto endsAsExpectedSnap =
-      MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   ASSERT_OK(FixSnapshotInTest(endsAsExpectedSnap));
 }
 
 TEST(SnapMaker, MemoryMismatchSnap) {
   auto memoryMismatchSnap =
-      MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
   ASSERT_OK(FixSnapshotInTest(memoryMismatchSnap));
 }
 
 TEST(SnapMaker, RandomRegsMismatch) {
   auto regsMismatchRandomSnap =
-      MakeSnapRunnerTestSnapshot(TestSnapshot::kRegsMismatchRandom);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kRegsMismatchRandom);
   auto result_or = FixSnapshotInTest(regsMismatchRandomSnap);
   ASSERT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("non-deterministic")));
 }
 
 TEST(SnapMaker, SigSegvRead) {
-  auto sigSegvReadSnap = MakeSnapRunnerTestSnapshot(TestSnapshot::kSigSegvRead);
+  auto sigSegvReadSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvRead);
   ASSERT_OK_AND_ASSIGN(auto result, FixSnapshotInTest(sigSegvReadSnap));
   ASSERT_EQ(result.memory_mappings().size(),
             sigSegvReadSnap.memory_mappings().size() + 1)
@@ -63,7 +64,7 @@ TEST(SnapMaker, SigSegvRead) {
 
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
-      MakeSnapRunnerTestSnapshot(TestSnapshot::kMemoryMismatch);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
   ASSERT_OK_AND_ASSIGN(auto result, FixSnapshotInTest(memoryMismatchSnap));
   ASSERT_OK_AND_ASSIGN(auto result2, FixSnapshotInTest(result));
   ASSERT_EQ(result2, result);
@@ -75,7 +76,7 @@ TEST(SnapMaker, SplitLock) {
 #endif
 
   const auto splitLockSnap =
-      MakeSnapRunnerTestSnapshot(TestSnapshot::kSplitLock);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSplitLock);
   SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
   options.x86_filter_split_lock = false;
   ASSERT_OK(FixSnapshotInTest(splitLockSnap, options));

@@ -65,7 +65,7 @@ TEST(SnapRunnerUtil, BasicTest) {
 
   // Initialize execution context using current register state.
   // This way TLS stays valid during the test.
-  UContext execution_context;
+  UContext<Host> execution_context;
   SaveUContextNoSyscalls(&execution_context);
 
   // Initialize the general purpose registers with a pattern.

@@ -41,7 +41,7 @@ TEST(SnapCorpusUtilTest, LoadCorpusFromFile) {
   std::vector<Snapshot> snapified_corpus;
   {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+        MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
     SnapifyOptions opts =
         SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));

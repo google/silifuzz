@@ -47,7 +47,7 @@ namespace {
 using silifuzz::testing::StatusIs;
 
 TEST(SnapGenerator, BasicSnapGeneratorTest) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
@@ -56,7 +56,7 @@ TEST(SnapGenerator, BasicSnapGeneratorTest) {
 }
 
 TEST(SnapGenerator, MemoryBytesAttributesTest) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kMemoryBytesPermsTest);
   const Snap& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
@@ -100,7 +100,7 @@ TEST(SnapGenerator, MemoryBytesAttributesTest) {
 }
 
 TEST(SnapGenerator, Snapify) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   ASSERT_OK_AND_ASSIGN(const Snapshot snapified,
                        Snapify(snapshot, SnapifyOptions::V2InputRunOpts(
@@ -147,7 +147,7 @@ TEST(SnapGenerator, Snapify) {
 }
 
 TEST(SnapGenerator, SnapifyIdempotent) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
 
   SnapifyOptions opts =
@@ -158,7 +158,7 @@ TEST(SnapGenerator, SnapifyIdempotent) {
 }
 
 TEST(SnapGenerator, SnapifyMerge) {
-  Snapshot original = MakeSnapGeneratorTestSnapshot(
+  Snapshot original = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
 
   // Arbitrary address that shouldn't collide with the test snapshot.
@@ -202,7 +202,7 @@ TEST(SnapGenerator, SnapifyMerge) {
 }
 
 TEST(SnapGenerator, CanSnapify) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot(
+  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
   snapshot.set_expected_end_states({});
   SnapifyOptions opts =

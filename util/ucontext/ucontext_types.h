@@ -187,16 +187,13 @@ inline bool operator!=(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
 // * We guarantee alignment of 16 for FPRegSet field, so that
 //   our context saving/restoring implementations can easily use the fxsave and
 //   fxrstor instructions that require this alignment.
-template <typename T = Host>
+template <typename T>
 struct UContext {
   FPRegSet<T> fpregs;
   GRegSet<T> gregs;
 
   using Arch = T;
 };
-
-// Required to satisfy -Wctad-maybe-unsupported
-UContext()->UContext<Host>;
 
 #define ARCH_OF(var) typename decltype(var)::Arch
 

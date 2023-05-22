@@ -65,7 +65,7 @@ TEST(SnapRunnerUtil, BasicTest) {
   CHECK_NE(stack_page, MAP_FAILED);
 
   // Initialize execution context using current register state.
-  UContext execution_context;
+  UContext<Host> execution_context;
   SaveUContextNoSyscalls(&execution_context);
   execution_context.gregs.rip = reinterpret_cast<uint64_t>(code_page);
   execution_context.gregs.rsp =

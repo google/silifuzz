@@ -86,7 +86,7 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
   std::vector<Snapshot> corpus;
   {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+        MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
     SnapifyOptions snapify_options =
         SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
     ASSERT_OK_AND_ASSIGN(Snapshot snapified,
@@ -106,7 +106,7 @@ TEST(RelocatableSnapGenerator, SupportDirectMMap) {
   std::vector<Snapshot> rle_corpus;
   {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+        MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
 
     SnapifyOptions snapify_options =
         SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
@@ -124,7 +124,7 @@ TEST(RelocatableSnapGenerator, SupportDirectMMap) {
   std::vector<Snapshot> mmap_corpus;
   {
     Snapshot snapshot =
-        MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+        MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
 
     SnapifyOptions snapify_options =
         SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
@@ -191,10 +191,10 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
   for (int index = 0; index < static_cast<int>(TestSnapshot::kNumTestSnapshot);
        ++index) {
     TestSnapshot type = static_cast<TestSnapshot>(index);
-    if (!TestSnapshotExists(type)) {
+    if (!TestSnapshotExists<Host>(type)) {
       continue;
     }
-    Snapshot snapshot = MakeSnapRunnerTestSnapshot(type);
+    Snapshot snapshot = MakeSnapRunnerTestSnapshot<Host>(type);
     ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
@@ -213,7 +213,7 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
 
 // Test that duplicated byte data are merged to a single copy.
 TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
-  Snapshot snapshot = CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
+  Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
 
   const size_t page_size = getpagesize();
   Snapshot::ByteData test_byte_data("This is a test");

@@ -108,7 +108,7 @@ const SnapshotGroup::SnapshotSummaryList& TestSummaries() {
 }
 
 TEST(SnapshotSummary, ConstructFromSnapshot) {
-  Snapshot snapshot = CreateTestSnapshot(TestSnapshot::kEndsAsExpected);
+  Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   SnapshotGroup::SnapshotSummary memory_summary(snapshot);
   EXPECT_EQ(memory_summary.id(), snapshot.id());
   EXPECT_EQ(memory_summary.memory_mappings(), snapshot.memory_mappings());

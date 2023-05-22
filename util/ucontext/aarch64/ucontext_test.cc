@@ -86,7 +86,7 @@ __uint128_t fpreg_pattern(int i) {
 }
 
 TEST(UContextTest, Accessors) {
-  UContext uc;
+  UContext<Host> uc;
   memset(&uc, 0xf0, sizeof(uc));
 
   constexpr uint64_t kInstructionPointer = 0x0123456789abcdef;
@@ -102,7 +102,7 @@ TEST(UContextTest, Accessors) {
 }
 
 TEST(UContextTest, Consistency) {
-  UContext uc1, uc2;
+  UContext<Host> uc1, uc2;
 
   // On calls between libraries, the dynamic linker can smash x9-x17 because
   // they are neither function arguments nor callee saved.
@@ -223,14 +223,14 @@ TEST(UContextTest, Consistency) {
 }
 
 TEST(UContextTest, FlagsZero) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, 0, 0);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, Z);
 }
 
 TEST(UContextTest, FlagsOne) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, 1, 1);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
@@ -238,7 +238,7 @@ TEST(UContextTest, FlagsOne) {
 }
 
 TEST(UContextTest, FlagsNegative) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, ~0, 0);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
@@ -246,7 +246,7 @@ TEST(UContextTest, FlagsNegative) {
 }
 
 TEST(UContextTest, FlagsCancel) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, ~0, 1);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
@@ -254,7 +254,7 @@ TEST(UContextTest, FlagsCancel) {
 }
 
 TEST(UContextTest, SignOverflow) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, 0x7fffffff, 1);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
@@ -262,7 +262,7 @@ TEST(UContextTest, SignOverflow) {
 }
 
 TEST(UContextTest, Underflow) {
-  UContext uc;
+  UContext<Host> uc;
   NCZVSaveUContext(&uc, 0xc0000000, 0x80000000);
   ZeroOutRegsPadding(&uc);
   EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
@@ -275,7 +275,7 @@ extern "C" void SaveThenRestore(UContext<AArch64>* save,
 TEST(UContextTest, SetJmpLongJmp) {
   // Use SaveUContext/RestoreUContext similar to setjmp/longjmp.
   // This is the simplest smoke test we can do.
-  UContext saved, restored;
+  UContext<Host> saved, restored;
 
   // Volatile to prevent it from being promoted to a register, which would turn
   // this code into an infinite loop.
@@ -369,7 +369,7 @@ TEST(UContextTest, SaveThenRestore) {
   // `expected` is the context we construct and jump to.
   // `actual` is the context we save inside the ASM code.
   // `reentry` is the state after returning to C code.
-  UContext saved, expected, actual, reentry;
+  UContext<Host> saved, expected, actual, reentry;
 
   // We run this test twice so we can validate the stack usage.
   for (int run_num = 0; run_num < 2; run_num++) {

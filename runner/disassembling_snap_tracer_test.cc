@@ -53,7 +53,8 @@ auto Insn(absl::string_view x) { return ::testing::HasSubstr(x); }
 
 TEST(DisassemblingSnapTracer, TraceAsExpected) {
   RunnerDriver driver = HelperDriver();
-  auto snapshot = MakeSnapRunnerTestSnapshot(TestSnapshot::kEndsAsExpected);
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
   ASSERT_OK_AND_ASSIGN(
       auto result,
@@ -70,7 +71,7 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
 
 TEST(DisassemblingSnapTracer, TraceSigill) {
   RunnerDriver driver = HelperDriver();
-  auto snapshot = MakeSnapRunnerTestSnapshot(TestSnapshot::kSigIll);
+  auto snapshot = MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigIll);
   DisassemblingSnapTracer tracer(snapshot);
   ASSERT_OK_AND_ASSIGN(
       auto result,
@@ -84,7 +85,8 @@ TEST(DisassemblingSnapTracer, TraceSigill) {
 
 TEST(DisassemblingSnapTracer, TraceNonDeterministic) {
   RunnerDriver driver = HelperDriver();
-  auto snapshot = MakeSnapRunnerTestSnapshot(TestSnapshot::kRegsMismatchRandom);
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kRegsMismatchRandom);
   DisassemblingSnapTracer tracer(snapshot);
   auto result = driver.TraceOne(
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
@@ -97,7 +99,7 @@ TEST(DisassemblingSnapTracer, TraceNonDeterministic) {
 TEST(DisassemblingSnapTracer, TraceSplitLock) {
   // Trace split-lock snapshot without split-lock trapping.
   RunnerDriver driver = HelperDriver();
-  auto snapshot = MakeSnapRunnerTestSnapshot(TestSnapshot::kSplitLock);
+  auto snapshot = MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSplitLock);
   TraceOptions options = TraceOptions::Default();
   options.x86_trap_on_split_lock = false;
   DisassemblingSnapTracer tracer(snapshot, options);
