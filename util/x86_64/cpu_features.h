@@ -30,6 +30,7 @@ enum class X86CPUFeatures {
   kAVX512F,  // for accessing zmm and lower 16 bits of opmask registers.
   kOSXSAVE,  // OS provides processor extended state management.
   kSSE,      // for accessing SSE registers.
+  kSSE4_2,   // for CRC32 instructions.
   kXSAVE,    // CPU support XSAVE and related instructions.
   kEnd,      // One past the last valid value.
 };

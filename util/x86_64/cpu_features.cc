@@ -40,6 +40,11 @@ uint64_t GetX86CPUFeatures() {
   X86CPUIDResult cpuid_result;
   X86CPUID(1, &cpuid_result);
 
+  // CPUID.0x1:ECX.XSAVE[bit 20]
+  if (IsBitSet(cpuid_result.ecx, 20)) {
+    features |= X86CPUFeatureBitmask(X86CPUFeatures::kSSE4_2);
+  }
+
   // CPUID.0x1:ECX.XSAVE[bit 26]
   if (IsBitSet(cpuid_result.ecx, 26)) {
     features |= X86CPUFeatureBitmask(X86CPUFeatures::kXSAVE);

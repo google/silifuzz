@@ -64,6 +64,7 @@ TEST(CPUFeatures, VerifyAgainstCPUInfo) {
   verify_features(X86CPUFeatures::kAVX512BW, "avx512bw");
   verify_features(X86CPUFeatures::kAVX512F, "avx512f");
   verify_features(X86CPUFeatures::kSSE, "sse");
+  verify_features(X86CPUFeatures::kSSE, "sse4_2");
   verify_features(X86CPUFeatures::kXSAVE, "xsave");
 }
 
