@@ -73,7 +73,8 @@ TEST(RunnerDriver, BasicTrace) {
   auto cb = [&hit_initial_snap_rip, &endAsExpectedSnap](
                 pid_t pid, const user_regs_struct& regs,
                 HarnessTracer::CallbackReason reason) {
-    if (regs.rip == endAsExpectedSnap.registers->gregs.rip) {
+    if (GetInstructionPointer(regs) ==
+        endAsExpectedSnap.registers->gregs.GetInstructionPointer()) {
       hit_initial_snap_rip = true;
       return HarnessTracer::kStopTracing;
     }

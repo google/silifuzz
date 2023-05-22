@@ -198,7 +198,7 @@ TEST(SignalTest, UnmappedRead) {
   GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedRead));
 }
 
@@ -230,7 +230,7 @@ TEST(SignalTest, UnmappedWrite) {
   GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedWrite));
 }
 
@@ -260,7 +260,7 @@ TEST(SignalTest, IllegalInstruction) {
   GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(IllegalInstruction));
 }
 
@@ -291,7 +291,7 @@ TEST(SignalTest, PrivilegedInstruction) {
   GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // One instruction's worth of setup before the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(PrivilegedInstruction) + 5);
 }
 
@@ -322,7 +322,7 @@ TEST(SignalTest, DebugInstruction) {
   GRegSet<X86_64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points _after_ the trap instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(DebugInstruction) + 1);
 }
 

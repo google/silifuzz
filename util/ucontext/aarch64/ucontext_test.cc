@@ -91,13 +91,13 @@ TEST(UContextTest, Accessors) {
 
   constexpr uint64_t kInstructionPointer = 0x0123456789abcdef;
   constexpr uint64_t kStackPointer = 0xfedcba9876543210;
-  SetInstructionPointer(uc.gregs, kInstructionPointer);
-  SetStackPointer(uc.gregs, kStackPointer);
+  uc.gregs.SetInstructionPointer(kInstructionPointer);
+  uc.gregs.SetStackPointer(kStackPointer);
 
-  EXPECT_EQ(GetInstructionPointer(uc.gregs), kInstructionPointer);
+  EXPECT_EQ(uc.gregs.GetInstructionPointer(), kInstructionPointer);
   EXPECT_EQ(uc.gregs.pc, kInstructionPointer);
 
-  EXPECT_EQ(GetStackPointer(uc.gregs), kStackPointer);
+  EXPECT_EQ(uc.gregs.GetStackPointer(), kStackPointer);
   EXPECT_EQ(uc.gregs.sp, kStackPointer);
 }
 
@@ -172,8 +172,8 @@ TEST(UContextTest, Consistency) {
   EXPECT_EQ(uc2.gregs.x[30], uc2.gregs.pc);
 
   // Make sure the accessor function works.
-  EXPECT_EQ(GetInstructionPointer(uc1.gregs), uc1.gregs.pc);
-  EXPECT_EQ(GetInstructionPointer(uc2.gregs), uc2.gregs.pc);
+  EXPECT_EQ(uc1.gregs.GetInstructionPointer(), uc1.gregs.pc);
+  EXPECT_EQ(uc2.gregs.GetInstructionPointer(), uc2.gregs.pc);
 
   // Check that pstate seems reasonable.
   EXPECT_EQ(uc1.gregs.pstate, uc2.gregs.pstate);

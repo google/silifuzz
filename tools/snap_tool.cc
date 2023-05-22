@@ -310,7 +310,7 @@ absl::StatusOr<Snapshot> SetInstructionPointerImpl(const Snapshot& snapshot,
   if (!DeserializeGRegs(current_regs.gregs(), &gregs)) {
     return absl::InvalidArgumentError("Failed to deserialize gregs");
   }
-  SetInstructionPointer(gregs, pc);
+  gregs.SetInstructionPointer(pc);
   std::string serialized_gregs;
   if (!SerializeGRegs(gregs, &serialized_gregs)) {
     return absl::InternalError("Failed to serialize gregs");

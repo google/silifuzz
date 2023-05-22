@@ -98,7 +98,7 @@ TEST(RunnerTest, SigSegvSnap) {
   // The two magic addresses are snapshot-dependent but should be stable.
   // See TestSnapshots::Create() for the actual code sequence.
   const uint64_t start_address =
-      GetInstructionPointer(sigSegvReadSnap.registers->gregs);
+      sigSegvReadSnap.registers->gregs.GetInstructionPointer();
   EXPECT_EQ(ep.sig_instruction_address(), start_address + 4);
   EXPECT_EQ(ep.sig_address(), 0x1000000);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigSegv);
@@ -121,7 +121,7 @@ TEST(RunnerTest, BreakpointSnap) {
   const snapshot_types::Endpoint& ep =
       result.player_result().actual_end_state->endpoint();
   const uint64_t start_address =
-      GetInstructionPointer(breakpointSnap.registers->gregs);
+      breakpointSnap.registers->gregs.GetInstructionPointer();
   EXPECT_EQ(ep.sig_instruction_address(), start_address);
   // The docs say that si_addr should be set for SIGTRAP, but emperically
   // speaking it is not set on x86_64.

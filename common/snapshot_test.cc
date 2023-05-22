@@ -56,8 +56,8 @@ Snapshot::RegisterState CreateRegState(Snapshot::Address instruction_pointer,
   memset(&gregs, 0, sizeof(gregs));
   memset(&fpregs, 0, sizeof(fpregs));
 
-  SetInstructionPointer(gregs, instruction_pointer);
-  SetStackPointer(gregs, stack_pointer);
+  gregs.SetInstructionPointer(instruction_pointer);
+  gregs.SetStackPointer(stack_pointer);
 
   return ConvertRegsToSnapshot(gregs, fpregs);
 }

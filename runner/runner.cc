@@ -480,7 +480,7 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
       // state.
       // See SnapGenerator::Options::allow_undefined_end_state for details.
       bool log_diff =
-          GetInstructionPointer(snap.end_state_registers->gregs) != 0;
+          snap.end_state_registers->gregs.GetInstructionPointer() != 0;
       LogGRegs(*run_result.end_spot.gregs, &snap.end_state_registers->gregs,
                log_diff);
       LOG_INFO("  fpregs (modified only):");

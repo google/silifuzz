@@ -98,24 +98,4 @@ bool CriticalUnrestoredRegistersAreSame(const GRegSet<X86_64>& actual,
   return actual.cs == expected.cs && actual.ss == expected.ss;
 }
 
-template <>
-uint64_t GetInstructionPointer(const GRegSet<X86_64>& gregs) {
-  return gregs.rip;
-}
-
-template <>
-void SetInstructionPointer(GRegSet<X86_64>& gregs, uint64_t value) {
-  gregs.rip = value;
-}
-
-template <>
-uint64_t GetStackPointer(const GRegSet<X86_64>& gregs) {
-  return gregs.rsp;
-}
-
-template <>
-void SetStackPointer(GRegSet<X86_64>& gregs, uint64_t value) {
-  gregs.rsp = value;
-}
-
 }  // namespace silifuzz

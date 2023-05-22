@@ -113,7 +113,7 @@ Snapshot::MemoryBytes RestoreUContextStackBytes(
   GRegSet<Arch> gregs;
   CHECK_STATUS(ConvertRegsFromSnapshot(registers, &gregs));
   std::string stack_data = RestoreUContextStackBytes<Arch>(gregs);
-  return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
+  return Snapshot::MemoryBytes(gregs.GetStackPointer() - stack_data.size(),
                                stack_data);
 }
 
@@ -124,7 +124,7 @@ Snapshot::MemoryBytes ExitSequenceStackBytes(
   CHECK_STATUS(ConvertRegsFromSnapshot(registers, &gregs));
   std::string stack_data(ExitSequenceStackBytesSize<Arch>(), 0);
   WriteExitSequenceStackBytes<Arch>(gregs, stack_data.data());
-  return Snapshot::MemoryBytes(GetStackPointer(gregs) - stack_data.size(),
+  return Snapshot::MemoryBytes(gregs.GetStackPointer() - stack_data.size(),
                                stack_data);
 }
 
@@ -236,7 +236,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
   if (options.force_normal_state || config.normal_end) {
     // Add a full end-state with supposedly matched register values:
     // expected value of rip when reaching `endpoint`
-    SetInstructionPointer(ucontext.gregs, endpoint.instruction_address());
+    ucontext.gregs.SetInstructionPointer(endpoint.instruction_address());
     Snapshot::RegisterState regs =
         ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     Snapshot::EndState end_state(endpoint, regs);

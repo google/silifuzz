@@ -565,7 +565,7 @@ absl::Status Snapshot::can_set_registers_impl(const Snapshot::RegisterState& x,
   // For EndState rsp and rip can be anything: their values going outside of the
   // mapped memory might be the reason for the SIGSEGV that is the end-state.
   if (is_end_state) return absl::OkStatus();
-  Address instruction_pointer = GetInstructionPointer(gregs);
+  Address instruction_pointer = gregs.GetInstructionPointer();
   absl::StatusOr<bool> s = IsExecutable(instruction_pointer, 1);
   RETURN_IF_NOT_OK(s.status());
   if (!*s) {
@@ -573,7 +573,7 @@ absl::Status Snapshot::can_set_registers_impl(const Snapshot::RegisterState& x,
         absl::StrCat("instruction pointer (0x", absl::Hex(instruction_pointer),
                      ") is not in an existing executable MemoryMapping"));
   }
-  Address stack_pointer = GetStackPointer(gregs);
+  Address stack_pointer = gregs.GetStackPointer();
   auto stack_bytes = required_stack_size();
   if (stack_pointer < stack_bytes ||
       mapped_memory_map_
@@ -867,7 +867,7 @@ Snapshot::Address Snapshot::ExtractRipImpl(const RegisterState& x) const {
   }
   GRegSet<Arch> gregs;
   CHECK(DeserializeGRegs(x.gregs(), &gregs));
-  return GetInstructionPointer(gregs);
+  return gregs.GetInstructionPointer();
 }
 
 Snapshot::Address Snapshot::ExtractRip(const RegisterState& x) const {
@@ -881,7 +881,7 @@ Snapshot::Address Snapshot::ExtractRspImpl(const RegisterState& x) const {
   }
   GRegSet<Arch> gregs;
   CHECK(DeserializeGRegs(x.gregs(), &gregs));
-  return GetStackPointer(gregs);
+  return gregs.GetStackPointer();
 }
 
 Snapshot::Address Snapshot::ExtractRsp(const RegisterState& x) const {

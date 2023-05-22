@@ -69,6 +69,14 @@ struct GRegSet<X86_64> {
   uint64_t gs_base;
 
   using Arch = X86_64;
+
+  uint64_t GetInstructionPointer() const { return rip; }
+
+  void SetInstructionPointer(uint64_t value) { rip = value; }
+
+  uint64_t GetStackPointer() const { return rsp; }
+
+  void SetStackPointer(uint64_t value) { rsp = value; }
 };
 
 template <>
@@ -81,6 +89,17 @@ struct GRegSet<AArch64> {
   uint64_t tpidrro;
 
   using Arch = AArch64;
+
+  // Note: aarch64 would call this the "program counter" but we're defaulting to
+  // x86_64 terminology when we need to make an arbitrary choice for an
+  // architecture-neutral name.
+  uint64_t GetInstructionPointer() const { return pc; }
+
+  void SetInstructionPointer(uint64_t value) { pc = value; }
+
+  uint64_t GetStackPointer() const { return sp; }
+
+  void SetStackPointer(uint64_t value) { sp = value; }
 };
 
 // Convenience equality on GRegSet (all bytes are compared).

@@ -28,7 +28,7 @@ using snapshot_types::SigCause;
 using snapshot_types::SigNum;
 
 std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
-  auto pc = GetInstructionPointer(*actual_endspot.gregs);
+  auto pc = actual_endspot.gregs->GetInstructionPointer();
   switch (actual_endspot.signum) {
     case 0:  // there was no signal.
       return Endpoint(pc);

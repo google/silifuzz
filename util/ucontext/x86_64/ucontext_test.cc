@@ -49,13 +49,13 @@ TEST(UContextTest, Accessors) {
 
   constexpr uint64_t kInstructionPointer = 0x0123456789abcdef;
   constexpr uint64_t kStackPointer = 0xfedcba9876543210;
-  SetInstructionPointer(uc.gregs, kInstructionPointer);
-  SetStackPointer(uc.gregs, kStackPointer);
+  uc.gregs.SetInstructionPointer(kInstructionPointer);
+  uc.gregs.SetStackPointer(kStackPointer);
 
-  EXPECT_EQ(GetInstructionPointer(uc.gregs), kInstructionPointer);
+  EXPECT_EQ(uc.gregs.GetInstructionPointer(), kInstructionPointer);
   EXPECT_EQ(uc.gregs.rip, kInstructionPointer);
 
-  EXPECT_EQ(GetStackPointer(uc.gregs), kStackPointer);
+  EXPECT_EQ(uc.gregs.GetStackPointer(), kStackPointer);
   EXPECT_EQ(uc.gregs.rsp, kStackPointer);
 }
 

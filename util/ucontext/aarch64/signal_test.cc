@@ -193,7 +193,7 @@ TEST(SignalTest, UnmappedRead) {
   // Check the fault is coming from the expected location.
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedRead));
 }
 
@@ -236,7 +236,7 @@ TEST(SignalTest, UnmappedWrite) {
   // Check the fault is coming from the expected location.
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedWrite));
 }
 
@@ -273,7 +273,8 @@ TEST(SignalTest, UnmappedExecute) {
   // Check the fault is coming from the expected location.
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  EXPECT_EQ(GetInstructionPointer(gregs), reinterpret_cast<uint64_t>(kBadAddr));
+  EXPECT_EQ(gregs.GetInstructionPointer(),
+            reinterpret_cast<uint64_t>(kBadAddr));
 }
 
 TEST(SignalTest, UnalignedExecute) {
@@ -306,7 +307,7 @@ TEST(SignalTest, UnalignedExecute) {
   // Check the fault is coming from the expected location.
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(unaligned_func));
 }
 
@@ -347,7 +348,7 @@ TEST(SignalTest, Unexecutable) {
   // Check the fault is coming from the expected location.
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(unexecutable_func));
 }
 
@@ -384,7 +385,7 @@ TEST(SignalTest, UnalignedStack) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // One instruction of setup before the fault.
   // Stack alignment issues are detected on use.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnalignedStack) + 4);
 }
 
@@ -417,7 +418,7 @@ TEST(SignalTest, IllegalInstruction) {
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(IllegalInstruction));
 }
 
@@ -450,7 +451,7 @@ TEST(SignalTest, PrivilegedInstruction) {
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(PrivilegedInstruction));
 }
 
@@ -483,7 +484,7 @@ TEST(SignalTest, DebugInstruction) {
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points _at_ the debug instruction.
-  EXPECT_EQ(GetInstructionPointer(gregs),
+  EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(DebugInstruction));
 }
 

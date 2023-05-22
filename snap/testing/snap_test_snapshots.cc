@@ -58,8 +58,8 @@ Snapshot MakeBasicTestSnapshot<X86_64>(SnapGeneratorTestType type) {
   GRegSet<X86_64> gregs;
   FPRegSet<X86_64> fpregs;
   memset(&gregs, 0, sizeof(gregs));
-  SetInstructionPointer(gregs, code_page_address);
-  SetStackPointer(gregs, stack_page_address + page_size);
+  gregs.SetInstructionPointer(code_page_address);
+  gregs.SetStackPointer(stack_page_address + page_size);
   gregs.rbx = data_page_address;
   memset(&fpregs, 0, sizeof(fpregs));
 
@@ -112,8 +112,8 @@ Snapshot MakeBasicTestSnapshot<AArch64>(SnapGeneratorTestType type) {
   GRegSet<AArch64> gregs;
   FPRegSet<AArch64> fpregs;
   memset(&gregs, 0, sizeof(gregs));
-  SetInstructionPointer(gregs, code_page_address);
-  SetStackPointer(gregs, stack_page_address + page_size);
+  gregs.SetInstructionPointer(code_page_address);
+  gregs.SetStackPointer(stack_page_address + page_size);
   gregs.x[6] = data_page_address;
   gregs.x[7] = data_page_address;
   memset(&fpregs, 0, sizeof(fpregs));

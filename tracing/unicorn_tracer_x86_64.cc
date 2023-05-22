@@ -229,7 +229,7 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
   // Simulate the effect RestoreUContext could have on the stack.
   std::string stack_bytes = RestoreUContextStackBytes(ucontext.gregs);
   UNICORN_CHECK(
-      uc_mem_write(uc_, GetStackPointer(ucontext.gregs) - stack_bytes.size(),
+      uc_mem_write(uc_, ucontext.gregs.GetStackPointer() - stack_bytes.size(),
                    stack_bytes.data(), stack_bytes.size()));
 }
 
