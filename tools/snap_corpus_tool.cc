@@ -54,6 +54,10 @@
 #include "./util/platform.h"
 #include "./util/proto_util.h"
 
+ABSL_FLAG(silifuzz::PlatformId, target_platform,
+          silifuzz::PlatformId::kUndefined,
+          "Target platform for commands like extract");
+
 namespace silifuzz {
 namespace {
 
@@ -65,18 +69,20 @@ absl::string_view ConsumeArg(std::vector<char*>& args) {
   return rv;
 }
 
-absl::StatusOr<const Snap*> FindSnap(const SnapCorpus* corpus,
-                                     absl::string_view snap_id) {
-  const Snap* snap = corpus->Find(snap_id.data());
+template <typename Arch>
+absl::StatusOr<const Snap<Arch>*> FindSnap(const SnapCorpus<Arch>* corpus,
+                                           absl::string_view snap_id) {
+  const Snap<Arch>* snap = corpus->Find(snap_id.data());
   if (snap == nullptr) {
     return absl::NotFoundError(absl::StrCat("Snap ", snap_id, " not found"));
   }
   return snap;
 }
 
-absl::StatusOr<const Snap*> FindSnapByCodeAddress(const SnapCorpus* corpus,
-                                                  uint64_t address) {
-  for (const Snap* snap : corpus->snaps) {
+template <typename Arch>
+absl::StatusOr<const Snap<Arch>*> FindSnapByCodeAddress(
+    const SnapCorpus<Arch>* corpus, uint64_t address) {
+  for (const Snap<Arch>* snap : corpus->snaps) {
     for (const auto& mapping : snap->memory_mappings) {
       if (address >= mapping.start_address &&
           address < mapping.start_address + mapping.num_bytes &&
@@ -89,12 +95,22 @@ absl::StatusOr<const Snap*> FindSnapByCodeAddress(const SnapCorpus* corpus,
       absl::StrCat("Address ", HexStr(address), " not found"));
 }
 
-absl::Status ToolMain(std::vector<char*>& args) {
-  ConsumeArg(args);  // consume argv[0]
-  std::string command = std::string(ConsumeArg(args));
-  absl::string_view corpus_file = ConsumeArg(args);
-  MmappedMemoryPtr<const SnapCorpus> corpus =
-      LoadCorpusFromFile(corpus_file.data(), /* preload = */ false);
+template <typename Arch>
+PlatformId GetTargetPlatform() {
+  PlatformId platform_id = absl::GetFlag(FLAGS_target_platform);
+  if (platform_id == PlatformId::kUndefined) {
+    platform_id = CurrentPlatformId();
+  }
+  CHECK(PlatformArchitecture(platform_id) == Arch::architecture_id);
+  return platform_id;
+}
+
+template <typename Arch>
+absl::Status ToolMainImpl(absl::string_view command,
+                          absl::string_view corpus_file,
+                          std::vector<char*>& args) {
+  MmappedMemoryPtr<const SnapCorpus<Arch>> corpus =
+      LoadCorpusFromFile<Arch>(corpus_file.data(), /* preload = */ false);
 
   LinePrinter lp(LinePrinter::StdErrPrinter);
 
@@ -103,10 +119,10 @@ absl::Status ToolMain(std::vector<char*>& args) {
       return absl::InvalidArgumentError("Too few arguments");
     }
     absl::string_view snap_id = ConsumeArg(args);
-    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap* snap,
+    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap<Arch>* snap,
                                FindSnap(corpus.get(), snap_id));
     absl::StatusOr<Snapshot> snapshot =
-        SnapToSnapshot(*snap, CurrentPlatformId());
+        SnapToSnapshot(*snap, GetTargetPlatform<Arch>());
     RETURN_IF_NOT_OK(snapshot.status());
     absl::string_view output_file = ConsumeArg(args);
     RETURN_IF_NOT_OK(WriteSnapshotToFile(*snapshot, output_file));
@@ -120,10 +136,10 @@ absl::Status ToolMain(std::vector<char*>& args) {
     if (!absl::SimpleHexAtoi(arg, &address)) {
       return absl::InvalidArgumentError(absl::StrCat("Invalid address ", arg));
     }
-    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap* snap,
+    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap<Arch>* snap,
                                FindSnapByCodeAddress(corpus.get(), address));
     absl::StatusOr<Snapshot> snapshot =
-        SnapToSnapshot(*snap, CurrentPlatformId());
+        SnapToSnapshot(*snap, GetTargetPlatform<Arch>());
     RETURN_IF_NOT_OK(snapshot.status());
     absl::string_view output_file = ConsumeArg(args);
     RETURN_IF_NOT_OK(WriteSnapshotToFile(*snapshot, output_file));
@@ -138,12 +154,12 @@ absl::Status ToolMain(std::vector<char*>& args) {
     }
     proto::SnapshotExecutionResult result =
         binary_log_entry.snapshot_execution_result();
-    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap* snap,
+    ASSIGN_OR_RETURN_IF_NOT_OK(const Snap<Arch>* snap,
                                FindSnap(corpus.get(), result.snapshot_id()));
 
     SnapshotPrinter printer(&lp);
-    ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
-                               SnapToSnapshot(*snap, CurrentPlatformId()));
+    ASSIGN_OR_RETURN_IF_NOT_OK(
+        Snapshot snapshot, SnapToSnapshot(*snap, GetTargetPlatform<Arch>()));
     ASSIGN_OR_RETURN_IF_NOT_OK(auto player_result, PlayerResultProto::FromProto(
                                                        result.player_result()));
     lp.Line(
@@ -152,7 +168,7 @@ absl::Status ToolMain(std::vector<char*>& args) {
         " snapshot = ", result.snapshot_id(), " on CPU ", player_result.cpu_id);
     printer.PrintActualEndState(snapshot, *player_result.actual_end_state);
   } else if (command == "list_snaps") {
-    for (const Snap* snap : corpus->snaps) {
+    for (const Snap<Arch>* snap : corpus->snaps) {
       lp.Line(snap->id);
     }
     lp.Line("Total ", corpus->snaps.size);
@@ -161,6 +177,14 @@ absl::Status ToolMain(std::vector<char*>& args) {
         absl::StrCat("Unknown command ", command));
   }
   return absl::OkStatus();
+}
+
+absl::Status ToolMain(std::vector<char*>& args) {
+  ConsumeArg(args);  // consume argv[0]
+  std::string command = std::string(ConsumeArg(args));
+  std::string corpus_file = std::string(ConsumeArg(args));
+  ArchitectureId arch = CorpusFileArchitecture(corpus_file.data());
+  return ARCH_DISPATCH(ToolMainImpl, arch, command, corpus_file, args);
 }
 
 }  // namespace

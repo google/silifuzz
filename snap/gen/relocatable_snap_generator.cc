@@ -42,8 +42,9 @@ namespace silifuzz {
 namespace {
 
 // Sets register in `*tgt` using `src`.
+template <typename Arch>
 void SetRegisterState(const Snapshot::RegisterState& src,
-                      Snap::RegisterState* tgt,
+                      typename Snap<Arch>::RegisterState* tgt,
                       bool allow_empty_register_state) {
   memset(tgt, 0, sizeof(*tgt));
 
@@ -68,11 +69,11 @@ void SetRegisterState(const Snapshot::RegisterState& src,
 // Snap corpus.
 //
 // This class is not thread-safe.
+template <typename Arch>
 class Traversal {
  public:
-  Traversal(ArchitectureId architecture_id,
-            const RelocatableSnapGeneratorOptions& options)
-      : architecture_id_(architecture_id), options_(options) {}
+  Traversal(const RelocatableSnapGeneratorOptions& options)
+      : options_(options) {}
   ~Traversal() = default;
 
   // Not copyable or moveable.
@@ -170,9 +171,6 @@ class Traversal {
       absl::flat_hash_map<const Snapshot::ByteData*, RelocatableDataBlock::Ref,
                           HashByteData, ByteDataEq>;
 
-  // The architecture of the SnapCorpus under construction.
-  ArchitectureId architecture_id_;
-
   // Options.
   RelocatableSnapGeneratorOptions options_;
 
@@ -193,7 +191,8 @@ class Traversal {
   ByteDataRefMap byte_data_ref_map_;
 };
 
-RelocatableDataBlock::Ref Traversal::ProcessMemoryBytes(
+template <typename Arch>
+RelocatableDataBlock::Ref Traversal<Arch>::ProcessMemoryBytes(
     PassType pass, const Snapshot::MemoryBytes& memory_bytes) {
   const Snapshot::ByteData& byte_data = memory_bytes.byte_values();
   // Check to see if we can de-dupe byte data.
@@ -240,7 +239,8 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryBytes(
   return ref;
 }
 
-void Traversal::ProcessMemoryMapping(
+template <typename Arch>
+void Traversal<Arch>::ProcessMemoryMapping(
     PassType pass, const Snapshot::MemoryMapping& memory_mapping,
     const BorrowedMemoryBytesList& memory_bytes_list,
     RelocatableDataBlock::Ref memory_mapping_ref) {
@@ -264,7 +264,8 @@ void Traversal::ProcessMemoryMapping(
   }
 }
 
-RelocatableDataBlock::Ref Traversal::ProcessMemoryMappings(
+template <typename Arch>
+RelocatableDataBlock::Ref Traversal<Arch>::ProcessMemoryMappings(
     PassType pass, const Snapshot::MemoryMappingList& memory_mappings,
     const BorrowedMappingBytesList& bytes_per_mapping) {
   // Allocate space for elements of SnapArray<MemoryMapping>.
@@ -283,9 +284,10 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryMappings(
   return snap_memory_mappings_array_elements_ref;
 }
 
-void Traversal::ProcessAllocated(PassType pass,
-                                 const Snapshot::MemoryBytes& memory_bytes,
-                                 RelocatableDataBlock::Ref memory_bytes_ref) {
+template <typename Arch>
+void Traversal<Arch>::ProcessAllocated(
+    PassType pass, const Snapshot::MemoryBytes& memory_bytes,
+    RelocatableDataBlock::Ref memory_bytes_ref) {
   const bool compress_repeating_bytes =
       options_.compress_repeating_bytes &&
       IsRepeatingByteRun(memory_bytes.byte_values());
@@ -321,7 +323,8 @@ void Traversal::ProcessAllocated(PassType pass,
   }
 }
 
-RelocatableDataBlock::Ref Traversal::ProcessMemoryBytesList(
+template <typename Arch>
+RelocatableDataBlock::Ref Traversal<Arch>::ProcessMemoryBytesList(
     PassType pass, const BorrowedMemoryBytesList& memory_bytes_list) {
   // Allocate space for elements of SnapArray<MemoryBytes>.
   const RelocatableDataBlock::Ref ref =
@@ -336,10 +339,13 @@ RelocatableDataBlock::Ref Traversal::ProcessMemoryBytesList(
   return ref;
 }
 
-void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
-                                 RelocatableDataBlock::Ref snapshot_ref) {
+template <typename Arch>
+void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
+                                       RelocatableDataBlock::Ref snapshot_ref) {
+  using RegisterState = typename Snap<Arch>::RegisterState;
+
   CHECK_EQ(static_cast<int>(snapshot.architecture_id()),
-           static_cast<int>(architecture_id_));
+           static_cast<int>(Arch::architecture_id));
   size_t id_size = snapshot.id().size() + 1;  // NUL character terminator.
   RelocatableDataBlock::Ref id_ref = string_block_.Allocate(id_size, 1);
 
@@ -357,17 +363,17 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
           pass, ToBorrowedMemoryBytesList(end_state.memory_bytes()));
 
   RelocatableDataBlock::Ref registers_ref =
-      register_state_block_.AllocateObjectsOfType<Snap::RegisterState>(1);
+      register_state_block_.AllocateObjectsOfType<RegisterState>(1);
   RelocatableDataBlock::Ref end_state_registers_ref =
-      register_state_block_.AllocateObjectsOfType<Snap::RegisterState>(1);
+      register_state_block_.AllocateObjectsOfType<RegisterState>(1);
 
   if (pass == PassType::kGeneration) {
     memcpy(id_ref.contents(), snapshot.id().c_str(), snapshot.id().size() + 1);
 
     // Construct Snap in data block content buffer.
     // Fill in register states separately to avoid copying.
-    Snap* snap = snapshot_ref.contents_as_pointer_of<Snap>();
-    new (snap) Snap{
+    Snap<Arch>* snap = snapshot_ref.contents_as_pointer_of<Snap<Arch>>();
+    new (snap) Snap<Arch>{
         .id = reinterpret_cast<const char*>(AsPtr(id_ref.load_address())),
         .memory_mappings{
             .size = snapshot.memory_mappings().size(),
@@ -375,13 +381,11 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                 memory_mappings_elements_ref
                     .load_address_as_pointer_of<const SnapMemoryMapping>(),
         },
-        .registers =
-            registers_ref.load_address_as_pointer_of<Snap::RegisterState>(),
+        .registers = registers_ref.load_address_as_pointer_of<RegisterState>(),
         .end_state_instruction_address =
             end_state.endpoint().instruction_address(),
         .end_state_registers =
-            end_state_registers_ref
-                .load_address_as_pointer_of<Snap::RegisterState>(),
+            end_state_registers_ref.load_address_as_pointer_of<RegisterState>(),
         .end_state_memory_bytes{
             .size = end_state.memory_bytes().size(),
             .elements =
@@ -389,35 +393,37 @@ void Traversal::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                     .load_address_as_pointer_of<const SnapMemoryBytes>(),
         },
     };
-    SetRegisterState(
+    SetRegisterState<Arch>(
         snapshot.registers(),
-        registers_ref.contents_as_pointer_of<Snap::RegisterState>(),
+        registers_ref.contents_as_pointer_of<RegisterState>(),
         /*allow_empty_register_state=*/false);
     // End state may be undefined initially in the making process.
-    SetRegisterState(
+    SetRegisterState<Arch>(
         end_state.registers(),
-        end_state_registers_ref.contents_as_pointer_of<Snap::RegisterState>(),
+        end_state_registers_ref.contents_as_pointer_of<RegisterState>(),
         /*allow_empty_register_state=*/true);
   }
 }
 
-void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
+template <typename Arch>
+void Traversal<Arch>::Process(PassType pass,
+                              const std::vector<Snapshot>& snapshots) {
   // For compatiblity with an older Silifuzz version, we use a corpus containing
   // SnapArray<const Snap*>.  We can get rid of the redirection when we
   // change the runner to take SnapArray<Snap> later.
 
   RelocatableDataBlock::Ref corpus_ref =
-      snap_block_.AllocateObjectsOfType<SnapCorpus>(1);
+      snap_block_.AllocateObjectsOfType<SnapCorpus<Arch>>(1);
 
   // Allocate space for element.
   RelocatableDataBlock::Ref snap_array_elements_ref =
-      snap_block_.AllocateObjectsOfType<const Snap*>(snapshots.size());
+      snap_block_.AllocateObjectsOfType<const Snap<Arch>*>(snapshots.size());
 
   // Allocate space for Snaps.
   RelocatableDataBlock::Ref snaps_ref =
-      snap_block_.AllocateObjectsOfType<Snap>(snapshots.size());
+      snap_block_.AllocateObjectsOfType<Snap<Arch>>(snapshots.size());
   for (size_t i = 0; i < snapshots.size(); ++i) {
-    ProcessAllocated(pass, snapshots[i], snaps_ref + i * sizeof(Snap));
+    ProcessAllocated(pass, snapshots[i], snaps_ref + i * sizeof(Snap<Arch>));
   }
 
   // Merge component data blocks into a single main data block.
@@ -437,35 +443,38 @@ void Traversal::Process(PassType pass, const std::vector<Snapshot>& snapshots) {
   main_block_.Allocate(page_data_block_);
 
   if (pass == PassType::kGeneration) {
-    new (corpus_ref.contents()) SnapCorpus{
+    new (corpus_ref.contents()) SnapCorpus<Arch>{
         .magic = kSnapCorpusMagic,
-        .corpus_type_size = sizeof(SnapCorpus),
-        .snap_type_size = sizeof(Snap),
-        .register_state_type_size = sizeof(Snap::RegisterState),
-        .architecture_id = static_cast<uint8_t>(architecture_id_),
+        .corpus_type_size = sizeof(SnapCorpus<Arch>),
+        .snap_type_size = sizeof(Snap<Arch>),
+        .register_state_type_size = sizeof(typename Snap<Arch>::RegisterState),
+        .architecture_id = static_cast<uint8_t>(Arch::architecture_id),
         .padding = {},
         .snaps =
             {
                 .size = snapshots.size(),
-                .elements = snap_array_elements_ref
-                                .load_address_as_pointer_of<const Snap*>(),
+                .elements =
+                    snap_array_elements_ref
+                        .load_address_as_pointer_of<const Snap<Arch>*>(),
             },
     };
 
     // Create const pointer array elements.
     for (size_t i = 0; i < snapshots.size(); ++i) {
-      const RelocatableDataBlock::Ref snap_ref = snaps_ref + i * sizeof(Snap);
+      const RelocatableDataBlock::Ref snap_ref =
+          snaps_ref + i * sizeof(Snap<Arch>);
       const RelocatableDataBlock::Ref element_ref =
-          snap_array_elements_ref + i * sizeof(const Snap*);
-      *element_ref.contents_as_pointer_of<const Snap*>() =
-          snap_ref.load_address_as_pointer_of<const Snap>();
+          snap_array_elements_ref + i * sizeof(const Snap<Arch>*);
+      *element_ref.contents_as_pointer_of<const Snap<Arch>*>() =
+          snap_ref.load_address_as_pointer_of<const Snap<Arch>>();
     }
   }
 }
 
-void Traversal::PrepareSnapGeneration(char* content_buffer,
-                                      size_t content_buffer_size,
-                                      uintptr_t load_address) {
+template <typename Arch>
+void Traversal<Arch>::PrepareSnapGeneration(char* content_buffer,
+                                            size_t content_buffer_size,
+                                            uintptr_t load_address) {
   main_block_.set_contents(content_buffer, content_buffer_size);
   main_block_.set_load_address(load_address);
 
@@ -496,13 +505,12 @@ void Traversal::PrepareSnapGeneration(char* content_buffer,
 
 }  // namespace
 
-MmappedMemoryPtr<char> GenerateRelocatableSnaps(
-    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots,
+template <typename Arch>
+MmappedMemoryPtr<char> GenerateRelocatableSnapsImpl(
+    const std::vector<Snapshot>& snapshots,
     const RelocatableSnapGeneratorOptions& options) {
-  CHECK(architecture_id != ArchitectureId::kUndefined);
-
-  Traversal traversal(architecture_id, options);
-  traversal.Process(Traversal::PassType::kLayout, snapshots);
+  Traversal<Arch> traversal(options);
+  traversal.Process(Traversal<Arch>::PassType::kLayout, snapshots);
 
   // Check that the whole corpus has alignment requirement not exceeding page
   // size of the runner since it will be mmap()'ed by the runner.
@@ -515,8 +523,16 @@ MmappedMemoryPtr<char> GenerateRelocatableSnaps(
   constexpr uintptr_t kNominalLoadAddress = 0;
   traversal.PrepareSnapGeneration(buffer.get(), MmappedMemorySize(buffer),
                                   kNominalLoadAddress);
-  traversal.Process(Traversal::PassType::kGeneration, snapshots);
+  traversal.Process(Traversal<Arch>::PassType::kGeneration, snapshots);
   return buffer;
+}
+
+MmappedMemoryPtr<char> GenerateRelocatableSnaps(
+    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots,
+    const RelocatableSnapGeneratorOptions& options) {
+  CHECK(architecture_id != ArchitectureId::kUndefined);
+  return ARCH_DISPATCH(GenerateRelocatableSnapsImpl, architecture_id, snapshots,
+                       options);
 }
 
 }  // namespace silifuzz

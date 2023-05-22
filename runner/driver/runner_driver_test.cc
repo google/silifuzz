@@ -44,12 +44,13 @@ RunnerDriver HelperDriver() {
 
 TEST(RunnerDriver, BasicRun) {
   RunnerDriver driver = HelperDriver();
-  Snap endAsExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  Snap<Host> endAsExpectedSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
   auto run_result_or = driver.PlayOne(endAsExpectedSnap.id);
   ASSERT_OK(run_result_or);
   ASSERT_TRUE(run_result_or->success());
 
-  Snap syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
+  Snap<Host> syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
   run_result_or = driver.PlayOne(syscallSnap.id);
   ASSERT_THAT(run_result_or,
               StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
@@ -57,7 +58,8 @@ TEST(RunnerDriver, BasicRun) {
 
 TEST(RunnerDriver, BasicMake) {
   RunnerDriver driver = HelperDriver();
-  Snap sigSegvReadSnap = GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
+  Snap<Host> sigSegvReadSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
   auto make_result_or = driver.MakeOne(sigSegvReadSnap.id);
   ASSERT_OK(make_result_or);
   ASSERT_FALSE(make_result_or->success());
@@ -68,7 +70,8 @@ TEST(RunnerDriver, BasicMake) {
 
 TEST(RunnerDriver, BasicTrace) {
   RunnerDriver driver = HelperDriver();
-  Snap endAsExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  Snap<Host> endAsExpectedSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
   bool hit_initial_snap_rip = false;
   auto cb = [&hit_initial_snap_rip, &endAsExpectedSnap](
                 pid_t pid, const user_regs_struct& regs,

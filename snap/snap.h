@@ -118,11 +118,12 @@ struct SnapMemoryMapping {
 };
 
 // A simplified snapshot representation.
+template <typename Arch>
 struct Snap {
   // Describe register state of a Snapshot. This is stored in UContext/
   // and can be used directly as the context for running a Snap without any
   // conversion or copying.
-  using RegisterState = UContext<Host>;
+  using RegisterState = UContext<Arch>;
 
   // Identifier for this snapshot.
   const char* id;
@@ -174,6 +175,7 @@ constexpr T MakeMagic(const char (&data)[sizeof(T)]) {
 constexpr uint64_t kSnapCorpusMagic = snap_internal::MakeMagic<uint64_t>(
     {'S', 'n', 'a', 'p', 'C', 'o', 'r', 'p'});
 
+template <typename Arch>
 struct SnapCorpus {
   // For checking this is actually a snap corpus.
   uint64_t magic;
@@ -197,17 +199,16 @@ struct SnapCorpus {
   uint8_t padding[3];
 
   // The corpus data.
-  SnapArray<const Snap*> snaps;
+  SnapArray<const Snap<Arch>*> snaps;
 
-  template <typename Arch>
-  bool IsArch() const {
+  bool IsExpectedArch() const {
     return architecture_id == static_cast<int>(Arch::architecture_id);
   }
 
   // Find a Snap with the specified id.
   // Returns nullptr if not found.
-  const Snap* Find(const char* id) const {
-    for (const Snap* snap : snaps) {
+  const Snap<Arch>* Find(const char* id) const {
+    for (const Snap<Arch>* snap : snaps) {
       if (strcmp(snap->id, id) == 0) {
         return snap;
       }

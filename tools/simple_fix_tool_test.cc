@@ -181,10 +181,10 @@ TEST(SimpleFixTool, FixCorpus) {
     auto mapped = MakeMmappedMemoryPtr<char>(
         reinterpret_cast<char*>(relocatable), file_size);
     EXPECT_EQ(close(fd), 0);
-    SnapRelocator::Error error;
-    MmappedMemoryPtr<const SnapCorpus> corpus =
-        SnapRelocator::RelocateCorpus(std::move(mapped), &error);
-    ASSERT_TRUE(error == SnapRelocator::Error::kOk);
+    SnapRelocatorError error;
+    MmappedMemoryPtr<const SnapCorpus<Host>> corpus =
+        SnapRelocator<Host>::RelocateCorpus(std::move(mapped), &error);
+    ASSERT_TRUE(error == SnapRelocatorError::kOk);
     num_snaps += corpus->snaps.size;
   }
 

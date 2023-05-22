@@ -49,7 +49,7 @@ using ::testing::Not;
 //
 // NOTE: Assumes that the snap is already built into the test helper binary.
 absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
-    const Snap& snap, absl::Duration timeout = absl::InfiniteDuration()) {
+    const Snap<Host>& snap, absl::Duration timeout = absl::InfiniteDuration()) {
   RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
   auto opts = RunnerOptions::PlayOptions(snap.id);
   if (timeout != absl::InfiniteDuration()) {
@@ -60,13 +60,15 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
 }
 
 TEST(RunnerTest, AsExpectedSnap) {
-  Snap asExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  Snap<Host> asExpectedSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(asExpectedSnap));
   ASSERT_TRUE(result.success());
 }
 
 TEST(RunnerTest, RegisterMismatchSnap) {
-  Snap regsMismatchSnap = GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch);
+  Snap<Host> regsMismatchSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(regsMismatchSnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
@@ -74,7 +76,7 @@ TEST(RunnerTest, RegisterMismatchSnap) {
 }
 
 TEST(RunnerTest, MemoryMismatchSnap) {
-  Snap memoryMismatchSnap =
+  Snap<Host> memoryMismatchSnap =
       GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(memoryMismatchSnap));
   ASSERT_FALSE(result.success());
@@ -86,7 +88,8 @@ TEST(RunnerTest, MemoryMismatchSnap) {
 }
 
 TEST(RunnerTest, SigSegvSnap) {
-  Snap sigSegvReadSnap = GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
+  Snap<Host> sigSegvReadSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(sigSegvReadSnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
@@ -106,14 +109,14 @@ TEST(RunnerTest, SigSegvSnap) {
 }
 
 TEST(RunnerTest, SyscallSnap) {
-  Snap syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
+  Snap<Host> syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
   auto result = RunOneSnap(syscallSnap);
   ASSERT_THAT(result,
               StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
 }
 
 TEST(RunnerTest, BreakpointSnap) {
-  Snap breakpointSnap = GetSnapRunnerTestSnap(TestSnapshot::kBreakpoint);
+  Snap<Host> breakpointSnap = GetSnapRunnerTestSnap(TestSnapshot::kBreakpoint);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(breakpointSnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
@@ -135,14 +138,14 @@ TEST(RunnerTest, BreakpointSnap) {
 }
 
 TEST(RunnerTest, RunawaySnap) {
-  Snap runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
+  Snap<Host> runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kExecutionRunaway);
 }
 
 TEST(RunnerTest, Deadline) {
-  Snap runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
+  Snap<Host> runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
   ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap, absl::Seconds(2)));
   ASSERT_TRUE(result.success());
 }
@@ -168,7 +171,8 @@ TEST(RunnerTest, EmptyCorpus) {
 
 TEST(RunnerTest, UnknownFlags) {
   RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
-  Snap asExpectedSnap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  Snap<Host> asExpectedSnap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
   RunnerOptions opts = RunnerOptions::PlayOptions(asExpectedSnap.id);
   opts.set_extra_argv({"--foobar=1"});
   absl::StatusOr<RunnerDriver::RunResult> result = driver.Run(opts);

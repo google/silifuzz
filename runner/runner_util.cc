@@ -67,7 +67,7 @@ size_t ReadProcMapsEntries(ProcMapsEntry* proc_maps_entries,
                        max_proc_maps_entries);
 }
 
-bool SnapOverlapsWithProcMapsEntries(const Snap& snap,
+bool SnapOverlapsWithProcMapsEntries(const Snap<Host>& snap,
                                      const ProcMapsEntry* proc_maps_entries,
                                      size_t num_proc_maps_entries) {
   for (const auto& memory_mapping : snap.memory_mappings) {

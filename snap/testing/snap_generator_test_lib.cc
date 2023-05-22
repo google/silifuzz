@@ -99,7 +99,7 @@ void VerifySnapMemoryBytes(const Snapshot::MemoryBytes& memory_bytes,
 
 // Verifies Snapshot::RegisterState -> Snap::RegisterState conversion.
 void VerifySnapRegisterState(const Snapshot::RegisterState& registers,
-                             const Snap::RegisterState& snap_registers) {
+                             const Snap<Host>::RegisterState& snap_registers) {
   Snapshot::ByteData gregs_bytes;
   CHECK(SerializeGRegs(snap_registers.gregs, &gregs_bytes));
   CHECK_EQ(registers.gregs(), gregs_bytes);
@@ -144,7 +144,7 @@ void VerifySnapMemoryMappingArray(
 }  // namespace
 
 // Verifies that 'snapshot' is correctly converted into 'snap'.
-void VerifyTestSnap(const Snapshot& snapshot, const Snap& snap,
+void VerifyTestSnap(const Snapshot& snapshot, const Snap<Host>& snap,
                     const SnapifyOptions& generator_options) {
   absl::StatusOr<Snapshot> snapified_snapshot_or =
       Snapify(snapshot, generator_options);

@@ -50,13 +50,14 @@ namespace {
 
 // Generates a relocatable corpus from source `snapshots` and relocates it
 // to the mmap buffer address.
-MmappedMemoryPtr<const SnapCorpus> GenerateRelocatedCorpus(
-    ArchitectureId architecture_id, const std::vector<Snapshot>& snapshots) {
-  auto relocatable = GenerateRelocatableSnaps(architecture_id, snapshots);
-  SnapRelocator::Error error;
+template <typename Arch>
+MmappedMemoryPtr<const SnapCorpus<Arch>> GenerateRelocatedCorpus(
+    const std::vector<Snapshot>& snapshots) {
+  auto relocatable = GenerateRelocatableSnaps(Arch::architecture_id, snapshots);
+  SnapRelocatorError error;
   auto relocated_corpus =
-      SnapRelocator::RelocateCorpus(std::move(relocatable), &error);
-  CHECK(error == SnapRelocator::Error::kOk);
+      SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable), &error);
+  CHECK(error == SnapRelocatorError::kOk);
   CHECK_EQ(relocated_corpus->snaps.size, snapshots.size());
   return relocated_corpus;
 }
@@ -77,8 +78,7 @@ TEST(RelocatableSnapGenerator, UndefinedEndState) {
   ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, snapify_options));
   std::vector<Snapshot> corpus;
   corpus.push_back(std::move(snapified));
-  auto relocated_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, corpus);
+  auto relocated_corpus = GenerateRelocatedCorpus<Host>(corpus);
   EXPECT_EQ(relocated_corpus->snaps.at(0)->id, snapshot.id());
 }
 
@@ -94,8 +94,7 @@ TEST(RelocatableSnapGenerator, RoundTrip) {
     corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, corpus);
+  auto relocated_corpus = GenerateRelocatedCorpus<Host>(corpus);
   auto snapshotFromSnap =
       SnapToSnapshot(*relocated_corpus->snaps.at(0), CurrentPlatformId());
   ASSERT_OK(snapshotFromSnap);
@@ -118,8 +117,7 @@ TEST(RelocatableSnapGenerator, SupportDirectMMap) {
     rle_corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_rle_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, rle_corpus);
+  auto relocated_rle_corpus = GenerateRelocatedCorpus<Host>(rle_corpus);
 
   std::vector<Snapshot> mmap_corpus;
   {
@@ -136,8 +134,7 @@ TEST(RelocatableSnapGenerator, SupportDirectMMap) {
     mmap_corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_mmap_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, mmap_corpus);
+  auto relocated_mmap_corpus = GenerateRelocatedCorpus<Host>(mmap_corpus);
 
   // The mmap corpus should be bigger because it does not compress executable
   // pages.
@@ -199,14 +196,13 @@ TEST(RelocatableSnapGenerator, AllRunnerTestSnaps) {
     snapified_corpus.push_back(std::move(snapified));
   }
 
-  auto relocated_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, snapified_corpus);
+  auto relocated_corpus = GenerateRelocatedCorpus<Host>(snapified_corpus);
 
   // Verify relocated Snap corpus is equivalent to the original Snapshots.
   ASSERT_EQ(snapified_corpus.size(), relocated_corpus->snaps.size);
   for (size_t i = 0; i < snapified_corpus.size(); ++i) {
     const Snapshot& snapshot = snapified_corpus[i];
-    const Snap& snap = *relocated_corpus->snaps.at(i);
+    const Snap<Host>& snap = *relocated_corpus->snaps.at(i);
     VerifyTestSnap(snapshot, snap, opts);
   }
 }
@@ -249,13 +245,12 @@ TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   std::vector<Snapshot> snapified_corpus;
   snapified_corpus.push_back(std::move(snapified));
 
-  auto relocated_corpus =
-      GenerateRelocatedCorpus(Host::architecture_id, snapified_corpus);
+  auto relocated_corpus = GenerateRelocatedCorpus<Host>(snapified_corpus);
 
   // Test byte data should appear twice in two MemoryBytes objects but
   // the array element addresses should be the same.
   ASSERT_EQ(relocated_corpus->snaps.size, 1);
-  const Snap& snap = *relocated_corpus->snaps.at(0);
+  const Snap<Host>& snap = *relocated_corpus->snaps.at(0);
   absl::flat_hash_set<const uint8_t*> addresses_seen;
   int times_seen = 0;
   for (const auto& mapping : snap.memory_mappings) {

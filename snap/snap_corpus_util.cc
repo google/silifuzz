@@ -23,6 +23,7 @@
 #include <memory>
 #include <utility>
 
+#include "./snap/snap.h"
 #include "./snap/snap_relocator.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -30,9 +31,9 @@
 
 namespace silifuzz {
 
-MmappedMemoryPtr<const SnapCorpus> LoadCorpusFromFile(const char* filename,
-                                                      bool preload,
-                                                      int* corpus_fd) {
+template <typename Arch>
+MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
+    const char* filename, bool preload, int* corpus_fd) {
   // MAP_POPULATE interferes with memory sharing. Using it causes read
   // only portion of a corpus to be copied in each runner.
   constexpr char kProcPrefix[] = "/proc/";
@@ -56,10 +57,10 @@ MmappedMemoryPtr<const SnapCorpus> LoadCorpusFromFile(const char* filename,
   VLOG_INFO(1, "Mapped corpus at ", HexStr(AsInt(relocatable)));
   auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
                                            file_size);
-  SnapRelocator::Error error;
-  MmappedMemoryPtr<const SnapCorpus> corpus =
-      SnapRelocator::RelocateCorpus(std::move(mapped), &error);
-  CHECK(error == SnapRelocator::Error::kOk);
+  SnapRelocatorError error;
+  MmappedMemoryPtr<const SnapCorpus<Arch>> corpus =
+      SnapRelocator<Arch>::RelocateCorpus(std::move(mapped), &error);
+  CHECK(error == SnapRelocatorError::kOk);
   VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->snaps.size));
 
   // Return the fd if it was requested.
@@ -69,6 +70,31 @@ MmappedMemoryPtr<const SnapCorpus> LoadCorpusFromFile(const char* filename,
     CHECK_EQ(close(fd), 0);
   }
   return corpus;
+}
+
+template MmappedMemoryPtr<const SnapCorpus<X86_64>> LoadCorpusFromFile<X86_64>(
+    const char* filename, bool preload, int* corpus_fd);
+
+template MmappedMemoryPtr<const SnapCorpus<AArch64>>
+LoadCorpusFromFile<AArch64>(const char* filename, bool preload, int* corpus_fd);
+
+ArchitectureId CorpusFileArchitecture(const char* filename) {
+  ArchitectureId arch = ArchitectureId::kUndefined;
+  int fd = open(filename, O_RDONLY);
+  CHECK_NE(fd, -1);
+
+  // TODO(ncbray): separate out the corpus header into an arch-neutral struct.
+  // For now we can choose an arbitrary arch for this type since the header
+  // layout should be the same.
+  SnapCorpus<Host> corpus;
+  int bytes_read = read(fd, &corpus, sizeof(corpus));
+  if (bytes_read == sizeof(corpus)) {
+    if (corpus.magic == kSnapCorpusMagic) {
+      arch = static_cast<ArchitectureId>(corpus.architecture_id);
+    }
+  }
+  close(fd);
+  return arch;
 }
 
 }  // namespace silifuzz

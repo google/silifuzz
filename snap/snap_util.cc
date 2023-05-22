@@ -41,8 +41,11 @@ Snapshot::ByteData SnapMemoryBytesData(const SnapMemoryBytes& memory_bytes) {
 
 }  // namespace
 
-absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
-  Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Host>(), snap.id);
+template <typename Arch>
+absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<Arch>& snap,
+                                        PlatformId platform) {
+  CHECK(Arch::architecture_id == PlatformArchitecture(platform));
+  Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Arch>(), snap.id);
   for (const SnapMemoryMapping& m : snap.memory_mappings) {
     RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(m.start_address, m.num_bytes));
     MemoryMapping mapping = MemoryMapping::MakeSized(
@@ -77,5 +80,10 @@ absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform) {
   snapshot.add_expected_end_state(es);
   return snapshot;
 }
+
+template absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<X86_64>& snap,
+                                                 PlatformId platform);
+template absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<AArch64>& snap,
+                                                 PlatformId platform);
 
 }  // namespace silifuzz

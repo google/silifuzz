@@ -304,7 +304,8 @@ void CreateMemoryMapping(const SnapMemoryMapping& memory_mapping, int corpus_fd,
   }
 }
 
-void MapSnap(const Snap& snap, int corpus_fd, const void* corpus_mapping) {
+void MapSnap(const Snap<Host>& snap, int corpus_fd,
+             const void* corpus_mapping) {
   for (const auto& memory_mapping : snap.memory_mappings) {
     CreateMemoryMapping(memory_mapping, corpus_fd, corpus_mapping);
   }
@@ -343,9 +344,9 @@ void ApplyProcMapsFixups(ProcMapsEntry proc_maps_entries[],
 // stack, heap and VDSO), it can crash the runner. Therefore, it performs
 // range checks before adding memory mappings into the runners address
 // space and dies if a conflict is detected.
-void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
+void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
                const void* corpus_mapping) {
-  CHECK(corpus.IsArch<Host>());
+  CHECK(corpus.IsExpectedArch());
 
   // On x86_64, we should only need 8 entries to describe all memory ranges when
   // running a fully static runner. 20 is more than enough to avoid overflow.
@@ -389,7 +390,8 @@ void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
   }
 }
 
-RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
+RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
+                                const EndSpot& end_spot) {
   if (end_spot.signum != 0) {
     if (end_spot.signum == SIGXCPU || end_spot.signum == SIGALRM) {
       return RunSnapOutcome::kExecutionRunaway;
@@ -414,7 +416,7 @@ RunSnapOutcome EndSpotToOutcome(const Snap& snap, const EndSpot& end_spot) {
 }
 
 // Copies read/writable memory contents needed to run the snap.
-void PrepareSnapMemory(const Snap& snap) {
+void PrepareSnapMemory(const Snap<Host>& snap) {
   for (const auto& memory_mapping : snap.memory_mappings) {
     // Read-only contents will not have changed.
     if (memory_mapping.writable()) {
@@ -425,7 +427,7 @@ void PrepareSnapMemory(const Snap& snap) {
   }
 }
 
-void RunSnap(const Snap& snap, RunSnapResult& result) {
+void RunSnap(const Snap<Host>& snap, RunSnapResult& result) {
   PrepareSnapMemory(snap);
   result.cpu_id = GetCPUIdNoSyscall();
   RunSnap(*snap.registers, result.end_spot);
@@ -440,7 +442,7 @@ void RunSnap(const Snap& snap, RunSnapResult& result) {
 // The output may appear fragmented due to internal buffer capacity limits e.g.
 // a single MemoryBytes{40Kb} may be split into a semantically equivalent series
 // of 10 4Kb entries.
-void LogSnapMemoryBytes(const Snap& snap,
+void LogSnapMemoryBytes(const Snap<Host>& snap,
                         class TextProtoPrinter::Message& end_state_m) {
   const size_t kPageSize = getpagesize();
   for (const auto& memory_mapping : snap.memory_mappings) {
@@ -468,7 +470,7 @@ void LogSnapMemoryBytes(const Snap& snap,
 // Logs the run result of `snap` to stdout formatted as
 // proto.SnapshotExecutionResult text proto. Additionally, logs execution
 // result in human-readable format to stderr.
-void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
+void LogSnapRunResult(const Snap<Host>& snap, const RunSnapResult& run_result) {
   if (run_result.outcome != RunSnapOutcome::kAsExpected) {
     LOG_ERROR("Snapshot [", snap.id,
               "] failed, outcome = ", IntStr(ToInt(run_result.outcome)));
@@ -540,7 +542,7 @@ void LogSnapRunResult(const Snap& snap, const RunSnapResult& run_result) {
   LogToStdout(snapshot_execution_result.c_str());
 }
 
-const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
+const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
   // Pin CPU if pinning is requested.
   if (options.cpu != kAnyCPUId) {
     const int error = SetCPUAffinity(options.cpu);
@@ -557,13 +559,13 @@ const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
   // SnapCorpus struct.
   const void* corpus_mapping = reinterpret_cast<const void*>(options.corpus);
 
-  auto corpus = [&options]() -> const SnapCorpus* {
-    static SnapCorpus one_snap_corpus = {};
+  auto corpus = [&options]() -> const SnapCorpus<Host>* {
+    static SnapCorpus<Host> one_snap_corpus = {};
     if (options.snap_id == nullptr) {
       return options.corpus;
     }
     for (int i = 0; i < options.corpus->snaps.size; ++i) {
-      const Snap* snap = options.corpus->snaps[i];
+      const Snap<Host>* snap = options.corpus->snaps[i];
       if (strcmp(snap->id, options.snap_id) == 0) {
         // Creates a slice of size 1 over the original corpus.
         memcpy(&one_snap_corpus, options.corpus, sizeof(one_snap_corpus));
@@ -580,7 +582,7 @@ const SnapCorpus* CommonMain(const RunnerMainOptions& options) {
   return corpus;
 }
 
-void RunSnapWithOpts(const Snap& snap, const RunnerMainOptions& options,
+void RunSnapWithOpts(const Snap<Host>& snap, const RunnerMainOptions& options,
                      RunSnapResult& run_result) {
   if (options.enable_tracer) {
     CHECK_EQ(kill(options.pid, SIGSTOP), 0);
@@ -592,11 +594,11 @@ void RunSnapWithOpts(const Snap& snap, const RunnerMainOptions& options,
 }
 
 int MakerMain(const RunnerMainOptions& options) {
-  const SnapCorpus* corpus = CommonMain(options);
+  const SnapCorpus<Host>* corpus = CommonMain(options);
 
   EnterSeccompStrictMode(options.enable_tracer);
 
-  const Snap& snap = *corpus->snaps.at(0);
+  const Snap<Host>& snap = *corpus->snaps.at(0);
   RunSnapResult run_result;
   RunSnapWithOpts(snap, options, run_result);
 
@@ -610,7 +612,7 @@ int MakerMain(const RunnerMainOptions& options) {
 
 int RunnerMain(const RunnerMainOptions& options) {
   CHECK(!options.sequential_mode);
-  const SnapCorpus* corpus = CommonMain(options);
+  const SnapCorpus<Host>* corpus = CommonMain(options);
   CHECK_GT(corpus->snaps.size, 0);
 
   EnterSeccompStrictMode(options.enable_tracer);
@@ -639,7 +641,7 @@ int RunnerMain(const RunnerMainOptions& options) {
         VLOG_INFO(1, "iter #", IntStr(snap_execution_count), " of ",
                   IntStr(options.num_iterations));
       }
-      const Snap& snap = *(corpus->snaps[batch[schedule_dist(gen)]]);
+      const Snap<Host>& snap = *(corpus->snaps[batch[schedule_dist(gen)]]);
       VLOG_INFO(3, "#", IntStr(snap_execution_count), " Running ", snap.id);
       RunSnapResult run_result;
       RunSnapWithOpts(snap, options, run_result);
@@ -657,13 +659,13 @@ int RunnerMain(const RunnerMainOptions& options) {
 
 int RunnerMainSequential(const RunnerMainOptions& options) {
   CHECK(options.sequential_mode);
-  const SnapCorpus* corpus = CommonMain(options);
+  const SnapCorpus<Host>* corpus = CommonMain(options);
 
   EnterSeccompStrictMode(options.enable_tracer);
   VLOG_INFO(1, "Running in sequential mode");
 
   for (size_t i = 0; i < corpus->snaps.size; ++i) {
-    const Snap& snap = *(corpus->snaps[i]);
+    const Snap<Host>& snap = *(corpus->snaps[i]);
     if ((i & (i - 1)) == 0) {
       VLOG_INFO(1, "iter #", IntStr(i), " of ", IntStr(corpus->snaps.size));
     }

@@ -49,7 +49,7 @@ using silifuzz::testing::StatusIs;
 TEST(SnapGenerator, BasicSnapGeneratorTest) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  const Snap& snap =
+  const Snap<Host>& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
   VerifyTestSnap(snapshot, snap,
                  SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));
@@ -58,7 +58,7 @@ TEST(SnapGenerator, BasicSnapGeneratorTest) {
 TEST(SnapGenerator, MemoryBytesAttributesTest) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
       SnapGeneratorTestType::kMemoryBytesPermsTest);
-  const Snap& snap =
+  const Snap<Host>& snap =
       GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
   VerifyTestSnap(snapshot, snap,
                  SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));

@@ -39,11 +39,13 @@ extern const char* EnumNameMap<ArchitectureId>[3];
 struct X86_64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;
   static constexpr const char* arch_name = "x86_64";
+  static constexpr const char* type_name = "X86_64";
 };
 
 struct AArch64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kAArch64;
   static constexpr const char* arch_name = "aarch64";
+  static constexpr const char* type_name = "AArch64";
 };
 
 #define ALL_ARCH_TYPES X86_64, AArch64

@@ -145,7 +145,7 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
       GenerateRegisters(end_state.registers());
 
   // Generate code for Snap
-  PrintLn("static const Snap ", name, " {");
+  PrintLn("static const Snap<", Arch::type_name, "> ", name, " {");
 
   PrintLn(".id = \"", snapified.id(), "\",");
   PrintLn(
@@ -170,20 +170,22 @@ void SnapGenerator<Arch>::GenerateSnapArray(
     const std::string &name,
     const std::vector<std::string> &snap_var_name_list) {
   const std::string elements_var_name = absl::StrCat("elements_of_", name);
-  Print(absl::StrFormat("static const Snap* const %s[%zd] = {",
-                        elements_var_name, snap_var_name_list.size()));
+  Print(absl::StrFormat("static const Snap<%s>* const %s[%zd] = {",
+                        Arch::type_name, elements_var_name,
+                        snap_var_name_list.size()));
   for (const auto &var_name : snap_var_name_list) {
     Print("&", var_name, ",");
   }
   PrintLn("};");
 
   PrintLn(absl::StrFormat(
-      "extern const SnapCorpus %s = { .magic = 0x%lx, .corpus_type_size = "
-      "sizeof(SnapCorpus), .snap_type_size = sizeof(Snap), "
-      ".register_state_type_size = sizeof(Snap::RegisterState), "
+      "extern const SnapCorpus<%s> %s = { .magic = 0x%lx, .corpus_type_size = "
+      "sizeof(SnapCorpus<%s>), .snap_type_size = sizeof(Snap<%s>), "
+      ".register_state_type_size = sizeof(typename Snap<%s>::RegisterState), "
       ".architecture_id = %d, .padding = {}, .snaps = { .size = %zd, .elements "
       "= %s, }, };",
-      name, kSnapCorpusMagic, Arch::architecture_id, snap_var_name_list.size(),
+      Arch::type_name, name, kSnapCorpusMagic, Arch::type_name, Arch::type_name,
+      Arch::type_name, Arch::architecture_id, snap_var_name_list.size(),
       elements_var_name));
 }
 
@@ -488,7 +490,7 @@ template <typename Arch>
 std::string SnapGenerator<Arch>::GenerateRegisters(
     const Snapshot::RegisterState &registers) {
   std::string var_name = LocalVarName("local_registers");
-  PrintLn("Snap::RegisterState ", var_name, " = {");
+  PrintLn("Snap<", Arch::type_name, ">::RegisterState ", var_name, " = {");
   Print("  .fpregs = ");
   GenerateFPRegs(registers.fpregs());
   PrintLn(",");

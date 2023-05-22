@@ -26,7 +26,7 @@ namespace silifuzz {
 // ownership of this descriptor and is responsible for closing it. If the
 // backing file object does not exist, `*corpus_fd` will be -1. If `corpus_fd`
 // is NULL, no descriptor is returned.
-const SnapCorpus* LoadCorpus(const char* filename, int* corpus_fd);
+const SnapCorpus<Host>* LoadCorpus(const char* filename, int* corpus_fd);
 
 }  // namespace silifuzz
 

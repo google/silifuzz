@@ -30,7 +30,9 @@ namespace silifuzz {
 // only expected end state in `snap`.
 // TODO(ksteuck): [impl] There should be metadata in the corpus file or the Snap
 // to describe the target platform.
-absl::StatusOr<Snapshot> SnapToSnapshot(const Snap& snap, PlatformId platform);
+template <typename Arch>
+absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<Arch>& snap,
+                                        PlatformId platform);
 
 }  // namespace silifuzz
 

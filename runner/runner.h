@@ -62,7 +62,7 @@ struct RunSnapResult {
 // Options passed to RunnerMain().
 struct RunnerMainOptions {
   // A corpus of Snaps to be executed.
-  const SnapCorpus* corpus;
+  const SnapCorpus<Host>* corpus;
 
   // Number of main loop iterations, in each of which a Snap from the corpus is
   // picked an executed. In sequential mode, this is ignored.
@@ -138,7 +138,7 @@ struct RunnerMainOptions {
 // 'corpus_mapping' points to the address where corpus_fd is mapped. This is
 // usually identical to the SnapCorpus pointer. This value can be NULL if
 // corpus_fd == -1.
-void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
+void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
                const void* corpus_mapping);
 
 // Executes 'snap' and stores the execution result in 'result'.
@@ -147,7 +147,7 @@ void MapCorpus(const SnapCorpus& corpus, int corpus_fd,
 //
 // We deliberately use a reference instead of returning a RunSnapResult object
 // to avoid unnecessary copying.
-void RunSnap(const Snap& snap, RunSnapResult& result);
+void RunSnap(const Snap<Host>& snap, RunSnapResult& result);
 
 // Executes Snaps from a corpus according to 'options' and returns an exit code
 // that can be passed to _exit(). This is intended to be used for implementing

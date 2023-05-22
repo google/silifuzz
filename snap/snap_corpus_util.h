@@ -27,9 +27,12 @@ namespace silifuzz {
 // except for files in /proc and /dev/shm.
 // When `corpus_fd` is not NULL, passes ownership of the corpus FD to the caller
 // rather than closing it.
-MmappedMemoryPtr<const SnapCorpus> LoadCorpusFromFile(const char* filename,
-                                                      bool preload = true,
-                                                      int* corpus_fd = nullptr);
+template <typename Arch>
+MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
+    const char* filename, bool preload = true, int* corpus_fd = nullptr);
+
+// Snoop the file on disk to determine which architecture it is for.
+ArchitectureId CorpusFileArchitecture(const char* filename);
 
 }  // namespace silifuzz
 

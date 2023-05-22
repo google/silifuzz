@@ -33,8 +33,9 @@ void RelocateRandomBytes(const std::string& bytes) {
   }
 
   // This should not crash.
-  SnapRelocator::Error error;
-  auto corpus = SnapRelocator::RelocateCorpus(std::move(relocatable), &error);
+  SnapRelocatorError error;
+  auto corpus =
+      SnapRelocator<Host>::RelocateCorpus(std::move(relocatable), &error);
 }
 
 constexpr size_t kMaxRandomCorpusSize = 1 << 16;
