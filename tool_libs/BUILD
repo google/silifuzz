@@ -24,11 +24,6 @@ licenses(["notice"])
 
 # =========================================================================== #
 
-DISABLE_ARM_TAGS = [
-    "not_build:arm",
-    "not_test:arm",
-]
-
 cc_library(
     name = "corpus_partitioner_lib",
     srcs = ["corpus_partitioner_lib.cc"],

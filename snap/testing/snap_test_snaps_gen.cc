@@ -69,9 +69,6 @@ absl::Status GenerateRelocatableRunnerCorpus() {
     snapified_corpus.push_back(std::move(snapified));
   }
 
-  // TODO(ncbray): do host/arch split for Snap data structure.
-  CHECK_EQ((int)Arch::architecture_id, (int)Host::architecture_id);
-
   // Generate the SnapCorpus data.
   RelocatableSnapGeneratorOptions options;
   options.compress_repeating_bytes = opts.compress_repeating_bytes;

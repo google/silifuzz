@@ -28,7 +28,6 @@ licenses(["notice"])
 
 # =========================================================================== #
 
-# TODO(ncbray) enable once ported
 DISABLE_ARM_TAGS = [
     "not_build:arm",
     "not_test:arm",
