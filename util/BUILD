@@ -171,6 +171,28 @@ cc_test(
     ],
 )
 
+cc_library_plus_nolibc(
+    name = "crc32c",
+    srcs = ["crc32c.cc"],
+    hdrs = ["crc32c.h"],
+    # aarch64 should not depend on x86_cpu_features but select() does
+    # not play well with cc_library_plus_nolibc.
+    deps = [":x86_cpu_features"],
+)
+
+cc_test_plus_nolibc(
+    name = "crc32c_test",
+    srcs = ["crc32c_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":checks",
+        ":crc32c",
+        ":nolibc_gunit",
+    ],
+)
+
 cc_library(
     name = "data_dependency",
     srcs = ["data_dependency.cc"],
