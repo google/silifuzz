@@ -22,11 +22,6 @@ licenses(["notice"])
 
 # =========================================================================== #
 
-DISABLE_ARM_TAGS = [
-    "not_build:arm",
-    "not_test:arm",
-]
-
 cc_binary(
     name = "snap_tool",
     srcs = ["snap_tool.cc"] + select({
