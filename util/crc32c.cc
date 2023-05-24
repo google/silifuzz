@@ -75,11 +75,11 @@ uint32_t crc32c_accelerated_impl(uint32_t seed, const uint8_t* data, size_t n) {
 
 #ifdef __x86_64__
 struct X86CRC32CFunctions {
-  __attribute__((target("crc32"))) static inline uint32_t crc32c_uint8(
+  __attribute__((target("sse4.2"))) static inline uint32_t crc32c_uint8(
       uint32_t crc, uint8_t value) {
     return __builtin_ia32_crc32qi(crc, value);
   }
-  __attribute__((target("crc32"))) static inline uint32_t crc32c_uint64(
+  __attribute__((target("sse4.2"))) static inline uint32_t crc32c_uint64(
       uint32_t crc, uint64_t value) {
     return __builtin_ia32_crc32di(crc, value);
   }
