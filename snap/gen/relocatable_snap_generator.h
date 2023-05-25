@@ -28,7 +28,7 @@ namespace silifuzz {
 // This is a relocatable format for Snap corpus. A relocatable Snap corpus is
 // essentially the same as an in-memory Snap corpus except:
 //
-// 1. all pointers are replaced by offsets from the beginning of the corups.
+// 1. all pointers are replaced by offsets from the beginning of the corpus.
 //    This is as if the corpus was generated for the nominal load address 0.
 // 2. all pointers must be within the relocatable corpus itself. There should
 //    not be any external references.
@@ -38,19 +38,18 @@ namespace silifuzz {
 //
 // Corpus layout:
 //
-// TODO(dougkwan): [design] We most likely will need a file header to store
-// metadata like format version, platforms and etc.
-//
 // +---------------------------+
-// | corpus Snap::Array struct |
+// | header SnapCorpus struct  |
+// +---------------------------+
+// | corpus SnapArray struct   |
 // +---------------------------+
 // | Snap pointer array        |
 // +---------------------------+
 // | Snap array                |
 // +---------------------------+
-// | Snap::MemoryBytes array   |
-// +------------------------- -+
-// | Snap::MemoryMapping array |
+// | SnapMemoryBytes array     |
+// +---------------------------+
+// | SnapMemoryMapping array   |
 // +---------------------------+
 // | byte array                |
 // +---------------------------+
@@ -66,8 +65,11 @@ namespace silifuzz {
 // requirements of it parts. Data of the same type are grouped together in order
 // to minimize alignment gaps inside the corpus.
 //
-// 1. Corpus Snap::Array struct.
-// This is located at the beginning of the whole relocatable Snap corpus.
+// 0. Corpus header.
+// Located at the beginning of the file. Contains magic and metadata like target
+// architecture, etc.
+//
+// 1. Corpus SnapArray struct.
 // It consist of a single Snap::Corpus structure. It contains the number of
 // Snaps in the corpus as well as a pointer to the snap pointer array after it.
 //
@@ -79,11 +81,11 @@ namespace silifuzz {
 // These are fixed-sized parts of Snaps. Variable-sized parts of Snaps are
 // stored in their respective parts inside the corpus.
 //
-// 4. Snap::MemoryBytes array.
+// 4. SnapMemoryBytes array.
 // These are Snap::MemoryBytes structures. Byte data referenced by these are
 // stored in another part of the corpus.
 //
-// 5. Snap::MemoryMapping array.
+// 5. SnapMemoryMapping array.
 // Fixed-sized Memory mappings structures.
 //
 // 6. Byte array.
@@ -96,7 +98,7 @@ namespace silifuzz {
 // 8. Snap::RegisterState array.
 // These are the registers that specify the entry and exit state of each Snap.
 // This data is stored out-of-line from the Snap structure so that relocating
-// the Snap doesn't dirty the pages containg register data.
+// the Snap doesn't dirty the pages containing register data.
 //
 // 9. Page-aligned data.
 // Page-aligned memory bytes may be put in this section if we want to mmap them
