@@ -109,6 +109,7 @@ ABSL_FLAG(std::string, orchestrator_version, "",
 ABSL_FLAG(absl::Duration, watchdog_allowed_overrun, absl::ZeroDuration(),
           "When > 0, a watchdog thread will terminate this process after "
           "exceeding duration+overrun");
+ABSL_FLAG(int64_t, num_iterations, 5000000, "Number of iterations per runner.");
 ABSL_FLAG(
     std::string, limit_memory_usage_mb, "unlimited",
     "How much memory (in Mb) can the scanning process use. The default is "
@@ -361,8 +362,11 @@ int main(int argc, char **argv) {
     }
     shards = std::move(*capped_shards);
   }
-  // Collect runner arguments.
+
   std::vector<std::string> runner_extra_argv;
+  runner_extra_argv.push_back(
+      absl::StrCat("--num_iterations=", absl::GetFlag(FLAGS_num_iterations)));
+  // Collect runner arguments.
   for (size_t i = 1; i < remaining_args.size(); ++i) {
     runner_extra_argv.push_back(remaining_args[i]);
   }
