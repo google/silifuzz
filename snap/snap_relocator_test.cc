@@ -34,11 +34,12 @@
 namespace silifuzz {
 namespace {
 
+template <typename Arch>
 absl::StatusOr<MmappedMemoryPtr<char>> GetTestRelocatableCorpus() {
   // Generate relocatable snaps from runner test snaps.
   Snapshot snapshot =
-      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
-  EXPECT_EQ(Host::architecture_id, snapshot.architecture_id());
+      MakeSnapRunnerTestSnapshot<Arch>(TestSnapshot::kEndsAsExpected);
+  EXPECT_EQ(Arch::architecture_id, snapshot.architecture_id());
   SnapifyOptions opts =
       SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
   auto snapified_or = Snapify(snapshot, opts);
@@ -48,66 +49,73 @@ absl::StatusOr<MmappedMemoryPtr<char>> GetTestRelocatableCorpus() {
   snapified_corpus.emplace_back(std::move(snapified_or.value()));
 
   MmappedMemoryPtr<char> buffer =
-      GenerateRelocatableSnaps(Host::architecture_id, snapified_corpus);
+      GenerateRelocatableSnaps(Arch::architecture_id, snapified_corpus);
   return buffer;
 }
 
+template <typename Arch>
 class SnapRelocatorTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    ASSERT_OK_AND_ASSIGN(relocatable_, GetTestRelocatableCorpus());
-    corpus_ = reinterpret_cast<SnapCorpus<Host>*>(relocatable_.get());
+    ASSERT_OK_AND_ASSIGN(relocatable_, GetTestRelocatableCorpus<Arch>());
+    corpus_ = reinterpret_cast<SnapCorpus<Arch>*>(relocatable_.get());
   }
 
   void ExpectRelocationResultIs(SnapRelocatorError expected_error) {
     SnapRelocatorError error;
-    MmappedMemoryPtr<const SnapCorpus<Host>> corpus_mmaped_memory_ptr =
-        SnapRelocator<Host>::RelocateCorpus(std::move(relocatable_), &error);
+    MmappedMemoryPtr<const SnapCorpus<Arch>> corpus_mmaped_memory_ptr =
+        SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable_), &error);
     EXPECT_EQ(error, expected_error);
   }
 
   MmappedMemoryPtr<char> relocatable_;  // A relocatable corpus for testing.
-  SnapCorpus<Host>* corpus_;  // relocatable_ cast as a SnapCorpus pointer.
+  SnapCorpus<Arch>* corpus_;  // relocatable_ cast as a SnapCorpus pointer.
 };
 
-TEST_F(SnapRelocatorTest, CanRelocateGoodCorpus) {
-  ExpectRelocationResultIs(SnapRelocatorError::kOk);
+using arch_typelist = ::testing::Types<ALL_ARCH_TYPES>;
+TYPED_TEST_SUITE(SnapRelocatorTest, arch_typelist);
+
+TYPED_TEST(SnapRelocatorTest, CanRelocateGoodCorpus) {
+  this->ExpectRelocationResultIs(SnapRelocatorError::kOk);
 }
 
-TEST_F(SnapRelocatorTest, UnalignedSnapPointer) {
-  const Snap<Host>* const bad_pointer = reinterpret_cast<const Snap<Host>*>(
-      reinterpret_cast<uintptr_t>(corpus_->snaps.elements) + 1);
-  memcpy(&corpus_->snaps.elements, &bad_pointer,
-         sizeof(corpus_->snaps.elements));
-  ExpectRelocationResultIs(SnapRelocatorError::kAlignment);
+TYPED_TEST(SnapRelocatorTest, UnalignedSnapPointer) {
+  SnapCorpus<TypeParam>* corpus = this->corpus_;
+  const Snap<TypeParam>* const bad_pointer =
+      reinterpret_cast<const Snap<TypeParam>*>(
+          reinterpret_cast<uintptr_t>(corpus->snaps.elements) + 1);
+  memcpy(&corpus->snaps.elements, &bad_pointer, sizeof(corpus->snaps.elements));
+  this->ExpectRelocationResultIs(SnapRelocatorError::kAlignment);
 }
 
-TEST_F(SnapRelocatorTest, OutOfBoundPointer) {
+TYPED_TEST(SnapRelocatorTest, OutOfBoundPointer) {
+  SnapCorpus<TypeParam>* corpus = this->corpus_;
   // This moves the elements out of the mmapped area.
-  const Snap<Host>* const bad_pointer =
-      reinterpret_cast<const Snap<Host>*>(MmappedMemorySize(relocatable_));
-  memcpy(&corpus_->snaps.elements, &bad_pointer,
-         sizeof(corpus_->snaps.elements));
-  ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
+  const Snap<TypeParam>* const bad_pointer =
+      reinterpret_cast<const Snap<TypeParam>*>(
+          MmappedMemorySize(this->relocatable_));
+  memcpy(&corpus->snaps.elements, &bad_pointer, sizeof(corpus->snaps.elements));
+  this->ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
 }
 
-TEST_F(SnapRelocatorTest, ArraySizeOutOfBound) {
+TYPED_TEST(SnapRelocatorTest, ArraySizeOutOfBound) {
   // This pushes the last element out of the mmapped area.
-  corpus_->snaps.size = MmappedMemorySize(relocatable_);
-  ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
+  this->corpus_->snaps.size = MmappedMemorySize(this->relocatable_);
+  this->ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
 }
 
-TEST_F(SnapRelocatorTest, ArraySizeOverflow) {
+TYPED_TEST(SnapRelocatorTest, ArraySizeOverflow) {
   // Overflow in multiplication.
-  corpus_->snaps.size = std::numeric_limits<size_t>::max();
-  ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
+  this->corpus_->snaps.size = std::numeric_limits<size_t>::max();
+  this->ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
 }
 
-TEST_F(SnapRelocatorTest, ArrayElementAddressOverflow) {
+TYPED_TEST(SnapRelocatorTest, ArrayElementAddressOverflow) {
+  SnapCorpus<TypeParam>* corpus = this->corpus_;
   // Overflow in array element offset computation.
-  corpus_->snaps.size =
-      std::numeric_limits<size_t>::max() / sizeof(corpus_->snaps.elements[0]);
-  ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
+  corpus->snaps.size =
+      std::numeric_limits<size_t>::max() / sizeof(corpus->snaps.elements[0]);
+  this->ExpectRelocationResultIs(SnapRelocatorError::kOutOfBound);
 }
 
 }  // namespace

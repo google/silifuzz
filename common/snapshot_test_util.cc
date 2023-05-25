@@ -174,6 +174,33 @@ template bool TestSnapshotExists<X86_64>(TestSnapshot type);
 template bool TestSnapshotExists<AArch64>(TestSnapshot type);
 
 template <typename Arch>
+static constexpr PlatformId kDefaultTestSnapshotPlatform =
+    PlatformId::kUndefined;
+
+template <>
+static constexpr PlatformId kDefaultTestSnapshotPlatform<X86_64> =
+    PlatformId::kIntelSkylake;
+
+template <>
+static constexpr PlatformId kDefaultTestSnapshotPlatform<AArch64> =
+    PlatformId::kArmNeoverseN1;
+
+template <typename Arch>
+PlatformId TestSnapshotPlatform() {
+  if (Host::architecture_id == Arch::architecture_id) {
+    // Some maker / fixer tests expect to be able to run this Snapshot, so
+    // return the current platform if there's a chance it can be run on this
+    // machine.
+    return CurrentPlatformId();
+  } else {
+    return kDefaultTestSnapshotPlatform<Arch>;
+  }
+}
+
+template PlatformId TestSnapshotPlatform<X86_64>();
+template PlatformId TestSnapshotPlatform<AArch64>();
+
+template <typename Arch>
 Snapshot CreateTestSnapshot(TestSnapshot type,
                             CreateTestSnapshotOptions options) {
   Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
@@ -240,7 +267,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
     Snapshot::RegisterState regs =
         ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     Snapshot::EndState end_state(endpoint, regs);
-    end_state.add_platform(CurrentPlatformId());
+    end_state.add_platform(TestSnapshotPlatform<Arch>());
     auto end_state_with_sideeffects =
         ApplySideEffects<Arch>(snapshot, end_state);
     CHECK_STATUS(end_state_with_sideeffects.status());

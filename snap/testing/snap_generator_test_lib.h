@@ -23,7 +23,8 @@ namespace silifuzz {
 
 // Verifies that 'snap' is correctly generated from 'snapshot' using
 // 'generator_options'. Die if any error is found.
-void VerifyTestSnap(const Snapshot& snapshot, const Snap<Host>& snap,
+template <typename Arch>
+void VerifyTestSnap(const Snapshot& snapshot, const Snap<Arch>& snap,
                     const SnapifyOptions& generator_options);
 }  // namespace silifuzz
 

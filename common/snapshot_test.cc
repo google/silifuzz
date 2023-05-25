@@ -120,7 +120,8 @@ TYPED_TEST(SnapshotTest, EndStatePlatform) {
   Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected);
   Snapshot::EndState es = s.expected_end_states()[0];
   ASSERT_FALSE(s.expected_end_states().empty());
-  EXPECT_THAT(es.platforms(), UnorderedElementsAre(CurrentPlatformId()));
+  EXPECT_THAT(es.platforms(),
+              UnorderedElementsAre(TestSnapshotPlatform<TypeParam>()));
   es.add_platform(PlatformId::kIntelIcelake);
   es.add_platform(PlatformId::kIntelSapphireRapids);
   EXPECT_TRUE(es.has_platform(PlatformId::kIntelIcelake));

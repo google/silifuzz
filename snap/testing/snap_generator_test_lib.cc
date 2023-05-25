@@ -98,8 +98,10 @@ void VerifySnapMemoryBytes(const Snapshot::MemoryBytes& memory_bytes,
 }
 
 // Verifies Snapshot::RegisterState -> Snap::RegisterState conversion.
-void VerifySnapRegisterState(const Snapshot::RegisterState& registers,
-                             const Snap<Host>::RegisterState& snap_registers) {
+template <typename Arch>
+void VerifySnapRegisterState(
+    const Snapshot::RegisterState& registers,
+    const typename Snap<Arch>::RegisterState& snap_registers) {
   Snapshot::ByteData gregs_bytes;
   CHECK(SerializeGRegs(snap_registers.gregs, &gregs_bytes));
   CHECK_EQ(registers.gregs(), gregs_bytes);
@@ -144,7 +146,8 @@ void VerifySnapMemoryMappingArray(
 }  // namespace
 
 // Verifies that 'snapshot' is correctly converted into 'snap'.
-void VerifyTestSnap(const Snapshot& snapshot, const Snap<Host>& snap,
+template <typename Arch>
+void VerifyTestSnap(const Snapshot& snapshot, const Snap<Arch>& snap,
                     const SnapifyOptions& generator_options) {
   absl::StatusOr<Snapshot> snapified_snapshot_or =
       Snapify(snapshot, generator_options);
@@ -164,7 +167,8 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap<Host>& snap,
                                snap.memory_mappings[i].memory_bytes,
                                snapified_snapshot.mapped_memory_map());
   }
-  VerifySnapRegisterState(snapified_snapshot.registers(), *snap.registers);
+  VerifySnapRegisterState<Arch>(snapified_snapshot.registers(),
+                                *snap.registers);
   CHECK_EQ(snapified_snapshot.expected_end_states().size(), 1);
   const Snapshot::EndState& end_state =
       snapified_snapshot.expected_end_states()[0];
@@ -173,11 +177,18 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap<Host>& snap,
   VerifySnapField("end_state_instruction_address",
                   endpoint.instruction_address(),
                   snap.end_state_instruction_address);
-  VerifySnapRegisterState(end_state.registers(), *snap.end_state_registers);
+  VerifySnapRegisterState<Arch>(end_state.registers(),
+                                *snap.end_state_registers);
 
   VerifySnapMemoryBytesArray(
       "memory_bytes", ToBorrowedMemoryBytesList(end_state.memory_bytes()),
       snap.end_state_memory_bytes, snapified_snapshot.mapped_memory_map());
 }
+
+template void VerifyTestSnap(const Snapshot& snapshot, const Snap<X86_64>& snap,
+                             const SnapifyOptions& generator_options);
+template void VerifyTestSnap(const Snapshot& snapshot,
+                             const Snap<AArch64>& snap,
+                             const SnapifyOptions& generator_options);
 
 }  // namespace silifuzz

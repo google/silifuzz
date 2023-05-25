@@ -18,6 +18,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/platform.h"
 
 namespace silifuzz {
 
@@ -44,6 +45,11 @@ class CreateTestSnapshotOptions {
 // Check if this test snapshot exists for this architecture.
 template <typename Arch>
 bool TestSnapshotExists(TestSnapshot type);
+
+// Which PlatformId should the end state of a test Snapshots contain for the
+// specified arch?
+template <typename Arch>
+PlatformId TestSnapshotPlatform();
 
 // Creates a minimal snapshot for testing on the current architecture.
 template <typename Arch>
