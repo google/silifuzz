@@ -1009,3 +1009,24 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library_plus_nolibc(
+    name = "x86_reg_groups",
+    srcs = ["x86_64/reg_groups.cc"],
+    hdrs = ["x86_64/reg_groups.h"],
+    deps = ["@silifuzz//util:x86_cpu_features"],
+)
+
+cc_test_plus_nolibc(
+    name = "x86_reg_groups_test",
+    srcs = ["x86_64/reg_groups_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":byte_io",
+        ":checks",
+        ":nolibc_gunit",
+        ":x86_reg_groups",
+    ],
+)
