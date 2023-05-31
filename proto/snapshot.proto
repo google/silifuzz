@@ -157,6 +157,11 @@ message EndState {
   // for all platforms, so normally this will have all bits set.
   // Make it repeated if we run out of bits in one int64.
   optional int64 platforms = 4;  // can be missing
+
+  // Summary information of registers that are not fully recorded at the
+  // end of snapshot execution.  This is serialized from a RegisterChecksum
+  // struct for the same architecture as the snapshot.
+  optional bytes register_checksum = 5;  // can be missing
 }
 
 // Metadata about a Snapshot.
