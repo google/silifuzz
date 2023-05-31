@@ -52,7 +52,6 @@
 #include "./util/platform.h"
 #include "./util/tool_util.h"
 #include "./util/ucontext/serialize.h"
-#include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {  // for ADL

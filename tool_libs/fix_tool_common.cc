@@ -29,16 +29,12 @@
 #include "./runner/snap_maker.h"
 #include "./util/checks.h"
 #include "./util/hostname.h"
+#include "./util/page_util.h"
 #include "./util/platform.h"
 
 namespace silifuzz {
 namespace fix_tool_internal {
 namespace {
-
-snapshot_types::Address PageAddress(snapshot_types::Address addr,
-                                    uint64_t page_size) {
-  return (addr / page_size) * page_size;
-}
 
 // Runs `snapshot` through the maker to construct end state. Also verify
 // the remade snapshot to filter out any problematic snapshot.
@@ -47,23 +43,21 @@ snapshot_types::Address PageAddress(snapshot_types::Address addr,
 // Returns the remade snapshot or an error status.
 absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
                                          const FixupSnapshotOptions& options) {
-  SnapMaker::Options snap_maker_options;
-  snap_maker_options.runner_path = RunnerLocation();
-  snap_maker_options.x86_filter_split_lock = options.x86_filter_split_lock;
+  SnapMaker::Options snap_maker_options{
+      .runner_path = RunnerLocation(),
+      .x86_filter_split_lock = options.x86_filter_split_lock};
   SnapMaker maker = SnapMaker(snap_maker_options);
-  absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(snapshot);
-  RETURN_IF_NOT_OK(made_snapshot_or.status());
-  absl::StatusOr<Snapshot> recorded_snapshot =
-      maker.RecordEndState(*made_snapshot_or);
-  RETURN_IF_NOT_OK(recorded_snapshot.status());
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, maker.Make(snapshot));
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snapshot,
+                             maker.RecordEndState(made_snapshot));
 
   const Snapshot::Endpoint& ep =
-      recorded_snapshot->expected_end_states()[0].endpoint();
+      recorded_snapshot.expected_end_states()[0].endpoint();
   if (ep.type() != snapshot_types::Endpoint::kInstruction) {
     return absl::InternalError(absl::StrCat(
         "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
   }
-  if (absl::Status verify_status = maker.Verify(*recorded_snapshot);
+  if (absl::Status verify_status = maker.Verify(recorded_snapshot);
       !verify_status.ok()) {
     return verify_status;
   }
@@ -79,14 +73,14 @@ bool NormalizeSnapshot(Snapshot& snapshot, FixToolCounters* counters) {
                           snapshot.IsCompleteSomeState().ok();
   if (!has_one_endstate) {
     // Otherwise, replace all expected end states with a single undefined.
-    // TODO(ksteuck): [as-needed] Apply this to fuzzed snapshots only.
     const uint64_t kPageSizeBytes = snapshot.page_size();
     Snapshot::Address orig_endpoint_address =
         snapshot.ExtractRip(snapshot.registers());
     // "Imagine" an endpoint at the end of the code page. 15 bytes is the
     // padding for the exit V2 sequence.
-    orig_endpoint_address = PageAddress(orig_endpoint_address, kPageSizeBytes) +
-                            kPageSizeBytes - 15;
+    orig_endpoint_address =
+        RoundDownToPageAlignment(orig_endpoint_address, kPageSizeBytes) +
+        kPageSizeBytes - 15;
     Snapshot::EndState undef_end_state =
         Snapshot::EndState(Snapshot::Endpoint(orig_endpoint_address));
     snapshot.set_expected_end_states({});

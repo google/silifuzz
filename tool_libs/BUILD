@@ -63,6 +63,7 @@ cc_library(
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:checks",
         "@silifuzz//util:hostname",
+        "@silifuzz//util:page_util",
         "@silifuzz//util:platform",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
