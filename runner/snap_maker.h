@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_SILIFUZZ_RUNNER_SNAP_MAKER_H_
 #define THIRD_PARTY_SILIFUZZ_RUNNER_SNAP_MAKER_H_
 
-#include <memory>
 #include <string>
 
 #include "absl/status/status.h"
@@ -27,12 +26,13 @@ namespace silifuzz {
 
 // SnapMaker is a helper class for making, recording and verifying Snapshot-s.
 // The generic pipeline to transform a sequence of instructions into a Snapshot
-// is something like:
+// looks like this:
 //
 //   <bytes>   ->   SnapMaker::Make()  ->   SnapMaper::RecordEndState()
-//             ->   SnapMaker::Verify()
+//             ->   SnapMaker::VerifyPlaysDeterministically()
+//             ->   SnapMaker::CheckTrace()
 //
-// Refer to Make(), RecordEndState() and Verify() for details.
+// Refer to individual function documentation for details.
 //
 // This class is thread-compatible.
 class SnapMaker {
@@ -79,7 +79,7 @@ class SnapMaker {
   SnapMaker& operator=(const SnapMaker&) = delete;
   SnapMaker& operator=(SnapMaker&&) = delete;
 
-  ~SnapMaker() {}
+  ~SnapMaker() = default;
 
   // Make is a function that converts a Snapshot into _potentially_
   // Snap-compatible Snapshot.
@@ -99,10 +99,20 @@ class SnapMaker {
   // EndState::IsComplete() or an error.
   absl::StatusOr<Snapshot> RecordEndState(const Snapshot& snapshot);
 
-  // Verifies the input snapshot to ensure the snapshot is deterministic and
-  // executes no more than X instructions.
+  // Verifies the snapshot plays deterministically i.e. reaches the same
+  // expected end state when played multiple times.
   // RETURNS: OkStatus() if the snapshot was successfully verified.
-  absl::Status Verify(const Snapshot& snapshot);
+  absl::Status VerifyPlaysDeterministically(const Snapshot& snapshot) const;
+
+  // Single-steps the input snapshot and checks the conditions described below.
+  //
+  // Returns a Status if the snapshot does one of the following: a) executes
+  // a non-deterministic instruction  b) executes an instruction that causes a
+  // split lock or c) executes more than X instructions. See trace_options.h for
+  // the default value of X.
+  // Returns the input snapshot if it passed all the filters.
+  // REQUIRES: `snapshot` must be Snapify()-ed.
+  absl::StatusOr<Snapshot> CheckTrace(const Snapshot& snapshot) const;
 
  private:
   // Makes snapshot in a loop until hitting some stopping condition.

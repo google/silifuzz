@@ -130,13 +130,38 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
   return snapified;
 }
 
-absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
+absl::StatusOr<Snapshot> SnapMaker::CheckTrace(const Snapshot& snapshot) const {
+  Snapshot copy = snapshot.Copy();
+  // TODO(ncbray): instruction filtering on aarch64. This will likely involve
+  // static decompilation rather than dynamic tracing.
+#if defined(__x86_64__)
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      RunnerDriver driver,
+      RunnerDriverFromSnapshot(snapshot, opts_.runner_path));
+
+  TraceOptions trace_options = TraceOptions::Default();
+  trace_options.x86_trap_on_split_lock = opts_.x86_filter_split_lock;
+  DisassemblingSnapTracer tracer(snapshot, trace_options);
+  absl::StatusOr<RunnerDriver::RunResult> trace_result_or = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
+  DisassemblingSnapTracer::TraceResult trace_result = tracer.trace_result();
+
+  if (!trace_result_or.status().ok() || !trace_result_or->success()) {
+    return absl::InternalError(absl::StrCat(
+        "Tracing failed: ", trace_result.early_termination_reason));
+  }
+#endif
+  return copy;
+}
+
+absl::Status SnapMaker::VerifyPlaysDeterministically(
+    const Snapshot& snapshot) const {
   SnapifyOptions snapify_opts =
       SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified,
                              Snapify(snapshot, snapify_opts));
   ASSIGN_OR_RETURN_IF_NOT_OK(
-      RunnerDriver verifier,
+      RunnerDriver driver,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
 
   // TODO(ksteuck): [as-needed] Consider VerifyDisjointly()-like functionality
@@ -146,7 +171,7 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
   // always placed at the fixed address (--image-base linker arg).
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver::RunResult verify_result,
-      verifier.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts));
+      driver.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts));
   if (!verify_result.success()) {
     if (VLOG_IS_ON(1)) {
       LinePrinter lp(LinePrinter::StdErrPrinter);
@@ -156,25 +181,6 @@ absl::Status SnapMaker::Verify(const Snapshot& snapshot) {
     }
     return absl::InternalError("Verify() failed, non-deterministic snapshot?");
   }
-
-// TODO(ncbray): instruction filtering on aarch64. This will likely involve
-// static decompilation rather than dynamic tracing.
-#if defined(__x86_64__)
-  // Single-step flags snapshots with non-deterministic instructions and
-  // snapshots that execute too many instructions. No attempt is made to fix
-  // such snapshots.
-  TraceOptions trace_options = TraceOptions::Default();
-  trace_options.x86_trap_on_split_lock = opts_.x86_filter_split_lock;
-  DisassemblingSnapTracer tracer(snapified, trace_options);
-  absl::StatusOr<RunnerDriver::RunResult> trace_result_or = verifier.TraceOne(
-      snapified.id(),
-      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
-  if (!trace_result_or.status().ok() || !trace_result_or->success()) {
-    DisassemblingSnapTracer::TraceResult trace_result = tracer.trace_result();
-    return absl::InternalError(absl::StrCat(
-        "Tracing failed: ", trace_result.early_termination_reason));
-  }
-#endif
   return absl::OkStatus();
 }
 

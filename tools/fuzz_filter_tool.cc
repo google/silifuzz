@@ -86,11 +86,18 @@ bool FilterToolMain(absl::string_view id, absl::string_view raw_insns_bytes,
               EnumStr(ep.sig_num()));
     return false;
   }
-  absl::Status verify_status = maker.Verify(recorded_snapshot);
+  absl::Status verify_status =
+      maker.VerifyPlaysDeterministically(recorded_snapshot);
   if (!verify_status.ok()) {
     LOG_ERROR(verify_status.message());
+    return false;
   }
-  return verify_status.ok();
+  absl::StatusOr<Snapshot> trace_result = maker.CheckTrace(recorded_snapshot);
+  if (!trace_result.ok()) {
+    LOG_ERROR(trace_result.status().message());
+    return false;
+  }
+  return true;
 }
 
 }  // namespace silifuzz

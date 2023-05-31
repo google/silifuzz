@@ -45,7 +45,8 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
                                          const FixupSnapshotOptions& options) {
   SnapMaker::Options snap_maker_options{
       .runner_path = RunnerLocation(),
-      .x86_filter_split_lock = options.x86_filter_split_lock};
+      .x86_filter_split_lock = options.x86_filter_split_lock,
+  };
   SnapMaker maker = SnapMaker(snap_maker_options);
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, maker.Make(snapshot));
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snapshot,
@@ -57,12 +58,8 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
     return absl::InternalError(absl::StrCat(
         "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
   }
-  if (absl::Status verify_status = maker.Verify(recorded_snapshot);
-      !verify_status.ok()) {
-    return verify_status;
-  }
-
-  return recorded_snapshot;
+  RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
+  return maker.CheckTrace(recorded_snapshot);
 }
 
 }  // namespace
