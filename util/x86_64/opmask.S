@@ -19,14 +19,16 @@
 
         .text
 
-// Load opmask registers k0-k7 from address in %rdi as 8 16-bit words.
-// The address must be word-aligned. Any upper opmask bits are cleared.
+// Load lower 16 bits of opmask registers k0-k7 from address in %rdi as 8
+// 64-bit qwords. The address must be qword-aligned. The upper 48-bit of
+// each qword in memory are ignored. Any upper opmask bits above the first
+// 16 are cleared.
         .p2align 4
         .globl  load_opmask_registers_16
         .type   load_opmask_registers_16, @function
 load_opmask_registers_16:
 #define LOAD_OPMASK_16(n) \
-        kmovw   n * 2(%rdi), %k ## n
+        kmovw   n * 8(%rdi), %k ## n
 
         LOAD_OPMASK_16(0)
         LOAD_OPMASK_16(1)
@@ -63,14 +65,15 @@ load_opmask_registers_64:
         ret
         .size   load_opmask_registers_64, .-load_opmask_registers_64
 
-// Save k0-k7 to address in %rdi as 8 16-bit words. The address must be
-// word-aligned.
+// Save lowest 16 bits of k0-k7 to address in %rdi as 8 64-bit qwords. Upper 48
+// bits of each qword in memory are cleared. The address must be qword-aligned.
         .p2align 4
         .globl  save_opmask_registers_16
         .type   save_opmask_registers_16, @function
 save_opmask_registers_16:
 #define SAVE_OPMASK_16(n) \
-        kmovw   %k ## n, n * 2(%rdi)
+        movq    $0, n * 8(%rdi) ; \
+        kmovw   %k ## n, n * 8(%rdi)
 
         SAVE_OPMASK_16(0)
         SAVE_OPMASK_16(1)

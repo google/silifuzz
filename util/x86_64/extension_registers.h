@@ -73,13 +73,15 @@ void clear_zmm_registers();
 
 // ========== Opmask register functions ==========
 
-// Loads AVX-512 opmask registers k0-k7. 'buffer must be 16-bit aligned and have
-// a size of 16 bytes. Any opmask bits higher than 16 are cleared.
-void load_opmask_registers_16(const uint16_t* buffer);
+// Loads AVX-512 opmask registers k0-k7. 'buffer' must be 64-bit aligned and
+// have a size of 64 bytes. Upper 48 bits of each uint64_t in 'buffer' are
+// ignored. Any opmask bits higher than 16 are cleared.
+void load_opmask_registers_16(const uint64_t* buffer);
 
-// Saves lowest 16 bits of AVX-512 opmask registers k0-k7. 'buffer must be
-// 16-bit aligned and have size of 16 bytes.
-void save_opmask_registers_16(uint16_t* buffer);
+// Saves lowest 16 bits of AVX-512 opmask registers k0-k7 as 8 uint64_t.
+// 'buffer' must be 64-bit aligned and have size of 64 bytes. Upper 48 bits
+// of each uint64_t in 'buffer' are set to zeros.
+void save_opmask_registers_16(uint64_t* buffer);
 
 // Sets AVX-512 opmask registers k0-k7 to zeros.
 void clear_opmask_registers();

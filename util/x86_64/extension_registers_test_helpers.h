@@ -39,9 +39,9 @@ void ZMMSaveTestHelper(__m512 output[32]);
 void ZMMRoundTripTestHelper(const __m512* input, __m512* output);
 void ZMMClearTestHelper(const __m512* input, __m512* output);
 
-void Opmask16SaveTestHelper(uint16_t* output);
-void Opmask16RoundTripTestHelper(const uint16_t* input, uint16_t* output);
-void Opmask16ClearTestHelper(const uint16_t* input, uint16_t* output);
+void Opmask16SaveTestHelper(uint64_t* output);
+void Opmask16RoundTripTestHelper(const uint64_t* input, uint64_t* output);
+void Opmask16ClearTestHelper(const uint64_t* input, uint64_t* output);
 
 void Opmask64SaveTestHelper(uint64_t* output);
 void Opmask64RoundTripTestHelper(const uint64_t* input, uint64_t* output);

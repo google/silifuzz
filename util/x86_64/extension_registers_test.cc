@@ -50,7 +50,8 @@ struct ZMMTypeInfo {
 };
 
 struct Opmask16TypeInfo {
-  typedef uint16_t ElementType;
+  // Opmask16 functions operate on uint64_t
+  typedef uint64_t ElementType;
   static constexpr size_t kNumElements = 8;
 };
 
@@ -186,7 +187,15 @@ TEST(ExtenstionRegistrs, Opmask64ave) {
 TEST(ExtenstionRegistrs, Opmask16RoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
     GTEST_SKIP() << "AVX-512F not supported";
-  RoundTripTestImpl<Opmask16TypeInfo, Opmask16RoundTripTestHelper>();
+  constexpr size_t kNumElements = 8;
+  uint64_t input[kNumElements], output[kNumElements];
+  FillPattern(reinterpret_cast<uint8_t*>(input), sizeof(input));
+  memset(output, 0, sizeof(output));
+  Opmask16RoundTripTestHelper(input, output);
+  for (size_t i = 0; i < kNumElements; ++i) {
+    // 16-bit opmasks are saved as uint64_t with upper 48 bits cleared.
+    EXPECT_EQ(input[i] & 0xffff, output[i]) << "mismatch at index " << i;
+  }
 }
 
 TEST(ExtenstionRegistrs, Opmask64RoundTrip) {
