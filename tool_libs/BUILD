@@ -59,6 +59,7 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//player:trace_options",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:checks",

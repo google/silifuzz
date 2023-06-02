@@ -130,7 +130,8 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
   return snapified;
 }
 
-absl::StatusOr<Snapshot> SnapMaker::CheckTrace(const Snapshot& snapshot) const {
+absl::StatusOr<Snapshot> SnapMaker::CheckTrace(
+    const Snapshot& snapshot, const TraceOptions& trace_options) const {
   Snapshot copy = snapshot.Copy();
   // TODO(ncbray): instruction filtering on aarch64. This will likely involve
   // static decompilation rather than dynamic tracing.
@@ -139,8 +140,6 @@ absl::StatusOr<Snapshot> SnapMaker::CheckTrace(const Snapshot& snapshot) const {
       RunnerDriver driver,
       RunnerDriverFromSnapshot(snapshot, opts_.runner_path));
 
-  TraceOptions trace_options = TraceOptions::Default();
-  trace_options.x86_trap_on_split_lock = opts_.x86_filter_split_lock;
   DisassemblingSnapTracer tracer(snapshot, trace_options);
   absl::StatusOr<RunnerDriver::RunResult> trace_result_or = driver.TraceOne(
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));

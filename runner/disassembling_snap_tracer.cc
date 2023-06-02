@@ -101,7 +101,7 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
           absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());
       return HarnessTracer::kInjectSigusr1;
     }
-    if (options_.x86_trap_on_split_lock && insn_or->is_locking()) {
+    if (options_.x86_filter_split_lock && insn_or->is_locking()) {
       auto may_have_split_lock_or = insn_or->may_have_split_lock(regs);
       if (!may_have_split_lock_or.ok()) {
         // We cannot determine if there is a split-lock because of an internal

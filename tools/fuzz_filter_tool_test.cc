@@ -114,7 +114,7 @@ TEST(FuzzFilterTool, SLDT) {
   EXPECT_FILTER_REJECT(FromBytes({0x0f, 0x00, 0xc0}));
 }
 
-TEST(FuzzFilterTool, INC_LOCK) {
+TEST(FuzzFilterTool, INC_SPLIT_LOCK) {
   EXPECT_FILTER_REJECT(FromBytes({0x48, 0x89, 0xe0, 0x48, 0xff, 0xc8, 0x30,
                                   0xc0, 0xf0, 0xff, 0x40, 0xff}));
 }

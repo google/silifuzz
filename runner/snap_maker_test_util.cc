@@ -14,8 +14,6 @@
 
 #include "./runner/snap_maker_test_util.h"
 
-#include <string>
-
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./runner/runner_provider.h"
@@ -30,13 +28,14 @@ SnapMaker::Options DefaultSnapMakerOptionsForTest() {
 }
 
 absl::StatusOr<Snapshot> FixSnapshotInTest(const Snapshot& snapshot,
-                                           const SnapMaker::Options& options) {
+                                           const SnapMaker::Options& options,
+                                           const TraceOptions& trace_options) {
   SnapMaker snap_maker(options);
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, snap_maker.Make(snapshot));
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snap,
                              snap_maker.RecordEndState(made_snapshot));
   RETURN_IF_NOT_OK(snap_maker.VerifyPlaysDeterministically(recorded_snap));
-  return snap_maker.CheckTrace(recorded_snap);
+  return snap_maker.CheckTrace(recorded_snap, trace_options);
 }
 
 }  // namespace silifuzz

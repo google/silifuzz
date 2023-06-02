@@ -19,6 +19,7 @@
 
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
+#include "./player/trace_options.h"
 #include "./runner/snap_maker.h"
 
 namespace silifuzz {
@@ -30,7 +31,8 @@ SnapMaker::Options DefaultSnapMakerOptionsForTest();
 // the fixed Snapshot or an error.
 absl::StatusOr<Snapshot> FixSnapshotInTest(
     const Snapshot& snapshot,
-    const SnapMaker::Options& options = DefaultSnapMakerOptionsForTest());
+    const SnapMaker::Options& options = DefaultSnapMakerOptionsForTest(),
+    const TraceOptions& trace_options = TraceOptions::Default());
 
 }  // namespace silifuzz
 

@@ -25,6 +25,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_util.h"
+#include "./player/trace_options.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
 #include "./util/checks.h"
@@ -36,16 +37,13 @@ namespace silifuzz {
 namespace fix_tool_internal {
 namespace {
 
-// Runs `snapshot` through the maker to construct end state. Also verify
+// Runs `snapshot` through the maker to construct end state and verifies
 // the remade snapshot to filter out any problematic snapshot.
-// If `x86_filter_split_lock` is true, any x86 snapshot with a locking
-// instruction that accesses memory across a cache line boundary is rejected.
 // Returns the remade snapshot or an error status.
 absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
                                          const FixupSnapshotOptions& options) {
   SnapMaker::Options snap_maker_options{
       .runner_path = RunnerLocation(),
-      .x86_filter_split_lock = options.x86_filter_split_lock,
   };
   SnapMaker maker = SnapMaker(snap_maker_options);
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, maker.Make(snapshot));
@@ -59,7 +57,9 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
         "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
   }
   RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
-  return maker.CheckTrace(recorded_snapshot);
+  TraceOptions trace_options = TraceOptions::Default();
+  trace_options.x86_filter_split_lock = options.x86_filter_split_lock;
+  return maker.CheckTrace(recorded_snapshot, trace_options);
 }
 
 }  // namespace

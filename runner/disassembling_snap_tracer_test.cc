@@ -101,7 +101,7 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   RunnerDriver driver = HelperDriver();
   auto snapshot = MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSplitLock);
   TraceOptions options = TraceOptions::Default();
-  options.x86_trap_on_split_lock = false;
+  options.x86_filter_split_lock = false;
   DisassemblingSnapTracer tracer(snapshot, options);
   ASSERT_OK_AND_ASSIGN(
       const auto result,
@@ -118,7 +118,7 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
                   Insn("call qword ptr [rip]")));
 
   // Trace again with split lock trapping enabled.
-  options.x86_trap_on_split_lock = true;
+  options.x86_filter_split_lock = true;
   DisassemblingSnapTracer split_lock_tracer(snapshot, options);
   const auto result2 = driver.TraceOne(
       snapshot.id(),

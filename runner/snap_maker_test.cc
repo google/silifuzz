@@ -14,11 +14,10 @@
 
 #include "./runner/snap_maker.h"
 
-#include <string>
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "./player/trace_options.h"
 #include "./runner/snap_maker_test_util.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./util/testing/status_macros.h"
@@ -78,11 +77,12 @@ TEST(SnapMaker, SplitLock) {
   const auto splitLockSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSplitLock);
   SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
-  options.x86_filter_split_lock = false;
-  ASSERT_OK(FixSnapshotInTest(splitLockSnap, options));
+  TraceOptions trace_options;
+  trace_options.x86_filter_split_lock = false;
+  ASSERT_OK(FixSnapshotInTest(splitLockSnap, options, trace_options));
 
-  options.x86_filter_split_lock = true;
-  auto result_or = FixSnapshotInTest(splitLockSnap, options);
+  trace_options.x86_filter_split_lock = true;
+  auto result_or = FixSnapshotInTest(splitLockSnap, options, trace_options);
   EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
                                   HasSubstr("Split-lock insn")));
 }

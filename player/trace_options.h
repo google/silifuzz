@@ -41,8 +41,8 @@ class TraceOptions {
   // If true, tracer injects a signal when a locking instruction accesses
   // memory across a cache line boundary. This has no effect on non-x86
   // platforms.  This option is used to work around a performance issue on
-  // some x86 CPUs.
-  bool x86_trap_on_split_lock = false;
+  // some x86 CPUs. See https://lwn.net/Articles/790464/ for details.
+  bool x86_filter_split_lock = true;
 
   // If true, tracer injects a signal when a non-deterministic instruction is
   // detected in the trace.

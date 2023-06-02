@@ -354,7 +354,7 @@ cc_library(
         ":runner_provider",
         ":snap_maker",
         "@silifuzz//common:snapshot",
-        "@com_google_absl//absl/status",
+        "@silifuzz//player:trace_options",
         "@com_google_absl//absl/status:statusor",
     ],
 )
@@ -366,6 +366,7 @@ cc_test(
     deps = [
         ":snap_maker",
         ":snap_maker_test_util",
+        "@silifuzz//player:trace_options",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",

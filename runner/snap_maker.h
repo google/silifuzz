@@ -21,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./player/trace_options.h"
 
 namespace silifuzz {
 
@@ -49,12 +50,6 @@ class SnapMaker {
     // more confidence that the snapshot is indeed deterministic. The default
     // value is somewhat arbitrary but it should normally be > 1.
     int num_verify_attempts = 5;
-
-    // If true, reject any snapshot with a locking instruction that accesses
-    // memory across cache line boundary. This option is x86-only and has no
-    // effect on other platforms. See https://lwn.net/Articles/790464/ for
-    // details.
-    bool x86_filter_split_lock = false;
 
     absl::Status Validate() const {
       if (runner_path.empty()) {
@@ -112,7 +107,9 @@ class SnapMaker {
   // the default value of X.
   // Returns the input snapshot if it passed all the filters.
   // REQUIRES: `snapshot` must be Snapify()-ed.
-  absl::StatusOr<Snapshot> CheckTrace(const Snapshot& snapshot) const;
+  absl::StatusOr<Snapshot> CheckTrace(
+      const Snapshot& snapshot,
+      const TraceOptions& trace_options = TraceOptions::Default()) const;
 
  private:
   // Makes snapshot in a loop until hitting some stopping condition.
