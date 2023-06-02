@@ -1030,3 +1030,32 @@ cc_test_plus_nolibc(
         ":x86_reg_groups",
     ],
 )
+
+cc_library_plus_nolibc(
+    name = "reg_group_bits",
+    hdrs = ["reg_group_bits.h"],
+)
+
+cc_library_plus_nolibc(
+    name = "reg_group_set",
+    hdrs = ["reg_group_set.h"],
+    deps = [
+        ":arch",
+        ":reg_group_bits",
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "reg_group_set_test",
+    srcs = ["reg_group_set_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":arch",
+        ":checks",
+        ":nolibc_gunit",
+        ":reg_group_bits",
+        ":reg_group_set",
+    ],
+)
