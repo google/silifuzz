@@ -188,17 +188,12 @@ message SnapshotMetadata {
     BOCHS_FUZZING_ORIGIN = 5;
     XED_FUZZING_ORIGIN = 6;
     GEM5_FUZZING_ORIGIN = 7;
-    EMULATOR1_FUZZING_ORIGIN = 11;
-    SIMULATOR1_FUZZING_ORIGIN = 12;
-
-    // Unicorn fuzzer with a custom input sequence generator.
-    UNICORNCUSTOM_FUZZING_ORIGIN = 10;
 
     // Special value to direct the consumers to use
     // SnapshotMetadata.origin_string value instead.
     USE_STRING_ORIGIN = 13;
 
-    reserved 1, 4, 8, 9;
+    reserved 1, 4, 8 to 12;
   }
   optional Origin origin = 2;  // semantically required
 
