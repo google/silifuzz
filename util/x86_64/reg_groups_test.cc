@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./util/x86_64/reg_groups.h"
+#include "./util/reg_groups.h"
 
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
 
+#include "./util/arch.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
@@ -83,52 +84,44 @@ void parse_cpuinfo() {
 
   close(fd);
 }
-// Checks if our results agree with information in /proc/cpuinfo.
-TEST(RegisterGroup, SupportedRegsGroups) {
-  const uint64_t supported_register_groups = GetSupportedRegisterGroups();
 
-  // These are always supported.
-  const uint64_t kAlwaysPresentGroupBits =
-      RegisterGroupBit(RegisterGroup::kGPR) |
-      RegisterGroupBit(RegisterGroup::kFPR_AND_SSE);
-  CHECK_EQ(supported_register_groups & kAlwaysPresentGroupBits,
-           kAlwaysPresentGroupBits);
+// Checks if our results agree with information in /proc/cpuinfo.
+TEST(RegisterGroups, CurrentPlatformRegisterGroups) {
+  RegisterGroupSet<X86_64> groups = GetCurrentPlatformRegisterGroups();
+
+  // These are always present.
+  CHECK(groups.GetGPR() && groups.GetFPRAndSSE());
 
   parse_cpuinfo();
 
-  const bool has_avx_regs =
-      (supported_register_groups & RegisterGroupBit(RegisterGroup::kAVX)) != 0;
   const bool has_avx_regs_according_to_cpuinfo =
       cpuinfo_has_xsave && cpuinfo_has_avx;
-  CHECK_EQ(has_avx_regs, has_avx_regs_according_to_cpuinfo);
+  CHECK_EQ(groups.GetAVX(), has_avx_regs_according_to_cpuinfo);
 
-  const bool has_avx512_regs = (supported_register_groups &
-                                RegisterGroupBit(RegisterGroup::kAVX512)) != 0;
   const bool has_avx512_regs_according_to_cpuinfo =
       has_avx_regs_according_to_cpuinfo && cpuinfo_has_avx512f;
-  CHECK_EQ(has_avx512_regs, has_avx512_regs_according_to_cpuinfo);
+  CHECK_EQ(groups.GetAVX512(), has_avx512_regs_according_to_cpuinfo);
 }
 
-TEST(RegisterGroup, ChecksumRegsGroups) {
-  const uint64_t supported_register_groups = GetSupportedRegisterGroups();
-  const uint64_t checksum_register_groups = GetChecksumRegisterGroups();
-
-  CHECK_EQ(checksum_register_groups & ~supported_register_groups, 0);
+TEST(RegisterGroups, CurrentPlatformChecksumRegisterGroups) {
+  RegisterGroupSet<X86_64> groups = GetCurrentPlatformChecksumRegisterGroups();
 
   // These should not be in a checksum.
-  const uint64_t kNotChecksummedGroupBits =
-      RegisterGroupBit(RegisterGroup::kGPR) |
-      RegisterGroupBit(RegisterGroup::kFPR_AND_SSE);
-  CHECK_EQ(checksum_register_groups & kNotChecksummedGroupBits, 0);
+  CHECK(!groups.GetGPR() && !groups.GetFPRAndSSE());
 
   // If we have AVX512 registers, we should not include AVX registers in a
   // checksum.
-  if (checksum_register_groups & RegisterGroupBit(RegisterGroup::kAVX512)) {
-    CHECK_EQ(checksum_register_groups & RegisterGroupBit(RegisterGroup::kAVX),
-             0);
-  } else if (checksum_register_groups & RegisterGroupBit(RegisterGroup::kAVX)) {
-    CHECK_EQ(checksum_register_groups, RegisterGroupBit(RegisterGroup::kAVX));
+  if (groups.GetAVX512()) {
+    CHECK(!groups.GetAVX());
+  } else if (groups.GetAVX()) {
+    RegisterGroupSet<X86_64> avx_only;
+    avx_only.SetAVX(true);
+    CHECK(groups == avx_only);
   }
+
+  // Clear all known checksum bits to ensure no unexpected bits are set.
+  groups.SetAVX(false).SetAVX512(false);
+  CHECK(groups.Empty());
 }
 
 }  // namespace
@@ -137,6 +130,6 @@ TEST(RegisterGroup, ChecksumRegsGroups) {
 // ========================================================================= //
 
 NOLIBC_TEST_MAIN({
-  RUN_TEST(RegisterGroup, SupportedRegsGroups);
-  RUN_TEST(RegisterGroup, ChecksumRegsGroups);
+  RUN_TEST(RegisterGroups, CurrentPlatformRegisterGroups);
+  RUN_TEST(RegisterGroups, CurrentPlatformChecksumRegisterGroups);
 })

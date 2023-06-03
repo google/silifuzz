@@ -1011,27 +1011,6 @@ cc_test(
 )
 
 cc_library_plus_nolibc(
-    name = "x86_reg_groups",
-    srcs = ["x86_64/reg_groups.cc"],
-    hdrs = ["x86_64/reg_groups.h"],
-    deps = ["@silifuzz//util:x86_cpu_features"],
-)
-
-cc_test_plus_nolibc(
-    name = "x86_reg_groups_test",
-    srcs = ["x86_64/reg_groups_test.cc"],
-    libc_deps = [
-        "@com_google_googletest//:gtest_main",
-    ],
-    deps = [
-        ":byte_io",
-        ":checks",
-        ":nolibc_gunit",
-        ":x86_reg_groups",
-    ],
-)
-
-cc_library_plus_nolibc(
     name = "reg_group_bits",
     hdrs = ["reg_group_bits.h"],
 )
@@ -1057,5 +1036,41 @@ cc_test_plus_nolibc(
         ":nolibc_gunit",
         ":reg_group_bits",
         ":reg_group_set",
+    ],
+)
+
+cc_library_plus_nolibc(
+    name = "reg_groups",
+    srcs =
+        select({
+            "@silifuzz//build_defs/platform:aarch64": ["aarch64/reg_groups.cc"],
+            "@silifuzz//build_defs/platform:x86_64": ["x86_64/reg_groups.cc"],
+        }),
+    hdrs = ["reg_groups.h"],
+    # This dependency is only needed for x86. However, cc_library_plus_nolibc rule does not
+    # support select() in deps.  So we unconditionally add this dependency.
+    deps = [
+        ":arch",
+        ":reg_group_set",
+        ":x86_cpu_features",
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "reg_groups_test",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": ["aarch64/reg_groups_test.cc"],
+        "@silifuzz//build_defs/platform:x86_64": ["x86_64/reg_groups_test.cc"],
+    }),
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":arch",
+        ":byte_io",
+        ":checks",
+        ":nolibc_gunit",
+        ":reg_group_set",
+        ":reg_groups",
     ],
 )
