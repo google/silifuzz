@@ -40,9 +40,9 @@ namespace silifuzz {
 
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<Snapshot::Metadata::Origin>[14] = {
-    "kUndefined",     "UNKNOWN(1)", "kIfuzz",      "kUnicorn",   "UNKNOWN(4)",
-    "kBochs",         "kXed",       "kGem5",       "UNKNOWN(8)", "UNKNOWN(9)",
-    "kUnicornCustom", "kEmulator1", "kSimulator1", "kUseString",
+    "kUndefined",  "UNKNOWN(1)",  "kIfuzz",      "kUnicorn",   "UNKNOWN(4)",
+    "kBochs",      "kXed",        "kGem5",       "UNKNOWN(8)", "UNKNOWN(9)",
+    "UNKNOWN(10)", "UNKNOWN(11)", "UNKNOWN(12)", "kUseString",
 };
 
 // Descriptor for an architecture for which we support snapshot data.
