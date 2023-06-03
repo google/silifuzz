@@ -1074,3 +1074,30 @@ cc_test_plus_nolibc(
         ":reg_groups",
     ],
 )
+
+cc_library_plus_nolibc(
+    name = "reg_checksum",
+    srcs = ["reg_checksum.cc"],
+    hdrs = ["reg_checksum.h"],
+    as_is_deps = [
+        "@com_google_absl//absl/base:endian",
+    ],
+    deps = [
+        ":arch",
+        ":reg_group_set",
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "reg_checksum_test",
+    srcs = ["reg_checksum_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":arch",
+        ":checks",
+        ":nolibc_gunit",
+        ":reg_checksum",
+    ],
+)
