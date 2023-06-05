@@ -177,6 +177,15 @@ class SnapshotPrinter : private SnapshotTypeNames {
   // Prints snapshot.registers().
   void PrintRegisters(const Snapshot& snapshot);
 
+  // Prints register checksum from `end_state` relative to base_end_state
+  // that is provided.
+  void PrintRegisterChecksum(const Snapshot& snapshot,
+                             const EndState& end_state,
+                             const EndState* base_end_state = nullptr);
+  template <typename Arch>
+  void PrintRegisterChecksumImpl(const EndState& end_state,
+                                 const EndState* base_end_state = nullptr);
+
   // Prints into *table a line about stats_name (one of min,max,avg) stats for
   // snapshot.expected_end_states().
   // For perms and Address ranges produced,

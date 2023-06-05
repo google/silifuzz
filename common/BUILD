@@ -238,10 +238,13 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
+        "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_group_set",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
         ],

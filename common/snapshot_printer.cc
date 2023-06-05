@@ -24,6 +24,7 @@
 #include "absl/base/attributes.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
@@ -32,6 +33,8 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
+#include "./util/reg_checksum.h"
+#include "./util/reg_group_set.h"
 
 #if defined(__x86_64__)
 #include "./common/decoded_insn.h"
@@ -511,6 +514,95 @@ void SnapshotPrinter::PrintRegisters(const Snapshot& snapshot) {
   Unindent();
 }
 
+template <typename Arch>
+std::string PrintRegisterGroupSetImpl(const RegisterGroupSet<Arch>& groups);
+
+template <>
+std::string PrintRegisterGroupSetImpl<X86_64>(
+    const RegisterGroupSet<X86_64>& groups) {
+  uint64_t bits = groups.Serialize();
+
+  std::vector<std::string> group_names;
+  if (groups.GetGPR()) group_names.push_back("GPR");
+  if (groups.GetFPRAndSSE()) group_names.push_back("FPR_AND_SSE");
+  if (groups.GetAVX()) group_names.push_back("AVX");
+  if (groups.GetAVX512()) group_names.push_back("AVX512");
+  if (groups.GetAMX()) group_names.push_back("AMX");
+
+  return absl::StrFormat("%x [%s]", bits, absl::StrJoin(group_names, ", "));
+}
+
+template <>
+std::string PrintRegisterGroupSetImpl<AArch64>(
+    const RegisterGroupSet<AArch64>& groups) {
+  uint64_t bits = groups.Serialize();
+
+  std::vector<std::string> group_names;
+  if (groups.GetGPR()) group_names.push_back("GPR");
+  if (groups.GetFPR()) group_names.push_back("FPR");
+
+  return absl::StrFormat("%x [%s]", bits, absl::StrJoin(group_names, ", "));
+}
+
+template <typename Arch>
+void SnapshotPrinter::PrintRegisterChecksumImpl(
+    const EndState& end_state, const EndState* base_end_state) {
+  RegisterChecksum<Arch> register_checksum, register_checksum_base;
+  ssize_t consumed_bytes = Deserialize(
+      reinterpret_cast<const uint8_t*>(end_state.register_checksum().data()),
+      end_state.register_checksum().size(), register_checksum);
+  if (consumed_bytes == -1) {
+    LOG(ERROR) << "Cannot deserialize end state register checksum";
+    return;
+  }
+  if (base_end_state != nullptr) {
+    consumed_bytes = Deserialize(
+        reinterpret_cast<const uint8_t*>(
+            base_end_state->register_checksum().data()),
+        base_end_state->register_checksum().size(), register_checksum_base);
+    if (consumed_bytes == -1) {
+      LOG(ERROR) << "Cannot deserialize base end state register checksum";
+      return;
+    }
+    Line("Register checksum (diff against base end state):");
+    Indent();
+    if (register_checksum.register_groups !=
+        register_checksum_base.register_groups) {
+      Line("register_group_mask: ",
+           PrintRegisterGroupSetImpl(register_checksum.register_groups),
+           " want ",
+           PrintRegisterGroupSetImpl(register_checksum_base.register_groups));
+    }
+    if (register_checksum.checksum != register_checksum_base.checksum) {
+      Line("checksum: ", HexStr(register_checksum.checksum), " want ",
+           HexStr(register_checksum_base.checksum));
+    }
+    Unindent();
+  } else {
+    // Just print checksum.
+    Line("Register checksum:");
+    Indent();
+    Line("register_group_mask: ",
+         PrintRegisterGroupSetImpl(register_checksum.register_groups));
+    Line("checksum: ", HexStr(register_checksum.checksum));
+    Unindent();
+  }
+  if (VLOG_IS_ON(1)) {
+    // These can be copy-pasted into a textformat proto.Snapshot:
+    Line("raw register checksum:");
+    Indent();
+    Line("\"", absl::CEscape(end_state.register_checksum()), "\"");
+    Unindent();
+  }
+}
+
+void SnapshotPrinter::PrintRegisterChecksum(const Snapshot& snapshot,
+                                            const EndState& end_state,
+                                            const EndState* base_end_state) {
+  ARCH_DISPATCH(PrintRegisterChecksumImpl, snapshot.architecture_id(),
+                end_state, base_end_state);
+}
+
 void SnapshotPrinter::PrintEndStatesStats(const Snapshot& snapshot,
                                           absl::string_view stats_name,
                                           TextTable* table) {
@@ -736,6 +828,9 @@ void SnapshotPrinter::PrintEndState(const Snapshot& snapshot,
                          false);
     }
     Unindent();
+  }
+  if (!end_state.register_checksum().empty()) {
+    PrintRegisterChecksum(snapshot, end_state, base_end_state);
   }
   if (!end_state.memory_bytes().empty()) {
     if (base_end_state) {

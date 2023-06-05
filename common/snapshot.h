@@ -695,6 +695,14 @@ class Snapshot::EndState final {
   // Sets the list of platforms this snapshot is compatible with.
   void set_platforms(const std::vector<PlatformId>& platforms);
 
+  // Sets register checksum value.
+  void set_register_checksum(const ByteData& value) {
+    register_checksum_ = value;
+  }
+
+  // Gets register checksum.
+  const ByteData& register_checksum() const { return register_checksum_; }
+
  private:
   friend class Snapshot;  // for memory_bytes_ and platforms_.
 
@@ -712,6 +720,11 @@ class Snapshot::EndState final {
 
   // Holds bits for ToInt(PlatformId::kFoo).
   std::vector<bool> platforms_;
+
+  // Checksum for registers not fully recorded after execution. This is
+  // serialized as byte data from a RegisterChecksum struct. Empty
+  // if there is no checksum.
+  ByteData register_checksum_;
 };
 
 }  // namespace silifuzz

@@ -697,6 +697,7 @@ absl::Status Snapshot::can_add_expected_end_state(const EndState& x,
                        ") is not in an existing writable MemoryMapping"));
     }
   }
+  // TODO(dougkwan): verify register checksum is okay.
   if (!duplicate_ok) {
     for (int i = 0; i < expected_end_states_.size(); ++i) {
       if (x.DataEquals(expected_end_states_[i])) {
@@ -1012,7 +1013,8 @@ Snapshot::EndState::EndState(const Endpoint& endpoint,
       endpoint_(endpoint),
       registers_(registers),
       memory_bytes_(),
-      platforms_(ToInt(kMaxPlatformId) + 1, false) {}
+      platforms_(ToInt(kMaxPlatformId) + 1, false),
+      register_checksum_() {}
 
 bool Snapshot::EndState::operator==(const EndState& y) const {
   return DataEquals(y) && platforms_ == y.platforms_;
@@ -1020,6 +1022,7 @@ bool Snapshot::EndState::operator==(const EndState& y) const {
 
 bool Snapshot::EndState::DataEquals(const EndState& y) const {
   return endpoint_ == y.endpoint_ && registers_ == y.registers_ &&
+         register_checksum_ == y.register_checksum_ &&
          MemoryBytesListEq(memory_bytes_,
                            y.memory_bytes_);  // covers changed_memory_set_
 }
