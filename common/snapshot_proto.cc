@@ -203,24 +203,27 @@ absl::StatusOr<Snapshot::EndState> SnapshotProto::FromProto(
   RETURN_IF_NOT_OK_PLUS(e.status(), "Bad Endpoint: ");
   auto r = FromProto(proto.registers());
   RETURN_IF_NOT_OK_PLUS(r.status(), "Bad RegisterState: ");
-  EndState snap(e.value(), r.value());
+  EndState end_state(e.value(), r.value());
   for (const proto::MemoryBytes& p : proto.memory_bytes()) {
     auto b = FromProto(p);
     RETURN_IF_NOT_OK_PLUS(b.status(), "Bad MemoryBytes: ");
-    RETURN_IF_NOT_OK_PLUS(snap.can_add_memory_bytes(b.value()),
+    RETURN_IF_NOT_OK_PLUS(end_state.can_add_memory_bytes(b.value()),
                           "Can't add MemoryBytes: ");
-    snap.add_memory_bytes(std::move(b).value());
+    end_state.add_memory_bytes(std::move(b).value());
   }
   if (proto.has_platforms()) {
     static_assert(ToInt(kMaxPlatformId) < 64);
     for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
          ++p) {
       if (proto.platforms() & (1 << p)) {
-        snap.add_platform(static_cast<PlatformId>(p));
+        end_state.add_platform(static_cast<PlatformId>(p));
       }
     }
   }
-  return snap;
+  if (proto.has_register_checksum()) {
+    end_state.set_register_checksum(proto.register_checksum());
+  }
+  return end_state;
 }
 
 // static
@@ -355,6 +358,7 @@ void SnapshotProto::ToProto(const EndState& snap, proto::EndState* proto) {
     }
     proto->set_platforms(platforms);
   }
+  proto->set_register_checksum(snap.register_checksum());
 }
 
 // static

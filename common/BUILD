@@ -189,6 +189,8 @@ cc_test(
         ":raw_insns_util",
         ":snapshot_proto",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:reg_checksum",
         "@silifuzz//util/testing:status_macros",
         "@com_google_googletest//:gtest_main",
     ],

@@ -19,6 +19,8 @@
 #include "gtest/gtest.h"
 #include "./common/raw_insns_util.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/arch.h"
+#include "./util/reg_checksum.h"
 #include "./util/testing/status_macros.h"
 
 namespace silifuzz {
@@ -71,6 +73,29 @@ TEST(SnapshotProto, ArchRoundtrip) {
   SnapshotProto::ToProto(snapshot, &proto);
   ASSERT_OK_AND_ASSIGN(snapshot, SnapshotProto::FromProto(proto));
   ASSERT_EQ(snapshot.architecture(), Snapshot::Architecture::kAArch64);
+}
+
+TEST(SnapshotProto, RegisterChecksumRoundtrip) {
+  Snapshot::EndState endstate(Snapshot::Endpoint(0));
+  RegisterChecksum<Host> register_checksum;
+  register_checksum.register_groups =
+      RegisterGroupSet<Host>::Deserialize(0x1234567);
+  register_checksum.checksum = 0x89abcdef;
+  uint8_t buffer[256];
+  ssize_t len = Serialize(register_checksum, buffer, sizeof(buffer));
+  ASSERT_NE(len, -1);
+  Snapshot::ByteData serialized_checksum(reinterpret_cast<char*>(buffer), len);
+
+  // Check conversion to proto.
+  endstate.set_register_checksum(serialized_checksum);
+  proto::EndState proto;
+  SnapshotProto::ToProto(endstate, &proto);
+  EXPECT_EQ(proto.register_checksum(), serialized_checksum);
+
+  // Check conversion from proto.
+  Snapshot::EndState endstate2(Snapshot::Endpoint(0));
+  ASSERT_OK_AND_ASSIGN(endstate2, SnapshotProto::FromProto(proto));
+  EXPECT_EQ(endstate2.register_checksum(), serialized_checksum);
 }
 
 }  // namespace
