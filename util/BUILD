@@ -1101,3 +1101,27 @@ cc_test_plus_nolibc(
         ":reg_checksum",
     ],
 )
+
+cc_library(
+    name = "reg_checksum_util",
+    hdrs = ["reg_checksum_util.h"],
+    deps = [
+        ":reg_checksum",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_test(
+    name = "reg_checksum_util_test",
+    srcs = ["reg_checksum_util_test.cc"],
+    deps = [
+        ":arch",
+        ":reg_checksum",
+        ":reg_checksum_util",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

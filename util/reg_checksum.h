@@ -35,6 +35,15 @@ namespace silifuzz {
 // control. Doing so makes it easy to add this to the Snap data structure.
 template <typename Arch>
 struct RegisterChecksum {
+  // Equality operators
+  bool operator==(const RegisterChecksum& other) const {
+    return register_groups == other.register_groups &&
+           checksum == other.checksum;
+  }
+  bool operator!=(const RegisterChecksum& other) const {
+    return !(*this == other);
+  }
+
   // Register groups included in checksum computation.
   RegisterGroupSet<Arch> register_groups;
 
