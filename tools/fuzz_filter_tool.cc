@@ -12,94 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This tool reads an instruction sequence as bytes from the input file and
-// returns 0 exit code iff the sequence can be converted into a non-signalling
-// SiliFuzz Snapshot.
-// The bytes are converted into Snapshot using InstructionsToSnapshot() which
-// is the same as what our fuzzers and the fix pipeline use.
-
 #include "./tools/fuzz_filter_tool.h"
 
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
-#include "./common/snapshot_file_util.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 
 namespace silifuzz {
 
-bool FilterToolMain(absl::string_view id, absl::string_view raw_insns_bytes,
-                    absl::string_view output_snapshot_file) {
-  absl::StatusOr<Snapshot> input_snapshot_or =
-      InstructionsToSnapshot<Host>(raw_insns_bytes);
-  if (!input_snapshot_or.ok()) {
-    LOG_ERROR(input_snapshot_or.status().message());
-    return false;
-  }
-  Snapshot input_snapshot = std::move(input_snapshot_or).value();
+absl::Status FilterToolMain(absl::string_view id,
+                            absl::string_view raw_insns_bytes) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot input_snapshot,
+                             InstructionsToSnapshot<Host>(raw_insns_bytes));
   input_snapshot.set_id(std::string(id));
-  auto WriteOutputFile = [&output_snapshot_file](
-                             absl::Status s, const Snapshot& output_snapshot) {
-    if (!s.ok()) {
-      LOG_ERROR(s.message());
-    }
-    if (!output_snapshot_file.empty()) {
-      WriteSnapshotToFileOrDie(output_snapshot, output_snapshot_file);
-    }
-    return false;
-  };
-
   SnapMaker::Options opts;
   opts.runner_path = RunnerLocation();
   opts.num_verify_attempts = 1;
   SnapMaker maker(opts);
 
-  absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(input_snapshot);
-  if (!made_snapshot_or.ok()) {
-    return WriteOutputFile(made_snapshot_or.status(), input_snapshot);
-  }
-  Snapshot made_snapshot = std::move(made_snapshot_or).value();
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot,
+                             maker.Make(input_snapshot));
 
-  absl::StatusOr<Snapshot> recorded_snapshot_or =
-      maker.RecordEndState(made_snapshot);
-  if (!recorded_snapshot_or.ok()) {
-    return WriteOutputFile(recorded_snapshot_or.status(), made_snapshot);
-  }
-  Snapshot recorded_snapshot = std::move(recorded_snapshot_or).value();
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snapshot,
+                             maker.RecordEndState(made_snapshot));
 
-  WriteOutputFile(absl::OkStatus(), recorded_snapshot);
   DCHECK_EQ(recorded_snapshot.expected_end_states().size(), 1);
-  const auto& ep = recorded_snapshot.expected_end_states()[0].endpoint();
+  const Snapshot::Endpoint& ep =
+      recorded_snapshot.expected_end_states()[0].endpoint();
   if (ep.type() != snapshot_types::Endpoint::kInstruction) {
-    LOG_ERROR("Cannot fix ", EnumStr(ep.sig_cause()), "/",
-              EnumStr(ep.sig_num()));
-    return false;
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
   }
-  absl::Status verify_status =
-      maker.VerifyPlaysDeterministically(recorded_snapshot);
-  if (!verify_status.ok()) {
-    LOG_ERROR(verify_status.message());
-    return false;
-  }
-  absl::StatusOr<Snapshot> trace_result = maker.CheckTrace(recorded_snapshot);
-  if (!trace_result.ok()) {
-    LOG_ERROR(trace_result.status().message());
-    return false;
-  }
-  // TODO(ksteuck): Cleanup fuzz_filter_tool. There is no reason for it to write
-  // proto file the way it does right now. Use snap_tool instead.
-  WriteOutputFile(absl::OkStatus(), *trace_result);
-  return true;
+  RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
+  return maker.CheckTrace(recorded_snapshot).status();
 }
 
 }  // namespace silifuzz

@@ -209,35 +209,30 @@ conversion is possible and 1 otherwise. This interface is compatible with
 Centipede [input_filter](https://github.com/google/fuzztest/blob/main/centipede/environment.cc)
 
 ```
-fuzz_filter_tool raw_input_sequence [optional output proto]
+fuzz_filter_tool raw_input_sequence
 ```
 
-The `raw_input_sequence` file contains `x86_64` instructions which will be
+The `raw_input_sequence` file contains raw instructions which will be
 converted into the Snapshot format using
-[InstructionsToSnapshot_X86_64](https://github.com/google/silifuzz/blob/main/common/raw_insns_util.cc)
-
-When the second argument is provided, the tool will also output the resulting
-Snapshot proto.
-
-NOTE: the result proto is best-effort i.e. for Snapshots that are not
-Snap-compatible the output will contain some intermediate Snapshot value.
+[InstructionsToSnapshot](https://github.com/google/silifuzz/blob/main/common/raw_insns_util.h)
 
 Sample usage:
 
 ```shell
-# NOP
-echo -en '\x90' | ./tools/fuzz_filter_tool /dev/stdin /tmp/nop.pb
 # INC EAX
-echo -en '\xFF\xC0' | ./tools/fuzz_filter_tool /dev/stdin /tmp/inc_eax.pb
+echo -en '\xFF\xC0' > /tmp/inc_eax && ./tools/fuzz_filter_tool /tmp/inc_eax
+echo $?
+0
 ```
 
 ### snap_tool
 
-`snap_tool` examines and manipulates binary Snapshot protos (e.g. ones produced
-by `fuzz_filter_tool` at the previous step).
+`snap_tool` examines and manipulates binary Snapshot protos. It can optionally
+load raw instructions and convert them to Snapshot.
 
 ```shell
-./tools/snap_tool print /tmp/inc_eax.pb
+echo -en '\xFF\xC0' > /tmp/inc_eax
+./tools/snap_tool --raw print /tmp/inc_eax
 ```
 
 ```
@@ -283,17 +278,18 @@ with seccomp(2). Use at your own risk.
 ```shell
 # INC EAX
 $ echo -en '\xFF\xC0' > /tmp/inc_eax
-$ ./tools/fuzz_filter_tool /tmp/inc_eax /tmp/inc_eax.pb
+$ ./tools/snap_tool --raw  --out=/tmp/inc_eax.pb make /tmp/inc_eax
 ```
 
 ```shell
 # CPUID
-$ echo -en '\x0F\xA2' | ./tools/fuzz_filter_tool /dev/stdin /tmp/cpuid.pb
+$ echo -en '\x0F\xA2' > /tmp/cpuid
+$ ./tools/snap_tool --raw --out=/tmp/cpuid.pb make /tmp/cpuid
 ```
 
 ```
 <error log omitted>
-failed: Non-deterministic insn CPUID
+Could not load snapshot: INTERNAL: Tracing failed: Non-deterministic insn CPUID
 ```
 
 NOTE: To avoid non-deterministic results, various parts of SiliFuzz exclude

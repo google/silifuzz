@@ -50,22 +50,22 @@ std::string GetTestInstructions(TestSnapshot test) {
       ->instruction_bytes;
 }
 
-#define EXPECT_FILTER_ACCEPT(insn) EXPECT_TRUE(FilterToolMain("Test", insn))
+#define EXPECT_FILTER_ACCEPT(insn) \
+  EXPECT_TRUE(FilterToolMain("Test", insn).ok())
 
-#define EXPECT_FILTER_REJECT(insn) EXPECT_FALSE(FilterToolMain("Test", insn))
+#define EXPECT_FILTER_REJECT(insn) \
+  EXPECT_FALSE(FilterToolMain("Test", insn).ok())
 
 TEST(FuzzFilterTool, Nop) {
   EXPECT_FILTER_ACCEPT(GetTestInstructions(TestSnapshot::kEndsAsExpected));
 }
 
 TEST(FuzzFilterTool, Padding) {
-  EXPECT_FALSE(FilterToolMain(
-      "Test", GetTestInstructions(TestSnapshot::kEndsUnexpectedly)));
+  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kEndsUnexpectedly));
 }
 
 TEST(FuzzFilterTool, Breakpoint) {
-  EXPECT_FALSE(
-      FilterToolMain("Test", GetTestInstructions(TestSnapshot::kBreakpoint)));
+  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kBreakpoint));
 }
 
 TEST(FuzzFilterTool, Syscall) {

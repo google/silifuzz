@@ -13,18 +13,16 @@
 // limitations under the License.
 
 // This tool reads an instruction sequence as bytes from the input file and
-// returns 0 exit code iff the sequence can be converted into a non-signalling
+// returns 0 exit code iff the sequence can be converted into a Snap-compatible
 // SiliFuzz Snapshot.
 // The bytes are converted into Snapshot using InstructionsToSnapshot() which
 // is the same as what our fuzzers and the fix pipeline use.
 
-#include <string>
 #include <vector>
 
 #include "absl/flags/parse.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 #include "./tools/fuzz_filter_tool.h"
 #include "./util/checks.h"
 #include "./util/path_util.h"
@@ -33,19 +31,17 @@
 
 int main(int argc, char** argv) {
   std::vector<char*> non_flag_args = absl::ParseCommandLine(argc, argv);
-  if (non_flag_args.size() < 2) {
+  if (non_flag_args.size() != 2) {
+    LOG_ERROR("Expected exactly 1 input file");
     return 1;
   }
-  absl::string_view output_snapshot_file = "";
-  if (non_flag_args.size() > 2) {
-    output_snapshot_file = non_flag_args[2];
-  }
-  auto bytes = silifuzz::ReadFile(non_flag_args[1]);
+  absl::StatusOr<std::string> bytes = silifuzz::ReadFile(non_flag_args[1]);
   if (!bytes.ok()) {
     LOG_ERROR(bytes.status().message());
     return 1;
   }
-  bool success = silifuzz::FilterToolMain(silifuzz::Basename(non_flag_args[1]),
-                                          *bytes, output_snapshot_file);
-  return silifuzz::ToExitCode(success);
+  absl::Status s =
+      silifuzz::FilterToolMain(silifuzz::Basename(non_flag_args[1]), *bytes);
+  if (!s.ok()) LOG_ERROR(s.message());
+  return silifuzz::ToExitCode(s.ok());
 }

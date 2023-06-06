@@ -24,13 +24,13 @@
 #ifndef THIRD_PARTY_SILIFUZZ_TOOLS_FUZZ_FILTER_TOOL_H_
 #define THIRD_PARTY_SILIFUZZ_TOOLS_FUZZ_FILTER_TOOL_H_
 
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 
 namespace silifuzz {
 
-bool FilterToolMain(absl::string_view id, absl::string_view raw_insns_bytes,
-                    absl::string_view output_snapshot_file = "");
-
+absl::Status FilterToolMain(absl::string_view id,
+                            absl::string_view raw_insns_bytes);
 }
 
 #endif  // THIRD_PARTY_SILIFUZZ_TOOLS_FUZZ_FILTER_TOOL_H_
