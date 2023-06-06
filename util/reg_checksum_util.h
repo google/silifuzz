@@ -22,8 +22,8 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "./util/reg_checksum.h"
 
 namespace silifuzz {
@@ -44,7 +44,11 @@ absl::StatusOr<RegisterChecksum<Arch>> DeserializeRegisterChecksum(
   if (bytes_consumed == -1) {
     constexpr size_t kMaxBytes = 32;
     const size_t len = std::min(data.size(), kMaxBytes);
-    std::string hex_repl = strings::b2a_hex(data.data(), len);
+    std::string hex_repl;
+    for (size_t i = 0; i < len; ++i) {
+      hex_repl += absl::StrFormat("%02x", data[i]);
+    }
+    if (len < data.size()) hex_repl += "...";
     return absl::InvalidArgumentError(
         absl::StrCat("Cannot deserialize register checksum bytes: ", hex_repl));
   }
