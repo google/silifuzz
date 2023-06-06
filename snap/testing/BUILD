@@ -133,6 +133,8 @@ cc_library(
         "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",
+        "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

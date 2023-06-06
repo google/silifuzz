@@ -24,6 +24,7 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
+#include "absl/log/check.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
@@ -35,6 +36,8 @@
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/page_util.h"
+#include "./util/reg_checksum.h"
+#include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
@@ -373,6 +376,11 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
     // Construct Snap in data block content buffer.
     // Fill in register states separately to avoid copying.
     Snap<Arch>* snap = snapshot_ref.contents_as_pointer_of<Snap<Arch>>();
+    absl::StatusOr<RegisterChecksum<Arch>> register_checksum_or =
+        DeserializeRegisterChecksum<Arch>(end_state.register_checksum());
+    // TODO(dougkwan): Fail more gracefully.  We could report an absl::Status
+    // but that requires changing the whole relocatable snap generator.
+    CHECK_OK(register_checksum_or.status());
     new (snap) Snap<Arch>{
         .id = reinterpret_cast<const char*>(AsPtr(id_ref.load_address())),
         .memory_mappings{
@@ -392,7 +400,7 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                 end_state_memory_bytes_elements_ref
                     .load_address_as_pointer_of<const SnapMemoryBytes>(),
         },
-    };
+        .end_state_register_checksum = register_checksum_or.value()};
     SetRegisterState<Arch>(
         snapshot.registers(),
         registers_ref.contents_as_pointer_of<RegisterState>(),

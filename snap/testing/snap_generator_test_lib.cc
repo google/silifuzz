@@ -29,6 +29,8 @@
 #include "./snap/snap.h"
 #include "./util/checks.h"
 #include "./util/mem_util.h"
+#include "./util/reg_checksum.h"
+#include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
@@ -183,6 +185,12 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap<Arch>& snap,
   VerifySnapMemoryBytesArray(
       "memory_bytes", ToBorrowedMemoryBytesList(end_state.memory_bytes()),
       snap.end_state_memory_bytes, snapified_snapshot.mapped_memory_map());
+  absl::StatusOr<RegisterChecksum<Arch>> register_checksum_or =
+      DeserializeRegisterChecksum<Arch>(end_state.register_checksum());
+  CHECK_STATUS(register_checksum_or.status());
+  RegisterChecksum<Arch> register_checksum = register_checksum_or.value();
+  // CHECK_EQ() does not work with RegisterGroupSet.
+  CHECK(register_checksum == snap.end_state_register_checksum);
 }
 
 template void VerifyTestSnap(const Snapshot& snapshot, const Snap<X86_64>& snap,

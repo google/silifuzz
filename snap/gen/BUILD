@@ -78,9 +78,12 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:page_util",
+        "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/log:check",
     ],
 )
 
@@ -186,6 +189,8 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
+        "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",

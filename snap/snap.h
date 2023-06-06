@@ -29,6 +29,7 @@
 #include <cstring>
 
 #include "./util/checks.h"
+#include "./util/reg_checksum.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -157,6 +158,11 @@ struct Snap {
   // TODO(dougkwan): [as-needed] We may support other modes of memory checking
   // like just checking only the memory that a snapshot changes.
   SnapArray<SnapMemoryBytes> end_state_memory_bytes;
+
+  // Checksum for registers that are not fully recorded at the end of
+  // execution.  If register group set of the checksum is empty, the checksum
+  // is ignored.
+  RegisterChecksum<Arch> end_state_register_checksum;
 };
 
 namespace snap_internal {

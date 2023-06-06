@@ -33,6 +33,8 @@
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/snap.h"
 #include "./util/checks.h"
+#include "./util/reg_checksum.h"
+#include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
@@ -160,7 +162,18 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
           ArrayString(end_state.memory_bytes().size(),
                       end_state_memory_bytes_var_name),
           ",");
-
+  RegisterChecksum<Arch> register_checksum{};
+  if (!end_state.register_checksum().empty()) {
+    ASSIGN_OR_RETURN_IF_NOT_OK(
+        register_checksum,
+        DeserializeRegisterChecksum<Arch>(end_state.register_checksum()));
+  }
+  PrintLn(".end_state_register_checksum = {");
+  PrintLn(absl::StrFormat(
+      ".register_groups = RegisterGroupSet<%s>::Deserialize(%x),",
+      Arch::type_name, register_checksum.register_groups.Serialize()));
+  PrintLn(absl::StrFormat(".checksum = %x,", register_checksum.checksum));
+  PrintLn("},");
   PrintLn("};");
   return absl::OkStatus();
 }
