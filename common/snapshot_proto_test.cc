@@ -16,8 +16,11 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "./common/raw_insns_util.h"
+#include "./common/snapshot_test_enum.h"
+#include "./common/snapshot_test_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
 #include "./util/reg_checksum.h"
@@ -96,6 +99,20 @@ TEST(SnapshotProto, RegisterChecksumRoundtrip) {
   Snapshot::EndState endstate2(Snapshot::Endpoint(0));
   ASSERT_OK_AND_ASSIGN(endstate2, SnapshotProto::FromProto(proto));
   EXPECT_EQ(endstate2.register_checksum(), serialized_checksum);
+}
+
+TEST(SnapshotProto, TraceMetadataRoundtrip) {
+  Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
+  Snapshot::TraceData t(1, "nop");
+  t.add_platform(PlatformId::kIntelIcelake);
+  t.add_platform(PlatformId::kIntelSkylake);
+  snapshot.set_trace_data({t});
+  proto::Snapshot proto;
+  SnapshotProto::ToProto(snapshot, &proto);
+  absl::StatusOr<Snapshot> got = SnapshotProto::FromProto(proto);
+  ASSERT_OK(got);
+  ASSERT_THAT(got->trace_data(),
+              ::testing::UnorderedElementsAreArray(snapshot.trace_data()));
 }
 
 }  // namespace

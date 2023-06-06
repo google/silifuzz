@@ -237,6 +237,22 @@ absl::StatusOr<Snapshot::Metadata> SnapshotProto::FromProto(
 }
 
 // static
+absl::StatusOr<Snapshot::TraceData> SnapshotProto::FromProto(
+    const proto::SnapshotTraceData& proto) {
+  TraceData t(proto.num_instructions(), proto.human_readable_disassembly());
+  if (proto.has_platforms()) {
+    static_assert(ToInt(kMaxPlatformId) < 64);
+    for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
+         ++p) {
+      if (proto.platforms() & (1 << p)) {
+        t.add_platform(static_cast<PlatformId>(p));
+      }
+    }
+  }
+  return t;
+}
+
+// static
 absl::StatusOr<Snapshot> SnapshotProto::FromProto(
     const proto::Snapshot& proto) {
   PROTO_MUST_HAVE_FIELD(proto, architecture);
@@ -287,6 +303,15 @@ absl::StatusOr<Snapshot> SnapshotProto::FromProto(
     auto s = FromProto(proto.metadata());
     RETURN_IF_NOT_OK_PLUS(s.status(), "Bad Metadata: ");
     snap.set_metadata(s.value());
+  }
+  {
+    std::vector<TraceData> trace_metadata;
+    for (const proto::SnapshotTraceData& m : proto.trace_data()) {
+      absl::StatusOr<Snapshot::TraceData> t = FromProto(m);
+      RETURN_IF_NOT_OK_PLUS(t.status(), "Bad TraceData: ");
+      trace_metadata.push_back(t.value());
+    }
+    snap.set_trace_data(trace_metadata);
   }
 
   RETURN_IF_NOT_OK_PLUS(snap.IsCompleteSomeState(), "Snapshot is incomplete: ");
@@ -364,6 +389,7 @@ void SnapshotProto::ToProto(const EndState& snap, proto::EndState* proto) {
 // static
 void SnapshotProto::ToProto(const Snapshot::Metadata& metadata,
                             proto::SnapshotMetadata* proto) {
+  proto->Clear();
   proto->set_origin(
       static_cast<proto::SnapshotMetadata_Origin>(metadata.origin()));
   if (proto->origin() == proto::SnapshotMetadata::USE_STRING_ORIGIN) {
@@ -371,6 +397,22 @@ void SnapshotProto::ToProto(const Snapshot::Metadata& metadata,
   } else {
     proto->clear_origin_string();
   }
+}
+
+// static
+void SnapshotProto::ToProto(const TraceData& metadata,
+                            proto::SnapshotTraceData* proto) {
+  DCHECK(!metadata.platforms().empty());
+  proto->Clear();
+  proto->set_num_instructions(metadata.num_instructions());
+  proto->set_human_readable_disassembly(
+      std::string(metadata.human_readable_disassembly()));
+
+  uint64_t platforms = 0;
+  for (PlatformId p : metadata.platforms()) {
+    platforms |= (1 << ToInt(p));
+  }
+  proto->set_platforms(platforms);
 }
 
 // static
@@ -394,6 +436,9 @@ void SnapshotProto::ToProto(const Snapshot& snap, proto::Snapshot* proto) {
     ToProto(s, proto->add_expected_end_states());
   }
   ToProto(snap.metadata(), proto->mutable_metadata());
+  for (const Snapshot::TraceData& t : snap.trace_data()) {
+    ToProto(t, proto->add_trace_data());
+  }
 }
 
 }  // namespace silifuzz

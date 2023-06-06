@@ -15,7 +15,6 @@
 #include "./common/snapshot.h"
 
 #include <cstring>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -28,7 +27,6 @@
 #include "./util/platform.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
-#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 namespace {
@@ -36,6 +34,7 @@ namespace {
 using silifuzz::testing::StatusIs;
 using ::testing::ContainerEq;
 using ::testing::ContainsRegex;
+using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
 using ::testing::UnorderedElementsAre;
@@ -365,6 +364,18 @@ TEST(MemoryBytes, Range) {
   Snapshot::MemoryBytes middle = mb.Range(44, 46);
   EXPECT_EQ(middle.start_address(), 44);
   EXPECT_EQ(middle.byte_values(), "ob");
+}
+
+TEST(TraceMetadata, Platforms) {
+  Snapshot::TraceData t(1, "nop");
+  static_assert(PlatformId::kAmdGenoa > PlatformId::kIntelCascadelake);
+  t.add_platform(PlatformId::kAmdGenoa);
+  t.add_platform(PlatformId::kIntelSkylake);
+  t.add_platform(PlatformId::kIntelCascadelake);
+  t.add_platform(PlatformId::kIntelCascadelake);
+  ASSERT_THAT(t.platforms(), ElementsAre(PlatformId::kIntelSkylake,
+                                         PlatformId::kIntelCascadelake,
+                                         PlatformId::kAmdGenoa));
 }
 
 TEST(SnapshotUtil, ToBorrowedMemoryByteListEmpty) {

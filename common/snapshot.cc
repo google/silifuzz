@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/base/attributes.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -34,7 +35,6 @@
 #include "./util/checks.h"
 #include "./util/platform.h"
 #include "./util/ucontext/serialize.h"
-#include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
 
@@ -138,7 +138,8 @@ Snapshot::Snapshot(Architecture arch, const Id& id)
       memory_bytes_(),
       registers_(nullptr),
       expected_end_states_(),
-      metadata_(new Metadata()) {
+      metadata_(new Metadata()),
+      trace_metadata_() {
   DCHECK_STATUS(IsValidId(id_));
   for (const auto& arch : kSupportedArchitectures) {
     if (arch.id == architecture_) {
@@ -152,25 +153,29 @@ Snapshot::Snapshot(Architecture arch, const Id& id)
   }
 }
 
-Snapshot::~Snapshot() {}
+// Quick O(n*m) comparison of two vectors as sets.
+template <typename T>
+bool VectorsEqualAsSet(const std::vector<T>& a, const std::vector<T>& b) {
+  return a.size() == b.size() &&
+         std::all_of(a.begin(), a.end(), [&b](const T& x) {
+           return absl::c_find(b, x) != b.end();
+         });
+}
 
 bool Snapshot::operator==(const Snapshot& y) const {
-  // Since we don't keep expected_end_states_ canonically sorted,
-  // we need to compare them as sets, not simply via ==:
-  // (They are not supposed to be large, so O(n*m) here is fine.)
   bool expected_end_states_eq =
-      expected_end_states_.size() == y.expected_end_states_.size() &&
-      std::all_of(expected_end_states_.begin(), expected_end_states_.end(),
-                  [&y](const EndState& x) {
-                    return std::find(y.expected_end_states_.begin(),
-                                     y.expected_end_states_.end(),
-                                     x) != y.expected_end_states_.end();
-                  });
+      VectorsEqualAsSet(expected_end_states_, y.expected_end_states_);
+  bool metadata_eq = (metadata_ == nullptr && y.metadata_ == nullptr) ||
+                     (metadata_ != nullptr && y.metadata_ != nullptr &&
+                      *metadata_ == *y.metadata_);
+  bool trace_metadata_eq =
+      VectorsEqualAsSet(trace_metadata_, y.trace_metadata_);
   return EqualsButEndStates(y) &&
          negative_mapped_memory_map_ ==
              y.negative_mapped_memory_map_ &&  // covers
                                                // negative_memory_mappings_
-         expected_end_states_eq;
+         expected_end_states_eq &&
+         metadata_eq && trace_metadata_eq;
 }
 
 bool Snapshot::EqualsButEndStates(const Snapshot& y) const {
@@ -196,6 +201,7 @@ Snapshot Snapshot::Copy() const {
   }
   r.expected_end_states_ = expected_end_states_;
   r.metadata_.reset(new Metadata(*metadata_));
+  r.trace_metadata_ = trace_metadata_;
   return r;
 }
 
@@ -1131,11 +1137,32 @@ void Snapshot::EndState::set_platforms(
   }
 }
 
-void Snapshot::set_metadata(const Metadata& metadata) {
-  metadata_.reset(new Metadata(metadata));
-}
+// ========================================================================= //
+
 const Snapshot::Metadata& Snapshot::metadata() const {
   CHECK(metadata_ != nullptr);
   return *metadata_;
+}
+
+void Snapshot::set_metadata(const Metadata& metadata) {
+  metadata_.reset(new Metadata(metadata));
+}
+
+// ========================================================================= //
+
+void Snapshot::set_trace_data(const std::vector<TraceData>& trace_data) {
+  trace_metadata_ = trace_data;
+}
+
+const std::vector<Snapshot::TraceData>& Snapshot::trace_data() const {
+  return trace_metadata_;
+}
+
+void Snapshot::TraceData::add_platform(PlatformId platform) {
+  DCHECK(platform != PlatformId::kUndefined && platform < PlatformId::kAny);
+  auto pos = absl::c_lower_bound(platforms_, platform);
+  if (pos == platforms_.end() || *pos != platform) {
+    platforms_.insert(pos, platform);
+  }
 }
 }  // namespace silifuzz

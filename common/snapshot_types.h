@@ -33,7 +33,7 @@ namespace silifuzz {
 // any of those unrelated classes to SnapshotTypeNames. The Snapshot::Foo types
 // are still visible in public parts of a derived class even with private
 // inheritance. Protected inheritance needs to be used for classes from which
-// other clases are derived -- see e.g. SnapshotSource.
+// other classes are derived -- see e.g. SnapshotSource.
 class SnapshotTypeNames {
  public:
   using Id = Snapshot::Id;
@@ -52,6 +52,7 @@ class SnapshotTypeNames {
   using EndState = Snapshot::EndState;
   using EndStateList = Snapshot::EndStateList;
   using Metadata = Snapshot::Metadata;
+  using TraceData = Snapshot::TraceData;
 };
 
 }  // namespace silifuzz

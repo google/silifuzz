@@ -25,6 +25,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
@@ -149,6 +150,10 @@ absl::StatusOr<Snapshot> SnapMaker::CheckTrace(
     return absl::InternalError(absl::StrCat(
         "Tracing failed: ", trace_result.early_termination_reason));
   }
+  Snapshot::TraceData trace_data(trace_result.instructions_executed,
+                                 absl::StrJoin(trace_result.disassembly, "\n"));
+  trace_data.add_platform(CurrentPlatformId());
+  copy.set_trace_data({trace_data});
 #endif
   return copy;
 }

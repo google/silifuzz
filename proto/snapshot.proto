@@ -135,6 +135,7 @@ enum PlatformId {
 }
 
 // Describes a specific endstate of executing a snapshot.
+// NEXT ID: 6
 message EndState {
   // Expected execution endpoint that defines this EndState.
   optional Endpoint endpoint = 1;  // semantically required
@@ -162,6 +163,23 @@ message EndState {
   // end of snapshot execution.  This is serialized from a RegisterChecksum
   // struct for the same architecture as the snapshot.
   optional bytes register_checksum = 5;  // can be missing
+}
+
+// Metadata obtained from tracing a snapshot.
+message SnapshotTraceData {
+  // Set of platforms for which we've observed this trace.
+  //
+  // The representation is a bit vector is the same as EndState.platforms
+  optional uint64 platforms = 1;  // semantically required
+
+  // Number of instructions executed before the Snapshot was stopped.
+  optional uint64 num_instructions = 2;
+
+  // Human-readable trace of all instructions executed before reaching some
+  // terminal state. The exact format varies between architectures and
+  // versions. Do not rely on this field to determine the dynamic length of the
+  // Snapshot, use `num_instructions` instead.
+  optional string human_readable_disassembly = 3;
 }
 
 // Metadata about a Snapshot.
@@ -215,7 +233,7 @@ message SnapshotMetadata {
 // TBD: Do it via additional fields here or via new message(s) that include
 // this one -- it may be renamed to SnapshotToPlay.
 //
-// NEXT ID: 9
+// NEXT ID: 10
 message Snapshot {
   // Supported architectures of snapshots.
   enum Architecture {
@@ -276,6 +294,9 @@ message Snapshot {
 
   // The possible expected end-states of executing the snapshot.
   repeated EndState expected_end_states = 5;  // >=1 is semantically required
+
+  // Trace data for the snapshot.
+  repeated SnapshotTraceData trace_data = 9;  // can be missing
 }
 
 // A convenience wrapper for Snapshot.id useful for data processing pipelines.

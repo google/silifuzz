@@ -89,6 +89,7 @@ class Snapshot final {
 
   using Endpoint = snapshot_types::Endpoint;
   class EndState;
+  class TraceData;
   class Metadata;
 
   // Supported architectures of snapshots.
@@ -131,7 +132,7 @@ class Snapshot final {
   // (must be a supported one).
   Snapshot(Architecture arch, const Id& id = UnsetId());
 
-  ~Snapshot();
+  ~Snapshot() = default;
 
   // Movable, but not copyable (can be large and expensive to copy by accident).
   Snapshot(const Snapshot&) = delete;
@@ -311,6 +312,10 @@ class Snapshot final {
   // Metadata associated with this snapshot.
   const Metadata& metadata() const;
   void set_metadata(const Metadata& metadata);
+
+  // Data obtained from tracing the snapshot.
+  const std::vector<TraceData>& trace_data() const;
+  void set_trace_data(const std::vector<TraceData>& trace_data);
 
   // Tells if the x can be added; encodes the error if not.
   // Setting unmapped_endpoint_ok allows to add an end-state with
@@ -501,6 +506,9 @@ class Snapshot final {
 
   // See metadata().
   std::unique_ptr<Metadata> metadata_;
+
+  // See trace_metadata().
+  std::vector<TraceData> trace_metadata_;
 };
 
 // ========================================================================= //
@@ -530,6 +538,10 @@ class Snapshot::Metadata {
   Origin origin() const { return origin_; }
   absl::string_view origin_string() const { return origin_string_; }
 
+  bool operator==(const Metadata& other) const {
+    return origin_ == other.origin_ && origin_string_ == other.origin_string_;
+  }
+
  private:
   Origin origin_;
   std::string origin_string_;
@@ -539,6 +551,48 @@ template <>
 extern const char* EnumNameMap<
     Snapshot::Metadata::Origin>[ToInt(Snapshot::Metadata::Origin::kUseString) +
                                 1];
+
+// ========================================================================= //
+
+// Trace metadata associated with the snapshot e.g. number of dynamic insns
+// and the corresponding disassembly.
+//
+// Similarly to Snapshot::expected_end_states() instances of this class are
+// per-PlatformId.
+class Snapshot::TraceData {
+ public:
+  TraceData(uint64_t num_instructions, absl::string_view disassembly)
+      : num_instructions_(num_instructions),
+        human_readable_disassembly_(disassembly) {}
+
+  // Copyable and movable.
+  TraceData(const TraceData&) = default;
+  TraceData(TraceData&&) = default;
+  TraceData& operator=(const TraceData&) = default;
+  TraceData& operator=(TraceData&&) = default;
+
+  uint64_t num_instructions() const { return num_instructions_; }
+  absl::string_view human_readable_disassembly() const {
+    return human_readable_disassembly_;
+  }
+
+  void add_platform(PlatformId platform);
+
+  std::vector<PlatformId> platforms() const { return platforms_; }
+
+  // Needed for tests.
+  bool operator==(const TraceData& other) const {
+    return num_instructions_ == other.num_instructions_ &&
+           platforms_ == other.platforms_ &&
+           human_readable_disassembly_ == other.human_readable_disassembly_;
+  }
+
+ private:
+  uint64_t num_instructions_;
+  std::string human_readable_disassembly_;
+  // Sorted list of PlatformId associated with this trace.
+  std::vector<PlatformId> platforms_;
+};
 
 // ========================================================================= //
 

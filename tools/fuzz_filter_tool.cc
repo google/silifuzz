@@ -96,6 +96,9 @@ bool FilterToolMain(absl::string_view id, absl::string_view raw_insns_bytes,
     LOG_ERROR(trace_result.status().message());
     return false;
   }
+  // TODO(ksteuck): Cleanup fuzz_filter_tool. There is no reason for it to write
+  // proto file the way it does right now. Use snap_tool instead.
+  WriteOutputFile(absl::OkStatus(), *trace_result);
   return true;
 }
 

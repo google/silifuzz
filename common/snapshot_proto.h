@@ -54,6 +54,8 @@ class SnapshotProto : private SnapshotTypeNames {
   static absl::StatusOr<Endpoint> FromProto(const proto::Endpoint& proto);
   static absl::StatusOr<Metadata> FromProto(
       const proto::SnapshotMetadata& proto);
+  static absl::StatusOr<TraceData> FromProto(
+      const proto::SnapshotTraceData& proto);
 
   // ToProto() overloads for snapshot submessage types.
   static void ToProto(const MemoryMapping& snap, proto::MemoryMapping* proto);
@@ -61,6 +63,8 @@ class SnapshotProto : private SnapshotTypeNames {
   static void ToProto(const RegisterState& snap, proto::RegisterState* proto);
   static void ToProto(const Endpoint& snap, proto::Endpoint* proto);
   static void ToProto(const Metadata& metadata, proto::SnapshotMetadata* proto);
+  static void ToProto(const TraceData& metadata,
+                      proto::SnapshotTraceData* proto);
 };
 
 }  // namespace silifuzz
