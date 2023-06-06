@@ -31,7 +31,7 @@ cc_binary(
         "@silifuzz//runner/driver:runner_options",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
-        "@silifuzz//util:proto_util",
+        "@silifuzz//util:tool_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/functional:bind_front",
@@ -42,6 +42,7 @@ cc_binary(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 

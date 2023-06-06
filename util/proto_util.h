@@ -17,12 +17,8 @@
 
 // This library defines a few simple utils for protos.
 
-#include <string>
-
 #include "google/protobuf/message_lite.h"
-#include "absl/base/attributes.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
 // Quick proto-parsing helper to complain about semantically-required optionals.
@@ -48,19 +44,11 @@ namespace silifuzz {
 
 // Reads *proto from `filename`.
 absl::Status ReadFromFile(absl::string_view filename,
-                          ::google::protobuf::MessageLite* proto) ABSL_MUST_USE_RESULT;
+                          ::google::protobuf::MessageLite* proto);
 
 // Writes `proto` to `filename`.
 absl::Status WriteToFile(const ::google::protobuf::MessageLite& proto,
-                         absl::string_view filename) ABSL_MUST_USE_RESULT;
-
-// Reads the contents of the file specified by `filename` and returns the
-// contents or status on any error.
-absl::StatusOr<std::string> ReadFile(absl::string_view filename);
-
-// Reads *proto from text-formatted file.
-absl::Status ReadFromTextFile(absl::string_view filename,
-                              ::google::protobuf::Message* proto) ABSL_MUST_USE_RESULT;
+                         absl::string_view filename);
 
 }  // namespace silifuzz
 

@@ -53,6 +53,7 @@
 #include <utility>
 #include <vector>
 
+#include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/functional/bind_front.h"
@@ -74,7 +75,7 @@
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/proto_util.h"
+#include "./util/tool_util.h"
 
 ABSL_FLAG(absl::Duration, duration, absl::InfiniteDuration(),
           "Approximate duration.");
@@ -171,11 +172,21 @@ ExecutionContext *OrchestratorInit(
   return &ctx;
 }
 
+absl::Status ReadProtoFromTextFile(absl::string_view filename,
+                                   ::google::protobuf::Message *proto) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(auto data, GetFileContents(filename));
+  if (!google::protobuf::TextFormat::ParseFromString(data, proto)) {
+    return absl::InternalError(absl::StrCat("Failed to parse ", filename,
+                                            " into ", proto->GetTypeName()));
+  }
+  return absl::OkStatus();
+}
+
 absl::Status LogSessionSummary(ResultCollector &result_collector) {
   VLOG_INFO(0, "Logging session summary");
   std::string corpus_metadata_file = absl::GetFlag(FLAGS_corpus_metadata_file);
   proto::CorpusMetadata metadata;
-  RETURN_IF_NOT_OK(ReadFromTextFile(corpus_metadata_file, &metadata));
+  RETURN_IF_NOT_OK(ReadProtoFromTextFile(corpus_metadata_file, &metadata));
   std::string version = absl::GetFlag(FLAGS_orchestrator_version);
   return result_collector.LogSessionSummary(metadata, version);
 }

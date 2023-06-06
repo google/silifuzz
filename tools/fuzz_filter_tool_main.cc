@@ -26,7 +26,6 @@
 #include "./tools/fuzz_filter_tool.h"
 #include "./util/checks.h"
 #include "./util/path_util.h"
-#include "./util/proto_util.h"
 #include "./util/tool_util.h"
 
 int main(int argc, char** argv) {
@@ -35,7 +34,8 @@ int main(int argc, char** argv) {
     LOG_ERROR("Expected exactly 1 input file");
     return 1;
   }
-  absl::StatusOr<std::string> bytes = silifuzz::ReadFile(non_flag_args[1]);
+  absl::StatusOr<std::string> bytes =
+      silifuzz::GetFileContents(non_flag_args[1]);
   if (!bytes.ok()) {
     LOG_ERROR(bytes.status().message());
     return 1;

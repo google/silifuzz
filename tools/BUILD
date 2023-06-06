@@ -82,13 +82,10 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
-        "@silifuzz//common:snapshot_file_util",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -100,12 +97,10 @@ cc_binary(
         ":fuzz_filter_tool_lib",
         "@silifuzz//util:checks",
         "@silifuzz//util:path_util",
-        "@silifuzz//util:proto_util",
         "@silifuzz//util:tool_util",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
         "@com_google_fuzztest//centipede:runner_fork_server",  # Note: external dependency.
     ],
 )

@@ -560,12 +560,8 @@ cc_library(
     srcs = ["proto_util.cc"],
     hdrs = ["proto_util.h"],
     deps = [
-        ":checks",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_protobuf//:protobuf",
         "@com_google_protobuf//:protobuf_lite",
     ],
 )
