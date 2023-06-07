@@ -244,6 +244,7 @@ cc_library(
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util:reg_group_set",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",

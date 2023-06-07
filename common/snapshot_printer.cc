@@ -34,6 +34,7 @@
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
 #include "./util/reg_checksum.h"
+#include "./util/reg_checksum_util.h"
 #include "./util/reg_group_set.h"
 
 #if defined(__x86_64__)
@@ -515,78 +516,42 @@ void SnapshotPrinter::PrintRegisters(const Snapshot& snapshot) {
 }
 
 template <typename Arch>
-std::string PrintRegisterGroupSetImpl(const RegisterGroupSet<Arch>& groups);
-
-template <>
-std::string PrintRegisterGroupSetImpl<X86_64>(
-    const RegisterGroupSet<X86_64>& groups) {
-  uint64_t bits = groups.Serialize();
-
-  std::vector<std::string> group_names;
-  if (groups.GetGPR()) group_names.push_back("GPR");
-  if (groups.GetFPRAndSSE()) group_names.push_back("FPR_AND_SSE");
-  if (groups.GetAVX()) group_names.push_back("AVX");
-  if (groups.GetAVX512()) group_names.push_back("AVX512");
-  if (groups.GetAMX()) group_names.push_back("AMX");
-
-  return absl::StrFormat("%x [%s]", bits, absl::StrJoin(group_names, ", "));
-}
-
-template <>
-std::string PrintRegisterGroupSetImpl<AArch64>(
-    const RegisterGroupSet<AArch64>& groups) {
-  uint64_t bits = groups.Serialize();
-
-  std::vector<std::string> group_names;
-  if (groups.GetGPR()) group_names.push_back("GPR");
-  if (groups.GetFPR()) group_names.push_back("FPR");
-
-  return absl::StrFormat("%x [%s]", bits, absl::StrJoin(group_names, ", "));
-}
-
-template <typename Arch>
-void SnapshotPrinter::PrintRegisterChecksumImpl(
-    const EndState& end_state, const EndState* base_end_state) {
+void SnapshotPrinter::PrintRegisterChecksumImpl(const EndState& end_state,
+                                                const EndState* base_end_state,
+                                                bool log_diff) {
   RegisterChecksum<Arch> register_checksum, register_checksum_base;
-  ssize_t consumed_bytes = Deserialize(
-      reinterpret_cast<const uint8_t*>(end_state.register_checksum().data()),
-      end_state.register_checksum().size(), register_checksum);
-  if (consumed_bytes == -1) {
+  absl::StatusOr<RegisterChecksum<Arch>> register_checksum_or =
+      DeserializeRegisterChecksum<Arch>(end_state.register_checksum());
+  if (register_checksum_or.ok()) {
     LOG(ERROR) << "Cannot deserialize end state register checksum";
     return;
   }
+  const RegisterChecksum<Arch>* base_register_checksum = nullptr;
+  absl::StatusOr<RegisterChecksum<Arch>> base_register_checksum_or;
   if (base_end_state != nullptr) {
-    consumed_bytes = Deserialize(
-        reinterpret_cast<const uint8_t*>(
-            base_end_state->register_checksum().data()),
-        base_end_state->register_checksum().size(), register_checksum_base);
-    if (consumed_bytes == -1) {
+    base_register_checksum_or =
+        DeserializeRegisterChecksum<Arch>(base_end_state->register_checksum());
+    if (base_register_checksum_or.ok()) {
       LOG(ERROR) << "Cannot deserialize base end state register checksum";
       return;
     }
-    Line("Register checksum (diff against base end state):");
-    Indent();
-    if (register_checksum.register_groups !=
-        register_checksum_base.register_groups) {
-      Line("register_group_mask: ",
-           PrintRegisterGroupSetImpl(register_checksum.register_groups),
-           " want ",
-           PrintRegisterGroupSetImpl(register_checksum_base.register_groups));
-    }
-    if (register_checksum.checksum != register_checksum_base.checksum) {
-      Line("checksum: ", HexStr(register_checksum.checksum), " want ",
-           HexStr(register_checksum_base.checksum));
-    }
-    Unindent();
-  } else {
-    // Just print checksum.
-    Line("Register checksum:");
-    Indent();
-    Line("register_group_mask: ",
-         PrintRegisterGroupSetImpl(register_checksum.register_groups));
-    Line("checksum: ", HexStr(register_checksum.checksum));
-    Unindent();
+    base_register_checksum = &base_register_checksum_or.value();
   }
+
+  Line("Register checksum:");
+  Indent();
+  LogRegisterChecksum(register_checksum_or.value(),
+                      &SnapshotPrinter::RegsLogger, this,
+                      base_register_checksum, log_diff);
+  Unindent();
+}
+
+void SnapshotPrinter::PrintRegisterChecksum(const Snapshot& snapshot,
+                                            const EndState& end_state,
+                                            const EndState* base_end_state,
+                                            bool log_diff) {
+  ARCH_DISPATCH(PrintRegisterChecksumImpl, snapshot.architecture_id(),
+                end_state, base_end_state, log_diff);
   if (VLOG_IS_ON(1)) {
     // These can be copy-pasted into a textformat proto.Snapshot:
     Line("raw register checksum:");
@@ -594,13 +559,6 @@ void SnapshotPrinter::PrintRegisterChecksumImpl(
     Line("\"", absl::CEscape(end_state.register_checksum()), "\"");
     Unindent();
   }
-}
-
-void SnapshotPrinter::PrintRegisterChecksum(const Snapshot& snapshot,
-                                            const EndState& end_state,
-                                            const EndState* base_end_state) {
-  ARCH_DISPATCH(PrintRegisterChecksumImpl, snapshot.architecture_id(),
-                end_state, base_end_state);
 }
 
 void SnapshotPrinter::PrintEndStatesStats(const Snapshot& snapshot,
@@ -830,7 +788,17 @@ void SnapshotPrinter::PrintEndState(const Snapshot& snapshot,
     Unindent();
   }
   if (!end_state.register_checksum().empty()) {
-    PrintRegisterChecksum(snapshot, end_state, base_end_state);
+    if (base_end_state) {
+      Line("Register Checksum (diff vs expected end_state ",
+           base_end_state_index, "):");
+      Indent();
+      PrintRegisterChecksum(snapshot, end_state, base_end_state, true);
+    } else {
+      Line("Registers Checksum:");
+      Indent();
+      PrintRegisterChecksum(snapshot, end_state, nullptr, false);
+    }
+    Unindent();
   }
   if (!end_state.memory_bytes().empty()) {
     if (base_end_state) {

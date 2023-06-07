@@ -374,9 +374,12 @@ cc_library_plus_nolibc(
         "@com_google_absl//absl/base:core_headers",
     ],
     deps = [
+        ":arch",
         ":checks",
         ":itoa",
         ":misc_util",
+        ":reg_checksum",
+        ":reg_group_set",
         ":strcat",
         "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:ucontext_types",
@@ -389,6 +392,7 @@ cc_test(
     srcs = ["logging_util_test.cc"],
     deps = [
         ":logging_util",
+        ":reg_checksum",
         "@silifuzz//util/ucontext",
         "@com_google_googletest//:gtest_main",
     ],

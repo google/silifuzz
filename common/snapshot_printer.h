@@ -181,10 +181,12 @@ class SnapshotPrinter : private SnapshotTypeNames {
   // that is provided.
   void PrintRegisterChecksum(const Snapshot& snapshot,
                              const EndState& end_state,
-                             const EndState* base_end_state = nullptr);
+                             const EndState* base_end_state = nullptr,
+                             bool log_diff = false);
   template <typename Arch>
   void PrintRegisterChecksumImpl(const EndState& end_state,
-                                 const EndState* base_end_state = nullptr);
+                                 const EndState* base_end_state = nullptr,
+                                 bool log_diff = false);
 
   // Prints into *table a line about stats_name (one of min,max,avg) stats for
   // snapshot.expected_end_states().

@@ -15,7 +15,9 @@
 #include "./util/logging_util.h"
 
 #include "absl/base/macros.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
+#include "./util/reg_group_set.h"
 #include "./util/strcat.h"
 
 namespace silifuzz {
@@ -107,6 +109,20 @@ void LogSignalRegs(const SignalRegSet& regs, RegsLogger logger,
   LOG_ONE_REG(trapno);
 }
 #endif
+
+// StrCat values are short-lived, we need copy them into buffers.
+template <>
+void GroupSetToStr<X86_64>(const RegisterGroupSet<X86_64>& groups,
+                           char* buffer) {
+  // nolibc does not even have strncpy.  Just copy the whole StrCat buffer.
+  memcpy(buffer,
+         StrCat<kMaxGroupSetStringLength>(
+             {HexStr(groups.Serialize()), " [", groups.GetGPR() ? " GPR" : "",
+              groups.GetFPRAndSSE() ? " FPR_AND_SSE" : "",
+              groups.GetAVX() ? " AVX" : "", groups.GetAVX512() ? "AVX512" : "",
+              groups.GetAMX() ? " AMX" : "", " ]"}),
+         kMaxGroupSetStringLength);
+}
 
 #undef LOG_ONE_REG
 #undef LOG_INDEXED_REG

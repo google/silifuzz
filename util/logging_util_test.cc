@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 #include "gtest/gtest.h"
+#include "./util/reg_checksum.h"
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
@@ -56,6 +57,15 @@ FPRegSet<X86_64> MakeDiff(const FPRegSet<X86_64>& regs) {
 FPRegSet<AArch64> MakeDiff(const FPRegSet<AArch64>& regs) {
   FPRegSet<AArch64> base = regs;
   base.v[2] = 0;
+  return base;
+}
+
+template <typename Arch>
+RegisterChecksum<Arch> MakeDiff(
+    const RegisterChecksum<Arch>& register_checksum) {
+  RegisterChecksum<Arch> base = register_checksum;
+  base.register_groups.SetGPR(!base.register_groups.GetGPR());
+  base.checksum = 0;
   return base;
 }
 
@@ -147,6 +157,25 @@ TEST(LoggingUtilSignalTest, SignalRegsWithDiff) {
   pattern_init(&regs, sizeof(regs));
   SignalRegSet base = MakeDiff(regs);
   LogSignalRegs(regs, &base, true);
+}
+
+TYPED_TEST(LoggingUtilTest, RegisterChecksumWithBase) {
+  // Set up a randomized RegisterChecksum.
+  RegisterChecksum<TypeParam> register_checksum;
+  // TODO(dougkwan): pattern_init randomly sets all bits in RegisterChecksum.
+  // We will need to clear unused register group set bits if we require those
+  // bits to be cleared.
+  pattern_init(&register_checksum, sizeof(register_checksum));
+  RegisterChecksum<TypeParam> base = MakeDiff(register_checksum);
+  LogRegisterChecksum(register_checksum, &base, false);
+}
+
+TYPED_TEST(LoggingUtilTest, RegisterChecksumWithDiff) {
+  // Set up a randomized RegisterChecksum.
+  RegisterChecksum<TypeParam> register_checksum;
+  pattern_init(&register_checksum, sizeof(register_checksum));
+  RegisterChecksum<TypeParam> base = MakeDiff(register_checksum);
+  LogRegisterChecksum(register_checksum, &base, true);
 }
 
 }  // namespace

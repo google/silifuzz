@@ -17,7 +17,9 @@
 #include <stdint.h>
 
 #include "absl/base/macros.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
+#include "./util/reg_group_set.h"
 #include "./util/strcat.h"
 
 namespace silifuzz {
@@ -74,6 +76,18 @@ void LogSignalRegs(const SignalRegSet& regs, RegsLogger logger,
   LOG_ONE_REG(esr);
 }
 #endif
+
+// StrCat values are short-lived, we need copy them into buffers.
+template <>
+void GroupSetToStr<AArch64>(const RegisterGroupSet<AArch64>& groups,
+                            char* buffer) {
+  // nolibc does not even have strncpy. Just copy the whole StrCat buffer.
+  memcpy(buffer,
+         StrCat<kMaxGroupSetStringLength>(
+             {HexStr(groups.Serialize()), " [", groups.GetGPR() ? " GPR" : "",
+              groups.GetFPR() ? " FPR" : "", " ]"}),
+         kMaxGroupSetStringLength);
+}
 
 #undef LOG_ONE_REG
 #undef LOG_INDEXED_REG

@@ -52,4 +52,51 @@ void LogSignalRegs(const SignalRegSet& sigregs, const SignalRegSet* base,
   LogSignalRegs(sigregs, &LogInfoLogger, nullptr, base, log_diff);
 }
 
+template <typename Arch>
+void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
+                         const RegisterChecksum<Arch>* base, bool log_diff) {
+  LogRegisterChecksum(register_checksum, &LogInfoLogger, nullptr, base,
+                      log_diff);
+}
+
+template void LogRegisterChecksum(
+    const RegisterChecksum<X86_64>& register_checksum,
+    const RegisterChecksum<X86_64>* base, bool log_diff);
+template void LogRegisterChecksum(
+    const RegisterChecksum<AArch64>& register_checksum,
+    const RegisterChecksum<AArch64>* base, bool log_diff);
+
+template <typename Arch>
+void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
+                         RegsLogger logger, void* logger_arg,
+                         const RegisterChecksum<Arch>* base, bool log_diff) {
+  char register_groups_str[kMaxGroupSetStringLength],
+      base_register_groups_str[kMaxGroupSetStringLength];
+  GroupSetToStr(register_checksum.register_groups, register_groups_str);
+  if (base != nullptr) {
+    GroupSetToStr(base->register_groups, base_register_groups_str);
+  } else {
+    base_register_groups_str[0] = '\0';
+  }
+
+  if (base == nullptr ||
+      register_checksum.register_groups != base->register_groups) {
+    (*logger)(logger_arg, "register_group = ", register_groups_str,
+              (log_diff && base != nullptr) ? " want " : "",
+              (log_diff && base != nullptr) ? base_register_groups_str : "");
+  }
+  if (base == nullptr || register_checksum.checksum != base->checksum) {
+    (*logger)(logger_arg, "checksum = ", HexStr(register_checksum.checksum),
+              (log_diff && base != nullptr) ? " want " : "",
+              (log_diff && base != nullptr) ? HexStr(base->checksum) : "");
+  }
+}
+
+template void LogRegisterChecksum(
+    const RegisterChecksum<AArch64>& register_checksum, RegsLogger logger,
+    void* logger_arg, const RegisterChecksum<AArch64>* base, bool log_diff);
+
+template void LogRegisterChecksum(
+    const RegisterChecksum<X86_64>& register_checksum, RegsLogger logger,
+    void* logger_arg, const RegisterChecksum<X86_64>* base, bool log_diff);
 }  // namespace silifuzz

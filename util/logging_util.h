@@ -18,6 +18,7 @@
 // This library contains various simple utilities to help nicely log
 // register states.
 
+#include "./util/reg_checksum.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -42,6 +43,14 @@ void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data = true,
 // Log lines will be prefixed with two spaces.
 void LogSignalRegs(const SignalRegSet& sigregs,
                    const SignalRegSet* base = nullptr, bool log_diff = false);
+
+// LOG_INFO()-s register checksum.
+// Log lines will be prefixed with two spaces.
+// For `base` and `log_diff` see LogRegisterChecksum() overload below.
+template <typename Arch>
+void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
+                         const RegisterChecksum<Arch>* base = nullptr,
+                         bool log_diff = false);
 
 // ----------------------------------------------------------------------- //
 
@@ -68,6 +77,19 @@ void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data,
 void LogSignalRegs(const SignalRegSet& gregs, RegsLogger logger,
                    void* logger_arg, const SignalRegSet* base = nullptr,
                    bool log_diff = false);
+template <typename Arch>
+void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
+                         RegsLogger logger, void* logger_arg,
+                         const RegisterChecksum<Arch>* base = nullptr,
+                         bool log_diff = false);
+
+// Internal helper function to convert a register group set into a string.
+// This is used in nolibc environment so we specify a maximum string size.
+// buffer must hold at least kMaxGroupSetStringLeng bytes.
+constexpr size_t kMaxGroupSetStringLength = 128;
+template <typename Arch>
+void GroupSetToStr(const RegisterGroupSet<Arch>& groups, char* buffer);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_LOGGING_UTIL_H_
