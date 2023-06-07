@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_TOOL_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_TOOL_UTIL_H_
 
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -29,10 +28,6 @@
 // SiliFuzz tools.
 
 namespace silifuzz {
-
-// Default name of the snapshot proto file to read/write.
-static constexpr char kDefaultSnapshotFileName[] =
-    "/tmp/silifuzz_snapshot.pbdata";
 
 // Converts success status to process exit code for main().
 inline int ToExitCode(bool success) { return success ? 0 : 1; }
