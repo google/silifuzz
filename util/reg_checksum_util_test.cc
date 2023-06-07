@@ -26,9 +26,18 @@
 using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
-
 namespace silifuzz {
+
 namespace {
+// Currently this is used for testing only. So this is not exported in
+// reg_checksum_util.h.
+template <typename Arch>
+std::string SerializeRegisterChecksum(const RegisterChecksum<Arch>& checksum) {
+  uint8_t buffer[256];
+  ssize_t bytes_written = Serialize<Arch>(checksum, buffer, sizeof(buffer));
+  CHECK_NE(bytes_written, -1);
+  return std::string(reinterpret_cast<const char*>(buffer), bytes_written);
+}
 
 TEST(RegisterChecksumUtil, DeserializeEmptyData) {
   const std::string empty_data;
@@ -41,11 +50,7 @@ TEST(RegisterChecksumUtil, DeserializeValidChecksum) {
   RegisterChecksum<X86_64> original_checksum;
   original_checksum.register_groups.SetGPR(true);
   original_checksum.checksum = 1234;
-  uint8_t buffer[256];
-  ssize_t bytes_writtens =
-      Serialize<X86_64>(original_checksum, buffer, sizeof(buffer));
-  ASSERT_NE(bytes_writtens, -1);
-  const std::string data(reinterpret_cast<const char*>(buffer), bytes_writtens);
+  const std::string data = SerializeRegisterChecksum(original_checksum);
   auto deserialized_checksum_or = DeserializeRegisterChecksum<X86_64>(data);
   EXPECT_THAT(deserialized_checksum_or, IsOkAndHolds(original_checksum));
 }
@@ -58,5 +63,23 @@ TEST(RegisterChecksumUtil, DeserializeInvalidChecksum) {
                        HasSubstr("register checksum")));
 }
 
+TEST(RegisterChecksumUtil, IsValidRegisterChecksumOfArch) {
+  RegisterChecksum<AArch64> aarch64_checksum{};
+  RegisterChecksum<X86_64> x86_64_checksum{};
+  const std::string aarch_serialized_checksum =
+      SerializeRegisterChecksum(aarch64_checksum);
+  const std::string x86_64_serialized_checksum =
+      SerializeRegisterChecksum(x86_64_checksum);
+
+  EXPECT_TRUE(IsValidRegisterChecksumForArch(ArchitectureId::kAArch64,
+                                             aarch_serialized_checksum));
+  EXPECT_TRUE(IsValidRegisterChecksumForArch(ArchitectureId::kX86_64,
+                                             x86_64_serialized_checksum));
+
+  EXPECT_FALSE(IsValidRegisterChecksumForArch(ArchitectureId::kX86_64,
+                                              aarch_serialized_checksum));
+  EXPECT_FALSE(IsValidRegisterChecksumForArch(ArchitectureId::kAArch64,
+                                              x86_64_serialized_checksum));
+}
 }  // namespace
 }  // namespace silifuzz

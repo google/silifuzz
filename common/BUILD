@@ -131,6 +131,8 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:platform",
+        "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base:core_headers",

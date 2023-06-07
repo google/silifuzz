@@ -1100,8 +1100,10 @@ cc_test_plus_nolibc(
 
 cc_library(
     name = "reg_checksum_util",
+    srcs = ["reg_checksum_util.cc"],
     hdrs = ["reg_checksum_util.h"],
     deps = [
+        ":arch",
         ":reg_checksum",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

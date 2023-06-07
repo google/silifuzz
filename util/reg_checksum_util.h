@@ -24,6 +24,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "./util/arch.h"
 #include "./util/reg_checksum.h"
 
 namespace silifuzz {
@@ -55,6 +56,9 @@ absl::StatusOr<RegisterChecksum<Arch>> DeserializeRegisterChecksum(
   return register_checksum;
 }
 
+// Returns true iff 'data' is a valid RegisterChecksum of 'arch'
+bool IsValidRegisterChecksumForArch(ArchitectureId arch,
+                                    const std::string& data);
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_REG_CHECKSUM_UTIL_H_

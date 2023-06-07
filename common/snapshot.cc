@@ -34,6 +34,8 @@
 #include "./common/mapped_memory_map.h"
 #include "./util/checks.h"
 #include "./util/platform.h"
+#include "./util/reg_checksum.h"
+#include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
 
 namespace silifuzz {
@@ -703,7 +705,11 @@ absl::Status Snapshot::can_add_expected_end_state(const EndState& x,
                        ") is not in an existing writable MemoryMapping"));
     }
   }
-  // TODO(dougkwan): verify register checksum is okay.
+  if (!x.register_checksum().empty() &&
+      !IsValidRegisterChecksumForArch(architecture_id(),
+                                      x.register_checksum())) {
+    return absl::InvalidArgumentError("Bad register checksum");
+  }
   if (!duplicate_ok) {
     for (int i = 0; i < expected_end_states_.size(); ++i) {
       if (x.DataEquals(expected_end_states_[i])) {
