@@ -28,11 +28,11 @@
 #include "./tracing/capstone_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
+#include "./util/bitops.h"
 #include "./util/checks.h"
 #include "./util/enum_flag.h"
 #include "./util/line_printer.h"
 #include "./util/tool_util.h"
-#include "./util/ucontext/ucontext_bitops.h"
 
 namespace silifuzz {
 DEFINE_ENUM_FLAG(ArchitectureId);
@@ -64,14 +64,14 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
   UContext<Arch> first, prev, zero_one, one_zero;
   tracer.GetRegisters(first);
   prev = first;
-  UContextClear(zero_one);
-  UContextClear(one_zero);
+  ClearBits(zero_one);
+  ClearBits(one_zero);
 
   tracer.SetInstructionCallback(
       [&](UnicornTracer<Arch>* tracer, uint64_t address, size_t max_size) {
         UContext<Arch> current;
         tracer->GetRegisters(current);
-        UContextAccumulateToggle(prev, current, zero_one, one_zero);
+        AccumulateToggle(prev, current, zero_one, one_zero);
         prev = current;
 
         // TODO(ncbray): extract the register state and print diffs.
@@ -100,11 +100,11 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
       });
   absl::Status result = tracer.Run(max_instructions);
   out.Line();
-  out.Line("Register toggle 0=>1: ", UContextPopCount(zero_one),
-           " 1=>0: ", UContextPopCount(one_zero));
+  out.Line("Register toggle 0=>1: ", PopCount(zero_one),
+           " 1=>0: ", PopCount(one_zero));
   UContext<Arch> diff;
-  UContextDiff(first, prev, diff);
-  out.Line("Final register hamming distance: ", UContextPopCount(diff));
+  BitDiff(first, prev, diff);
+  out.Line("Final register hamming distance: ", PopCount(diff));
   return result;
 }
 

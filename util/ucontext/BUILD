@@ -225,24 +225,6 @@ cc_test(
     }),
 )
 
-cc_library(
-    name = "ucontext_bitops",
-    hdrs = ["ucontext_bitops.h"],
-    deps = [
-        ":ucontext_types",
-    ],
-)
-
-cc_test(
-    name = "ucontext_bitops_test",
-    size = "small",
-    srcs = ["ucontext_bitops_test.cc"],
-    deps = [
-        ":ucontext_bitops",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
 cc_library_plus_nolibc(
     name = "aarch64_esr",
     hdrs = ["aarch64/esr.h"],

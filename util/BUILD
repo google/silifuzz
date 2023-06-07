@@ -96,6 +96,21 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "bitops",
+    hdrs = ["bitops.h"],
+)
+
+cc_test(
+    name = "bitops_test",
+    size = "small",
+    srcs = ["bitops_test.cc"],
+    deps = [
+        ":bitops",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library_plus_nolibc(
     name = "byte_io",
     srcs = ["byte_io.cc"],
