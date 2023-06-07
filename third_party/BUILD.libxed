@@ -485,7 +485,7 @@ genrule(
           "--build-dir $(@D) " +
           "--src-dir $$(dirname $(location :VERSION)) " +
           "just-prep",
-    exec_tools = [":xed_mfile"],
+    tools = [":xed_mfile"],
 )
 
 GENERATOR_COMMON_FLAGS = (
@@ -517,7 +517,7 @@ genrule(
           "--enc-patterns $(location dgen/all-enc-patterns.txt) " +
           "--enc-dec-patterns $(location dgen/all-enc-dec-patterns.txt) " +
           "2>&1 > $(location gen/sources/gen-xed-enc-generator.log)",
-    exec_tools = [":read-encfile"],
+    tools = [":read-encfile"],
 )
 
 # Use the XED internal tools to generate decoder-related source files.
@@ -587,7 +587,7 @@ genrule(
           "--ild-scanners $(location dgen/all-ild-scanners.txt) " +
           "--cpuid $(location dgen/all-cpuid.txt) " +
           "2>&1 > $(location gen/sources/gen-xed-dec-generator.log)",
-    exec_tools = [":generator"],
+    tools = [":generator"],
 )
 
 # A mininalistic test program to verify build sanity.
