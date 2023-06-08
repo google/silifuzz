@@ -580,6 +580,9 @@ class Snapshot::TraceData {
 
   std::vector<PlatformId> platforms() const { return platforms_; }
 
+  // Equals that compares all fields except the platform.
+  bool EqualsButPlatform(const TraceData& other) const;
+
   // Needed for tests.
   bool operator==(const TraceData& other) const {
     return num_instructions_ == other.num_instructions_ &&

@@ -1171,4 +1171,8 @@ void Snapshot::TraceData::add_platform(PlatformId platform) {
     platforms_.insert(pos, platform);
   }
 }
+bool Snapshot::TraceData::EqualsButPlatform(const TraceData& other) const {
+  return num_instructions_ == other.num_instructions_ &&
+         human_readable_disassembly_ == other.human_readable_disassembly_;
+}
 }  // namespace silifuzz
