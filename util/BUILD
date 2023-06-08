@@ -999,17 +999,29 @@ cc_test_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "x86_extension_registers",
-    srcs = [
-        "x86_64/opmask.S",
-        "x86_64/xmm.S",
-        "x86_64/ymm.S",
-        "x86_64/zmm.S",
-    ],
-    hdrs = ["x86_64/extension_registers.h"],
+    # We need to use select to prevent x86 code from being compiled on ARM.
+    # cc_XX_plus_nolibc rules do not support select() in dependencies. We use select()
+    # here to avoid x86 code being compiled for ARM.
+    srcs =
+        select({
+            "@silifuzz//build_defs/platform:aarch64": [],
+            "@silifuzz//build_defs/platform:x86_64": [
+                "x86_64/opmask.S",
+                "x86_64/xmm.S",
+                "x86_64/ymm.S",
+                "x86_64/zmm.S",
+            ],
+        }),
+    hdrs = select({
+        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/extension_registers.h",
+        ],
+    }),
 )
 
 cc_test(
-    name = "x86_extention_registers_test",
+    name = "x86_extension_registers_test",
     srcs = [
         "x86_64/extension_registers_test.cc",
         "x86_64/extension_registers_test_helpers.S",
