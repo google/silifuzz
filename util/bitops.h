@@ -28,6 +28,18 @@ namespace silifuzz {
 // pointers into a data structure your are performing bitops on, the code will
 // silently start behaving badly. Be careful.
 
+// Number of bits contained in type T.
+template <typename T>
+constexpr inline size_t NumBits() {
+  return sizeof(T) * 8;
+}
+
+// Convenience function to infer the template type from a variable.
+template <typename T>
+constexpr inline size_t NumBits(const T& a) {
+  return NumBits<T>();
+}
+
 namespace bitops_internal {
 
 // The function determines the largest integral integer type with a size that
@@ -131,6 +143,69 @@ void AccumulateToggle(const void* a, const void* b, void* zero_one,
   }
 }
 
+// Invoke a callback for each bit in N bytes.
+template <size_t N, typename F>
+inline void ForEachBit(const void* bitmap, F f) {
+  using Granularity = decltype(BestIntType<N>());
+  const uint8_t* bytes = reinterpret_cast<const uint8_t*>(bitmap);
+
+  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+    Granularity tmp;
+    memcpy(&tmp, &bytes[i], sizeof(Granularity));
+    for (size_t bit = 0; bit < NumBits<Granularity>(); ++bit) {
+      const Granularity mask = (Granularity)1 << bit;
+      f(i * 8 + bit, !!(tmp & mask));
+    }
+  }
+}
+
+// Invoke a callback for each bit in N bytes that is one.
+template <size_t N, typename F>
+inline void ForEachSetBit(const void* bitmap, F f) {
+  using Granularity = decltype(BestIntType<N>());
+  const uint8_t* bytes = reinterpret_cast<const uint8_t*>(bitmap);
+
+  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+    Granularity tmp;
+    memcpy(&tmp, &bytes[i], sizeof(Granularity));
+    // For sparse bitmaps, ForEachSetBit can be significantly faster than
+    // ForEachBit because we can efficiently check if all the bits in the
+    // granule are zero and skip the inner loop.
+    if (tmp) {
+      for (size_t bit = 0; bit < NumBits<Granularity>(); ++bit) {
+        const Granularity mask = (Granularity)1 << bit;
+        if (tmp & mask) {
+          f(i * 8 + bit);
+        }
+      }
+    }
+  }
+}
+
+// Invoke a callback for each bit in N bytes that is different.
+template <size_t N, typename F>
+inline void ForEachDiffBit(const void* a, const void* b, F f) {
+  using Granularity = decltype(BestIntType<N>());
+  const uint8_t* a_bytes = reinterpret_cast<const uint8_t*>(a);
+  const uint8_t* b_bytes = reinterpret_cast<const uint8_t*>(b);
+
+  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+    Granularity a_tmp, b_tmp, diff;
+    memcpy(&a_tmp, &a_bytes[i], sizeof(Granularity));
+    memcpy(&b_tmp, &b_bytes[i], sizeof(Granularity));
+    diff = a_tmp ^ b_tmp;
+    // Optimize for sparsity by checking if all the bits are zero.
+    if (diff) {
+      for (size_t bit = 0; bit < NumBits<Granularity>(); ++bit) {
+        const Granularity mask = (Granularity)1 << bit;
+        if (diff & mask) {
+          f(i * 8 + bit, !!(b_tmp & mask));
+        }
+      }
+    }
+  }
+}
+
 }  // namespace bitops_internal
 
 // Zeros the struct. Slightly nicer than calling memset directly.
@@ -167,6 +242,41 @@ void BitDiff(const T& a, const T& b, T& result) {
 template <typename T>
 void AccumulateToggle(const T& a, const T& b, T& zero_one, T& one_zero) {
   bitops_internal::AccumulateToggle<sizeof(T)>(&a, &b, &zero_one, &one_zero);
+}
+
+// Note: the following functions invoke callbacks where one of the arguments is
+// the "index" of the bit. On little endian systems, the index of a bit is the
+// number of bits between that particular bit and the start of the data
+// structure, assuming the bits in each byte are traversed from least
+// significant to most significant. On big endian systems the optimization that
+// groups bytes into larger granules means the bytes within a granule are
+// effectively swapped when iterating and calculating the index, but fixing that
+// isn't worth the extra code, currently.
+// In general it's best to assume the index is a unique name for the bit and not
+// to assume it has any particular meaning or any guarentee it will have the
+// same value in the future.
+
+// Call `f` for ever bit in `bitmap`.
+// The first argument of `f` is the index of the bit.
+// The second argument of `f` is the value of the bit in `bitmap`.
+template <typename T, typename F>
+inline void ForEachBit(const T& bitmap, F f) {
+  bitops_internal::ForEachBit<sizeof(T), F>(&bitmap, f);
+}
+
+// Call `f` for ever bit in `bitmap` that is set.
+// The only argument of `f` is index of the bit.
+template <typename T, typename F>
+inline void ForEachSetBit(const T& bitmap, F f) {
+  bitops_internal::ForEachSetBit<sizeof(T), F>(&bitmap, f);
+}
+
+// Call `f` for ever bit that differs between `a` and `b`.
+// The first argument of `f` is the index of the bit that differs.
+// The second argument of `f` is the value of the bit in `b`.
+template <typename T, typename F>
+inline void ForEachDiffBit(const T& a, const T& b, F f) {
+  bitops_internal::ForEachDiffBit<sizeof(T), F>(&a, &b, f);
 }
 
 }  // namespace silifuzz

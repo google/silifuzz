@@ -128,5 +128,78 @@ TYPED_TEST(Bitops, Toggle) {
   EXPECT_EQ(baseline, PopCount(one_zero));
 }
 
+TYPED_TEST(Bitops, ForEachBit) {
+  TypeParam data;
+  memset(&data, 0x20, sizeof(data));
+  size_t zeros = 0;
+  size_t ones = 0;
+  size_t prev_index = (size_t)-1;
+  ForEachBit(data, [&](size_t index, bool value) {
+    // Check the index
+    EXPECT_LT(index, NumBits<TypeParam>());
+    EXPECT_EQ(index, prev_index + 1);
+    prev_index = index;
+
+    // Check the value
+    if (value) {
+      EXPECT_EQ(index % 8, 5);
+      ones++;
+    } else {
+      zeros++;
+    }
+  });
+  // Memsetting the data to 0x20 means that for every byte there should be a
+  // single bit that's 1 and seven bits that are 0.
+  EXPECT_EQ(sizeof(data) * 7, zeros) << "Expected seven 0 bits per byte";
+  EXPECT_EQ(sizeof(data) * 1, ones) << "Expected one 1 bit per byte";
+}
+
+TYPED_TEST(Bitops, ForEachSetBit) {
+  TypeParam data;
+  memset(&data, 0x08, sizeof(data));
+  size_t count = 0;
+  size_t prev_index = (size_t)-1;
+  ForEachSetBit(data, [&](size_t index) {
+    // Index in range
+    EXPECT_LT(index, NumBits<TypeParam>());
+    // Index is at an expected stride
+    EXPECT_EQ(index % 8, 3);
+    // Index is increasing monotonically
+    EXPECT_GT(index - prev_index, 0);
+    prev_index = index;
+    count++;
+  });
+  // There should be a single bit set per byte.
+  EXPECT_EQ(sizeof(data), count) << "Expected one 1 bit per byte";
+}
+
+TYPED_TEST(Bitops, ForEachDiffBit) {
+  TypeParam a, b;
+  memset(&a, 0xf0, sizeof(a));
+  memset(&b, 0xe1, sizeof(b));
+  size_t zeros = 0;
+  size_t ones = 0;
+  size_t prev_index = (size_t)-1;
+  ForEachDiffBit(a, b, [&](size_t index, bool value) {
+    // Index in range
+    EXPECT_LT(index, NumBits<TypeParam>());
+    // Index is increasing monotonically
+    EXPECT_GT(index - prev_index, 0);
+    prev_index = index;
+    // Index is at an expected stride
+    if (value) {
+      EXPECT_EQ(index % 8, 0);
+      ones++;
+    } else {
+      EXPECT_EQ(index % 8, 4);
+      zeros++;
+    }
+  });
+  // Two bits should differ for every byte - in "b" one of those bits should be
+  // 0 and the other should be 1. ( 0xf0 ^ 0xe1 == 0x11 / 0xe1 & 0x11 == 0x01)
+  EXPECT_EQ(sizeof(TypeParam), zeros);
+  EXPECT_EQ(sizeof(TypeParam), ones);
+}
+
 }  // namespace
 }  // namespace silifuzz
