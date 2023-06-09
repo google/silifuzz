@@ -1103,6 +1103,64 @@ cc_test_plus_nolibc(
 )
 
 cc_library_plus_nolibc(
+    name = "reg_group_io",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/reg_group_io.cc",
+            "aarch64/reg_group_io_buffer_offsets.h",
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/reg_group_io.cc",
+            "x86_64/reg_group_io_buffer_offsets.h",
+            "x86_64/save_register_groups_to_buffer.S",
+        ],
+    }),
+    hdrs = ["reg_group_io.h"],
+    # We don't want to produce a .so for this library as some code in this library is used
+    # when the GOT pointer may not be set up properly.
+    linkstatic = True,
+    deps = [
+        ":arch",
+        ":checks",
+        ":crc32c",
+        ":reg_checksum",
+        ":reg_group_bits",
+        ":reg_group_set",
+        ":x86_cpu_features",
+        ":x86_extension_registers",  # buildcleaner: keep
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "reg_group_io_test",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": ["aarch64/reg_group_io_test.cc"],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/reg_group_io_test.cc",
+            "x86_64/reg_group_io_test_helpers.S",
+        ],
+    }),
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    # We don't want calls in test helpers to go through PLTs.
+    # The dynamic linker may clobber some extention registers.
+    linkstatic = True,
+    deps = [
+        ":arch",
+        ":checks",
+        ":crc32c",
+        ":nolibc_gunit",
+        ":reg_checksum",
+        ":reg_group_io",
+        ":reg_group_set",
+        ":reg_groups",
+        ":x86_cpu_features",
+        ":x86_extension_registers",  # buildcleaner: keep
+    ],
+)
+
+cc_library_plus_nolibc(
     name = "reg_checksum",
     srcs = ["reg_checksum.cc"],
     hdrs = ["reg_checksum.h"],

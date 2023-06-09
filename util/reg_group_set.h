@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_REG_GROUP_SET_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_REG_GROUP_SET_H_
 
+#include <cstddef>
+
 #include "./util/arch.h"
 #include "./util/reg_group_bits.h"
 namespace silifuzz {
@@ -116,6 +118,15 @@ class RegisterGroupSet<X86_64> {
     return *this;
   }
 
+  // RegisterGroupSet is used by some assembly code that needs to know the
+  // layout of the class. The static_assert is put inside a dummy method
+  // so that it can access a private data member. We need to wrap the
+  // static_assert with a method as it the class is still being defined and
+  // incomplete.
+  static void static_checker() {
+    static_assert(offsetof(RegisterGroupSet<X86_64>, bits_) == 0);
+  }
+
   // Underlying bit mask.
   uint64_t bits_;
 };
@@ -180,6 +191,11 @@ class RegisterGroupSet<AArch64> {
       bits_ &= ~bit;
     }
     return *this;
+  }
+
+  // See notes in RegisterGroupSet<X86_64> for details.
+  static void static_checker() {
+    static_assert(offsetof(RegisterGroupSet<AArch64>, bits_) == 0);
   }
 
   // Underlying bit mask.
