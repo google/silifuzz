@@ -522,8 +522,9 @@ void SnapshotPrinter::PrintRegisterChecksumImpl(const EndState& end_state,
   RegisterChecksum<Arch> register_checksum, register_checksum_base;
   absl::StatusOr<RegisterChecksum<Arch>> register_checksum_or =
       DeserializeRegisterChecksum<Arch>(end_state.register_checksum());
-  if (register_checksum_or.ok()) {
-    LOG(ERROR) << "Cannot deserialize end state register checksum";
+  if (!register_checksum_or.ok()) {
+    LOG(ERROR) << "Cannot deserialize end state register checksum: "
+               << register_checksum_or.status();
     return;
   }
   const RegisterChecksum<Arch>* base_register_checksum = nullptr;
@@ -531,19 +532,18 @@ void SnapshotPrinter::PrintRegisterChecksumImpl(const EndState& end_state,
   if (base_end_state != nullptr) {
     base_register_checksum_or =
         DeserializeRegisterChecksum<Arch>(base_end_state->register_checksum());
-    if (base_register_checksum_or.ok()) {
-      LOG(ERROR) << "Cannot deserialize base end state register checksum";
+    if (!base_register_checksum_or.ok()) {
+      LOG(ERROR) << "Cannot deserialize base end state register "
+                    "checksum: "
+                 << base_register_checksum_or.status();
       return;
     }
     base_register_checksum = &base_register_checksum_or.value();
   }
 
-  Line("Register checksum:");
-  Indent();
   LogRegisterChecksum(register_checksum_or.value(),
                       &SnapshotPrinter::RegsLogger, this,
                       base_register_checksum, log_diff);
-  Unindent();
 }
 
 void SnapshotPrinter::PrintRegisterChecksum(const Snapshot& snapshot,

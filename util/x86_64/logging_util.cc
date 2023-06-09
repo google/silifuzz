@@ -115,13 +115,14 @@ template <>
 void GroupSetToStr<X86_64>(const RegisterGroupSet<X86_64>& groups,
                            char* buffer) {
   // nolibc does not even have strncpy.  Just copy the whole StrCat buffer.
-  memcpy(buffer,
-         StrCat<kMaxGroupSetStringLength>(
-             {HexStr(groups.Serialize()), " [", groups.GetGPR() ? " GPR" : "",
-              groups.GetFPRAndSSE() ? " FPR_AND_SSE" : "",
-              groups.GetAVX() ? " AVX" : "", groups.GetAVX512() ? "AVX512" : "",
-              groups.GetAMX() ? " AMX" : "", " ]"}),
-         kMaxGroupSetStringLength);
+  memcpy(
+      buffer,
+      StrCat<kMaxGroupSetStringLength>(
+          {HexStr(groups.Serialize()), " [", groups.GetGPR() ? " GPR" : "",
+           groups.GetFPRAndSSE() ? " FPR_AND_SSE" : "",
+           groups.GetAVX() ? " AVX" : "", groups.GetAVX512() ? " AVX512" : "",
+           groups.GetAMX() ? " AMX" : "", " ]"}),
+      kMaxGroupSetStringLength);
 }
 
 #undef LOG_ONE_REG
