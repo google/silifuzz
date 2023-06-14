@@ -40,6 +40,14 @@ namespace silifuzz {
 // This class is thread-compatible.
 class DecodedInsn {
  public:
+  // x86 REX prefix bits.
+  enum {
+    kRexB = 1 << 0,
+    kRexX = 1 << 1,
+    kRexR = 1 << 2,
+    kRexW = 1 << 3,
+  };
+
   // Constructs an instance from MemoryBytes.
   explicit DecodedInsn(const Snapshot::MemoryBytes& data);
 
@@ -85,6 +93,12 @@ class DecodedInsn {
   // Tells if this is a rep byte store (movsb or stosb).
   // REQUIRES: is_valid().
   bool is_rep_byte_store() const;
+
+  // Returns a bit vector of REX prefix bits when processor is in 64-bit mode.
+  // These are the lower 4 bits of the REX prefix byte in the decoded
+  // instruction. If instruction does not have a REX prefix, this returns 0.
+  // REQUIRES: is_valid().
+  uint8_t rex_bits() const;
 
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
