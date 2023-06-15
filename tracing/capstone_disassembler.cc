@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include <cstddef>
+#include <limits>
 #include <string>
 
 #include "absl/strings/str_cat.h"
@@ -33,10 +34,12 @@ CapstoneDisassembler::CapstoneDisassembler(ArchitectureId arch_id)
     case ArchitectureId::kX86_64:
       arch = CS_ARCH_X86;
       mode = CS_MODE_64;
+      num_instruction_ids_ = X86_INS_ENDING;
       break;
     case ArchitectureId::kAArch64:
       arch = CS_ARCH_ARM64;
       mode = CS_MODE_ARM;
+      num_instruction_ids_ = ARM64_INS_ENDING;
       break;
     default:
       LOG_FATAL("Bad arch_id");
@@ -53,17 +56,12 @@ CapstoneDisassembler::~CapstoneDisassembler() {
 }
 
 bool CapstoneDisassembler::Disassemble(uint64_t address, const uint8_t* buffer,
-                                       size_t* buffer_size) {
+                                       size_t buffer_size) {
   // We use cs_disam_iter because it allows us to pre-allocate the buffer for
-  // the decoded instruction. Note that this call will mutate `address` and
-  // `buffer`, but this should not be visible to the caller.
-  // Note that how this function mutates the `size` parameter is the opposite of
-  // what we want - it specifies the number of bytes remaining rather than the
-  // number of bytes consumed.
-  size_t size = *buffer_size;
-  valid_ =
-      cs_disasm_iter(capstone_handle_, &buffer, &size, &address, decoded_insn_);
-  *buffer_size = InstructionSize();
+  // the decoded instruction. Note that this call will mutate `address`,
+  // `buffer`, and `buffer_size` but this should not be visible to the caller.
+  valid_ = cs_disasm_iter(capstone_handle_, &buffer, &buffer_size, &address,
+                          decoded_insn_);
   return valid_;
 }
 
@@ -75,6 +73,14 @@ std::string CapstoneDisassembler::FullText() const {
   return valid_
              ? absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str)
              : "unknown";
+}
+
+uint32_t CapstoneDisassembler::InstructionID() const {
+  return valid_ ? decoded_insn_->id : std::numeric_limits<uint32_t>::max();
+}
+
+uint32_t CapstoneDisassembler::NumInstructionIDs() const {
+  return num_instruction_ids_;
 }
 
 }  // namespace silifuzz

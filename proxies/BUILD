@@ -17,11 +17,31 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "user_features",
+    hdrs = ["user_features.h"],
+    deps = [
+        "@silifuzz//util:checks",
+    ],
+)
+
+cc_library(
+    name = "arch_feature_generator",
+    hdrs = ["arch_feature_generator.h"],
+    deps = [
+        ":user_features",
+        "@silifuzz//util:bitops",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:ucontext_types",
+    ],
+)
+
+cc_library(
     name = "unicorn_aarch64_lib",
-    testonly = True,
     srcs = ["unicorn_aarch64.cc"],
     deps = [
+        ":arch_feature_generator",
         "@silifuzz//common:proxy_config",
+        "@silifuzz//tracing:capstone_disassembler",
         "@silifuzz//tracing:unicorn_tracer_aarch64",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
@@ -43,7 +63,6 @@ cc_test(
 
 cc_library(
     name = "unicorn_x86_64_lib",
-    testonly = True,
     srcs = ["unicorn_x86_64.cc"],
     deps = [
         "@silifuzz//common:proxy_config",

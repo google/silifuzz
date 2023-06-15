@@ -83,20 +83,19 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
         // Disassemble the instruction
         CHECK(max_size < sizeof(insn_buffer));
         tracer->ReadMemory(address, insn_buffer, max_size);
-        size_t actual_size = max_size;
-        bool valid = disas.Disassemble(address, insn_buffer, &actual_size);
+        bool valid = disas.Disassemble(address, insn_buffer, max_size);
 
         // Display information about the next instruction.
         // Note: formatting assumes the code addresses are in the lower 4GB so
-        // that it can ommit 8 leading zeros and be a bit prettier.
+        // that it can omit 8 leading zeros and be a bit prettier.
         out.Line(absl::Dec(instruction_count, absl::kZeroPad4),
                  " addr=", absl::Hex(address, absl::kZeroPad8),
                  " offset=", absl::Dec(address - code_start, absl::kZeroPad4),
-                 " size=", absl::Dec(actual_size, absl::kZeroPad2), "    ",
-                 disas.FullText());
+                 " size=", absl::Dec(disas.InstructionSize(), absl::kZeroPad2),
+                 "    ", disas.FullText());
         instruction_count++;
         last_valid = valid;
-        expected_next = address + actual_size;
+        expected_next = address + disas.InstructionSize();
       });
   absl::Status result = tracer.Run(max_instructions);
   out.Line();

@@ -45,11 +45,11 @@ class CapstoneDisassembler {
   // is required to print absolute jump targets.
   // `buffer` points to memory that contains the complete instruction. It is OK
   // if it contains additional data.
-  // `buffer_size` is an in/out that specifies the total amount data passed in,
-  // as well as the amount of data consumed.
+  // `buffer_size` specifies the amount of data available in `buffer`. Only part
+  // of that data may be consumed.
   // Returns the true if the instruction is valid.
   [[nodiscard]] bool Disassemble(uint64_t address, const uint8_t* buffer,
-                                 size_t* buffer_size);
+                                 size_t buffer_size);
 
   // How much data was consumed by the last call to Disassemble.
   [[nodiscard]] size_t InstructionSize() const;
@@ -57,9 +57,16 @@ class CapstoneDisassembler {
   // The textual representation of the last instruction that was disassembled.
   [[nodiscard]] std::string FullText() const;
 
+  // A numerical ID for the last type of instruction that was disassembled.
+  [[nodiscard]] uint32_t InstructionID() const;
+
+  // The number of possible instruction IDs.
+  [[nodiscard]] uint32_t NumInstructionIDs() const;
+
  private:
   csh capstone_handle_;
   cs_insn* decoded_insn_;
+  uint32_t num_instruction_ids_;
   bool valid_;
 };
 
