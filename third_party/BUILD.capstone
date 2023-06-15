@@ -40,13 +40,19 @@ cc_library(
     strip_include_prefix = "include",
     # Affect internal dependencies.
     includes = ["include"],
+    # Note: EVM and WASM are enabled even though we don't need them.
+    # Not setting the -D leaves dangling reference to a few functions that
+    # --no-allow-shlib-undefined can trip over.
+    # A more principled fix would be to limit the arch/*/* globs to only
+    # compile the arches we cared about, but this would cause this build file
+    # to diverge even more from the one it was forked off of.
     hdrs = [":capstone-headers"],
         copts = [
         "-w",
         "-DCAPSTONE_HAS_ARM",
         "-DCAPSTONE_HAS_ARM64",
         # "-DCAPSTONE_HAS_BPF",
-        # "-DCAPSTONE_HAS_EVM",
+        "-DCAPSTONE_HAS_EVM",
         # "-DCAPSTONE_HAS_M680X",
         # "-DCAPSTONE_HAS_M68K",
         # "-DCAPSTONE_HAS_MIPS",
@@ -56,7 +62,7 @@ cc_library(
         # "-DCAPSTONE_HAS_SPARC",
         # "-DCAPSTONE_HAS_SYSZ",
         # "-DCAPSTONE_HAS_TMS320C64X",
-        # "-DCAPSTONE_HAS_WASM",
+        "-DCAPSTONE_HAS_WASM",
         "-DCAPSTONE_HAS_X86",
         # "-DCAPSTONE_HAS_XCORE",
         "-DCAPSTONE_USE_SYS_DYN_MEM",
