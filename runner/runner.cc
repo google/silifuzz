@@ -42,6 +42,8 @@
 #include "./util/misc_util.h"
 #include "./util/page_util.h"
 #include "./util/proc_maps_parser.h"
+#include "./util/reg_group_io.h"
+#include "./util/reg_groups.h"
 #include "./util/text_proto_printer.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext.h"
@@ -403,6 +405,11 @@ RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
       !MemEqT(*end_spot.fpregs, snap.end_state_registers->fpregs)) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
+  // Verify register checksum if there is one in snap.
+  if (!snap.end_state_register_checksum.register_groups.Empty() &&
+      snap.end_state_register_checksum != end_spot.register_checksum) {
+    return RunSnapOutcome::kRegisterStateMismatch;
+  }
 
   // Verify writable memory contents after execution.
   for (const auto& memory_bytes : snap.end_state_memory_bytes) {
@@ -488,6 +495,8 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunSnapResult& run_result) {
       LOG_INFO("  fpregs (modified only):");
       LogFPRegs(*run_result.end_spot.fpregs, true,
                 &snap.end_state_registers->fpregs, log_diff);
+      LogRegisterChecksum(run_result.end_spot.register_checksum,
+                          &snap.end_state_register_checksum, log_diff);
     } else if (run_result.outcome == RunSnapOutcome::kMemoryMismatch) {
       LOG_INFO("Memory state mismatch (details omitted)");
     } else if (run_result.outcome == RunSnapOutcome::kExecutionMisbehave) {
@@ -523,6 +532,15 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunSnapResult& run_result) {
     registers_m->Bytes("fpregs", serialized_fpregs.data,
                        serialized_fpregs.size);
 
+    // Serialize register checksum.
+    uint8_t checksum_buffer[256];
+    ssize_t checksum_size = Serialize(run_result.end_spot.register_checksum,
+                                      checksum_buffer, sizeof(checksum_buffer));
+    CHECK_NE(checksum_size, -1);
+    actual_end_state->Bytes("register_checksum",
+                            reinterpret_cast<const char*>(checksum_buffer),
+                            checksum_size);
+
     std::optional<Endpoint> endpoint = EndSpotToEndpoint(run_result.end_spot);
     if (endpoint.has_value()) {
       auto endpoint_m = actual_end_state->Message("endpoint");
@@ -554,6 +572,12 @@ const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
   }
 
   InitSnapExit(&SnapExitImpl);
+
+  // Initialize register checksumming.
+  InitRegisterGroupIO();
+  RegisterGroupSet<Host> checksum_register_group =
+      GetCurrentPlatformChecksumRegisterGroups();
+  snap_exit_register_group_io_buffer.register_groups = checksum_register_group;
 
   // Preserve this value because the following logic might synthesize a new
   // SnapCorpus struct.

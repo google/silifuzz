@@ -50,6 +50,7 @@
 #include <cstdint>
 
 #include "./runner/endspot.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -61,6 +62,9 @@ namespace silifuzz {
 // The value stored here persists until the next call of
 // SnapExitImpl().
 extern "C" UContext<Host> snap_exit_context;
+
+// This stores additional register states that are not handled by UContext.
+extern "C" RegisterGroupIOBuffer<Host> snap_exit_register_group_io_buffer;
 
 // Returns true if the execution is currently inside a Snap. Can be used inside
 // a signal handler to determine if the signal was raised while executing a

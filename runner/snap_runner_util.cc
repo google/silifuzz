@@ -22,6 +22,7 @@
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
 #include "./util/misc_util.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -29,7 +30,9 @@
 
 namespace silifuzz {
 
+// TODO(dougkwan): Merge these two.
 UContext<Host> snap_exit_context;
+RegisterGroupIOBuffer<Host> snap_exit_register_group_io_buffer;
 
 namespace {
 
@@ -173,6 +176,9 @@ void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
     end_spot.signum = snap_signal_context.sig_info.si_signo;
     end_spot.sig_address = AsInt(snap_signal_context.sig_info.si_addr);
     ConvertSignalRegsFromLibC(snap_signal_context.ucontext, &end_spot.sigregs);
+    // TODO(dougkwan): See if we can compute a checksum after a signal. For now,
+    // we just set checksum to empty.
+    end_spot.register_checksum = {};
   } else {
     end_spot.signum = 0;
     end_spot.sig_address = 0;
@@ -182,6 +188,8 @@ void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
     // Sanitize gregs and fpregs.
     ZeroOutGRegsPadding(end_spot.gregs);
     ZeroOutFPRegsPadding(end_spot.fpregs);
+    end_spot.register_checksum =
+        GetRegisterGroupsChecksum(snap_exit_register_group_io_buffer);
   }
 
 #if defined(__x86_64__)

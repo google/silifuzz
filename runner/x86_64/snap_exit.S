@@ -53,6 +53,12 @@ SnapExitImpl:
   leaq snap_exit_context(%rip), %rdi
   call SaveUContextNoSyscalls
 
+  /*
+   * Save additional registers currently not handled by SaveUContextNoSyscalls.
+   */
+  leaq snap_exit_register_group_io_buffer(%rip), %rdi
+  call SaveRegisterGroupsToBuffer
+
   /* Jump to C++ code for re-entry to runner. */
   popq %rdi /* rdi at snap exit */
   popq %rsi /* rsp at snap exit */

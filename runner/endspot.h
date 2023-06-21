@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "./util/reg_checksum.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -41,6 +42,10 @@ struct EndSpot {
   // Values for all the registers.
   gregs_t* gregs;
   fpregs_t* fpregs;
+
+  // Summary information of registers that are not completely recorded
+  // at end of snapshot execution.
+  RegisterChecksum<Host> register_checksum;
 
   // Logs this EndSpot via LOG_INFO().
   // Not a DebugString() so that we can use this in nolibc mode.
