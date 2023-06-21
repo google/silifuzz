@@ -29,8 +29,8 @@ namespace silifuzz {
 namespace {
 
 // This array lives in an ELF segment that the Centipede runner will read from.
-// Currently this proxy emits ~13k user features for the longest inputs.
-USER_FEATURE_ARRAY static user_feature_t features[25000];
+// In practice, over 25k user features have been observed.
+USER_FEATURE_ARRAY static user_feature_t features[100000];
 
 class BatchState {
  public:
