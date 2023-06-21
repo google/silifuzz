@@ -32,7 +32,7 @@ namespace silifuzz {
 
 // TODO(dougkwan): Merge these two.
 UContext<Host> snap_exit_context;
-RegisterGroupIOBuffer<Host> snap_exit_register_group_io_buffer;
+RegisterGroupIOBuffer<Host> snap_exit_register_group_io_buffer{};
 
 namespace {
 
