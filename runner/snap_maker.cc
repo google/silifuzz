@@ -223,13 +223,20 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver runner_driver,
         RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));
-    absl::StatusOr<RunnerDriver::RunResult> make_result_or =
-        runner_driver.MakeOne(snapshot->id());
-    RETURN_IF_NOT_OK(make_result_or.status());
+    ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult make_result,
+                               runner_driver.MakeOne(snapshot->id()));
+    if (make_result.success()) {
+      return absl::InternalError(
+          absl::StrCat("Impossible: snapshot ", snapshot->id(),
+                       " had an undefined end state yet ran successfully"));
+    }
     const Snapshot::Endpoint& ep =
-        make_result_or->player_result().actual_end_state->endpoint();
-    switch (make_result_or->player_result().outcome) {
+        make_result.player_result().actual_end_state->endpoint();
+    switch (make_result.player_result().outcome) {
       case PlaybackOutcome::kAsExpected:
+        return absl::InternalError(
+            absl::StrCat("Impossible: snapshot ", snapshot->id(),
+                         " did not run successfully but ended as expected"));
       case PlaybackOutcome::kMemoryMismatch:
       case PlaybackOutcome::kRegisterStateMismatch:
         VLOG_INFO(1, "Reached a fixable outcome at ",
@@ -277,7 +284,7 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
       case PlaybackOutcome::kPlatformMismatch:
         return absl::InternalError(
             absl::StrCat("Unsupported outcome ",
-                         EnumStr(make_result_or->player_result().outcome)));
+                         EnumStr(make_result.player_result().outcome)));
     }
   }
 }
