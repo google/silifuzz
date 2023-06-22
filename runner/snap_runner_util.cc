@@ -48,7 +48,7 @@ EndSpot::gregs_t signal_gregs;
 // Bool indicating if we are about to enter a Snap's context. This is used by
 // RunSnap() below to distinguish whether we have just saved the runner's
 // context or returned to a saved context from a Snap.
-bool enter_snap_context;
+volatile bool enter_snap_context;
 
 // Register state and signal info if a Snap causes a signal.
 struct SnapSignalContext {
