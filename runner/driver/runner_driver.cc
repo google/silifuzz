@@ -37,7 +37,6 @@
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
 #include "./player/player_result_proto.h"
-#include "./proto/player_result.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_options.h"
 #include "./snap/gen/relocatable_snap_generator.h"
@@ -146,6 +145,8 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     absl::string_view runner_stdout, int exit_status,
     absl::string_view snapshot_id) const {
+  VLOG_INFO(3, absl::StrCat("Snapshot [", snapshot_id,
+                            "] runner exit status = ", HexStr(exit_status)));
   if (WIFSIGNALED(exit_status)) {
     int sig_num = WTERMSIG(exit_status);
     if (sig_num == SIGINT) {
