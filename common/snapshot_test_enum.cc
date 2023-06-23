@@ -26,7 +26,7 @@ ABSL_CONST_INIT const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kMemoryMismatchRandom", "kRegsAndMemoryMismatchRandom", "kICEBP",
     "kBreakpoint", "kINT3_CD03", "kSigIll", "kSigSegvWrite", "kSigSegvRead",
     "kSigSegvExec", "kSyscall", "kGeneralProtectionFault", "kChangesSegmentReg",
-    "kIn", "kRunaway", "kSplitLock", "kSetThreeRegisters",
+    "kIn", "kRunaway", "kSplitLock", "kSetThreeRegisters", "kExitGroup",
 };
 
 }  // namespace silifuzz

@@ -87,5 +87,15 @@ TEST(SnapMaker, SplitLock) {
                                   HasSubstr("Split-lock insn")));
 }
 
+TEST(SnapMaker, ExitGroup) {
+  auto exitGroupSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kExitGroup);
+  absl::StatusOr<Snapshot> result = FixSnapshotInTest(exitGroupSnap);
+  ASSERT_THAT(result.status(),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Unlikely: snapshot kExitGroup had an "
+                                 "undefined end state yet ran successfully")));
+}
+
 }  // namespace
 }  // namespace silifuzz

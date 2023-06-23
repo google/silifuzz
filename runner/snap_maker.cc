@@ -226,8 +226,11 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult make_result,
                                runner_driver.MakeOne(snapshot->id()));
     if (make_result.success()) {
+      // In practice this can happen if the snapshot hits just the right
+      // sequence of instructions to call _exit(0) either by jumping into
+      // a library function or directly invoking the corresponding syscall.
       return absl::InternalError(
-          absl::StrCat("Impossible: snapshot ", snapshot->id(),
+          absl::StrCat("Unlikely: snapshot ", snapshot->id(),
                        " had an undefined end state yet ran successfully"));
     }
     const Snapshot::Endpoint& ep =

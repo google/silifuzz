@@ -620,6 +620,17 @@ add x4, x4, #0x4
 """,
   )
 
+  b.snapshot(
+      name="ExitGroup",
+      arch=AARCH64,
+      src="""
+mov x0, xzr
+// SYS_exit_group
+mov x8, #94
+svc 0
+""",
+  )
+
 
 def generate_source(b, out):
   out.write(f"""\

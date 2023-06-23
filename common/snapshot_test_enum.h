@@ -100,6 +100,9 @@ enum class TestSnapshot {
   // Snapshot that sets three general purpose registers.
   kSetThreeRegisters,
 
+  // Snapshot that calls _exit_group(0)
+  kExitGroup,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };
