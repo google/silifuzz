@@ -53,11 +53,13 @@ class Arch:
 X86_64 = Arch(
     enum_name="kX86_64",
     clang_target="x86_64-none-eabi",
-    objdump_arch="i386:x86-64")
+    objdump_arch="i386:x86-64",
+)
 AARCH64 = Arch(
     enum_name="kAArch64",
     clang_target="aarch64-none-eabi",
-    objdump_arch="aarch64")
+    objdump_arch="aarch64",
+)
 
 # Page number (i.e. address / page size) at the beginning of memory region
 # used by test snapshots.
@@ -87,8 +89,13 @@ def src_to_instructions(src, arch, temp_dir, bin_filename):
 
   # Compile
   subprocess.check_call([
-      "clang", "-target", arch.clang_target, "-c", src_filename, "-o",
-      obj_filename
+      "clang",
+      "-target",
+      arch.clang_target,
+      "-c",
+      src_filename,
+      "-o",
+      obj_filename,
   ])
 
   # Extract the compiled instructions
@@ -99,8 +106,14 @@ def disassemble(bin_filename, arch, code_addr):
   if os.path.getsize(bin_filename) > 0:
     # Objdump the compiled instructions
     disam = subprocess.check_output([
-        "objdump", "-m", arch.objdump_arch, "-D", "-b", "binary",
-        f"--adjust-vma={hex(code_addr)}", bin_filename
+        "objdump",
+        "-m",
+        arch.objdump_arch,
+        "-D",
+        "-b",
+        "binary",
+        f"--adjust-vma={hex(code_addr)}",
+        bin_filename,
     ]).decode("utf8")
     disam = disam.rstrip()
     # Trim off the preamble
@@ -117,7 +130,6 @@ def disassemble(bin_filename, arch, code_addr):
 
 @dataclasses.dataclass
 class TestSnapshot:
-
   name: str
   arch: Arch
   normal_end: bool
@@ -136,13 +148,15 @@ class Builder:
     self.snapshots = []
 
   # Build a single test snapshot
-  def snapshot(self,
-               name,
-               arch,
-               normal_end=True,
-               src=None,
-               raw_bytes=None,
-               oss_strip=False):
+  def snapshot(
+      self,
+      name,
+      arch,
+      normal_end=True,
+      src=None,
+      raw_bytes=None,
+      oss_strip=False,
+  ):
     with tempfile.TemporaryDirectory() as temp_dir:
       bin_filename = os.path.join(temp_dir, "example.bin")
 
@@ -174,7 +188,8 @@ class Builder:
               instruction_bytes=instruction_bytes,
               disassembly=disassembly,
               oss_strip=oss_strip,
-          ))
+          )
+      )
 
       arch.test_count += 1
 
@@ -183,9 +198,13 @@ def build_test_snapshots_x86_64(b):
   b.snapshot(name="Empty", arch=X86_64, normal_end=True, src="")
 
   b.snapshot(
-      name="EndsAsExpected", arch=X86_64, normal_end=True, src="""
+      name="EndsAsExpected",
+      arch=X86_64,
+      normal_end=True,
+      src="""
 nop
-""")
+""",
+  )
 
   b.snapshot(
       name="EndsUnexpectedly",
@@ -201,7 +220,8 @@ nop
 // how we implement endpoint detection. However, the intentions
 // behind kBreakpoint and kEndsUnexpectedly are different.
 int3
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsMismatch",
@@ -209,7 +229,8 @@ int3
       src="""
 // rsp has non-0 bits so, this modifies rax
 xor %rsp, %rax
-""")
+""",
+  )
 
   b.snapshot(
       name="MemoryMismatch",
@@ -231,7 +252,8 @@ pop %rax
 // restore registers and flags
 pop %rax
 popfq
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsAndMemoryMismatch",
@@ -242,7 +264,8 @@ xor %rsp, %rbx
 xor %rax, %rax
 not %rax
 push %rax
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsMismatchRandom",
@@ -262,7 +285,8 @@ rdrand %rax
 jmp 2f
 1: rdtsc
 2:
-""")
+""",
+  )
 
   b.snapshot(
       name="MemoryMismatchRandom",
@@ -286,7 +310,8 @@ pop %rax
 pop %rdx
 pop %rax
 popfq
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsAndMemoryMismatchRandom",
@@ -295,19 +320,26 @@ popfq
 // place a random number in EAX:EDX and stack
 rdtsc
 push %rax
-""")
+""",
+  )
 
-  b.snapshot(name="ICEBP", arch=X86_64, normal_end=False, raw_bytes=[0xf1])
+  b.snapshot(name="ICEBP", arch=X86_64, normal_end=False, raw_bytes=[0xF1])
 
   # Note that this is the same `bytecode` as snapshot.trap_instruction().
-  b.snapshot(name="Breakpoint", arch=X86_64, normal_end=False, raw_bytes=[0xcc])
+  b.snapshot(name="Breakpoint", arch=X86_64, normal_end=False, raw_bytes=[0xCC])
 
   b.snapshot(
-      name="INT3_CD03", arch=X86_64, normal_end=False, raw_bytes=[0xcd, 0x03])
+      name="INT3_CD03", arch=X86_64, normal_end=False, raw_bytes=[0xCD, 0x03]
+  )
 
-  b.snapshot(name="SigIll", arch=X86_64, normal_end=False, src="""
+  b.snapshot(
+      name="SigIll",
+      arch=X86_64,
+      normal_end=False,
+      src="""
 ud2
-""")
+""",
+  )
 
   b.snapshot(
       name="SigSegvWrite",
@@ -318,7 +350,8 @@ ud2
 // Three pointers are stored at the start of the data region.
 movq 8(%rbp), %rax
 mov %rbx, 0(%rax)
-""")
+""",
+  )
 
   b.snapshot(
       name="SigSegvRead",
@@ -329,7 +362,8 @@ mov %rbx, 0(%rax)
 // Three pointers are stored at the start of the data region.
 movq 0(%rbp), %rax
 mov 0(%rax), %rbx
-""")
+""",
+  )
 
   b.snapshot(
       name="SigSegvExec",
@@ -340,7 +374,8 @@ mov 0(%rax), %rbx
 // Three pointers are stored at the start of the data region.
 movq 16(%rbp), %rax
 jmp *%rax
-""")
+""",
+  )
 
   b.snapshot(
       name="Syscall",
@@ -355,7 +390,8 @@ syscall
 // erases any result whatever it may be so that
 // the snapshot always ends deterministically
 xor %rax, %rax
-""")
+""",
+  )
 
   b.snapshot(
       name="GeneralProtectionFault",
@@ -363,7 +399,8 @@ xor %rax, %rax
       normal_end=False,
       src="""
 fxsave 1(%rip)
-""")
+""",
+  )
 
   b.snapshot(
       name="ChangesSegmentReg",
@@ -380,11 +417,17 @@ movw %ax, %es
 movw %ax, %ds
 movw %ax, %gs
 movw %ax, %fs
-""")
+""",
+  )
 
-  b.snapshot(name="In", arch=X86_64, normal_end=False, src="""
+  b.snapshot(
+      name="In",
+      arch=X86_64,
+      normal_end=False,
+      src="""
 in %dx, %eax
-""")
+""",
+  )
 
   b.snapshot(
       name="Runaway",
@@ -394,7 +437,8 @@ in %dx, %eax
 // A trivial infinite loop (can only have one end-point rip value when
 // interrupted):
 jmp .
-""")
+""",
+  )
 
   b.snapshot(
       name="SplitLock",
@@ -407,7 +451,8 @@ movq %rsp, %rax
 dec %rax
 xorb %al,%al
 lock incl -1(%rax)
-""")
+""",
+  )
 
   b.snapshot(
       name="SetThreeRegisters",
@@ -423,9 +468,13 @@ add $0x4, %r8
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(
-      name="EndsAsExpected", arch=AARCH64, normal_end=True, src="""
+      name="EndsAsExpected",
+      arch=AARCH64,
+      normal_end=True,
+      src="""
 nop
-""")
+""",
+  )
 
   b.snapshot(
       name="EndsUnexpectedly",
@@ -434,13 +483,17 @@ nop
       src="""
 // The same invalid instruction we use to pad executable memory in Snaps.
 udf 0
-""")
+""",
+  )
 
   b.snapshot(
-      name="RegsMismatch", arch=AARCH64, src="""
+      name="RegsMismatch",
+      arch=AARCH64,
+      src="""
 // x0 = ~x0
 mvn x0, x0
-""")
+""",
+  )
 
   b.snapshot(
       name="MemoryMismatch",
@@ -457,7 +510,8 @@ str x0, [sp, #-64]
 
 // Restore x0
 ldr x0, [sp, #-8]
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsMismatchRandom",
@@ -472,7 +526,8 @@ ldr x0, [sp, #-8]
 // best we have right now.
 // Use x1 since it won't get spilled onto the stack by the exit sequence.
 mrs x1, CNTVCT_EL0
-""")
+""",
+  )
 
   b.snapshot(
       name="MemoryMismatchRandom",
@@ -482,7 +537,8 @@ str x1, [sp]
 mrs x1, CNTVCT_EL0
 str x1, [sp, #-64]
 ldr x1, [sp]
-""")
+""",
+  )
 
   b.snapshot(
       name="RegsAndMemoryMismatchRandom",
@@ -490,12 +546,17 @@ ldr x1, [sp]
       src="""
 mrs x1, CNTVCT_EL0
 stp x1, x1, [sp, #-16]!
-""")
+""",
+  )
 
   b.snapshot(
-      name="Breakpoint", arch=AARCH64, normal_end=False, src="""
+      name="Breakpoint",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
 brk 0
-""")
+""",
+  )
 
   b.snapshot(
       name="SigSegvWrite",
@@ -506,7 +567,8 @@ brk 0
 // Three pointers are stored at the start of the data region.
 ldr x0, [x6, #8]
 str x1, [x0]
-""")
+""",
+  )
 
   b.snapshot(
       name="SigSegvRead",
@@ -517,7 +579,8 @@ str x1, [x0]
 // Three pointers are stored at the start of the data region.
 ldr x0, [x6, #0]
 ldr x0, [x0]
-""")
+""",
+  )
 
   b.snapshot(
       name="Syscall",
@@ -532,7 +595,8 @@ svc 0
 // erases any result whatever it may be so that
 // the snapshot always ends deterministically
 mov x0, xzr
-""")
+""",
+  )
 
   b.snapshot(
       name="Runaway",
@@ -541,7 +605,8 @@ mov x0, xzr
       src="""
 // A trivial infinite loop (can only have one end-point value when interrupted):
 b .
-""")
+""",
+  )
 
   b.snapshot(
       name="SetThreeRegisters",
@@ -662,7 +727,8 @@ def main():
             instruction_bytes=bytes([1, 2, 3, 4]),
             disassembly="Mock disassembly",
             oss_strip=False,
-        ))
+        )
+    )
   generate_source(b, sys.stdout)
 
 
