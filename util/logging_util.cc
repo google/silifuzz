@@ -74,6 +74,10 @@ void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
       base_register_groups_str[kMaxGroupSetStringLength];
   GroupSetToStr(register_checksum.register_groups, register_groups_str);
   if (base != nullptr) {
+    // If base register group is empty, no comparison is done and thus
+    // we can skip logging.
+    if (base->register_groups.Empty()) return;
+
     GroupSetToStr(base->register_groups, base_register_groups_str);
   } else {
     base_register_groups_str[0] = '\0';
