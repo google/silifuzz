@@ -44,6 +44,7 @@ cc_test(
         ":execution_trace",
         ":tracing_test_util",
         ":unicorn_tracer",
+        ":xed_disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
@@ -178,10 +179,25 @@ cc_library(
 )
 
 cc_library(
+    name = "xed_disassembler",
+    srcs = ["xed_disassembler.cc"],
+    hdrs = ["xed_disassembler.h"],
+    deps = [
+        ":disassembler",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/strings",
+        "@libxed//:xed",
+    ],
+)
+
+cc_library(
     name = "default_disassembler",
     hdrs = ["default_disassembler.h"],
     deps = [
         ":capstone_disassembler",
+        ":xed_disassembler",
         "@silifuzz//util:arch",
     ],
 )

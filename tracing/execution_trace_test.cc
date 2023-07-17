@@ -19,6 +19,7 @@
 #include "./tracing/capstone_disassembler.h"
 #include "./tracing/tracing_test_util.h"
 #include "./tracing/unicorn_tracer.h"
+#include "./tracing/xed_disassembler.h"
 #include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
 
@@ -29,12 +30,12 @@ namespace {
 using silifuzz::testing::IsOk;
 
 template <typename Arch>
-void CheckInstructionInfo(CapstoneDisassembler<Arch>& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disas, size_t i,
                           const UContext<Arch>& prev,
                           InstructionInfo<Arch>& info);
 
 template <>
-void CheckInstructionInfo(CapstoneDisassembler<X86_64>& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disas, size_t i,
                           const UContext<X86_64>& prev,
                           InstructionInfo<X86_64>& info) {
   EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
@@ -53,7 +54,7 @@ void CheckInstructionInfo(CapstoneDisassembler<X86_64>& disas, size_t i,
 }
 
 template <>
-void CheckInstructionInfo(CapstoneDisassembler<AArch64>& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disas, size_t i,
                           const UContext<AArch64>& prev,
                           InstructionInfo<AArch64>& info) {
   EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
@@ -72,25 +73,31 @@ void CheckInstructionInfo(CapstoneDisassembler<AArch64>& disas, size_t i,
 }
 
 // Typed test boilerplate
-using arch_typelist = ::testing::Types<ALL_ARCH_TYPES>;
+using arch_typelist =
+    ::testing::Types<std::pair<X86_64, CapstoneDisassembler<X86_64>>,
+                     std::pair<X86_64, XedDisassembler>,
+                     std::pair<AArch64, CapstoneDisassembler<AArch64>>>;
 template <class>
 struct ExecutionTraceTest : ::testing::Test {};
 TYPED_TEST_SUITE(ExecutionTraceTest, arch_typelist);
 
 TYPED_TEST(ExecutionTraceTest, Simple) {
-  std::string instructions = SimpleTestSnippet<TypeParam>();
+  using Arch = typename TypeParam::first_type;
+  using ConcreteDisassembler = typename TypeParam::second_type;
+
+  std::string instructions = SimpleTestSnippet<Arch>();
 
   // There are three instructions and they should all be the same size, so the
   // size of the instruction sequence should be cleanly divisible by three.
   ASSERT_EQ(instructions.size() % 3, 0);
   const size_t instruction_size = instructions.size() / 3;
 
-  UnicornTracer<TypeParam> tracer;
+  UnicornTracer<Arch> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
-  CapstoneDisassembler<TypeParam> disas;
+  ConcreteDisassembler disas;
 
-  ExecutionTrace<TypeParam> execution_trace(3);
+  ExecutionTrace<Arch> execution_trace(3);
   ASSERT_EQ(execution_trace.MaxInstructions(), 3);
   ASSERT_EQ(execution_trace.NumInstructions(), 0);
 
@@ -100,8 +107,8 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
 
   // Check the trace.
   size_t count = 0;
-  execution_trace.ForEach([&](size_t i, UContext<TypeParam>& prev,
-                              InstructionInfo<TypeParam>& info) {
+  execution_trace.ForEach([&](size_t i, UContext<Arch>& prev,
+                              InstructionInfo<Arch>& info) {
     // Check it's in bounds.
     ASSERT_LT(i, 3);
 

@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_TRACING_DEFAULT_DISASSEMBLER_H_
 
 #include "./tracing/capstone_disassembler.h"
+#include "./tracing/xed_disassembler.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
@@ -27,7 +28,7 @@ struct Default;
 
 template <>
 struct Default<X86_64> {
-  using Type = CapstoneDisassembler<X86_64>;
+  using Type = XedDisassembler;
 };
 
 template <>
