@@ -132,6 +132,7 @@ enum PlatformId {
   INTEL_COFFEELAKE = 11;
   INTEL_ALDERLAKE = 12;
   ARM_NEOVERSE_N1 = 13;
+  AMPERE_ONE = 14;
 }
 
 // Describes a specific endstate of executing a snapshot.

@@ -38,10 +38,11 @@ enum class PlatformId {
   kIntelCoffeelake = 11,
   kIntelAlderlake = 12,
   kArmNeoverseN1 = 13,
+  kAmpereOne = 14,
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 14,          // any platform for platform selectors
-  kNonExistent = 15,  // for tests only
+  kAny = 15,          // any platform for platform selectors
+  kNonExistent = 16,  // for tests only
 };
 
 DECLARE_ENUM_FLAG(PlatformId);

@@ -40,6 +40,14 @@ PlatformId DoCurrentPlatformId() {
       LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
       return PlatformId::kUndefined;
     }
+  } else if (implementer == 0xc0) {
+    // Ampere Computing
+    if (part_number == 0xac3) {
+      return PlatformId::kAmpereOne;
+    } else {
+      LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
+      return PlatformId::kUndefined;
+    }
   } else {
     LOG_ERROR("Unknown implementer: ", HexStr(implementer));
     return PlatformId::kUndefined;

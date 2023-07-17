@@ -23,23 +23,32 @@ namespace silifuzz {
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
                                                     1] = {
-    "UNDEFINED-PLATFORM", "intel-skylake",
-    "intel-haswell",      "intel-broadwell",
-    "intel-ivybridge",    "intel-cascadelake",
-    "amd-rome",           "intel-icelake",
-    "amd-milan",          "intel-sapphirerapids",
-    "amd-genoa",          "intel-coffeelake",
-    "intel-alderlake",    "arm-neoverse-n1",
-    "ANY-PLATFORM",       "NON-EXISTENT-PLATFORM",
+    "UNDEFINED-PLATFORM",
+    "intel-skylake",
+    "intel-haswell",
+    "intel-broadwell",
+    "intel-ivybridge",
+    "intel-cascadelake",
+    "amd-rome",
+    "intel-icelake",
+    "amd-milan",
+    "intel-sapphirerapids",
+    "amd-genoa",
+    "intel-coffeelake",
+    "intel-alderlake",
+    "arm-neoverse-n1",
+    "ampere-one",
+    "ANY-PLATFORM",
+    "NON-EXISTENT-PLATFORM",
 };
 
 DEFINE_ENUM_FLAG(PlatformId);
 
 // An arbitrary name, only used internally.
 ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
-    "UNDEF",   "skylk",  "haswl", "broadwl",  "ivybrdg", "cascdlk",
-    "rome",    "icelk",  "milan", "sapprpds", "genoa",   "coffeelk",
-    "alderlk", "neovn1", "ANY",   "NEXST",
+    "UNDEF",   "skylk",  "haswl",  "broadwl",  "ivybrdg", "cascdlk",
+    "rome",    "icelk",  "milan",  "sapprpds", "genoa",   "coffeelk",
+    "alderlk", "neovn1", "ampone", "ANY",      "NEXST",
 };
 
 const char* ShortPlatformName(PlatformId platform) {
@@ -62,6 +71,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kIntelAlderlake:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
+    case PlatformId::kAmpereOne:
       return ArchitectureId::kAArch64;
     case PlatformId::kUndefined:
     case PlatformId::kAny:
