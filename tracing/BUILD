@@ -160,10 +160,16 @@ cc_test(
 )
 
 cc_library(
+    name = "disassembler",
+    hdrs = ["disassembler.h"],
+)
+
+cc_library(
     name = "capstone_disassembler",
     srcs = ["capstone_disassembler.cc"],
     hdrs = ["capstone_disassembler.h"],
     deps = [
+        ":disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@capstone",
@@ -172,11 +178,20 @@ cc_library(
 )
 
 cc_library(
+    name = "default_disassembler",
+    hdrs = ["default_disassembler.h"],
+    deps = [
+        ":capstone_disassembler",
+        "@silifuzz//util:arch",
+    ],
+)
+
+cc_library(
     name = "analysis",
     srcs = ["analysis.cc"],
     hdrs = ["analysis.h"],
     deps = [
-        ":capstone_disassembler",
+        ":disassembler",
         ":execution_trace",
         ":unicorn_tracer",
         "@silifuzz//util:arch",
@@ -193,7 +208,8 @@ cc_binary(
     ],
     deps = [
         ":analysis",
-        ":capstone_disassembler",
+        ":default_disassembler",
+        ":disassembler",
         ":execution_trace",
         ":unicorn_tracer",
         "@silifuzz//util:arch",

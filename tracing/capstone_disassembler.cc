@@ -71,7 +71,7 @@ size_t CapstoneDisassembler<Arch>::InstructionSize() const {
 }
 
 template <typename Arch>
-std::string CapstoneDisassembler<Arch>::FullText() const {
+std::string CapstoneDisassembler<Arch>::FullText() {
   return valid_
              ? absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str)
              : "unknown";
@@ -93,7 +93,7 @@ uint32_t CapstoneDisassembler<Arch>::NumInstructionIDs() const {
 }
 
 template <typename Arch>
-const char* CapstoneDisassembler<Arch>::InstructionIDName(uint32_t id) const {
+std::string CapstoneDisassembler<Arch>::InstructionIDName(uint32_t id) const {
   return cs_insn_name(capstone_handle_, id);
 }
 

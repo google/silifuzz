@@ -37,7 +37,7 @@ template <>
 void CheckInstructionInfo(CapstoneDisassembler<X86_64>& disas, size_t i,
                           const UContext<X86_64>& prev,
                           InstructionInfo<X86_64>& info) {
-  EXPECT_STREQ(disas.InstructionIDName(info.instruction_id), "add");
+  EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
 
   // rdx transitions 0 => 2 on the first instruction.
   EXPECT_EQ(prev.gregs.rdx, i <= 0 ? 0 : 2);
@@ -56,7 +56,7 @@ template <>
 void CheckInstructionInfo(CapstoneDisassembler<AArch64>& disas, size_t i,
                           const UContext<AArch64>& prev,
                           InstructionInfo<AArch64>& info) {
-  EXPECT_STREQ(disas.InstructionIDName(info.instruction_id), "add");
+  EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
 
   // x2 transitions 0 => 2 on the first instruction.
   EXPECT_EQ(prev.gregs.x[2], i <= 0 ? 0 : 2);

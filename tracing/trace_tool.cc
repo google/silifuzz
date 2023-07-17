@@ -26,7 +26,8 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "./tracing/analysis.h"
-#include "./tracing/capstone_disassembler.h"
+#include "./tracing/default_disassembler.h"
+#include "./tracing/disassembler.h"
 #include "./tracing/execution_trace.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
@@ -54,9 +55,8 @@ namespace silifuzz {
 
 // Display the trace in a human-readable format with a bunch of metadata.
 template <typename Arch>
-void LogTrace(CapstoneDisassembler<Arch>& disas,
-              ExecutionTrace<Arch>& execution_trace, bool fault_injection,
-              LinePrinter& out) {
+void LogTrace(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
+              bool fault_injection, LinePrinter& out) {
   uint64_t expected_next = execution_trace.EntryAddress();
   bool last_valid = false;
   execution_trace.ForEach(
@@ -140,7 +140,7 @@ struct TraceOpInfo {
 
 // Gather stats from a trace.
 template <typename Arch>
-TraceOpInfo<Arch> GatherTraceOpInfo(CapstoneDisassembler<Arch>& disas,
+TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disas,
                                     ExecutionTrace<Arch>& execution_trace) {
   TraceOpInfo<Arch> trace_info(disas.NumInstructionIDs());
 
@@ -165,9 +165,8 @@ TraceOpInfo<Arch> GatherTraceOpInfo(CapstoneDisassembler<Arch>& disas,
 
 // Display stats for a trace in a human-readable format.
 template <typename Arch>
-void LogTraceOpInfo(CapstoneDisassembler<Arch>& disas,
-                    ExecutionTrace<Arch>& execution_trace, bool fault_injection,
-                    LinePrinter& out) {
+void LogTraceOpInfo(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
+                    bool fault_injection, LinePrinter& out) {
   // Summarize the trace.
   TraceOpInfo<Arch> trace_info = GatherTraceOpInfo(disas, execution_trace);
 
@@ -182,7 +181,7 @@ void LogTraceOpInfo(CapstoneDisassembler<Arch>& disas,
   out.Line();
 
   // Function for printing a line of the summary.
-  auto log_info = [&](const char* name, OpInfo<Arch>& info) {
+  auto log_info = [&](const std::string& name, const OpInfo<Arch>& info) {
     std::string text =
         absl::StrFormat("%-12s %5d %5d %5d", name, info.count,
                         PopCount(info.zero_one), PopCount(info.one_zero));
@@ -197,7 +196,7 @@ void LogTraceOpInfo(CapstoneDisassembler<Arch>& disas,
   for (size_t i = 0; i < trace_info.op_infos.size(); ++i) {
     OpInfo<Arch>& info = trace_info.op_infos[i];
     if (info.count > 0) {
-      const char* name = disas.InstructionIDName(i);
+      std::string name = disas.InstructionIDName(i);
       log_info(name, info);
     }
   }
@@ -212,7 +211,7 @@ void LogTraceOpInfo(CapstoneDisassembler<Arch>& disas,
 template <typename Arch>
 absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
                         LinePrinter& out) {
-  CapstoneDisassembler<Arch> disas;
+  DefaultDisassembler<Arch> disas;
   ExecutionTrace<Arch> execution_trace(max_instructions);
 
   absl::Status result = CaptureTrace(tracer, disas, execution_trace);
@@ -259,7 +258,7 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
 template <typename Arch>
 absl::Status AnalyzeSnippet(const std::string& instructions,
                             size_t max_instructions, LinePrinter& out) {
-  CapstoneDisassembler<Arch> disas;
+  DefaultDisassembler<Arch> disas;
   ExecutionTrace<Arch> execution_trace(max_instructions);
 
   ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,

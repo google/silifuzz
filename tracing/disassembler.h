@@ -12,34 +12,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
-#define THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_
+#define THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-#include "third_party/capstone/capstone.h"
-#include "./tracing/disassembler.h"
-#include "./util/arch.h"
-
 namespace silifuzz {
 
-// This class wraps Capstone for use by instruction tracers.
-// This class is not thread safe since a capstone instance is not thread safe.
-template <typename Arch>
-class CapstoneDisassembler : public Disassembler {
+// Generic disassembler interface.
+// The underlying implementation will likely not be thread safe, users of this
+// inferface should assume it is not thread safe.
+class Disassembler {
  public:
-  CapstoneDisassembler();
-  ~CapstoneDisassembler();
+  Disassembler() = default;
+  virtual ~Disassembler() = default;
 
   // Non-copyable / non-moveable.
-  CapstoneDisassembler(const CapstoneDisassembler&) = delete;
-  CapstoneDisassembler(CapstoneDisassembler&&) = delete;
-  CapstoneDisassembler& operator=(const CapstoneDisassembler&) = delete;
-  CapstoneDisassembler& operator=(CapstoneDisassembler&&) = delete;
+  Disassembler(const Disassembler&) = delete;
+  Disassembler(Disassembler&&) = delete;
+  Disassembler& operator=(const Disassembler&) = delete;
+  Disassembler& operator=(Disassembler&&) = delete;
 
-  // Disassmeble a single instruction.
+  // Disassemble a single instruction.
   // `address` is the address of the instruction being disassembled. The address
   // is required to print absolute jump targets.
   // `buffer` points to memory that contains the complete instruction. It is OK
@@ -47,33 +43,28 @@ class CapstoneDisassembler : public Disassembler {
   // `buffer_size` specifies the amount of data available in `buffer`. Only part
   // of that data may be consumed.
   // Returns the true if the instruction is valid.
-  bool Disassemble(uint64_t address, const uint8_t* buffer,
-                   size_t buffer_size) override;
+  virtual bool Disassemble(uint64_t address, const uint8_t* buffer,
+                           size_t buffer_size) = 0;
 
   // How much data was consumed by the last call to Disassemble.
-  [[nodiscard]] size_t InstructionSize() const override;
+  [[nodiscard]] virtual size_t InstructionSize() const = 0;
 
   // The textual representation of the last instruction that was disassembled.
-  [[nodiscard]] std::string FullText() override;
+  [[nodiscard]] virtual std::string FullText() = 0;
 
   // A numerical ID for the last type of instruction that was disassembled.
-  [[nodiscard]] uint32_t InstructionID() const override;
+  [[nodiscard]] virtual uint32_t InstructionID() const = 0;
 
-  [[nodiscard]] uint32_t InvalidInstructionID() const override;
+  // The value that InstructionID() returns after Disassmble() fails.
+  [[nodiscard]] virtual uint32_t InvalidInstructionID() const = 0;
 
   // The number of possible instruction IDs.
-  [[nodiscard]] uint32_t NumInstructionIDs() const override;
+  [[nodiscard]] virtual uint32_t NumInstructionIDs() const = 0;
 
   // A human-readable name for the instruction ID.
-  [[nodiscard]] std::string InstructionIDName(uint32_t id) const override;
-
- private:
-  csh capstone_handle_;
-  cs_insn* decoded_insn_;
-  uint32_t num_instruction_ids_;
-  bool valid_;
+  [[nodiscard]] virtual std::string InstructionIDName(uint32_t id) const = 0;
 };
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_

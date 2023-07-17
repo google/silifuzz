@@ -20,7 +20,7 @@
 #include <string>
 
 #include "absl/status/statusor.h"
-#include "./tracing/capstone_disassembler.h"
+#include "./tracing/disassembler.h"
 #include "./tracing/execution_trace.h"
 
 namespace silifuzz {
@@ -39,7 +39,7 @@ struct FaultInjectionResult {
 // instructions were critical in detecting faults.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, CapstoneDisassembler<Arch>& disas,
+    const std::string& instructions, Disassembler& disas,
     ExecutionTrace<Arch>& execution_trace);
 
 }  // namespace silifuzz
