@@ -76,11 +76,19 @@ std::string CapstoneDisassembler::FullText() const {
 }
 
 uint32_t CapstoneDisassembler::InstructionID() const {
-  return valid_ ? decoded_insn_->id : std::numeric_limits<uint32_t>::max();
+  return valid_ ? decoded_insn_->id : InvalidInstructionID();
+}
+
+uint32_t CapstoneDisassembler::InvalidInstructionID() const {
+  return std::numeric_limits<uint32_t>::max();
 }
 
 uint32_t CapstoneDisassembler::NumInstructionIDs() const {
   return num_instruction_ids_;
+}
+
+const char* CapstoneDisassembler::InstructionIDName(uint32_t id) const {
+  return cs_insn_name(capstone_handle_, id);
 }
 
 }  // namespace silifuzz

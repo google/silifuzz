@@ -20,6 +20,8 @@
 #include <string>
 
 #include "absl/status/statusor.h"
+#include "./tracing/capstone_disassembler.h"
+#include "./tracing/execution_trace.h"
 
 namespace silifuzz {
 
@@ -30,9 +32,15 @@ struct FaultInjectionResult {
   float sensitivity;
 };
 
+// Perform fault analysis on the snippet `instructions`.
+// If successful, this function returns aggregate statistics about the fault
+// injection.
+// A full trace is returned in `execution_trace` with annotations on which
+// instructions were critical in detecting faults.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, size_t max_instructions);
+    const std::string& instructions, CapstoneDisassembler& disas,
+    ExecutionTrace<Arch>& execution_trace);
 
 }  // namespace silifuzz
 

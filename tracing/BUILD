@@ -16,6 +16,40 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
+cc_library(
+    name = "tracing_test_util",
+    testonly = True,
+    hdrs = ["tracing_test_util.h"],
+    deps = [
+        "@silifuzz//common:snapshot_test_util",
+    ],
+)
+
+cc_library(
+    name = "execution_trace",
+    hdrs = ["execution_trace.h"],
+    deps = [
+        "@silifuzz//util:checks",
+        "@silifuzz//util:page_util",
+        "@silifuzz//util/ucontext",
+        "@com_google_absl//absl/status",
+    ],
+)
+
+cc_test(
+    name = "execution_trace_test",
+    srcs = ["execution_trace_test.cc"],
+    deps = [
+        ":capstone_disassembler",
+        ":execution_trace",
+        ":tracing_test_util",
+        ":unicorn_tracer",
+        "@silifuzz//util:arch",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 # Due to how the Unicorn BUILD file is structured, we cannot get header files as a separate target.
 # This means we need to link against a specific library (unicorn, unicorn_arm64, unicorn_x86) to get
 # the headers. The makes it difficult to extract "unicorn_util.cc" into its own target because
@@ -116,8 +150,8 @@ cc_test(
         "unicorn_tracer_test.cc",
     ],
     deps = [
+        ":tracing_test_util",
         ":unicorn_tracer",
-        "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:core_headers",
@@ -142,6 +176,8 @@ cc_library(
     srcs = ["analysis.cc"],
     hdrs = ["analysis.h"],
     deps = [
+        ":capstone_disassembler",
+        ":execution_trace",
         ":unicorn_tracer",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
@@ -158,6 +194,7 @@ cc_binary(
     deps = [
         ":analysis",
         ":capstone_disassembler",
+        ":execution_trace",
         ":unicorn_tracer",
         "@silifuzz//util:arch",
         "@silifuzz//util:bitops",
@@ -165,10 +202,12 @@ cc_binary(
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:tool_util",
+        "@silifuzz//util/ucontext",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
     ],
 )

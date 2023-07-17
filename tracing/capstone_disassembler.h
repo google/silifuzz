@@ -48,8 +48,7 @@ class CapstoneDisassembler {
   // `buffer_size` specifies the amount of data available in `buffer`. Only part
   // of that data may be consumed.
   // Returns the true if the instruction is valid.
-  [[nodiscard]] bool Disassemble(uint64_t address, const uint8_t* buffer,
-                                 size_t buffer_size);
+  bool Disassemble(uint64_t address, const uint8_t* buffer, size_t buffer_size);
 
   // How much data was consumed by the last call to Disassemble.
   [[nodiscard]] size_t InstructionSize() const;
@@ -60,8 +59,13 @@ class CapstoneDisassembler {
   // A numerical ID for the last type of instruction that was disassembled.
   [[nodiscard]] uint32_t InstructionID() const;
 
+  [[nodiscard]] uint32_t InvalidInstructionID() const;
+
   // The number of possible instruction IDs.
   [[nodiscard]] uint32_t NumInstructionIDs() const;
+
+  // A human-readable name for the instruction ID.
+  [[nodiscard]] const char* InstructionIDName(uint32_t id) const;
 
  private:
   csh capstone_handle_;

@@ -14,6 +14,8 @@
 
 #include "./tracing/analysis.h"
 
+#include "./tracing/capstone_disassembler.h"
+#include "./tracing/execution_trace.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -53,47 +55,55 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
 
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, size_t max_instructions) {
-  size_t base_instructions_executed = 0;
-  UContext<Arch> base_ucontext;
-  RETURN_IF_NOT_OK(TraceSnippetWithSkip(instructions, max_instructions, ~0,
-                                        base_instructions_executed,
-                                        base_ucontext));
+    const std::string& instructions, CapstoneDisassembler& disas,
+    ExecutionTrace<Arch>& execution_trace) {
+  // Capture an unmodified trace.
+  UnicornTracer<Arch> tracer;
+  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
+  RETURN_IF_NOT_OK(CaptureTrace(tracer, disas, execution_trace));
 
-  size_t detected = 0;
-  for (size_t skip = 0; skip < base_instructions_executed; ++skip) {
+  size_t expected_instructions_executed = execution_trace.NumInstructions();
+  UContext<Arch> expected_ucontext = execution_trace.LastContext();
+
+  // See if skipping an instruction results in a different outcome.
+  size_t num_faults_detected = 0;
+  for (size_t skip = 0; skip < expected_instructions_executed; ++skip) {
     if (skip % 100 == 0) {
-      VLOG_INFO(1, 100 * skip / base_instructions_executed, "%");
+      VLOG_INFO(1, 100 * skip / expected_instructions_executed, "%");
     }
     size_t instructions_executed = 0;
     UContext<Arch> ucontext;
-    absl::Status status = TraceSnippetWithSkip(
-        instructions, max_instructions, skip, instructions_executed, ucontext);
+    absl::Status status =
+        TraceSnippetWithSkip(instructions, execution_trace.MaxInstructions(),
+                             skip, instructions_executed, ucontext);
     // If the status is not OK, this indicates the trace did not behave like a
     // valid Silifuzz test - it segfaulted, got stuck in an infinite loop, or
     // similar. Because the unmodified trace as OK, this indicates the injected
     // fault changed the behavior in a detectible way.
     // TODO(ncbray): compare memory.
-    if (!status.ok() || ucontext.gregs != base_ucontext.gregs ||
-        ucontext.fpregs != base_ucontext.fpregs) {
-      detected++;
+    bool fault_detected = !status.ok() ||
+                          ucontext.gregs != expected_ucontext.gregs ||
+                          ucontext.fpregs != expected_ucontext.fpregs;
+    execution_trace.Info(skip).critical = fault_detected;
+    if (fault_detected) {
+      num_faults_detected++;
     }
   }
   return FaultInjectionResult{
-      .instruction_count = base_instructions_executed,
-      .fault_injection_count = base_instructions_executed,
-      .fault_detection_count = detected,
-      .sensitivity = static_cast<float>(detected) /
-                     std::max(base_instructions_executed, 1UL),
+      .instruction_count = expected_instructions_executed,
+      .fault_injection_count = expected_instructions_executed,
+      .fault_detection_count = num_faults_detected,
+      .sensitivity = static_cast<float>(num_faults_detected) /
+                     std::max(expected_instructions_executed, 1UL),
   };
 }
 
 // Instantiate concrete instances of exported functions.
-template absl::StatusOr<FaultInjectionResult>
-AnalyzeSnippetWithFaultInjection<X86_64>(const std::string& instructions,
-                                         size_t max_instructions);
-template absl::StatusOr<FaultInjectionResult>
-AnalyzeSnippetWithFaultInjection<AArch64>(const std::string& instructions,
-                                          size_t max_instructions);
+template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
+    X86_64>(const std::string& instructions, CapstoneDisassembler& disas,
+            ExecutionTrace<X86_64>& execution_trace);
+template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
+    AArch64>(const std::string& instructions, CapstoneDisassembler& disas,
+             ExecutionTrace<AArch64>& execution_trace);
 
 }  // namespace silifuzz

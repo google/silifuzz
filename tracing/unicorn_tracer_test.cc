@@ -21,7 +21,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/base/macros.h"
-#include "./common/snapshot_test_config.h"
+#include "./tracing/tracing_test_util.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -31,14 +31,6 @@ namespace {
 
 using silifuzz::testing::IsOk;
 using ::testing::Not;
-
-template <typename Arch>
-std::string SimpleTestSnippet() {
-  return GetTestSnapshotConfig(
-             static_cast<Snapshot::Architecture>(Arch::architecture_id),
-             TestSnapshot::kSetThreeRegisters)
-      ->instruction_bytes;
-}
 
 // Check the registers are what we expect after executing the SimpleTestSnippet.
 // `skip` indicates an instruction that has been skipped by the test, otherwise
