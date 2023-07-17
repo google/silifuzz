@@ -26,23 +26,20 @@
 
 namespace silifuzz {
 
-CapstoneDisassembler::CapstoneDisassembler(ArchitectureId arch_id)
-    : valid_(false) {
+template <typename Arch>
+CapstoneDisassembler<Arch>::CapstoneDisassembler() : valid_(false) {
   cs_arch arch;
   cs_mode mode;
-  switch (arch_id) {
-    case ArchitectureId::kX86_64:
-      arch = CS_ARCH_X86;
-      mode = CS_MODE_64;
-      num_instruction_ids_ = X86_INS_ENDING;
-      break;
-    case ArchitectureId::kAArch64:
-      arch = CS_ARCH_ARM64;
-      mode = CS_MODE_ARM;
-      num_instruction_ids_ = ARM64_INS_ENDING;
-      break;
-    default:
-      LOG_FATAL("Bad arch_id");
+  if constexpr (Arch::architecture_id == ArchitectureId::kX86_64) {
+    arch = CS_ARCH_X86;
+    mode = CS_MODE_64;
+    num_instruction_ids_ = X86_INS_ENDING;
+  } else if constexpr (Arch::architecture_id == ArchitectureId::kAArch64) {
+    arch = CS_ARCH_ARM64;
+    mode = CS_MODE_ARM;
+    num_instruction_ids_ = ARM64_INS_ENDING;
+  } else {
+    LOG_FATAL("Bad arch_id");
   }
   CHECK_EQ(cs_open(arch, mode, &capstone_handle_), CS_ERR_OK);
   // TODO(ncbray): turn this on when it's needed.
@@ -50,13 +47,16 @@ CapstoneDisassembler::CapstoneDisassembler(ArchitectureId arch_id)
   decoded_insn_ = cs_malloc(capstone_handle_);
 }
 
-CapstoneDisassembler::~CapstoneDisassembler() {
+template <typename Arch>
+CapstoneDisassembler<Arch>::~CapstoneDisassembler() {
   cs_free(decoded_insn_, 1);
   CHECK_EQ(cs_close(&capstone_handle_), CS_ERR_OK);
 }
 
-bool CapstoneDisassembler::Disassemble(uint64_t address, const uint8_t* buffer,
-                                       size_t buffer_size) {
+template <typename Arch>
+bool CapstoneDisassembler<Arch>::Disassemble(uint64_t address,
+                                             const uint8_t* buffer,
+                                             size_t buffer_size) {
   // We use cs_disam_iter because it allows us to pre-allocate the buffer for
   // the decoded instruction. Note that this call will mutate `address`,
   // `buffer`, and `buffer_size` but this should not be visible to the caller.
@@ -65,30 +65,39 @@ bool CapstoneDisassembler::Disassemble(uint64_t address, const uint8_t* buffer,
   return valid_;
 }
 
-size_t CapstoneDisassembler::InstructionSize() const {
+template <typename Arch>
+size_t CapstoneDisassembler<Arch>::InstructionSize() const {
   return valid_ ? decoded_insn_->size : 0;
 }
 
-std::string CapstoneDisassembler::FullText() const {
+template <typename Arch>
+std::string CapstoneDisassembler<Arch>::FullText() const {
   return valid_
              ? absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str)
              : "unknown";
 }
 
-uint32_t CapstoneDisassembler::InstructionID() const {
+template <typename Arch>
+uint32_t CapstoneDisassembler<Arch>::InstructionID() const {
   return valid_ ? decoded_insn_->id : InvalidInstructionID();
 }
 
-uint32_t CapstoneDisassembler::InvalidInstructionID() const {
+template <typename Arch>
+uint32_t CapstoneDisassembler<Arch>::InvalidInstructionID() const {
   return std::numeric_limits<uint32_t>::max();
 }
 
-uint32_t CapstoneDisassembler::NumInstructionIDs() const {
+template <typename Arch>
+uint32_t CapstoneDisassembler<Arch>::NumInstructionIDs() const {
   return num_instruction_ids_;
 }
 
-const char* CapstoneDisassembler::InstructionIDName(uint32_t id) const {
+template <typename Arch>
+const char* CapstoneDisassembler<Arch>::InstructionIDName(uint32_t id) const {
   return cs_insn_name(capstone_handle_, id);
 }
+
+template class CapstoneDisassembler<X86_64>;
+template class CapstoneDisassembler<AArch64>;
 
 }  // namespace silifuzz

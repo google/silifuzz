@@ -54,7 +54,7 @@ namespace silifuzz {
 
 // Display the trace in a human-readable format with a bunch of metadata.
 template <typename Arch>
-void LogTrace(CapstoneDisassembler& disas,
+void LogTrace(CapstoneDisassembler<Arch>& disas,
               ExecutionTrace<Arch>& execution_trace, bool fault_injection,
               LinePrinter& out) {
   uint64_t expected_next = execution_trace.EntryAddress();
@@ -140,7 +140,7 @@ struct TraceOpInfo {
 
 // Gather stats from a trace.
 template <typename Arch>
-TraceOpInfo<Arch> GatherTraceOpInfo(CapstoneDisassembler& disas,
+TraceOpInfo<Arch> GatherTraceOpInfo(CapstoneDisassembler<Arch>& disas,
                                     ExecutionTrace<Arch>& execution_trace) {
   TraceOpInfo<Arch> trace_info(disas.NumInstructionIDs());
 
@@ -165,7 +165,7 @@ TraceOpInfo<Arch> GatherTraceOpInfo(CapstoneDisassembler& disas,
 
 // Display stats for a trace in a human-readable format.
 template <typename Arch>
-void LogTraceOpInfo(CapstoneDisassembler& disas,
+void LogTraceOpInfo(CapstoneDisassembler<Arch>& disas,
                     ExecutionTrace<Arch>& execution_trace, bool fault_injection,
                     LinePrinter& out) {
   // Summarize the trace.
@@ -212,7 +212,7 @@ void LogTraceOpInfo(CapstoneDisassembler& disas,
 template <typename Arch>
 absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
                         LinePrinter& out) {
-  CapstoneDisassembler disas(Arch::architecture_id);
+  CapstoneDisassembler<Arch> disas;
   ExecutionTrace<Arch> execution_trace(max_instructions);
 
   absl::Status result = CaptureTrace(tracer, disas, execution_trace);
@@ -259,7 +259,7 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
 template <typename Arch>
 absl::Status AnalyzeSnippet(const std::string& instructions,
                             size_t max_instructions, LinePrinter& out) {
-  CapstoneDisassembler disas(Arch::architecture_id);
+  CapstoneDisassembler<Arch> disas;
   ExecutionTrace<Arch> execution_trace(max_instructions);
 
   ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,

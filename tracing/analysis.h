@@ -39,7 +39,7 @@ struct FaultInjectionResult {
 // instructions were critical in detecting faults.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, CapstoneDisassembler& disas,
+    const std::string& instructions, CapstoneDisassembler<Arch>& disas,
     ExecutionTrace<Arch>& execution_trace);
 
 }  // namespace silifuzz

@@ -55,7 +55,7 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
 
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, CapstoneDisassembler& disas,
+    const std::string& instructions, CapstoneDisassembler<Arch>& disas,
     ExecutionTrace<Arch>& execution_trace) {
   // Capture an unmodified trace.
   UnicornTracer<Arch> tracer;
@@ -99,11 +99,13 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
 }
 
 // Instantiate concrete instances of exported functions.
-template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
-    X86_64>(const std::string& instructions, CapstoneDisassembler& disas,
-            ExecutionTrace<X86_64>& execution_trace);
-template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
-    AArch64>(const std::string& instructions, CapstoneDisassembler& disas,
-             ExecutionTrace<AArch64>& execution_trace);
+template absl::StatusOr<FaultInjectionResult>
+AnalyzeSnippetWithFaultInjection<X86_64>(
+    const std::string& instructions, CapstoneDisassembler<X86_64>& disas,
+    ExecutionTrace<X86_64>& execution_trace);
+template absl::StatusOr<FaultInjectionResult>
+AnalyzeSnippetWithFaultInjection<AArch64>(
+    const std::string& instructions, CapstoneDisassembler<AArch64>& disas,
+    ExecutionTrace<AArch64>& execution_trace);
 
 }  // namespace silifuzz

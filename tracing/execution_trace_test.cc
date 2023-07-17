@@ -29,12 +29,12 @@ namespace {
 using silifuzz::testing::IsOk;
 
 template <typename Arch>
-void CheckInstructionInfo(CapstoneDisassembler& disas, size_t i,
+void CheckInstructionInfo(CapstoneDisassembler<Arch>& disas, size_t i,
                           const UContext<Arch>& prev,
                           InstructionInfo<Arch>& info);
 
 template <>
-void CheckInstructionInfo(CapstoneDisassembler& disas, size_t i,
+void CheckInstructionInfo(CapstoneDisassembler<X86_64>& disas, size_t i,
                           const UContext<X86_64>& prev,
                           InstructionInfo<X86_64>& info) {
   EXPECT_STREQ(disas.InstructionIDName(info.instruction_id), "add");
@@ -53,7 +53,7 @@ void CheckInstructionInfo(CapstoneDisassembler& disas, size_t i,
 }
 
 template <>
-void CheckInstructionInfo(CapstoneDisassembler& disas, size_t i,
+void CheckInstructionInfo(CapstoneDisassembler<AArch64>& disas, size_t i,
                           const UContext<AArch64>& prev,
                           InstructionInfo<AArch64>& info) {
   EXPECT_STREQ(disas.InstructionIDName(info.instruction_id), "add");
@@ -88,7 +88,7 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
   UnicornTracer<TypeParam> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
-  CapstoneDisassembler disas(TypeParam::architecture_id);
+  CapstoneDisassembler<TypeParam> disas;
 
   ExecutionTrace<TypeParam> execution_trace(3);
   ASSERT_EQ(execution_trace.MaxInstructions(), 3);

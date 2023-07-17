@@ -34,11 +34,9 @@ USER_FEATURE_ARRAY static user_feature_t features[100000];
 
 class BatchState {
  public:
-  BatchState() : disas(ArchitectureId::kAArch64) {
-    feature_gen.BeforeBatch(disas.NumInstructionIDs());
-  }
+  BatchState() { feature_gen.BeforeBatch(disas.NumInstructionIDs()); }
 
-  CapstoneDisassembler disas;
+  CapstoneDisassembler<AArch64> disas;
   ArchFeatureGenerator<AArch64> feature_gen;
 };
 
@@ -61,7 +59,7 @@ absl::Status RunAArch64Instructions(
   // TODO(ncbray) why do atomic ops using the initial stack pointer not fault?
   // 1000000: 787f63fc ldumaxlh    wzr, w28, [sp]
 
-  CapstoneDisassembler &disas = batch->disas;
+  CapstoneDisassembler<AArch64> &disas = batch->disas;
   ArchFeatureGenerator<AArch64> &feature_gen = batch->feature_gen;
 
   UnicornTracer<AArch64> tracer;

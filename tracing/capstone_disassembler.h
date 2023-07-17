@@ -29,9 +29,10 @@ namespace silifuzz {
 // The goal is to provide a disassembler-neutral interface so that other
 // disassemblers can be swaped in as desired.
 // This class is not thread safe since a capstone instance is not thread safe.
+template <typename Arch>
 class CapstoneDisassembler {
  public:
-  CapstoneDisassembler(ArchitectureId arch_id);
+  CapstoneDisassembler();
   ~CapstoneDisassembler();
 
   // Non-copyable / non-moveable.
