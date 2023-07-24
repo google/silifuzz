@@ -83,6 +83,7 @@ PlatformId IntelPlatformId() {
         {151, PlatformId::kIntelAlderlake},
         {154, PlatformId::kIntelAlderlake},
         {158, PlatformId::kIntelCoffeelake},  // Also Kabylake
+        {207, PlatformId::kIntelEmeraldRapids},
     };
 
     auto it = platform_id_map.find(model);
