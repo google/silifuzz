@@ -106,6 +106,12 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
   if (runner_options.sequential_mode()) {
     argv.push_back("--sequential_mode");
   }
+  // Pass-thru VLOG levels to the runner.
+  if (VLOG_IS_ON(1)) {
+    argv.push_back("--v=1");
+  } else if (VLOG_IS_ON(2)) {
+    argv.push_back("--v=2");
+  }
   for (const std::string& extra : runner_options.extra_argv()) {
     argv.push_back(extra);
   }
@@ -191,9 +197,9 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     if (!snapshot_id.empty() &&
         exec_result_proto.snapshot_id() != snapshot_id) {
       // This catches all runner crashes due to mmap errors etc.
-      return absl::InternalError(absl::StrCat("Runner misbehaved: got id [",
-                                              exec_result_proto.snapshot_id(),
-                                              "] expected ", snapshot_id));
+      return absl::InternalError(absl::StrCat(
+          "Runner misbehaved: got id [", exec_result_proto.snapshot_id(),
+          "] expected ", snapshot_id, ". Exit status = ", exit_status));
     }
     absl::StatusOr<PlayerResult> player_result_or =
         PlayerResultProto::FromProto(exec_result_proto.player_result());
