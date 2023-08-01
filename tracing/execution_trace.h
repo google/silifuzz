@@ -94,7 +94,8 @@ class ExecutionTrace {
 
   // Allocate a struct to store data about the next instruction.
   InstructionInfo<Arch>& NextInfo() {
-    InstructionInfo<Arch>& tmp = info_.at(num_instructions_);
+    CHECK(num_instructions_ < info_.size());
+    InstructionInfo<Arch>& tmp = info_[num_instructions_];
     num_instructions_++;
     memset(&tmp, 0, sizeof(tmp));
     return tmp;
