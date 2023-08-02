@@ -91,13 +91,18 @@ class UnicornTracer {
   void SetInstructionCallback(F&& callback) {
     CHECK(!instruction_callback_);
     instruction_callback_ = callback;
-    UNICORN_CHECK(uc_hook_add(uc_, &hook_code_, UC_HOOK_CODE, (void*)&HookCode,
-                              this, start_of_code_, end_of_code_));
+    UNICORN_CHECK(uc_hook_add(uc_, &hook_code_, UC_HOOK_CODE,
+                              (void*)&DispatchHookCode, this, start_of_code_,
+                              end_of_code_));
   }
 
   // Run the code snippet. Execution will stop after `max_insn_executed`
   // instructions to help avoid infinite loops.
   absl::Status Run(size_t max_insn_executed) {
+    num_instructions_ = 0;
+    max_instructions_ = max_insn_executed;
+    should_be_stopped_ = false;
+
     uc_err err =
         uc_emu_start(uc_, start_of_code_, end_of_code_, 0, max_insn_executed);
 
@@ -105,6 +110,11 @@ class UnicornTracer {
     if (err) {
       return absl::InternalError(absl::StrCat(
           "uc_emu_start() returned ", IntStr(err), ": ", uc_strerror(err)));
+    }
+
+    if (num_instructions_ > max_insn_executed) {
+      // QEMU x86_64 may not always respect max_insn_executed.
+      return absl::InternalError("emulator executed too many instructions");
     }
 
     // Check if the emulator stopped at the right address.
@@ -120,6 +130,12 @@ class UnicornTracer {
     RETURN_IF_NOT_OK(ValidateArchEndState());
 
     return absl::OkStatus();
+  }
+
+  // Should only be invoked inside callbacks from Run()
+  void Stop() {
+    uc_emu_stop(uc_);
+    should_be_stopped_ = true;
   }
 
   uint64_t GetCurrentInstructionPointer();
@@ -160,13 +176,29 @@ class UnicornTracer {
   // will prevent turning this into a valid Snapshot.
   absl::Status ValidateArchEndState();
 
-  static void HookCode(uc_engine* uc, uint64_t address, uint32_t size,
-                       void* user_data) {
+  void HookCode(uint64_t address, uint32_t size) {
+    // If Stop() has been called, we suppress further callbacks. Unicorn may not
+    // stop immediately.
+    if (!should_be_stopped_) {
+      if (num_instructions_ >= max_instructions_) {
+        // QEMU x86_64 may not always respect max_insn_executed.
+        // We don't invoke the callback in this case so that clients can behave
+        // as if the limit works.
+        Stop();
+      } else {
+        // Unicorn knows the exact size of the instruction, but other tracers
+        // may not so we treat "size" as a maximum size for the instruction,
+        // which happens to be exact for this particular tracer.
+        instruction_callback_(this, address, size);
+      }
+    }
+    num_instructions_++;
+  }
+
+  static void DispatchHookCode(uc_engine* uc, uint64_t address, uint32_t size,
+                               void* user_data) {
     UnicornTracer<Arch>* tracer = static_cast<UnicornTracer<Arch>*>(user_data);
-    // Unicorn knows the exact size of the instruction, but other tracers may
-    // not so we treat "size" as a maximum size for the instruction, which
-    // happens to be exact for this particular tracer.
-    tracer->instruction_callback_(tracer, address, size);
+    tracer->HookCode(address, size);
   }
 
   uc_engine* uc_;
@@ -175,6 +207,10 @@ class UnicornTracer {
   uint64_t end_of_code_;
 
   uc_hook hook_code_;
+
+  size_t num_instructions_;
+  size_t max_instructions_;
+  bool should_be_stopped_;
 
   std::function<InstructionCallback> instruction_callback_;
 };

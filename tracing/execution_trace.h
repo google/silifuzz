@@ -167,6 +167,7 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disas,
       max_size = std::min(max_size, kPageSize - (address - code_page_start));
       tracer->ReadMemory(address, info.bytes, max_size);
     } else {
+      tracer->Stop();
       insn_out_of_bounds = true;
     }
 
