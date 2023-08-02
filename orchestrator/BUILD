@@ -15,7 +15,7 @@
 # SiliFuzz Orchestrator.
 # A binary that orchestrates the execution of SiliFuzz runners.
 
-load("//third_party/bazel_rules/rules_python/python:py_test.bzl", "py_test")
+load("@rules_python//python:py_test.bzl", "py_test")
 
 licenses(["notice"])
 
