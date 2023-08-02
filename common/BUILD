@@ -16,6 +16,7 @@
 #   Common utility libraries for SiliFuzz that *do* have something
 #   SiliFuzz-specific in them. Contrast with silifuzz/util.
 
+load("//third_party/bazel_rules/rules_python/python:py_test.bzl", "py_test")
 load("@silifuzz//util:nolibc.bzl", "cc_library_plus_nolibc")
 
 package(default_visibility = ["//visibility:public"])
