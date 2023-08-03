@@ -103,8 +103,18 @@ class UnicornTracer {
     max_instructions_ = max_insn_executed;
     should_be_stopped_ = false;
 
-    uc_err err =
-        uc_emu_start(uc_, start_of_code_, end_of_code_, 0, max_insn_executed);
+    // Unicorn can hang due to bugs in QEMU.
+    // Halt execution if it exceeds 1 seconds of wall clock time.
+    // This value is arbitrary and may need to be tuned.
+    // We don't want this value to be so small that machine load can easily
+    // cause the deadline to be missed.
+    // We don't want this value to be so large that fault injection will take
+    // forever when we hit a degenerate case.
+    // Empirically, 1 second is about 20x-30x longer than execution takes in the
+    // worst case on an unloaded machine.
+    uint64_t timeout_microseconds = 1000000;
+    uc_err err = uc_emu_start(uc_, start_of_code_, end_of_code_,
+                              timeout_microseconds, max_insn_executed);
 
     // Check if the emulator stopped cleanly.
     if (err) {
@@ -117,14 +127,19 @@ class UnicornTracer {
       return absl::InternalError("emulator executed too many instructions");
     }
 
+    // Check if the timeout fired.
+    size_t result;
+    UNICORN_CHECK(uc_query(uc_, UC_QUERY_TIMEOUT, &result));
+    if (result) {
+      return absl::InternalError("execution timed out");
+    }
+
     // Check if the emulator stopped at the right address.
     // Unicorn does not return an error if it stops executing because it reached
     // the maximum instruction count.
     uint64_t pc = GetCurrentInstructionPointer();
     if (pc != end_of_code_) {
-      return absl::InternalError(
-          absl::StrCat("expected PC would be ", HexStr(end_of_code_),
-                       ", but got ", HexStr(pc), " instead"));
+      return absl::InternalError("execution did not reach end of code snippet");
     }
 
     RETURN_IF_NOT_OK(ValidateArchEndState());
