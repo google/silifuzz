@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_TRACER_H_
 #define THIRD_PARTY_SILIFUZZ_TRACING_UNICORN_TRACER_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -201,6 +202,12 @@ class UnicornTracer {
         // as if the limit works.
         Stop();
       } else {
+        // On x86, Unicorn will sometimes invoke this function with an invalid
+        // max_size when it has absolutely no idea what the instruction does.
+        // (AVX512 for example.) It appears to be some sort of error code gone
+        // wrong? All instructions should be 15 bytes or less.
+        size = std::min(size, 15U);
+
         // Unicorn knows the exact size of the instruction, but other tracers
         // may not so we treat "size" as a maximum size for the instruction,
         // which happens to be exact for this particular tracer.

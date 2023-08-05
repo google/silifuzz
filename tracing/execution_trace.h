@@ -152,12 +152,6 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disas,
 
     InstructionInfo<Arch>& info = execution_trace.NextInfo();
 
-    // On x86, Unicorn will sometimes invoke this function with an invalid
-    // max_size when it has absolutely no idea what the instruction does.
-    // (AVX512 for example.) It appears to be some sort of error code gone
-    // wrong?
-    max_size = std::min(max_size, sizeof(info.bytes));
-
     // Fetch the instruction.
     // Be careful and only fetch memory inside the expected executable page.
     // This could be a rogue jump that will end in a fault. If execution does
