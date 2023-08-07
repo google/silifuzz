@@ -14,10 +14,12 @@
 
 #include "./tracing/execution_trace.h"
 
+#include <cstddef>
 #include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
 #include "./tracing/capstone_disassembler.h"
@@ -31,6 +33,7 @@ namespace silifuzz {
 namespace {
 
 using silifuzz::testing::IsOk;
+using silifuzz::testing::StatusIs;
 
 template <typename Arch>
 void CheckInstructionInfo(Disassembler& disas, size_t i,
@@ -137,6 +140,26 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
   execution_trace.Reset();
   EXPECT_EQ(execution_trace.MaxInstructions(), 3);
   EXPECT_EQ(execution_trace.NumInstructions(), 0);
+}
+
+TYPED_TEST(ExecutionTraceTest, Runaway) {
+  using Arch = typename TypeParam::first_type;
+  using ConcreteDisassembler = typename TypeParam::second_type;
+
+  std::string instructions = GetTestSnippet<Arch>(TestSnapshot::kRunaway);
+
+  UnicornTracer<Arch> tracer;
+  ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
+
+  const size_t kTraceLength = 4;
+
+  ConcreteDisassembler disas;
+  ExecutionTrace<Arch> execution_trace(kTraceLength);
+
+  EXPECT_THAT(CaptureTrace(tracer, disas, execution_trace),
+              StatusIs(absl::StatusCode::kInternal,
+                       "emulator executed too many instructions"));
+  EXPECT_EQ(execution_trace.NumInstructions(), kTraceLength);
 }
 
 }  // namespace

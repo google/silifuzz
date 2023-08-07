@@ -39,6 +39,7 @@ cc_test(
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

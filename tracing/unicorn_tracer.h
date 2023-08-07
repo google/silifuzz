@@ -79,6 +79,13 @@ class UnicornTracer {
     start_of_code_ = GetCurrentInstructionPointer();
     end_of_code_ = GetExitPoint(snapshot);
 
+    // Hook instruction execution so that we can always count the number of
+    // instructions executed. This is what Unicorn does internally when you try
+    // to limit the number of instructions executed. Doing it outside Unicorn
+    // allows us to know when we hit the limit.
+    UNICORN_CHECK(uc_hook_add(uc_, &hook_code_, UC_HOOK_CODE,
+                              (void*)&DispatchHookCode, this, 1, 0));
+
     return absl::OkStatus();
   }
 
@@ -92,9 +99,6 @@ class UnicornTracer {
   void SetInstructionCallback(F&& callback) {
     CHECK(!instruction_callback_);
     instruction_callback_ = callback;
-    UNICORN_CHECK(uc_hook_add(uc_, &hook_code_, UC_HOOK_CODE,
-                              (void*)&DispatchHookCode, this, start_of_code_,
-                              end_of_code_));
   }
 
   // Run the code snippet. Execution will stop after `max_insn_executed`
@@ -115,7 +119,7 @@ class UnicornTracer {
     // worst case on an unloaded machine.
     uint64_t timeout_microseconds = 1000000;
     uc_err err = uc_emu_start(uc_, start_of_code_, end_of_code_,
-                              timeout_microseconds, max_insn_executed);
+                              timeout_microseconds, 0);
 
     // Check if the emulator stopped cleanly.
     if (err) {
@@ -123,8 +127,9 @@ class UnicornTracer {
           "uc_emu_start() returned ", IntStr(err), ": ", uc_strerror(err)));
     }
 
-    if (num_instructions_ > max_insn_executed) {
-      // QEMU x86_64 may not always respect max_insn_executed.
+    // We only stop emulation when we see more instructions than the limit.
+    // Exactly at the limit is not an error.
+    if (num_instructions_ > max_instructions_) {
       return absl::InternalError("emulator executed too many instructions");
     }
 
@@ -136,8 +141,8 @@ class UnicornTracer {
     }
 
     // Check if the emulator stopped at the right address.
-    // Unicorn does not return an error if it stops executing because it reached
-    // the maximum instruction count.
+    // Generally, this should not be an issue if we did not hit the instruction
+    // count limit or the time limit.
     uint64_t pc = GetCurrentInstructionPointer();
     if (pc != end_of_code_) {
       return absl::InternalError("execution did not reach end of code snippet");
@@ -193,26 +198,27 @@ class UnicornTracer {
   absl::Status ValidateArchEndState();
 
   void HookCode(uint64_t address, uint32_t size) {
-    // If Stop() has been called, we suppress further callbacks. Unicorn may not
-    // stop immediately.
-    if (!should_be_stopped_) {
-      if (num_instructions_ >= max_instructions_) {
-        // QEMU x86_64 may not always respect max_insn_executed.
-        // We don't invoke the callback in this case so that clients can behave
-        // as if the limit works.
-        Stop();
-      } else {
-        // On x86, Unicorn will sometimes invoke this function with an invalid
-        // max_size when it has absolutely no idea what the instruction does.
-        // (AVX512 for example.) It appears to be some sort of error code gone
-        // wrong? All instructions should be 15 bytes or less.
-        size = std::min(size, 15U);
+    if (num_instructions_ >= max_instructions_) {
+      // QEMU x86_64 may not always respect uc_emu_stop().
+      // Similar to Unicorn, we'll call stop repeatedly once the limit has been
+      // passed.
+      // We don't invoke the callback in this case so that clients can behave
+      // as if the limit works.
+      Stop();
+    } else if (!should_be_stopped_ && instruction_callback_) {
+      // If Stop() has been called, we suppress further callbacks. Unicorn may
+      // not stop immediately.
 
-        // Unicorn knows the exact size of the instruction, but other tracers
-        // may not so we treat "size" as a maximum size for the instruction,
-        // which happens to be exact for this particular tracer.
-        instruction_callback_(this, address, size);
-      }
+      // On x86, Unicorn will sometimes invoke this function with an invalid
+      // max_size when it has absolutely no idea what the instruction does.
+      // (AVX512 for example.) It appears to be some sort of error code gone
+      // wrong? All instructions should be 15 bytes or less.
+      size = std::min(size, 15U);
+
+      // Unicorn knows the exact size of the instruction, but other tracers
+      // may not so we treat "size" as a maximum size for the instruction,
+      // which happens to be exact for this particular tracer.
+      instruction_callback_(this, address, size);
     }
     num_instructions_++;
   }
