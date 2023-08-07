@@ -19,14 +19,14 @@
 
 #include <string>
 
-#include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
 struct TestSnapshotConfig {
   TestSnapshot type;
-  Snapshot::Architecture arch;
+  ArchitectureId arch;
   uint64_t code_addr;
   uint64_t code_num_bytes;
   uint64_t data_addr;
@@ -42,8 +42,18 @@ struct TestSnapshotConfig {
 // particular TestSnapshot. The configuration may vary across different target
 // architectures. Some configurations may not exist for a some target
 // architectures. If the configuration does not exist, nullptr will be returned.
-const TestSnapshotConfig* GetTestSnapshotConfig(Snapshot::Architecture arch,
+const TestSnapshotConfig* GetTestSnapshotConfig(ArchitectureId arch,
                                                 TestSnapshot type);
+
+template <typename Arch>
+const TestSnapshotConfig* GetTestSnapshotConfig(TestSnapshot test) {
+  return GetTestSnapshotConfig(Arch::architecture_id, test);
+}
+
+template <typename Arch>
+std::string GetTestSnippet(TestSnapshot test) {
+  return GetTestSnapshotConfig<Arch>(test)->instruction_bytes;
+}
 
 }  // namespace silifuzz
 

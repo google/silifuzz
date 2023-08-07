@@ -652,6 +652,7 @@ def generate_source(b, out):
 
 #include <cstddef>
 
+#include "third_party/silifuzz/util/arch.h"
 #include "third_party/silifuzz/util/checks.h"
 
 namespace silifuzz {{
@@ -671,7 +672,7 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
     out.write(f"""\
     {{
         .type = TestSnapshot::k{s.name},
-        .arch = Snapshot::Architecture::{s.arch.enum_name},
+        .arch = ArchitectureId::{s.arch.enum_name},
         .code_addr = {hex(s.code_addr)},
         .code_num_bytes = {hex(s.code_num_bytes)},
         .data_addr = {hex(s.data_addr)},
@@ -700,7 +701,7 @@ const TestSnapshotConfig configs[{len(b.snapshots)}] = {{
 
 }  // namespace
 
-const TestSnapshotConfig* GetTestSnapshotConfig(Snapshot::Architecture arch,
+const TestSnapshotConfig* GetTestSnapshotConfig(ArchitectureId arch,
                                                 TestSnapshot type) {
   for (size_t i = 0; i < sizeof(configs) / sizeof(TestSnapshotConfig); i++) {
     if (configs[i].arch == arch && configs[i].type == type) {

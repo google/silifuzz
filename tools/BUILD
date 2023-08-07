@@ -111,7 +111,9 @@ cc_test(
     srcs = ["fuzz_filter_tool_test.cc"],
     deps = [
         ":fuzz_filter_tool_lib",
+        "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
 )

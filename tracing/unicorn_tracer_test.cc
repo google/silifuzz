@@ -21,7 +21,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/base/macros.h"
-#include "./tracing/tracing_test_util.h"
+#include "./common/snapshot_test_config.h"
+#include "./common/snapshot_test_enum.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -71,15 +72,16 @@ TYPED_TEST(UnicornTracerTest, NoInstructions) {
 }
 
 TYPED_TEST(UnicornTracerTest, StoppedEarly) {
-  std::string instructions = SimpleTestSnippet<TypeParam>();
+  std::string instructions =
+      GetTestSnippet<TypeParam>(TestSnapshot::kSetThreeRegisters);
   UnicornTracer<TypeParam> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
   ASSERT_THAT(tracer.Run(2), Not(IsOk()));
 }
 
 TYPED_TEST(UnicornTracerTest, InstructionCallback) {
-  std::string instructions = SimpleTestSnippet<TypeParam>();
-
+  std::string instructions =
+      GetTestSnippet<TypeParam>(TestSnapshot::kSetThreeRegisters);
   UnicornTracer<TypeParam> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
@@ -100,7 +102,8 @@ TYPED_TEST(UnicornTracerTest, InstructionCallback) {
 }
 
 TYPED_TEST(UnicornTracerTest, SkipInstruction) {
-  std::string instructions = SimpleTestSnippet<TypeParam>();
+  std::string instructions =
+      GetTestSnippet<TypeParam>(TestSnapshot::kSetThreeRegisters);
 
   for (int skip = 0; skip < 3; ++skip) {
     UnicornTracer<TypeParam> tracer;
@@ -189,7 +192,8 @@ void RandomizeRegisters(UContext<Arch>& ucontext) {
 }
 
 TYPED_TEST(UnicornTracerTest, SetGetRegisters) {
-  std::string instructions = SimpleTestSnippet<TypeParam>();
+  std::string instructions =
+      GetTestSnippet<TypeParam>(TestSnapshot::kSetThreeRegisters);
 
   UnicornTracer<TypeParam> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());

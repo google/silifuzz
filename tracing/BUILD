@@ -17,15 +17,6 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "tracing_test_util",
-    testonly = True,
-    hdrs = ["tracing_test_util.h"],
-    deps = [
-        "@silifuzz//common:snapshot_test_util",
-    ],
-)
-
-cc_library(
     name = "execution_trace",
     hdrs = ["execution_trace.h"],
     deps = [
@@ -42,9 +33,10 @@ cc_test(
     deps = [
         ":capstone_disassembler",
         ":execution_trace",
-        ":tracing_test_util",
         ":unicorn_tracer",
         ":xed_disassembler",
+        "@silifuzz//common:snapshot_test_enum",
+        "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
@@ -151,8 +143,9 @@ cc_test(
         "unicorn_tracer_test.cc",
     ],
     deps = [
-        ":tracing_test_util",
         ":unicorn_tracer",
+        "@silifuzz//common:snapshot_test_enum",
+        "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/base:core_headers",

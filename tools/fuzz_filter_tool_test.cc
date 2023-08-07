@@ -30,6 +30,8 @@
 
 #include "gtest/gtest.h"
 #include "./common/snapshot_test_config.h"
+#include "./common/snapshot_test_enum.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
@@ -44,12 +46,6 @@ std::string FromInts(std::vector<uint32_t>&& data) {
                      reinterpret_cast<char*>(&*data.end()));
 }
 
-// Grab the instruction bytes from the snap test configs where we can.
-std::string GetTestInstructions(TestSnapshot test) {
-  return GetTestSnapshotConfig(Snapshot::ArchitectureTypeToEnum<Host>(), test)
-      ->instruction_bytes;
-}
-
 #define EXPECT_FILTER_ACCEPT(insn) \
   EXPECT_TRUE(FilterToolMain("Test", insn).ok())
 
@@ -57,19 +53,19 @@ std::string GetTestInstructions(TestSnapshot test) {
   EXPECT_FALSE(FilterToolMain("Test", insn).ok())
 
 TEST(FuzzFilterTool, Nop) {
-  EXPECT_FILTER_ACCEPT(GetTestInstructions(TestSnapshot::kEndsAsExpected));
+  EXPECT_FILTER_ACCEPT(GetTestSnippet<Host>(TestSnapshot::kEndsAsExpected));
 }
 
 TEST(FuzzFilterTool, Padding) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kEndsUnexpectedly));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kEndsUnexpectedly));
 }
 
 TEST(FuzzFilterTool, Breakpoint) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kBreakpoint));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kBreakpoint));
 }
 
 TEST(FuzzFilterTool, Syscall) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kSyscall));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kSyscall));
 }
 
 #if defined(__x86_64__)
@@ -85,13 +81,13 @@ TEST(FuzzFilterTool, JumpOutOfBounds) {
 TEST(FuzzFilterTool, Int1) { EXPECT_FILTER_REJECT(FromBytes({0xf1})); }
 
 TEST(FuzzFilterTool, Int3) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kINT3_CD03));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kINT3_CD03));
 }
 
 TEST(FuzzFilterTool, Int80) { EXPECT_FILTER_REJECT(FromBytes({0xcd, 0x80})); }
 
 TEST(FuzzFilterTool, UD2) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kSigIll));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kSigIll));
 }
 
 TEST(FuzzFilterTool, BlockingSyscall) {
@@ -101,7 +97,7 @@ TEST(FuzzFilterTool, BlockingSyscall) {
 }
 
 TEST(FuzzFilterTool, In) {
-  EXPECT_FILTER_REJECT(GetTestInstructions(TestSnapshot::kIn));
+  EXPECT_FILTER_REJECT(GetTestSnippet<Host>(TestSnapshot::kIn));
 }
 
 TEST(FuzzFilterTool, Out) { EXPECT_FILTER_REJECT(FromBytes({0xef})); }

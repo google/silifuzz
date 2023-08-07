@@ -22,6 +22,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/memory_state.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_proto.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_util.h"
@@ -166,8 +167,7 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects(
 
 template <typename Arch>
 bool TestSnapshotExists(TestSnapshot type) {
-  Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
-  return GetTestSnapshotConfig(arch, type) != nullptr;
+  return GetTestSnapshotConfig<Arch>(type) != nullptr;
 }
 
 template bool TestSnapshotExists<X86_64>(TestSnapshot type);
@@ -203,16 +203,14 @@ template PlatformId TestSnapshotPlatform<AArch64>();
 template <typename Arch>
 Snapshot CreateTestSnapshot(TestSnapshot type,
                             CreateTestSnapshotOptions options) {
-  Snapshot::Architecture arch = Snapshot::ArchitectureTypeToEnum<Arch>();
-
-  const TestSnapshotConfig* maybe_config = GetTestSnapshotConfig(arch, type);
+  const TestSnapshotConfig* maybe_config = GetTestSnapshotConfig<Arch>(type);
   if (maybe_config == nullptr) {
     LOG_FATAL("Could not find config for test snapshot ", EnumStr(type),
               " for arch ", Arch::arch_name);
   }
   const TestSnapshotConfig& config = *maybe_config;
 
-  Snapshot snapshot(arch, EnumStr(type));
+  Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Arch>(), EnumStr(type));
 
   // Create code mapping
   auto code_mapping = MemoryMapping::MakeSized(

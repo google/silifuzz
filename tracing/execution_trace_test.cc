@@ -14,10 +14,13 @@
 
 #include "./tracing/execution_trace.h"
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "./common/snapshot_test_config.h"
+#include "./common/snapshot_test_enum.h"
 #include "./tracing/capstone_disassembler.h"
-#include "./tracing/tracing_test_util.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./tracing/xed_disassembler.h"
 #include "./util/arch.h"
@@ -85,7 +88,8 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
   using Arch = typename TypeParam::first_type;
   using ConcreteDisassembler = typename TypeParam::second_type;
 
-  std::string instructions = SimpleTestSnippet<Arch>();
+  std::string instructions =
+      GetTestSnippet<Arch>(TestSnapshot::kSetThreeRegisters);
 
   // There are three instructions and they should all be the same size, so the
   // size of the instruction sequence should be cleanly divisible by three.
