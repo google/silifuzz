@@ -33,14 +33,14 @@ struct FaultInjectionResult {
 };
 
 // Perform fault analysis on the snippet `instructions`.
+// `execution_trace` must contain a valid trace. If this function is successful,
+// the trace is annotated with which instructions were critical in detecting
+// faults.
 // If successful, this function returns aggregate statistics about the fault
 // injection.
-// A full trace is returned in `execution_trace` with annotations on which
-// instructions were critical in detecting faults.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, Disassembler& disas,
-    ExecutionTrace<Arch>& execution_trace);
+    const std::string& instructions, ExecutionTrace<Arch>& execution_trace);
 
 }  // namespace silifuzz
 

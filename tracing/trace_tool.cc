@@ -257,10 +257,13 @@ absl::Status AnalyzeSnippet(const std::string& instructions,
                             size_t max_instructions, LinePrinter& out) {
   DefaultDisassembler<Arch> disas;
   ExecutionTrace<Arch> execution_trace(max_instructions);
+  UnicornTracer<Arch> tracer;
+  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
+  RETURN_IF_NOT_OK(CaptureTrace(tracer, disas, execution_trace));
 
-  ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,
-                             AnalyzeSnippetWithFaultInjection<Arch>(
-                                 instructions, disas, execution_trace));
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      FaultInjectionResult result,
+      AnalyzeSnippetWithFaultInjection<Arch>(instructions, execution_trace));
   out.Line("Detected ", result.fault_detection_count, "/",
            result.fault_injection_count, " faults - ",
            static_cast<int>(100 * result.sensitivity), "% sensitive");

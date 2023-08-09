@@ -14,7 +14,9 @@
 
 #include "./tracing/analysis.h"
 
-#include "./tracing/disassembler.h"
+#include <algorithm>
+#include <string>
+
 #include "./tracing/execution_trace.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
@@ -55,13 +57,7 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
 
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, Disassembler& disas,
-    ExecutionTrace<Arch>& execution_trace) {
-  // Capture an unmodified trace.
-  UnicornTracer<Arch> tracer;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
-  RETURN_IF_NOT_OK(CaptureTrace(tracer, disas, execution_trace));
-
+    const std::string& instructions, ExecutionTrace<Arch>& execution_trace) {
   size_t expected_instructions_executed = execution_trace.NumInstructions();
   UContext<Arch> expected_ucontext = execution_trace.LastContext();
 
@@ -99,11 +95,11 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
 }
 
 // Instantiate concrete instances of exported functions.
-template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
-    X86_64>(const std::string& instructions, Disassembler& disas,
-            ExecutionTrace<X86_64>& execution_trace);
-template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
-    AArch64>(const std::string& instructions, Disassembler& disas,
-             ExecutionTrace<AArch64>& execution_trace);
+template absl::StatusOr<FaultInjectionResult>
+AnalyzeSnippetWithFaultInjection<X86_64>(
+    const std::string& instructions, ExecutionTrace<X86_64>& execution_trace);
+template absl::StatusOr<FaultInjectionResult>
+AnalyzeSnippetWithFaultInjection<AArch64>(
+    const std::string& instructions, ExecutionTrace<AArch64>& execution_trace);
 
 }  // namespace silifuzz
