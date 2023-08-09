@@ -22,6 +22,7 @@
 
 #include "absl/strings/str_cat.h"
 #include "third_party/capstone/capstone.h"
+#include "./tracing/disassembler.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
@@ -74,7 +75,7 @@ template <typename Arch>
 std::string CapstoneDisassembler<Arch>::FullText() {
   return valid_
              ? absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str)
-             : "unknown";
+             : kInvalidInstructionName;
 }
 
 template <typename Arch>
@@ -84,7 +85,8 @@ uint32_t CapstoneDisassembler<Arch>::InstructionID() const {
 
 template <typename Arch>
 uint32_t CapstoneDisassembler<Arch>::InvalidInstructionID() const {
-  return std::numeric_limits<uint32_t>::max();
+  // There are arch-specific enums for invalid, but they are all zero.
+  return 0;
 }
 
 template <typename Arch>
@@ -94,6 +96,9 @@ uint32_t CapstoneDisassembler<Arch>::NumInstructionIDs() const {
 
 template <typename Arch>
 std::string CapstoneDisassembler<Arch>::InstructionIDName(uint32_t id) const {
+  if (id == InvalidInstructionID()) {
+    return kInvalidInstructionName;
+  }
   return cs_insn_name(capstone_handle_, id);
 }
 

@@ -147,10 +147,7 @@ TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disas,
   // Gather information from the trace.
   execution_trace.ForEach(
       [&](size_t index, UContext<Arch>& prev, InstructionInfo<Arch>& info) {
-        bool valid = info.instruction_id != disas.InvalidInstructionID();
-        if (valid) {
-          trace_info.op_infos[info.instruction_id].AddOp(prev, info);
-        }
+        trace_info.op_infos[info.instruction_id].AddOp(prev, info);
         trace_info.all_info.AddOp(prev, info);
       });
 

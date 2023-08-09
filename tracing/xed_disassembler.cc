@@ -23,7 +23,12 @@
 #include "absl/base/call_once.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
+#include "./tracing/disassembler.h"
 #include "./util/checks.h"
+
+extern "C" {
+#include "third_party/libxed/xed-iclass-enum.h"
+}
 
 namespace silifuzz {
 
@@ -72,7 +77,7 @@ std::string XedDisassembler::FullText() {
     CHECK(xed_format_generic(&pi));
     return full_text_;
   } else {
-    return "unknown";
+    return kInvalidInstructionName;
   }
 }
 
@@ -81,12 +86,15 @@ uint32_t XedDisassembler::InstructionID() const {
 }
 
 uint32_t XedDisassembler::InvalidInstructionID() const {
-  return std::numeric_limits<uint32_t>::max();
+  return XED_ICLASS_INVALID;
 }
 
 uint32_t XedDisassembler::NumInstructionIDs() const { return XED_ICLASS_LAST; }
 
 std::string XedDisassembler::InstructionIDName(uint32_t id) const {
+  if (id == InvalidInstructionID()) {
+    return kInvalidInstructionName;
+  }
   std::string name = xed_iclass_enum_t2str(static_cast<xed_iclass_enum_t>(id));
   absl::AsciiStrToLower(&name);
   return name;

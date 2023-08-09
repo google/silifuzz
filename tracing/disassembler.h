@@ -21,6 +21,8 @@
 
 namespace silifuzz {
 
+inline constexpr const char* kInvalidInstructionName = "unknown";
+
 // Generic disassembler interface.
 // The underlying implementation will likely not be thread safe, users of this
 // inferface should assume it is not thread safe.
@@ -56,6 +58,7 @@ class Disassembler {
   [[nodiscard]] virtual uint32_t InstructionID() const = 0;
 
   // The value that InstructionID() returns after Disassmble() fails.
+  // It is required that InvalidInstructionID() < NumInstructionIDs()
   [[nodiscard]] virtual uint32_t InvalidInstructionID() const = 0;
 
   // The number of possible instruction IDs.
