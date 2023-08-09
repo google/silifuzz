@@ -403,8 +403,6 @@ cc_library_plus_nolibc(
     srcs = ["mem_util.cc"],
     hdrs = ["mem_util.h"],
     copts = [
-        # TODO(dougkwan): [as-needed] break out x86_64 only option as a per-architecture copt.
-        "-mno-sse",
         # Suppress builtin memcmp & memcpy as we are implementing our own.
         "-fno-builtin-memcmp",
         "-fno-builtin-memcpy",
