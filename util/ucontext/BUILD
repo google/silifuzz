@@ -30,7 +30,7 @@ licenses(["notice"])
 
 DISABLE_ARM_TAGS = [
     "not_build:arm",
-    "not_test:arm",
+    "not_run:arm",
 ]
 
 cc_library_plus_nolibc(
