@@ -137,7 +137,7 @@ class ExecutionTrace {
 // `execution_trace` is an output parameter rather than a return value so that
 // it can be reused multiple times without being reallocated.
 template <typename Tracer, typename Disassembler, typename Arch>
-absl::Status CaptureTrace(Tracer& tracer, Disassembler& disas,
+absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
                           ExecutionTrace<Arch>& execution_trace) {
   // In theory the entry point should also be the page start, but be cautious
   // and force page alignment in case we add a preamble later.
@@ -166,11 +166,11 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disas,
     }
 
     // Disassemble the instruction
-    disas.Disassemble(address, info.bytes, max_size);
+    disasm.Disassemble(address, info.bytes, max_size);
 
     info.address = address;
-    info.instruction_id = disas.InstructionID();
-    info.size = disas.InstructionSize();
+    info.instruction_id = disasm.InstructionID();
+    info.size = disasm.InstructionSize();
   });
   absl::Status result = tracer.Run(execution_trace.MaxInstructions());
   // Capture the final state.

@@ -55,13 +55,13 @@ namespace silifuzz {
 
 // Display the trace in a human-readable format with a bunch of metadata.
 template <typename Arch>
-void LogTrace(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
+void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
               bool fault_injection, LinePrinter& out) {
   uint64_t expected_next = execution_trace.EntryAddress();
   bool last_valid = false;
   execution_trace.ForEach(
       [&](size_t index, UContext<Arch>& prev, InstructionInfo<Arch>& info) {
-        bool valid = info.instruction_id != disas.InvalidInstructionID();
+        bool valid = info.instruction_id != disasm.InvalidInstructionID();
 
         // Did we see something other than linear execution?
         if (last_valid && info.address != expected_next) {
@@ -71,7 +71,7 @@ void LogTrace(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
         // Note: we disassemble the instruction a second time to recover the
         // full textual disassembly. In most cases we don't store this because
         // it's only needed for human-readable output.
-        disas.Disassemble(info.address, info.bytes, info.size);
+        disasm.Disassemble(info.address, info.bytes, info.size);
 
         // Display information about the next instruction.
         // Note: formatting assumes the code addresses are in the lower 4GB so
@@ -95,7 +95,7 @@ void LogTrace(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
         if (fault_injection) {
           absl::StrAppend(&metadata, " crit=", info.critical);
         }
-        out.Line(metadata, "    ", disas.FullText());
+        out.Line(metadata, "    ", disasm.FullText());
 
         last_valid = valid;
         expected_next = info.address + info.size;
@@ -140,9 +140,9 @@ struct TraceOpInfo {
 
 // Gather stats from a trace.
 template <typename Arch>
-TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disas,
+TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disasm,
                                     ExecutionTrace<Arch>& execution_trace) {
-  TraceOpInfo<Arch> trace_info(disas.NumInstructionIDs());
+  TraceOpInfo<Arch> trace_info(disasm.NumInstructionIDs());
 
   // Gather information from the trace.
   execution_trace.ForEach(
@@ -162,10 +162,10 @@ TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disas,
 
 // Display stats for a trace in a human-readable format.
 template <typename Arch>
-void LogTraceOpInfo(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
+void LogTraceOpInfo(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
                     bool fault_injection, LinePrinter& out) {
   // Summarize the trace.
-  TraceOpInfo<Arch> trace_info = GatherTraceOpInfo(disas, execution_trace);
+  TraceOpInfo<Arch> trace_info = GatherTraceOpInfo(disasm, execution_trace);
 
   // Print the header.
   out.Line();
@@ -193,7 +193,7 @@ void LogTraceOpInfo(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
   for (size_t i = 0; i < trace_info.op_infos.size(); ++i) {
     OpInfo<Arch>& info = trace_info.op_infos[i];
     if (info.count > 0) {
-      std::string name = disas.InstructionIDName(i);
+      std::string name = disasm.InstructionIDName(i);
       log_info(name, info);
     }
   }
@@ -208,13 +208,13 @@ void LogTraceOpInfo(Disassembler& disas, ExecutionTrace<Arch>& execution_trace,
 template <typename Arch>
 absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
                         LinePrinter& out) {
-  DefaultDisassembler<Arch> disas;
+  DefaultDisassembler<Arch> disasm;
   ExecutionTrace<Arch> execution_trace(max_instructions);
 
-  absl::Status result = CaptureTrace(tracer, disas, execution_trace);
+  absl::Status result = CaptureTrace(tracer, disasm, execution_trace);
 
-  LogTrace(disas, execution_trace, false, out);
-  LogTraceOpInfo(disas, execution_trace, false, out);
+  LogTrace(disasm, execution_trace, false, out);
+  LogTraceOpInfo(disasm, execution_trace, false, out);
   out.Line();
   UContext<Arch> diff;
   BitDiff(execution_trace.FirstContext(), execution_trace.LastContext(), diff);
@@ -255,11 +255,11 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
 template <typename Arch>
 absl::Status AnalyzeSnippet(const std::string& instructions,
                             size_t max_instructions, LinePrinter& out) {
-  DefaultDisassembler<Arch> disas;
+  DefaultDisassembler<Arch> disasm;
   ExecutionTrace<Arch> execution_trace(max_instructions);
   UnicornTracer<Arch> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
-  RETURN_IF_NOT_OK(CaptureTrace(tracer, disas, execution_trace));
+  RETURN_IF_NOT_OK(CaptureTrace(tracer, disasm, execution_trace));
 
   ASSIGN_OR_RETURN_IF_NOT_OK(
       FaultInjectionResult result,
@@ -268,8 +268,8 @@ absl::Status AnalyzeSnippet(const std::string& instructions,
            result.fault_injection_count, " faults - ",
            static_cast<int>(100 * result.sensitivity), "% sensitive");
 
-  LogTrace(disas, execution_trace, true, out);
-  LogTraceOpInfo(disas, execution_trace, true, out);
+  LogTrace(disasm, execution_trace, true, out);
+  LogTraceOpInfo(disasm, execution_trace, true, out);
 
   return absl::OkStatus();
 }

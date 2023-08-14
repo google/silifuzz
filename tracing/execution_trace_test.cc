@@ -36,15 +36,15 @@ using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
 
 template <typename Arch>
-void CheckInstructionInfo(Disassembler& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disasm, size_t i,
                           const UContext<Arch>& prev,
                           InstructionInfo<Arch>& info);
 
 template <>
-void CheckInstructionInfo(Disassembler& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disasm, size_t i,
                           const UContext<X86_64>& prev,
                           InstructionInfo<X86_64>& info) {
-  EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
+  EXPECT_EQ(disasm.InstructionIDName(info.instruction_id), "add");
 
   // rdx transitions 0 => 2 on the first instruction.
   EXPECT_EQ(prev.gregs.rdx, i <= 0 ? 0 : 2);
@@ -60,10 +60,10 @@ void CheckInstructionInfo(Disassembler& disas, size_t i,
 }
 
 template <>
-void CheckInstructionInfo(Disassembler& disas, size_t i,
+void CheckInstructionInfo(Disassembler& disasm, size_t i,
                           const UContext<AArch64>& prev,
                           InstructionInfo<AArch64>& info) {
-  EXPECT_EQ(disas.InstructionIDName(info.instruction_id), "add");
+  EXPECT_EQ(disasm.InstructionIDName(info.instruction_id), "add");
 
   // x2 transitions 0 => 2 on the first instruction.
   EXPECT_EQ(prev.gregs.x[2], i <= 0 ? 0 : 2);
@@ -102,14 +102,14 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
   UnicornTracer<Arch> tracer;
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
-  ConcreteDisassembler disas;
+  ConcreteDisassembler disasm;
 
   ExecutionTrace<Arch> execution_trace(3);
   ASSERT_EQ(execution_trace.MaxInstructions(), 3);
   ASSERT_EQ(execution_trace.NumInstructions(), 0);
 
   // Capture the trace.
-  ASSERT_THAT(CaptureTrace(tracer, disas, execution_trace), IsOk());
+  ASSERT_THAT(CaptureTrace(tracer, disasm, execution_trace), IsOk());
   ASSERT_EQ(execution_trace.NumInstructions(), 3);
 
   // Check the trace.
@@ -132,7 +132,7 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
               0);
 
     // Check the registers.
-    CheckInstructionInfo(disas, i, prev, info);
+    CheckInstructionInfo(disasm, i, prev, info);
   });
   EXPECT_EQ(count, 3);
 
@@ -153,10 +153,10 @@ TYPED_TEST(ExecutionTraceTest, Runaway) {
 
   const size_t kTraceLength = 4;
 
-  ConcreteDisassembler disas;
+  ConcreteDisassembler disasm;
   ExecutionTrace<Arch> execution_trace(kTraceLength);
 
-  EXPECT_THAT(CaptureTrace(tracer, disas, execution_trace),
+  EXPECT_THAT(CaptureTrace(tracer, disasm, execution_trace),
               StatusIs(absl::StatusCode::kInternal,
                        "emulator executed too many instructions"));
   EXPECT_EQ(execution_trace.NumInstructions(), kTraceLength);
