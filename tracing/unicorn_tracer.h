@@ -181,6 +181,16 @@ class UnicornTracer {
   // and Snapshots. This may involve setting system registers, etc.
   void InitUnicorn();
 
+  // Create a memory mapping or die. Helps avoid error handling in the cases we
+  // know should succeed unless there is a bug.
+  void MapMemory(uint64_t addr, uint64_t size, uint32_t prot) {
+    uc_err err = uc_mem_map(uc_, addr, size, prot);
+    if (err != UC_ERR_OK) {
+      LOG_FATAL("mapping ", HexStr(addr), " + ", HexStr(size), " failed with ",
+                IntStr(err), ": ", uc_strerror(err));
+    }
+  }
+
   // Setup the memory mappings and memory contents for a snippet that has been
   // turned into a Snapshot with InstructionsToSnapshot.
   void SetupSnippetMemory(const Snapshot& snapshot,

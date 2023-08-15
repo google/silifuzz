@@ -39,12 +39,6 @@ namespace silifuzz {
 // Translate Silifuzz's MemoryPerms into Unicorn's protection flags.
 uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms);
 
-// Create a memory mapping or die. Helps avoid error handling in the cases we
-// know should succeed unless there is a bug.
-void MapMemory(uc_engine *uc, uint64_t addr, uint64_t size, uint32_t prot);
-void MapMemory(uc_engine *uc, uint64_t addr, uint64_t size,
-               const MemoryPerms &perms);
-
 // Determine where the Snapshot will stop executing.
 uint64_t GetExitPoint(const Snapshot &snapshot);
 

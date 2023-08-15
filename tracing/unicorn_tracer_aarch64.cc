@@ -60,7 +60,7 @@ constexpr uint64_t kEntrySequenceAddress = 0x123'4567'0000;
 
 void SetupCPUState(uc_engine *uc) {
   // Inject the entry sequence.
-  MapMemory(uc, kEntrySequenceAddress, kPageSize, UC_PROT_EXEC);
+  UNICORN_CHECK(uc_mem_map(uc, kEntrySequenceAddress, kPageSize, UC_PROT_EXEC));
   UNICORN_CHECK(uc_mem_write(uc, kEntrySequenceAddress, kEntrySequence,
                              sizeof(kEntrySequence)));
 
@@ -220,7 +220,8 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
     const Snapshot &snapshot, const UContext<AArch64> &ucontext,
     const FuzzingConfig<AArch64> &fuzzing_config) {
   for (const Snapshot::MemoryMapping &mm : snapshot.memory_mappings()) {
-    MapMemory(uc_, mm.start_address(), mm.num_bytes(), mm.perms());
+    MapMemory(mm.start_address(), mm.num_bytes(),
+              MemoryPermsToUnicorn(mm.perms()));
   }
 
   for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
@@ -230,9 +231,9 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
   }
 
   // These mappings are currently not represented in the Snapshot.
-  MapMemory(uc_, fuzzing_config.data1_range.start_address,
+  MapMemory(fuzzing_config.data1_range.start_address,
             fuzzing_config.data1_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
-  MapMemory(uc_, fuzzing_config.data2_range.start_address,
+  MapMemory(fuzzing_config.data2_range.start_address,
             fuzzing_config.data2_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
 
   // Simulate the effect RestoreUContext could have on the stack.

@@ -40,19 +40,6 @@ uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms) {
   return prot;
 }
 
-void MapMemory(uc_engine *uc, uint64_t addr, uint64_t size, uint32_t prot) {
-  uc_err err = uc_mem_map(uc, addr, size, prot);
-  if (err != UC_ERR_OK) {
-    LOG_FATAL("mapping ", HexStr(addr), " + ", HexStr(size), " failed with ",
-              IntStr(err), ": ", uc_strerror(err));
-  }
-}
-
-void MapMemory(uc_engine *uc, uint64_t addr, uint64_t size,
-               const MemoryPerms &perms) {
-  MapMemory(uc, addr, size, MemoryPermsToUnicorn(perms));
-}
-
 uint64_t GetExitPoint(const Snapshot &snapshot) {
   const Snapshot::EndStateList &end_states = snapshot.expected_end_states();
   CHECK(!end_states.empty());

@@ -211,7 +211,8 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
     // The stack is aliased with data1, and Unicorn doesn't like mapping the
     // same memory twice. Hack around this by skipping RW mappings.
     if (mm.perms() == MemoryPerms::RW()) continue;
-    MapMemory(uc_, mm.start_address(), mm.num_bytes(), mm.perms());
+    MapMemory(mm.start_address(), mm.num_bytes(),
+              MemoryPermsToUnicorn(mm.perms()));
   }
 
   for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
@@ -221,9 +222,9 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
   }
 
   // These mappings are currently not represented in the Snapshot.
-  MapMemory(uc_, fuzzing_config.data1_range.start_address,
+  MapMemory(fuzzing_config.data1_range.start_address,
             fuzzing_config.data1_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
-  MapMemory(uc_, fuzzing_config.data2_range.start_address,
+  MapMemory(fuzzing_config.data2_range.start_address,
             fuzzing_config.data2_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
 
   // Simulate the effect RestoreUContext could have on the stack.
