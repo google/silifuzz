@@ -21,6 +21,7 @@
 #include <functional>
 #include <string>
 
+#include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -30,6 +31,7 @@
 #include "./common/snapshot_util.h"
 #include "./tracing/unicorn_util.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"
 
@@ -157,6 +159,47 @@ class UnicornTracer {
   void Stop() {
     uc_emu_stop(uc_);
     should_be_stopped_ = true;
+  }
+
+  // Checksum some of the tracer's mutable memory.
+  // This function does not checksum all the mutable memory because this can be
+  // quite slow for the x86_64 which has ~1GB of mutable memory.
+  // This checksum can be used by fault injection to quickly estimate if the end
+  // state is different than expected.
+  // The exact definition of this checksum may change over time, comparing a
+  // value produced by an old version of the software against a value produced
+  // by a new version of the software is not meaningful.
+  uint32_t PartialChecksumOfMutableMemory() {
+    uint32_t count;
+    uc_mem_region* regions;
+    UNICORN_CHECK(uc_mem_regions(uc_, &regions, &count));
+    absl::crc32c_t checksum(0);
+    char data[4096];
+    for (uint32_t i = 0; i < count; ++i) {
+      if (regions[i].perms & UC_PROT_WRITE) {
+        // Empirically, checksumming the first 8 pages of each mutable region
+        // covers ~58% of the pages the proxy tends to dirty. Doubling this
+        // raises the coverage to 59%. Beyond the first few pages, the access
+        // patterns are fairly unpredictable, so we'd need to checksum vastly
+        // more memory to catch all the dirty pages. Unfortunately checksumming
+        // all the mutable memory on x86_64 would make fault injection ~18x
+        // slower. So we're trading some accuracy for a huge amount of speed.
+        uint64_t end_offset =
+            std::min(8 * 4096UL, regions[i].end - regions[i].begin + 1);
+        CHECK_EQ(end_offset % sizeof(data), 0);
+        for (uint64_t offset = 0; offset < end_offset; offset += sizeof(data)) {
+          // Note: if we originally mapped this memory with uc_mem_map_ptr then
+          // we could read it directly and avoid a copy. For a small number of
+          // pages, however, this doesn't offer a huge performance improvement.
+          UNICORN_CHECK(
+              uc_mem_read(uc_, regions[i].begin + offset, data, sizeof(data)));
+          checksum = absl::ExtendCrc32c(checksum,
+                                        absl::string_view(data, sizeof(data)));
+        }
+      }
+    }
+    UNICORN_CHECK(uc_free(regions));
+    return static_cast<uint32_t>(checksum);
   }
 
   uint64_t GetCurrentInstructionPointer();

@@ -260,10 +260,11 @@ absl::Status AnalyzeSnippet(const std::string& instructions,
   UnicornTracer<Arch> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
   RETURN_IF_NOT_OK(CaptureTrace(tracer, disasm, execution_trace));
+  uint32_t checksum = tracer.PartialChecksumOfMutableMemory();
 
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      FaultInjectionResult result,
-      AnalyzeSnippetWithFaultInjection<Arch>(instructions, execution_trace));
+  ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,
+                             AnalyzeSnippetWithFaultInjection<Arch>(
+                                 instructions, execution_trace, checksum));
   out.Line("Detected ", result.fault_detection_count, "/",
            result.fault_injection_count, " faults - ",
            static_cast<int>(100 * result.sensitivity), "% sensitive");

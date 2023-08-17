@@ -15,6 +15,7 @@
 #include "./tracing/analysis.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <string>
 
 #include "./tracing/execution_trace.h"
@@ -34,7 +35,8 @@ template <typename Arch>
 absl::Status TraceSnippetWithSkip(const std::string& instructions,
                                   size_t max_instructions, size_t skip,
                                   size_t& instructions_executed,
-                                  UContext<Arch>& ucontext) {
+                                  UContext<Arch>& ucontext,
+                                  uint32_t& memory_checksum) {
   UnicornTracer<Arch> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
 
@@ -50,6 +52,7 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
       });
   RETURN_IF_NOT_OK(tracer.Run(max_instructions));
   tracer.GetRegisters(ucontext);
+  memory_checksum = tracer.PartialChecksumOfMutableMemory();
   return absl::OkStatus();
 }
 
@@ -57,7 +60,8 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
 
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, ExecutionTrace<Arch>& execution_trace) {
+    const std::string& instructions, ExecutionTrace<Arch>& execution_trace,
+    uint32_t expected_memory_checksum) {
   size_t expected_instructions_executed = execution_trace.NumInstructions();
   UContext<Arch> expected_ucontext = execution_trace.LastContext();
 
@@ -68,10 +72,11 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
       VLOG_INFO(1, 100 * skip / expected_instructions_executed, "%");
     }
     size_t instructions_executed = 0;
+    uint32_t actual_memory_checksum = 0;
     UContext<Arch> ucontext;
-    absl::Status status =
-        TraceSnippetWithSkip(instructions, execution_trace.MaxInstructions(),
-                             skip, instructions_executed, ucontext);
+    absl::Status status = TraceSnippetWithSkip(
+        instructions, execution_trace.MaxInstructions(), skip,
+        instructions_executed, ucontext, actual_memory_checksum);
     // If the status is not OK, this indicates the trace did not behave like a
     // valid Silifuzz test - it segfaulted, got stuck in an infinite loop, or
     // similar. Because the unmodified trace as OK, this indicates the injected
@@ -79,7 +84,8 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     // TODO(ncbray): compare memory.
     bool fault_detected = !status.ok() ||
                           ucontext.gregs != expected_ucontext.gregs ||
-                          ucontext.fpregs != expected_ucontext.fpregs;
+                          ucontext.fpregs != expected_ucontext.fpregs ||
+                          actual_memory_checksum != expected_memory_checksum;
     execution_trace.Info(skip).critical = fault_detected;
     if (fault_detected) {
       num_faults_detected++;
@@ -97,9 +103,11 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
 // Instantiate concrete instances of exported functions.
 template absl::StatusOr<FaultInjectionResult>
 AnalyzeSnippetWithFaultInjection<X86_64>(
-    const std::string& instructions, ExecutionTrace<X86_64>& execution_trace);
+    const std::string& instructions, ExecutionTrace<X86_64>& execution_trace,
+    uint32_t expected_memory_checksum);
 template absl::StatusOr<FaultInjectionResult>
 AnalyzeSnippetWithFaultInjection<AArch64>(
-    const std::string& instructions, ExecutionTrace<AArch64>& execution_trace);
+    const std::string& instructions, ExecutionTrace<AArch64>& execution_trace,
+    uint32_t expected_memory_checksum);
 
 }  // namespace silifuzz

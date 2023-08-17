@@ -40,7 +40,8 @@ struct FaultInjectionResult {
 // injection.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, ExecutionTrace<Arch>& execution_trace);
+    const std::string& instructions, ExecutionTrace<Arch>& execution_trace,
+    uint32_t expected_memory_checksum);
 
 }  // namespace silifuzz
 
