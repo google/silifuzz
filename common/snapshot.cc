@@ -32,9 +32,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/platform.h"
-#include "./util/reg_checksum.h"
 #include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
 
@@ -231,12 +232,9 @@ absl::Status Snapshot::IsComplete(State state) const {
         absl::StrCat("Missing negative_memory_mappings"));
   }
   if (!needs_negative_mapping && has_negative_mappings) {
-    std::string details = "Unnecessary negative_memory_mappings";
-    if (DEBUG_MODE) {
-      absl::StrAppend(&details, ": ",
-                      negative_mapped_memory_map().DebugString());
-    }
-    return absl::InvalidArgumentError(details);
+    VLOG_INFO(3, "Unnecessary negative_memory_mappings ",
+              negative_mapped_memory_map().DebugString());
+    return absl::InvalidArgumentError("Unnecessary negative_memory_mappings");
   }
   if (memory_bytes_.empty()) {
     return absl::InvalidArgumentError("No memory_bytes");
@@ -302,6 +300,7 @@ absl::Status Snapshot::can_add_memory_mapping(const MemoryMapping& x) const {
                      HexStr(x.limit_address())));
   }
   if (mapped_memory_map_.Overlaps(x.start_address(), x.limit_address())) {
+    VLOG_INFO(3, "Overlaps with existing memory_mappings: ", x.DebugString());
     return absl::InvalidArgumentError("Overlaps with existing memory_mappings");
   }
   if (x.perms().HasSomeOf(negative_mapped_memory_map_.Perms(

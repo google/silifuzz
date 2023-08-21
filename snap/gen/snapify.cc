@@ -21,6 +21,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "./common/mapped_memory_map.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
 #include "./snap/exit_sequence.h"
@@ -216,6 +217,14 @@ absl::Status CanSnapify(const Snapshot &snapshot, const SnapifyOptions &opts) {
   }
 
   if (OverlapReservedMemoryMappings(snapshot.memory_mappings())) {
+    if (VLOG_IS_ON(3)) {
+      std::string mappings;
+      for (const auto &mapping : snapshot.memory_mappings()) {
+        absl::StrAppend(&mappings, mapping.DebugString(), ",");
+      }
+      VLOG_INFO(3,
+                "memory mappings overlap reserved memory mappings: ", mappings);
+    }
     return absl::InvalidArgumentError(
         "memory mappings overlap reserved memory mappings");
   }

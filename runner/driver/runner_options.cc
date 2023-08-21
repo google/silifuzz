@@ -54,9 +54,10 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id) {
       .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
                        "1", "--make"})
-      // Discard human-readable failure details in stderr.
-      // Failures are expected during making.
-      .set_map_stderr_to_dev_null(true);
+      // Unless VLOG is on discard human-readable failure details
+      // (register mismatch, etc) that the _runner_ process will print
+      // to stderr. Failures are expected during making.
+      .set_map_stderr_to_dev_null(!VLOG_IS_ON(3));
 }
 
 RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
@@ -65,8 +66,9 @@ RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
       .set_extra_argv(
           {"--snap_id", std::string(snap_id), "--num_iterations", "3"})
       .set_disable_aslr(false)
-      // Skip failures details also just like MakeOptions().
-      .set_map_stderr_to_dev_null(true);
+      // Unless VLOG is on, skip runner failure details just like MakeOptions()
+      // above.
+      .set_map_stderr_to_dev_null(!VLOG_IS_ON(3));
 }
 
 RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id) {
