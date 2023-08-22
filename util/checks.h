@@ -46,8 +46,8 @@
 #include <utility>  // for std::forward
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
-#include "absl/log/check.h"
-#include "absl/log/log.h"
+#include "absl/log/check.h"        // IWYU pragma: export
+#include "absl/log/log.h"          // IWYU pragma: export
 #include "absl/strings/str_cat.h"  // for absl::StrCat()
 #endif
 
