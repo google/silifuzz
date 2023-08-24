@@ -467,11 +467,6 @@ absl::StatusOr<uint64_t> DecodedInsn::memory_operand_address(
   // xed_agen() requires a non-const pointer. Make a copy of 'regs' and
   // pass pointer to copy instead.
   user_regs_struct writable_regs = regs;
-  // Older versions of XED do not add length of instruction when computing
-  // a RIP-relative address. This is fixed in newer versions but we need to
-  // keep the following workaround until the open source version is sync'ed to
-  // a new version of XED.
-  writable_regs.rip += xed_decoded_inst_get_length(&xed_insn_);
   xed_error_enum_t error = xed_agen(&xed_insn_, i, &writable_regs, &address);
   if (error == XED_ERROR_NONE) {
     return address;

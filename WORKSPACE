@@ -123,24 +123,24 @@ new_git_repository(
 new_git_repository(
     name = "mbuild",
     build_file = "@silifuzz//:third_party/BUILD.mbuild",
-    commit = "1cb4f44e9b249626392a275e6f59c00ea16a47ed",
+    commit = "75cb46e6536758f1a3cdb3d6bd83a4a9fd0338bb",
     patch_cmds = [
         "rm -f setup.py",
         "mv mbuild/*.py .",
     ],
     remote = "https://github.com/intelxed/mbuild",
-    shallow_since = "1573652175 -0500",
+    shallow_since = "1659030943 +0300",
 )
 
 new_git_repository(
     name = "libxed",
     build_file = "@silifuzz//:third_party/BUILD.libxed",
-    commit = "801b876fe6a6d321b1f4027b6bb4adaee7ecd0a7",
+    commit = "01a6da8090af84cd52f6c1070377ae6e885b078f",
     patch_cmds = [
         "sed -i -e 's|xed/xed-interface.h|xed-interface.h|' examples/xed-tester.c",
     ],
     remote = "https://github.com/intelxed/xed",
-    shallow_since = "1522099305 -0400",
+    shallow_since = "1692638366 +0300",
 )
 
 http_archive(

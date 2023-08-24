@@ -8,10 +8,13 @@ exports_files(["LICENSE"])
 py_library(
     name = "mbuild",
     srcs = glob(["*.py"]),
+    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "1",
     srcs = ["tests/1.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [":mbuild"],
 )

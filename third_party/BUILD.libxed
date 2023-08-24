@@ -19,6 +19,7 @@ licenses(["notice"])
 
 exports_files(["LICENSE"])
 
+# A subset of XED API public headers used by xed-ild-internal target.
 COMMON_PUBLIC_HEADERS = [
     "gen/public-headers/xed-address-width-enum.h",
     "gen/public-headers/xed-agen.h",
@@ -30,11 +31,12 @@ COMMON_PUBLIC_HEADERS = [
     "gen/public-headers/xed-chip-features.h",
     "gen/public-headers/xed-common-defs.h",
     "gen/public-headers/xed-common-hdrs.h",
-    "gen/public-headers/xed-cpuid-bit-enum.h",
+    "gen/public-headers/xed-cpuid-group-enum.h",
+    "gen/public-headers/xed-cpuid-rec-enum.h",
     "gen/public-headers/xed-cpuid-rec.h",
-    "gen/public-headers/xed-decode.h",
-    "gen/public-headers/xed-decoded-inst.h",
     "gen/public-headers/xed-decoded-inst-api.h",
+    "gen/public-headers/xed-decoded-inst.h",
+    "gen/public-headers/xed-decode.h",
     "gen/public-headers/xed-disas.h",
     "gen/public-headers/xed-encode.h",
     "gen/public-headers/xed-encoder-gen-defs.h",
@@ -50,19 +52,20 @@ COMMON_PUBLIC_HEADERS = [
     "gen/public-headers/xed-gen-table-defs.h",
     "gen/public-headers/xed-iclass-enum.h",
     "gen/public-headers/xed-iform-enum.h",
-    "gen/public-headers/xed-iform-map.h",
     "gen/public-headers/xed-iformfl-enum.h",
+    "gen/public-headers/xed-iform-map.h",
+    "gen/public-headers/xed-ild-enum.h",
     "gen/public-headers/xed-ild.h",
     "gen/public-headers/xed-init.h",
     "gen/public-headers/xed-inst.h",
     "gen/public-headers/xed-interface.h",
-    "gen/public-headers/xed-isa-set.h",
     "gen/public-headers/xed-isa-set-enum.h",
+    "gen/public-headers/xed-isa-set.h",
     "gen/public-headers/xed-machine-mode-enum.h",
     "gen/public-headers/xed-nonterminal-enum.h",
     "gen/public-headers/xed-operand-accessors.h",
-    "gen/public-headers/xed-operand-action.h",
     "gen/public-headers/xed-operand-action-enum.h",
+    "gen/public-headers/xed-operand-action.h",
     "gen/public-headers/xed-operand-convert-enum.h",
     "gen/public-headers/xed-operand-ctype-enum.h",
     "gen/public-headers/xed-operand-element-type-enum.h",
@@ -76,8 +79,8 @@ COMMON_PUBLIC_HEADERS = [
     "gen/public-headers/xed-patch.h",
     "gen/public-headers/xed-portability.h",
     "gen/public-headers/xed-print-info.h",
-    "gen/public-headers/xed-reg-class.h",
     "gen/public-headers/xed-reg-class-enum.h",
+    "gen/public-headers/xed-reg-class.h",
     "gen/public-headers/xed-reg-enum.h",
     "gen/public-headers/xed-rep-prefix.h",
     "gen/public-headers/xed-state.h",
@@ -90,10 +93,13 @@ COMMON_PUBLIC_HEADERS = [
 # A list of all XED API headers.
 PUBLIC_HEADERS = COMMON_PUBLIC_HEADERS + [
     "gen/public-headers/xed-convert-table-init.h",
+    "gen/public-headers/xed-encode-check.h",
+    "gen/public-headers/xed-encode-direct.h",
     "gen/public-headers/xed-get-time.h",
     "gen/public-headers/xed-immdis.h",
     "gen/public-headers/xed-immed.h",
     "gen/public-headers/xed-init-pointer-names.h",
+    "gen/public-headers/xed-mapu-enum.h",
     "gen/public-headers/xed-operand-ctype-map.h",
     "gen/public-headers/xed-reg-role-enum.h",
 ]
@@ -109,21 +115,22 @@ cc_library(
 
 GENERATED_ENCODER_SOURCE = [
     "gen/sources/include-private/xed-enc-groups.h",
+    "gen/sources/include-private/xed-encoder.h",
     "gen/sources/include-private/xed-enc-operand-lu.h",
     "gen/sources/include-private/xed-enc-patterns.h",
-    "gen/sources/include-private/xed-encoder.h",
     "gen/sources/xed-enc-groups.c",
-    "gen/sources/xed-enc-operand-lu.c",
-    "gen/sources/xed-enc-patterns.c",
-    "gen/sources/xed-encoder-iforms-init.c",
-    "gen/sources/xed-encoder-init.c",
-    "gen/sources/xed-encoder-order-init.c",
-    "gen/sources/xed-encoder-pattern-lu.c",
     "gen/sources/xed-encoder-0.c",
     "gen/sources/xed-encoder-1.c",
     "gen/sources/xed-encoder-2.c",
     "gen/sources/xed-encoder-3.c",
     "gen/sources/xed-encoder-4.c",
+    "gen/sources/xed-encoder-5.c",
+    "gen/sources/xed-encoder-iforms-init.c",
+    "gen/sources/xed-encoder-init.c",
+    "gen/sources/xed-encoder-order-init.c",
+    "gen/sources/xed-encoder-pattern-lu.c",
+    "gen/sources/xed-enc-operand-lu.c",
+    "gen/sources/xed-enc-patterns.c",
 ]
 
 GENERATED_ENCODER_HEADERS = [
@@ -132,22 +139,6 @@ GENERATED_ENCODER_HEADERS = [
 ]
 
 GENERATED_DECODER_SOURCE = [
-    "gen/sources/include-private/xed-chip-features-table.h",
-    "gen/sources/include-private/xed-ild-disp-bytes.h",
-    "gen/sources/include-private/xed-ild-disp-l1.h",
-    "gen/sources/include-private/xed-ild-disp-l2.h",
-    "gen/sources/include-private/xed-ild-disp-l3.h",
-    "gen/sources/include-private/xed-ild-easz.h",
-    "gen/sources/include-private/xed-ild-easz-getters.h",
-    "gen/sources/include-private/xed-ild-eosz.h",
-    "gen/sources/include-private/xed-ild-eosz-getters.h",
-    "gen/sources/include-private/xed-ild-getters.h",
-    "gen/sources/include-private/xed-ild-imm-bytes.h",
-    "gen/sources/include-private/xed-ild-imm-l1.h",
-    "gen/sources/include-private/xed-ild-imm-l2.h",
-    "gen/sources/include-private/xed-ild-imm-l3.h",
-    "gen/sources/include-private/xed-ild-modrm.h",
-    "gen/sources/include-private/xed-ild-scanners.h",  # only needed for xed-ild
     "gen/sources/include-private/xed3-chain-capture.h",
     "gen/sources/include-private/xed3-chain-capture-lu.h",
     "gen/sources/include-private/xed3-dynamic-part1-capture.h",
@@ -164,6 +155,26 @@ GENERATED_DECODER_SOURCE = [
     "gen/sources/include-private/xed3-phash-vv1.h",
     "gen/sources/include-private/xed3-phash-vv2.h",
     "gen/sources/include-private/xed3-phash-vv3.h",
+    "gen/sources/include-private/xed-chip-features-table.h",
+    "gen/sources/include-private/xed-ild-disp-bytes.h",
+    "gen/sources/include-private/xed-ild-disp-l1.h",
+    "gen/sources/include-private/xed-ild-disp-l2.h",
+    "gen/sources/include-private/xed-ild-disp-l3.h",
+    "gen/sources/include-private/xed-ild-easz-getters.h",
+    "gen/sources/include-private/xed-ild-easz.h",
+    "gen/sources/include-private/xed-ild-eosz-getters.h",
+    "gen/sources/include-private/xed-ild-eosz.h",
+    "gen/sources/include-private/xed-ild-imm-bytes.h",
+    "gen/sources/include-private/xed-ild-imm-l1.h",
+    "gen/sources/include-private/xed-ild-imm-l2.h",
+    "gen/sources/include-private/xed-ild-imm-l3.h",
+    "gen/sources/include-private/xed-ild-modrm.h",
+    "gen/sources/include-private/xed-map-feature-tables.h",
+    "gen/sources/xed3-operand-lu.c",
+    "gen/sources/xed3-phash-lu-vv0.c",
+    "gen/sources/xed3-phash-lu-vv1.c",
+    "gen/sources/xed3-phash-lu-vv2.c",
+    "gen/sources/xed3-phash-lu-vv3.c",
     "gen/sources/xed-address-width-enum.c",
     "gen/sources/xed-attribute-enum.c",
     "gen/sources/xed-attributes-init.c",
@@ -173,11 +184,12 @@ GENERATED_DECODER_SOURCE = [
     "gen/sources/xed-chip-features-table.c",
     "gen/sources/xed-classifiers.c",
     "gen/sources/xed-convert-table-init.c",
-    "gen/sources/xed-cpuid-bit-enum.c",
+    "gen/sources/xed-cpuid-group-enum.c",
+    "gen/sources/xed-cpuid-rec-enum.c",
     "gen/sources/xed-cpuid-tables.c",
+    "gen/sources/xed-error-enum.c",
     "gen/sources/xed-exception-enum.c",
     "gen/sources/xed-extension-enum.c",
-    "gen/sources/xed-error-enum.c",
     "gen/sources/xed-flag-action-enum.c",
     "gen/sources/xed-flag-enum.c",
     "gen/sources/xed-flags-actions.c",
@@ -186,24 +198,26 @@ GENERATED_DECODER_SOURCE = [
     "gen/sources/xed-iclass-enum.c",
     "gen/sources/xed-iclass-string.c",
     "gen/sources/xed-iform-enum.c",
+    "gen/sources/xed-iformfl-enum.c",
     "gen/sources/xed-iform-map-init.c",
     "gen/sources/xed-iform-max.c",
-    "gen/sources/xed-iformfl-enum.c",
     "gen/sources/xed-ild-disp-l3.c",
     "gen/sources/xed-ild-easz.c",
+    "gen/sources/xed-ild-enum.c",
     "gen/sources/xed-ild-eosz.c",
     "gen/sources/xed-ild-imm-l3.c",
-    "gen/sources/xed-init-inst-table-data.c",
     "gen/sources/xed-init-inst-table-0.c",
     "gen/sources/xed-init-inst-table.c",
+    "gen/sources/xed-init-inst-table-data.c",
     "gen/sources/xed-init-operand-data.c",
-    "gen/sources/xed-init-operand-type-mappings.c",
     "gen/sources/xed-init-operand-sequences.c",
+    "gen/sources/xed-init-operand-type-mappings.c",
     "gen/sources/xed-init-pointer-names.c",
     "gen/sources/xed-init-reg-class.c",
     "gen/sources/xed-init-width.c",
     "gen/sources/xed-isa-set-enum.c",
     "gen/sources/xed-machine-mode-enum.c",
+    "gen/sources/xed-mapu-enum.c",
     "gen/sources/xed-nonterminal-enum.c",
     "gen/sources/xed-operand-accessors.c",
     "gen/sources/xed-operand-action-enum.c",
@@ -219,14 +233,9 @@ GENERATED_DECODER_SOURCE = [
     "gen/sources/xed-operand-width-enum.c",
     "gen/sources/xed-reg-class-enum.c",
     "gen/sources/xed-reg-enum.c",
-    "gen/sources/xed-rep-map.c",
     "gen/sources/xed-reg-role-enum.c",
+    "gen/sources/xed-rep-map.c",
     "gen/sources/xed-syntax-enum.c",
-    "gen/sources/xed3-operand-lu.c",
-    "gen/sources/xed3-phash-lu-vv0.c",
-    "gen/sources/xed3-phash-lu-vv1.c",
-    "gen/sources/xed3-phash-lu-vv2.c",
-    "gen/sources/xed3-phash-lu-vv3.c",
 ]
 
 GENERATED_DECODER_HEADERS = [
@@ -235,7 +244,8 @@ GENERATED_DECODER_HEADERS = [
     "gen/sources/xed-category-enum.h",
     "gen/sources/xed-chip-enum.h",
     "gen/sources/xed-convert-table-init.h",
-    "gen/sources/xed-cpuid-bit-enum.h",
+    "gen/sources/xed-cpuid-group-enum.h",
+    "gen/sources/xed-cpuid-rec-enum.h",
     "gen/sources/xed-error-enum.h",
     "gen/sources/xed-exception-enum.h",
     "gen/sources/xed-extension-enum.h",
@@ -245,9 +255,11 @@ GENERATED_DECODER_HEADERS = [
     "gen/sources/xed-iclass-enum.h",
     "gen/sources/xed-iform-enum.h",
     "gen/sources/xed-iformfl-enum.h",
+    "gen/sources/xed-ild-enum.h",
     "gen/sources/xed-init-pointer-names.h",
     "gen/sources/xed-isa-set-enum.h",
     "gen/sources/xed-machine-mode-enum.h",
+    "gen/sources/xed-mapu-enum.h",
     "gen/sources/xed-nonterminal-enum.h",
     "gen/sources/xed-operand-accessors.h",
     "gen/sources/xed-operand-action-enum.h",
@@ -279,23 +291,24 @@ XED_SOURCE = glob(
         "src/common/xed-operand-values-interface-repl.c",
     ],
 ) + [
-    "datafiles/knc/xed-operand-values-interface-uisa.c",
+    "datafiles/avx512f/xed-operand-values-interface-uisa.c",
     "src/encdec/xed-enc-dec.c",
 ]
 
 XED_COPTS = [
     "-DXED_AMD_ENABLED",
     "-DXED_AVX",
-    "-DXED_SUPPORTS_AVX512",
-    "-DXED_MPX",
     "-DXED_CET",
-    "-DXED_SUPPORTS_SHA",
+    "-DXED_DLL",
     "-DXED_DECODER",
     "-DXED_ENCODER",
+    "-DXED_MPX",
+    "-DXED_SUPPORTS_AVX512",
     "-DXED_SUPPORTS_LZCNT_TZCNT",
-    "-DXED_BUILD",
-    "-DXED_GIT_VERSION='v10.0-153-g7888896'",
-    "-DXED_DLL",
+    "-DXED_SUPPORTS_SHA",
+    "-DXED_SUPPORTS_WBNOINVD",
+    "-DXED_VERSION='v2023.08.21'",
+    "-DXED_VIA_ENABLED",
     "-fvisibility=hidden",
     "-std=c99",
     "-Iexternal/libxed/include/private",
@@ -324,7 +337,8 @@ genrule(
         "gen/sources/xed-category-enum.h",
         "gen/sources/xed-chip-enum.h",
         "gen/sources/xed-convert-table-init.h",
-        "gen/sources/xed-cpuid-bit-enum.h",
+        "gen/sources/xed-cpuid-group-enum.h",
+        "gen/sources/xed-cpuid-rec-enum.h",
         "gen/sources/xed-encoder-gen-defs.h",
         "gen/sources/xed-encoder-iforms.h",
         "gen/sources/xed-error-enum.h",
@@ -336,9 +350,11 @@ genrule(
         "gen/sources/xed-iclass-enum.h",
         "gen/sources/xed-iform-enum.h",
         "gen/sources/xed-iformfl-enum.h",
+        "gen/sources/xed-ild-enum.h",
         "gen/sources/xed-init-pointer-names.h",
         "gen/sources/xed-isa-set-enum.h",
         "gen/sources/xed-machine-mode-enum.h",
+        "gen/sources/xed-mapu-enum.h",
         "gen/sources/xed-nonterminal-enum.h",
         "gen/sources/xed-operand-accessors.h",
         "gen/sources/xed-operand-action-enum.h",
@@ -362,10 +378,12 @@ genrule(
         "include/public/xed/xed-common-defs.h",
         "include/public/xed/xed-common-hdrs.h",
         "include/public/xed/xed-cpuid-rec.h",
-        "include/public/xed/xed-decode.h",
-        "include/public/xed/xed-decoded-inst.h",
         "include/public/xed/xed-decoded-inst-api.h",
+        "include/public/xed/xed-decoded-inst.h",
+        "include/public/xed/xed-decode.h",
         "include/public/xed/xed-disas.h",
+        "include/public/xed/xed-encode-check.h",
+        "include/public/xed/xed-encode-direct.h",
         "include/public/xed/xed-encode.h",
         "include/public/xed/xed-encoder-hl.h",
         "include/public/xed/xed-flags.h",
@@ -469,13 +487,14 @@ genrule(
         "dgen/all-dec-spine.txt",
         "dgen/all-element-type-base.txt",
         "dgen/all-element-types.txt",
+        "dgen/all-enc2-instructions.txt",
         "dgen/all-enc-dec-patterns.txt",
         "dgen/all-enc-instructions.txt",
         "dgen/all-enc-patterns.txt",
+        "dgen/all-errors.txt",
         "dgen/all-extra-widths.txt",
         "dgen/all-fields.txt",
-        "dgen/all-ild-getters.txt",
-        "dgen/all-ild-scanners.txt",
+        "dgen/all-map-descriptions.txt",
         "dgen/all-pointer-names.txt",
         "dgen/all-registers.txt",
         "dgen/all-state.txt",
@@ -488,10 +507,13 @@ genrule(
     tools = [":xed_mfile"],
 )
 
+# Generator flags used for both encoder and decoder generation.
 GENERATOR_COMMON_FLAGS = (
+    "--chip-models $(location dgen/all-chip-models.txt) " +
     "--input-fields $(location dgen/all-fields.txt) " +
     "--input-state $(location dgen/all-state.txt) " +
     "--input-regs $(location dgen/all-registers.txt) " +
+    "--map-descriptions $(location dgen/all-map-descriptions.txt) " +
     "--gendir $(@D)/gen/sources " +
     "--xeddir external/libxed/ "
 )
@@ -500,13 +522,15 @@ GENERATOR_COMMON_FLAGS = (
 genrule(
     name = "gen-xed-enc-generator",
     srcs = [
+        "dgen/all-chip-models.txt",
         "dgen/all-enc-dec-patterns.txt",
         "dgen/all-enc-instructions.txt",
         "dgen/all-enc-patterns.txt",
         "dgen/all-fields.txt",
+        "dgen/all-map-descriptions.txt",
         "dgen/all-registers.txt",
         "dgen/all-state.txt",
-        "misc/apache-header.txt",
+        "misc/legal-header.txt",
     ],
     outs = GENERATED_ENCODER_SOURCE + GENERATED_ENCODER_HEADERS + [
         "gen/sources/gen-xed-enc-generator.log",
@@ -516,6 +540,7 @@ genrule(
           "--isa $(location dgen/all-enc-instructions.txt) " +
           "--enc-patterns $(location dgen/all-enc-patterns.txt) " +
           "--enc-dec-patterns $(location dgen/all-enc-dec-patterns.txt) " +
+          "--chip ALL " +
           "2>&1 > $(location gen/sources/gen-xed-enc-generator.log)",
     tools = [":read-encfile"],
 )
@@ -535,27 +560,29 @@ genrule(
         "dgen/all-dec-patterns.txt",
         "dgen/all-element-types.txt",
         "dgen/all-element-type-base.txt",
+        "dgen/all-errors.txt",
         "dgen/all-extra-widths.txt",
         "dgen/all-fields.txt",
-        "dgen/all-ild-scanners.txt",
+        "dgen/all-map-descriptions.txt",
         "dgen/all-pointer-names.txt",
         "dgen/all-registers.txt",
         "dgen/all-state.txt",
         "dgen/all-widths.txt",
-        "datafiles/ild/include/xed-ild-scanners-base.h",
-        "misc/apache-header.txt",
+        "misc/legal-header.txt",
     ],
     outs = GENERATED_DECODER_SOURCE + GENERATED_DECODER_HEADERS + [
-        "gen/sources/cdata.txt",
         "gen/sources/gen-xed-dec-generator.log",
+        "gen/sources/cdata.txt",
+        "gen/sources/idata.txt",
         "gen/sources/ild_easz_debug_header.txt",
-        "gen/sources/ild_eosz_debug_header.txt",
         "gen/sources/ild_easz_debug.txt",
-        "gen/sources/ild_oesz_debug.txt",
+        "gen/sources/ild_eosz_debug_header.txt",
+        "gen/sources/ild_eosz_debug.txt",
         "gen/sources/xed-attribute-enum.txt",
         "gen/sources/xed-category-enum.txt",
         "gen/sources/xed-chip-enum.txt",
-        "gen/sources/xed-cpuid-bit-enum.txt",
+        "gen/sources/xed-cpuid-group-enum.txt",
+        "gen/sources/xed-cpuid-rec-enum.txt",
         "gen/sources/xed-exception-enum.txt",
         "gen/sources/xed-extension-enum.txt",
         "gen/sources/xed-iclass-enum.txt",
@@ -577,15 +604,14 @@ genrule(
           "--spine $(location dgen/all-dec-spine.txt) " +
           "--isa $(location dgen/all-dec-instructions.txt) " +
           "--patterns $(location dgen/all-dec-patterns.txt) " +
-          "--chip-models $(location dgen/all-chip-models.txt) " +
           "--ctables $(location dgen/all-conversion-table.txt) " +
           "--input-widths $(location dgen/all-widths.txt) " +
           "--input-extra-widths $(location dgen/all-extra-widths.txt) " +
           "--input-element-types $(location dgen/all-element-types.txt) " +
           "--input-element-type-base $(location dgen/all-element-type-base.txt) " +
           "--input-pointer-names $(location dgen/all-pointer-names.txt) " +
-          "--ild-scanners $(location dgen/all-ild-scanners.txt) " +
           "--cpuid $(location dgen/all-cpuid.txt) " +
+          "--input-errors $(location dgen/all-errors.txt) " +
           "2>&1 > $(location gen/sources/gen-xed-dec-generator.log)",
     tools = [":generator"],
 )
