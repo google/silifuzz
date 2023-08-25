@@ -287,7 +287,7 @@ const bool DEBUG_MODE = false;
 #else
 #define CHECK_STATUS(status)                                         \
   do {                                                               \
-    const ::absl::Status& status_value = (status);                   \
+    const ::absl::Status status_value = (status);                    \
     if (ABSL_PREDICT_FALSE(!status_value.ok())) {                    \
       SILIFUZZ_CHECKS_INTERNAL_BASENAME;                             \
       ::silifuzz::checks_internal::LogFatal(                         \
@@ -312,12 +312,12 @@ const bool DEBUG_MODE = false;
 //
 // We use a different name to avoid collisions in case some Silifuzz code
 // happens to transitively include //util/task/status_macros.h.
-#define RETURN_IF_NOT_OK(status)                   \
-  do {                                             \
-    const ::absl::Status& status_value = (status); \
-    if (ABSL_PREDICT_FALSE(!status_value.ok())) {  \
-      return status_value;                         \
-    }                                              \
+#define RETURN_IF_NOT_OK(status)                  \
+  do {                                            \
+    const ::absl::Status status_value = (status); \
+    if (ABSL_PREDICT_FALSE(!status_value.ok())) { \
+      return status_value;                        \
+    }                                             \
   } while (false)
 
 // Like RETURN_IF_NOT_OK(), but also prepends `message_prefix` to the returned
@@ -326,7 +326,7 @@ const bool DEBUG_MODE = false;
 // Note: usage also needs to depend on third_party/absl/strings/str_cat.h.
 #define RETURN_IF_NOT_OK_PLUS(status, message_prefix)              \
   do {                                                             \
-    const ::absl::Status& status_value = (status);                 \
+    const ::absl::Status status_value = (status);                  \
     if (ABSL_PREDICT_FALSE(!status_value.ok())) {                  \
       return ::absl::Status(                                       \
           status_value.code(),                                     \
@@ -347,7 +347,7 @@ const bool DEBUG_MODE = false;
 #define ASSIGN_OR_RETURN_IF_NOT_OK_IMPL_(value_or, dest, src) \
   auto value_or = (src);                                      \
   if (ABSL_PREDICT_FALSE(!value_or.ok())) {                   \
-    return value_or.status();                                 \
+    return std::move(value_or).status();                      \
   }                                                           \
   dest = std::move(value_or).value()
 
