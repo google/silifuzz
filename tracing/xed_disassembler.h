@@ -55,6 +55,8 @@ class XedDisassembler : public Disassembler {
   // How much data was consumed by the last call to Disassemble.
   [[nodiscard]] size_t InstructionSize() const override;
 
+  [[nodiscard]] virtual bool CanBranch() const override;
+
   // The textual representation of the last instruction that was disassembled.
   [[nodiscard]] std::string FullText() override;
 

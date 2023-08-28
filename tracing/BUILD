@@ -199,6 +199,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "disassembler_test",
+    srcs = ["disassembler_test.cc"],
+    deps = [
+        ":capstone_disassembler",
+        ":disassembler",
+        ":xed_disassembler",
+        "@silifuzz//util:arch",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "analysis",
     srcs = ["analysis.cc"],

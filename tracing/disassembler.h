@@ -51,6 +51,10 @@ class Disassembler {
   // How much data was consumed by the last call to Disassemble.
   [[nodiscard]] virtual size_t InstructionSize() const = 0;
 
+  // Can this instruction modify the instruction pointer, in some way?
+  // Includes direct jumps, indirect jumps, calls, returns, etc.
+  [[nodiscard]] virtual bool CanBranch() const = 0;
+
   // The textual representation of the last instruction that was disassembled.
   [[nodiscard]] virtual std::string FullText() = 0;
 

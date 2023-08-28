@@ -17,15 +17,53 @@
 #include <stdint.h>
 
 #include <cstddef>
-#include <limits>
 #include <string>
 
 #include "absl/strings/str_cat.h"
+#include "third_party/capstone/arm64.h"
 #include "third_party/capstone/capstone.h"
+#include "third_party/capstone/x86.h"
 #include "./tracing/disassembler.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
+
+namespace {
+
+template <typename Arch>
+bool InstructionCanBranch(cs_insn* decoded_insn);
+
+template <>
+bool InstructionCanBranch<X86_64>(cs_insn* decoded_insn) {
+  cs_detail* detail = decoded_insn->detail;
+  for (size_t i = 0; i < detail->groups_count; i++) {
+    if (detail->groups[i] == X86_GRP_JUMP ||
+        detail->groups[i] == X86_GRP_CALL || detail->groups[i] == X86_GRP_RET ||
+        detail->groups[i] == X86_GRP_BRANCH_RELATIVE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <>
+bool InstructionCanBranch<AArch64>(cs_insn* decoded_insn) {
+  cs_detail* detail = decoded_insn->detail;
+  for (size_t i = 0; i < detail->groups_count; i++) {
+    // In practice aarch64 labels all these instructions as "JUMP" but check all
+    // the groups in case this changes.
+    if (detail->groups[i] == ARM64_GRP_JUMP ||
+        detail->groups[i] == ARM64_GRP_CALL ||
+        detail->groups[i] == ARM64_GRP_RET ||
+        detail->groups[i] == ARM64_GRP_BRANCH_RELATIVE) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
 
 template <typename Arch>
 CapstoneDisassembler<Arch>::CapstoneDisassembler() : valid_(false) {
@@ -43,8 +81,7 @@ CapstoneDisassembler<Arch>::CapstoneDisassembler() : valid_(false) {
     LOG_FATAL("Bad arch_id");
   }
   CHECK_EQ(cs_open(arch, mode, &capstone_handle_), CS_ERR_OK);
-  // TODO(ncbray): turn this on when it's needed.
-  // CHECK_EQ(cs_option(capstone_handle_, CS_OPT_DETAIL, CS_OPT_ON), CS_ERR_OK);
+  CHECK_EQ(cs_option(capstone_handle_, CS_OPT_DETAIL, CS_OPT_ON), CS_ERR_OK);
   decoded_insn_ = cs_malloc(capstone_handle_);
 }
 
@@ -69,6 +106,11 @@ bool CapstoneDisassembler<Arch>::Disassemble(uint64_t address,
 template <typename Arch>
 size_t CapstoneDisassembler<Arch>::InstructionSize() const {
   return valid_ ? decoded_insn_->size : 0;
+}
+
+template <typename Arch>
+bool CapstoneDisassembler<Arch>::CanBranch() const {
+  return valid_ ? InstructionCanBranch<Arch>(decoded_insn_) : false;
 }
 
 template <typename Arch>

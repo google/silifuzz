@@ -39,6 +39,11 @@ struct InstructionInfo {
   // The size of the instruction in bytes.
   uint8_t size;
 
+  // Is this the type of instruction that can branch?
+  // This is type information and it does not indicate if the instruction
+  // actually branches.
+  bool can_branch;
+
   // Did this instruction play a role in producing the final end state?
   // The exact definition of this field depends on the kind of fault injection
   // performed, but at the time of writing this means that the instruction
@@ -171,6 +176,7 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
     info.address = address;
     info.instruction_id = disasm.InstructionID();
     info.size = disasm.InstructionSize();
+    info.can_branch = disasm.CanBranch();
   });
   absl::Status result = tracer.Run(execution_trace.MaxInstructions());
   // Capture the final state.

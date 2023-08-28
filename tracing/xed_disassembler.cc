@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include <cstddef>
-#include <limits>
 #include <string>
 
 #include "absl/base/call_once.h"
@@ -27,6 +26,8 @@
 #include "./util/checks.h"
 
 extern "C" {
+#include "third_party/libxed/xed-category-enum.h"
+#include "third_party/libxed/xed-decoded-inst-api.h"
 #include "third_party/libxed/xed-iclass-enum.h"
 }
 
@@ -59,6 +60,14 @@ bool XedDisassembler::Disassemble(uint64_t address, const uint8_t* buffer,
 
 size_t XedDisassembler::InstructionSize() const {
   return valid_ ? xed_decoded_inst_get_length(&xedd_) : 0;
+}
+
+bool XedDisassembler::CanBranch() const {
+  if (!valid_) return false;
+
+  xed_category_enum_t category = xed_decoded_inst_get_category(&xedd_);
+  return category == XED_CATEGORY_CALL || category == XED_CATEGORY_COND_BR ||
+         category == XED_CATEGORY_RET || category == XED_CATEGORY_UNCOND_BR;
 }
 
 std::string XedDisassembler::FullText() {
