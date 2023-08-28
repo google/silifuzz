@@ -20,6 +20,7 @@
 #include <string>
 
 #include "absl/strings/str_cat.h"
+#include "third_party/capstone/_/capstone/third_party/capstone/capstone.h"
 #include "third_party/capstone/arm64.h"
 #include "third_party/capstone/capstone.h"
 #include "third_party/capstone/x86.h"
@@ -37,7 +38,7 @@ bool InstructionCanBranch(cs_insn* decoded_insn);
 template <>
 bool InstructionCanBranch<X86_64>(cs_insn* decoded_insn) {
   cs_detail* detail = decoded_insn->detail;
-  for (size_t i = 0; i < detail->groups_count; i++) {
+  for (size_t i = 0; i < detail->groups_count; ++i) {
     if (detail->groups[i] == X86_GRP_JUMP ||
         detail->groups[i] == X86_GRP_CALL || detail->groups[i] == X86_GRP_RET ||
         detail->groups[i] == X86_GRP_BRANCH_RELATIVE) {
@@ -50,7 +51,7 @@ bool InstructionCanBranch<X86_64>(cs_insn* decoded_insn) {
 template <>
 bool InstructionCanBranch<AArch64>(cs_insn* decoded_insn) {
   cs_detail* detail = decoded_insn->detail;
-  for (size_t i = 0; i < detail->groups_count; i++) {
+  for (size_t i = 0; i < detail->groups_count; ++i) {
     // In practice aarch64 labels all these instructions as "JUMP" but check all
     // the groups in case this changes.
     if (detail->groups[i] == ARM64_GRP_JUMP ||
@@ -58,6 +59,69 @@ bool InstructionCanBranch<AArch64>(cs_insn* decoded_insn) {
         detail->groups[i] == ARM64_GRP_RET ||
         detail->groups[i] == ARM64_GRP_BRANCH_RELATIVE) {
       return true;
+    }
+  }
+  return false;
+}
+
+template <typename Arch>
+bool InstructionCanLoad(cs_insn* decoded_insn);
+
+template <>
+bool InstructionCanLoad<X86_64>(cs_insn* decoded_insn) {
+  const cs_x86& detail = decoded_insn->detail->x86;
+  for (size_t i = 0; i < detail.op_count; ++i) {
+    if (detail.operands[i].type == X86_OP_MEM) {
+      if (detail.operands[i].access & CS_AC_READ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+template <>
+bool InstructionCanLoad<AArch64>(cs_insn* decoded_insn) {
+  const cs_arm64& detail = decoded_insn->detail->arm64;
+  for (size_t i = 0; i < detail.op_count; ++i) {
+    if (detail.operands[i].type == ARM64_OP_MEM) {
+      // aarch64 sometimes marks pure loads or stores as load/stores.
+      // Unfortunately some atomic instructions are actually load/stores, so
+      // we cannot easily detect these cases without understanding the semantics
+      // of the instruction.
+      // For now, we just need to live with the inaccuracy.
+      if (detail.operands[i].access & CS_AC_READ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+template <typename Arch>
+bool InstructionCanStore(cs_insn* decoded_insn);
+
+template <>
+bool InstructionCanStore<X86_64>(cs_insn* decoded_insn) {
+  const cs_x86& detail = decoded_insn->detail->x86;
+  for (size_t i = 0; i < detail.op_count; ++i) {
+    if (detail.operands[i].type == X86_OP_MEM) {
+      if (detail.operands[i].access & CS_AC_WRITE) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+template <>
+bool InstructionCanStore<AArch64>(cs_insn* decoded_insn) {
+  const cs_arm64& detail = decoded_insn->detail->arm64;
+  for (size_t i = 0; i < detail.op_count; ++i) {
+    if (detail.operands[i].type == ARM64_OP_MEM) {
+      if (detail.operands[i].access & CS_AC_WRITE) {
+        return true;
+      }
     }
   }
   return false;
@@ -111,6 +175,16 @@ size_t CapstoneDisassembler<Arch>::InstructionSize() const {
 template <typename Arch>
 bool CapstoneDisassembler<Arch>::CanBranch() const {
   return valid_ ? InstructionCanBranch<Arch>(decoded_insn_) : false;
+}
+
+template <typename Arch>
+bool CapstoneDisassembler<Arch>::CanLoad() const {
+  return valid_ ? InstructionCanLoad<Arch>(decoded_insn_) : false;
+}
+
+template <typename Arch>
+bool CapstoneDisassembler<Arch>::CanStore() const {
+  return valid_ ? InstructionCanStore<Arch>(decoded_insn_) : false;
 }
 
 template <typename Arch>

@@ -35,6 +35,8 @@ struct DisassemblerTest {
   std::string opcode;
   bool partial_opcode;
   bool can_branch;
+  bool can_load;
+  bool can_store;
 };
 
 std::string insn(uint32_t value) {
@@ -50,10 +52,12 @@ std::vector<DisassemblerTest> DisassemblerTests_X86_64() {
       {
           .bytes = {0x51},
           .opcode = "push",
+          .can_store = true,
       },
       {
           .bytes = {0x59},
           .opcode = "pop",
+          .can_load = true,
       },
       {
           .bytes = {0xeb, 0x00},
@@ -70,12 +74,14 @@ std::vector<DisassemblerTest> DisassemblerTests_X86_64() {
           .opcode = "call",
           .partial_opcode = true,
           .can_branch = true,
+          .can_store = true,
       },
       {
           .bytes = {0xc3},
           .opcode = "ret",
           .partial_opcode = true,
           .can_branch = true,
+          .can_load = true,
       },
   };
 }
@@ -89,14 +95,18 @@ std::vector<DisassemblerTest> DisassemblerTests_AArch64() {
       {
           .bytes = insn(0xa9bf07e0),
           .opcode = "stp",
+          .can_store = true,
       },
       {
           .bytes = insn(0xa8c107e0),
           .opcode = "ldp",
+          .can_load = true,
       },
       {
           .bytes = insn(0xb82850fe),
           .opcode = "ldsmin",
+          .can_load = true,
+          .can_store = true,
       },
       {
           .bytes = insn(0x14000000),
@@ -116,12 +126,21 @@ std::vector<DisassemblerTest> DisassemblerTests_AArch64() {
   };
 }
 
-void RunDisassemblerTest(Disassembler& disasm, const DisassemblerTest& test) {
-  SCOPED_TRACE(test.opcode);
-  constexpr uint64_t kArbitraryAddress = 0x10000;
-  ASSERT_TRUE(disasm.Disassemble(
-      kArbitraryAddress, reinterpret_cast<const uint8_t*>(test.bytes.data()),
-      test.bytes.size()));
+enum class LoadStorePrecision {
+  kPrecise,
+  kCapstone_X86_64,
+  kCapstone_AArch64,
+};
+
+void RunDisassemblerTest(Disassembler& disasm, const DisassemblerTest& test,
+                         LoadStorePrecision lsp) {
+  {
+    SCOPED_TRACE(test.opcode);
+    constexpr uint64_t kArbitraryAddress = 0x10000;
+    ASSERT_TRUE(disasm.Disassemble(
+        kArbitraryAddress, reinterpret_cast<const uint8_t*>(test.bytes.data()),
+        test.bytes.size()));
+  }
   SCOPED_TRACE(disasm.FullText());
   EXPECT_EQ(disasm.InstructionSize(), test.bytes.size());
   std::string opcode = disasm.InstructionIDName(disasm.InstructionID());
@@ -131,13 +150,34 @@ void RunDisassemblerTest(Disassembler& disasm, const DisassemblerTest& test) {
     EXPECT_EQ(opcode, test.opcode);
   }
   EXPECT_EQ(disasm.CanBranch(), test.can_branch);
+
+  switch (lsp) {
+    case LoadStorePrecision::kPrecise:
+      EXPECT_EQ(disasm.CanLoad(), test.can_load);
+      EXPECT_EQ(disasm.CanStore(), test.can_store);
+      break;
+    case LoadStorePrecision::kCapstone_X86_64:
+      // Capstone x86_64 can miss implicit reads and writes to the stack.
+      // Only assert the cases we know can't write don't write.
+      if (!test.can_load) {
+        EXPECT_FALSE(disasm.CanLoad());
+      }
+      if (!test.can_store) {
+        EXPECT_FALSE(disasm.CanStore());
+      }
+      break;
+    case LoadStorePrecision::kCapstone_AArch64:
+      // Capstone aarch64 is can be wrong about loads and stores in a variety of
+      // ways.
+      break;
+  }
 }
 
 TEST(DisassemblerTest, Xed) {
   XedDisassembler disasm;
   const std::vector<DisassemblerTest> tests = DisassemblerTests_X86_64();
   for (const DisassemblerTest& test : tests) {
-    RunDisassemblerTest(disasm, test);
+    RunDisassemblerTest(disasm, test, LoadStorePrecision::kPrecise);
   }
 }
 
@@ -145,7 +185,7 @@ TEST(DisassemblerTest, Capstone_x86_64) {
   CapstoneDisassembler<X86_64> disasm;
   const std::vector<DisassemblerTest> tests = DisassemblerTests_X86_64();
   for (const DisassemblerTest& test : tests) {
-    RunDisassemblerTest(disasm, test);
+    RunDisassemblerTest(disasm, test, LoadStorePrecision::kCapstone_X86_64);
   }
 }
 
@@ -153,7 +193,7 @@ TEST(DisassemblerTest, Capstone_AArch64) {
   CapstoneDisassembler<AArch64> disasm;
   const std::vector<DisassemblerTest> tests = DisassemblerTests_AArch64();
   for (const DisassemblerTest& test : tests) {
-    RunDisassemblerTest(disasm, test);
+    RunDisassemblerTest(disasm, test, LoadStorePrecision::kCapstone_AArch64);
   }
 }
 

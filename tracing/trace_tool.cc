@@ -82,6 +82,7 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
             absl::Dec(info.address - execution_trace.EntryAddress(),
                       absl::kZeroPad4),
             " size=", absl::Dec(info.size, absl::kZeroPad2), " ",
+            info.can_load ? "L" : "-", info.can_store ? "S" : "-",
             info.can_branch ? "B" : "-");
 
         // How many bits changed?

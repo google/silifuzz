@@ -55,6 +55,12 @@ class Disassembler {
   // Includes direct jumps, indirect jumps, calls, returns, etc.
   [[nodiscard]] virtual bool CanBranch() const = 0;
 
+  // Can this instruction read from memory, in some way?
+  [[nodiscard]] virtual bool CanLoad() const = 0;
+
+  // Can this instruction write to memory, in some way?
+  [[nodiscard]] virtual bool CanStore() const = 0;
+
   // The textual representation of the last instruction that was disassembled.
   [[nodiscard]] virtual std::string FullText() = 0;
 

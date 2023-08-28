@@ -44,6 +44,12 @@ struct InstructionInfo {
   // actually branches.
   bool can_branch;
 
+  // Can this type of instruction read from memory?
+  bool can_load;
+
+  // Can this type of instruction write to memory?
+  bool can_store;
+
   // Did this instruction play a role in producing the final end state?
   // The exact definition of this field depends on the kind of fault injection
   // performed, but at the time of writing this means that the instruction
@@ -177,6 +183,8 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
     info.instruction_id = disasm.InstructionID();
     info.size = disasm.InstructionSize();
     info.can_branch = disasm.CanBranch();
+    info.can_load = disasm.CanLoad();
+    info.can_store = disasm.CanStore();
   });
   absl::Status result = tracer.Run(execution_trace.MaxInstructions());
   // Capture the final state.

@@ -70,6 +70,36 @@ bool XedDisassembler::CanBranch() const {
          category == XED_CATEGORY_RET || category == XED_CATEGORY_UNCOND_BR;
 }
 
+bool XedDisassembler::CanLoad() const {
+  if (!valid_) return false;
+
+  // Note: XED makes implicit memory operands for call/push/pop/etc explicit
+  // through this API.
+  const unsigned int num_mem =
+      xed_decoded_inst_number_of_memory_operands(&xedd_);
+  for (int i = 0; i < num_mem; ++i) {
+    if (xed_decoded_inst_mem_read(&xedd_, i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool XedDisassembler::CanStore() const {
+  if (!valid_) return false;
+
+  // Note: XED makes implicit memory operands for call/push/pop/etc explicit
+  // through this API.
+  const unsigned int num_mem =
+      xed_decoded_inst_number_of_memory_operands(&xedd_);
+  for (int i = 0; i < num_mem; ++i) {
+    if (xed_decoded_inst_mem_written(&xedd_, i)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 std::string XedDisassembler::FullText() {
   if (valid_) {
     xed_print_info_t pi;

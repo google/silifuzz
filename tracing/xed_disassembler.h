@@ -56,6 +56,8 @@ class XedDisassembler : public Disassembler {
   [[nodiscard]] size_t InstructionSize() const override;
 
   [[nodiscard]] virtual bool CanBranch() const override;
+  [[nodiscard]] virtual bool CanLoad() const override;
+  [[nodiscard]] virtual bool CanStore() const override;
 
   // The textual representation of the last instruction that was disassembled.
   [[nodiscard]] std::string FullText() override;
