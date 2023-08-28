@@ -20,7 +20,6 @@
 #include <string>
 
 #include "absl/strings/str_cat.h"
-#include "third_party/capstone/_/capstone/third_party/capstone/capstone.h"
 #include "third_party/capstone/arm64.h"
 #include "third_party/capstone/capstone.h"
 #include "third_party/capstone/x86.h"
