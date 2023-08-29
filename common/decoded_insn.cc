@@ -36,13 +36,23 @@
 #include "./util/misc_util.h"
 
 extern "C" {
+#include "third_party/libxed/xed-address-width-enum.h"
 #include "third_party/libxed/xed-agen.h"
+#include "third_party/libxed/xed-attribute-enum.h"
+#include "third_party/libxed/xed-decode.h"
+#include "third_party/libxed/xed-decoded-inst-api.h"
 #include "third_party/libxed/xed-error-enum.h"
 #include "third_party/libxed/xed-iclass-enum.h"
 #include "third_party/libxed/xed-iform-enum.h"
+#include "third_party/libxed/xed-init.h"
+#include "third_party/libxed/xed-machine-mode-enum.h"
+#include "third_party/libxed/xed-operand-accessors.h"
+#include "third_party/libxed/xed-operand-enum.h"
+#include "third_party/libxed/xed-print-info.h"
 #include "third_party/libxed/xed-reg-class.h"
 #include "third_party/libxed/xed-reg-enum.h"
 #include "third_party/libxed/xed-syntax-enum.h"
+#include "third_party/libxed/xed-types.h"
 };
 
 namespace silifuzz {
@@ -74,27 +84,43 @@ bool DecodedInsn::is_deterministic() const {
   DCHECK_STATUS(status_);
   xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
   switch (iclass) {
+    case XED_ICLASS_RDPID:
     case XED_ICLASS_RDRAND:
     case XED_ICLASS_RDSEED:
     case XED_ICLASS_RDTSC:
     case XED_ICLASS_RDTSCP:
-    case XED_ICLASS_RDPID:
+      return false;
     case XED_ICLASS_CPUID:
+    case XED_ICLASS_RDFSBASE:
+    case XED_ICLASS_RDGSBASE:
+    case XED_ICLASS_RDMSR:
+    case XED_ICLASS_RDMSRLIST:
+    case XED_ICLASS_RDPKRU:
+    case XED_ICLASS_RDPMC:
+    case XED_ICLASS_RDPRU:
+    case XED_ICLASS_RDSSPD:
+    case XED_ICLASS_RDSSPQ:
+    case XED_ICLASS_WRFSBASE:
+    case XED_ICLASS_WRGSBASE:
+    case XED_ICLASS_WRMSR:
+    case XED_ICLASS_WRMSRLIST:
+    case XED_ICLASS_WRMSRNS:
+    case XED_ICLASS_WRPKRU:
+    case XED_ICLASS_WRSSD:
+    case XED_ICLASS_WRSSQ:
+    case XED_ICLASS_WRUSSD:
+    case XED_ICLASS_WRUSSQ:
+    case XED_ICLASS_XGETBV:
+      // These are deterministic in the mathematical sense. However, they touch
+      // registers that either cannot or are not currently preserved as part of
+      // the UContext struct.
+      // Such instructions can and often do cause false positives.
       return false;
     case XED_ICLASS_SYSCALL:
     case XED_ICLASS_SYSENTER:
     case XED_ICLASS_INT:
     case XED_ICLASS_INT1:
     case XED_ICLASS_INTO:
-      return false;
-    case XED_ICLASS_WRFSBASE:
-    case XED_ICLASS_WRGSBASE:
-    case XED_ICLASS_RDFSBASE:
-    case XED_ICLASS_RDGSBASE:
-    case XED_ICLASS_XGETBV:
-      // These are deterministic in the mathematical sense. However, they touch
-      // registers that cannot be read/written without a syscall and are
-      // therefore not allowed in SiliFuzz.
       return false;
     case XED_ICLASS_FNSAVE:
     case XED_ICLASS_FXSAVE:
