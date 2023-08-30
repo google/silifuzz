@@ -14,6 +14,8 @@
 
 #include "./util/platform.h"
 
+#include <cstdint>
+
 #include "./util/checks.h"
 #include "./util/itoa.h"
 
@@ -34,11 +36,12 @@ PlatformId DoCurrentPlatformId() {
 
   if (implementer == 0x41) {
     // This means the core is ARM IP. Different SoCs may use the same IP.
-    if (part_number == 0xd0c) {
-      return PlatformId::kArmNeoverseN1;
-    } else {
-      LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
-      return PlatformId::kUndefined;
+    switch (part_number) {
+      case 0xd0c:
+        return PlatformId::kArmNeoverseN1;
+      default:
+        LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
+        return PlatformId::kUndefined;
     }
   } else if (implementer == 0xc0) {
     // Ampere Computing

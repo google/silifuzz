@@ -170,7 +170,9 @@ cc_library(
     srcs = ["snapshot_proto.cc"],
     hdrs = ["snapshot_proto.h"],
     deps = [
+        ":memory_perms",
         ":snapshot",
+        ":snapshot_enums",
         ":snapshot_types",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
