@@ -66,11 +66,15 @@ void SetupCPUState(uc_engine *uc) {
 
   // The entry sequence needs to ERET to somewhere mapped, choose just after the
   // entry sequence.
-  uint64_t exit_address = kEntrySequenceAddress + sizeof(kEntrySequence);
+  const uint64_t exit_address = kEntrySequenceAddress + sizeof(kEntrySequence);
   UNICORN_CHECK(uc_reg_write(uc, UC_ARM64_REG_X30, &exit_address));
 
-  // Execute the entry seqeunce
-  UNICORN_CHECK(uc_emu_start(uc, kEntrySequenceAddress, exit_address, 0, 100));
+  // Execute the entry sequence.
+  // For performance reasons, all calls to uc_emu_start should either limit the
+  // number of instructions executed or not limit the number of instructions
+  // executed. Switching between these modes will flush the code translation
+  // buffer in Unicorn v2.
+  UNICORN_CHECK(uc_emu_start(uc, kEntrySequenceAddress, exit_address, 0, 0));
 
   // Unmap the entry sequence
   UNICORN_CHECK(uc_mem_unmap(uc, kEntrySequenceAddress, 0x1000));

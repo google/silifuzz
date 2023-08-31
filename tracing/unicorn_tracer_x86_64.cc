@@ -281,10 +281,15 @@ void UnicornTracer<X86_64>::SetInitialRegisters(
   UNICORN_CHECK(uc_mem_write(uc_, addr, &fpregs, kFPRegsSize));
   // fxrstor64 [rdi]
   const std::string fxRstorRdiByteCode = {0x48, 0x0F, 0xAE, 0x0F};
-  UNICORN_CHECK(uc_mem_write(uc_, addr + kFPRegsSize, fxRstorRdiByteCode.data(),
+  const uint64_t code_begin = addr + kFPRegsSize;
+  const uint64_t code_end = code_begin + fxRstorRdiByteCode.length();
+  UNICORN_CHECK(uc_mem_write(uc_, code_begin, fxRstorRdiByteCode.data(),
                              fxRstorRdiByteCode.length()));
-  // Execute exactly one instruction (count=1).
-  UNICORN_CHECK(uc_emu_start(uc_, addr + kFPRegsSize, 0, 0, /* count = */ 1));
+  // For performance reasons, all calls to uc_emu_start should either limit the
+  // number of instructions executed or not limit the number of instructions
+  // executed. Switching between these modes will flush the code translation
+  // buffer in Unicorn v2.
+  UNICORN_CHECK(uc_emu_start(uc_, code_begin, code_end, 0, 0));
   UNICORN_CHECK(uc_mem_unmap(uc_, addr, kPageSize));
 
   // This will redundantly set some of the floating point registers, but that
