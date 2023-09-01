@@ -28,10 +28,13 @@
 #include "./player/trace_options.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/hostname.h"
+#include "./util/itoa.h"
 #include "./util/page_util.h"
 #include "./util/platform.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace fix_tool_internal {
@@ -59,6 +62,8 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
   RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
   TraceOptions trace_options = TraceOptions::Default();
   trace_options.x86_filter_split_lock = options.x86_filter_split_lock;
+  trace_options.x86_filter_vsyscall_region_access =
+      options.x86_filter_vsyscall_region_access;
   return maker.CheckTrace(recorded_snapshot, trace_options);
 }
 

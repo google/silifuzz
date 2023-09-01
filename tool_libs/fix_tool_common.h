@@ -96,6 +96,11 @@ struct FixupSnapshotOptions {
   // line boundaries are filtered by FixupSnapshot. This option is
   // x86-only and has no effect on other platforms.
   bool x86_filter_split_lock = false;
+
+  // If true, snapshots containing instructions that access vsyscall memory
+  // region are filtered by FixupSnapshot. This option is x86-only and has no
+  // effect on other platforms.
+  bool x86_filter_vsyscall_region_access = false;
 };
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.
