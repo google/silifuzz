@@ -465,6 +465,17 @@ add $0x4, %r8
 """,
   )
 
+  b.snapshot(
+      name="VSyscallRegionAccess",
+      arch=X86_64,
+      src="""
+// Beginning of vsycall region
+movq $0xffffffffff600000, %rax
+// This may fault if legacy vsyscall API is not configured in kernel.
+movq (%rax), %rbx
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(
@@ -652,6 +663,7 @@ def generate_source(b, out):
 
 #include <cstddef>
 
+#include "third_party/silifuzz/common/snapshot_test_enum.h"
 #include "third_party/silifuzz/util/arch.h"
 #include "third_party/silifuzz/util/checks.h"
 

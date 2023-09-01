@@ -17,16 +17,16 @@
 #
 
 load(
+    "@silifuzz//build_defs:constants.bzl",
+    "SILIFUZZ_RUNNER_BASE_ADDRESS",
+)
+load("@silifuzz//build_defs:nosan.bzl", "nosan_filegroup")
+load(
     "@silifuzz//util:nolibc.bzl",
     "cc_binary_nolibc",
     "cc_library_nolibc",
     "cc_library_plus_nolibc",
     "cc_test_nolibc",
-)
-load("@silifuzz//build_defs:nosan.bzl", "nosan_filegroup")
-load(
-    "@silifuzz//build_defs:constants.bzl",
-    "SILIFUZZ_RUNNER_BASE_ADDRESS",
 )
 
 package(default_visibility = ["//visibility:public"])
@@ -306,6 +306,7 @@ cc_test(
         ":disassembling_snap_tracer",
         ":runner_provider",
         "@silifuzz//common:snapshot_enums",
+        "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snapshots",

@@ -26,6 +26,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/snapshot_enums.h"
+#include "./common/snapshot_test_enum.h"
 #include "./player/trace_options.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/runner_provider.h"
@@ -126,6 +127,54 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   EXPECT_THAT(result2, StatusIs(absl::StatusCode::kInvalidArgument));
   const auto& trace_result2 = split_lock_tracer.trace_result();
   EXPECT_EQ(trace_result2.early_termination_reason, "Split-lock insn INC_LOCK");
+}
+
+TEST(DisassemblingSnapTracer, TraceVSyscallRegionAccess) {
+  // Trace split-lock snapshot without split-lock trapping.
+  RunnerDriver driver = HelperDriver();
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kVSyscallRegionAccess);
+  TraceOptions options = TraceOptions::Default();
+  options.x86_filter_vsyscall_region_access = false;
+  DisassemblingSnapTracer tracer(snapshot, options);
+  ASSERT_OK_AND_ASSIGN(
+      const auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  EXPECT_FALSE(result.success());  // We don't have the correct endstate.
+  const auto& trace_result = tracer.trace_result();
+  // We may execute either 1 or 3 instruction depending on whether kernel
+  // has legacy vsyscall configured.
+  if (trace_result.instructions_executed == 3) {
+    EXPECT_THAT(trace_result.disassembly,
+                ElementsAre(Insn("mov rax, 0xffffffffff600000"),
+                            Insn("mov rbx, qword ptr [rax]"),
+                            Insn("call qword ptr [rip]")));
+
+  } else {
+    // vsyscall not configured for kernel. Snapshot should abort with a fault.
+    EXPECT_EQ(trace_result.instructions_executed, 2);
+    EXPECT_THAT(trace_result.disassembly,
+                ElementsAre(Insn("mov rax, 0xffffffffff600000"),
+                            Insn("mov rbx, qword ptr [rax]")));
+    EXPECT_EQ(trace_result.early_termination_reason, "");
+  }
+
+  // Trace again with vsyscall region access filtering enabled.
+  options.x86_filter_vsyscall_region_access = true;
+  DisassemblingSnapTracer vsyscall_region_access_tracer(snapshot, options);
+  const auto result2 = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step,
+                                      &vsyscall_region_access_tracer));
+  EXPECT_THAT(result2, StatusIs(absl::StatusCode::kInvalidArgument));
+  const auto& trace_result2 = vsyscall_region_access_tracer.trace_result();
+  EXPECT_EQ(trace_result2.instructions_executed, 2);
+  EXPECT_THAT(trace_result2.disassembly,
+              ElementsAre(Insn("mov rax, 0xffffffffff600000"),
+                          Insn("mov rbx, qword ptr [rax]")));
+  EXPECT_EQ(trace_result2.early_termination_reason,
+            "May access vsyscall region MOV");
 }
 
 }  // namespace

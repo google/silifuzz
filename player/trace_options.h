@@ -47,6 +47,12 @@ class TraceOptions {
   // If true, tracer injects a signal when a non-deterministic instruction is
   // detected in the trace.
   bool filter_non_deterministic_insn = true;
+
+  // If true, tracer injects a signal when a instruction accesses memory in
+  // vsyscall memory region of Linux. This has no effect on non-x86 platforms.
+  // Contents of the region depends on kernel version and may not be
+  // present at all if vsyscall is not configured in the kernel.
+  bool x86_filter_vsyscall_region_access = true;
 };
 
 }  // namespace silifuzz

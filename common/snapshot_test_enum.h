@@ -103,6 +103,9 @@ enum class TestSnapshot {
   // Snapshot that calls _exit_group(0)
   kExitGroup,
 
+  // Snapshot that accesses VSyscall memory region
+  kVSyscallRegionAccess,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };
