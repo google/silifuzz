@@ -14,6 +14,7 @@
 
 #include <sys/user.h>
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -59,6 +60,26 @@ TEST(FuzzDecodedInsn, ConstructorWithRandomInsnBytesRegression) {
                   "\000\000\231\200\000\000\000\006k\323",
                   34));
 }
+
+void MayAccessRegionRandomInsnAndRegs(const std::string& bytes, uintptr_t start,
+                                      uintptr_t size, uintptr_t error_margin,
+                                      const std::string& regs) {
+  DecodedInsn insn(bytes);
+  // If bytes contain a valid locking instruction, may_have_split_lock()
+  // should not fail.
+  if (insn.is_valid()) {
+    struct user_regs_struct regs_struct;
+    memcpy(&regs_struct, regs.data(), sizeof(regs_struct));
+    EXPECT_THAT(insn.may_access_region(regs_struct, start, size, error_margin),
+                IsOk());
+  }
+}
+
+FUZZ_TEST(FuzzDecodedInsn, MayAccessRegionRandomInsnAndRegs)
+    .WithDomains(Arbitrary<std::string>().WithMaxSize(15),
+                 Arbitrary<uintptr_t>(), Arbitrary<uintptr_t>(),
+                 Arbitrary<uintptr_t>(),
+                 Arbitrary<std::string>().WithSize(sizeof(user_regs_struct)));
 
 }  // namespace
 
