@@ -19,7 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <string>
+#include <limits>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -30,7 +30,6 @@
 #include "./util/testing/status_matchers.h"
 
 extern "C" {
-#include "third_party/libxed/xed-interface.h"
 #include "third_party/libxed/xed-reg-enum.h"
 };
 
@@ -349,7 +348,7 @@ TEST(DecodedInsn, ConstructWithAddress) {
 
 TEST(DecodedInsn, IsRepByteStore) {
   struct TestCase {
-    const char* raw_bytes = nullptr;   // insturction bytes.
+    const char* raw_bytes = nullptr;    // insturction bytes.
     const char* disassembly = nullptr;  // expected value for DebugString().
     bool is_rep_byte_store = false;  // expected value for is_rep_byte_store().
   };
@@ -467,6 +466,63 @@ TEST(DecodedInsn, RexBits) {
               test_case.diassembly);
     EXPECT_EQ(insn.rex_bits(), test_case.rex_bits);
   }
+}
+
+TEST(DecodedInsn, may_access_region) {
+  DecodedInsn insn("\xc5\x7c\x5a\x9a\xf2\xff\x5e\xff");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "vcvtps2pd ymm11, xmmword ptr [rdx-0xa1000e]");
+  struct user_regs_struct regs {};
+  regs.rdx = 0x10ff5;
+  constexpr uintptr_t kVSyscallStart = 0xffffffffff600000ULL;
+  constexpr uintptr_t kVSyscallSize = 0x800000;
+  EXPECT_THAT(insn.may_access_region(regs, kVSyscallStart, kVSyscallSize),
+              IsOkAndHolds(true));
+
+  // Test error margin.
+  const uintptr_t memory_operand_address = regs.rdx - 0xa1000eULL;
+  const size_t error_margin = 64;
+  EXPECT_THAT(
+      insn.may_access_region(regs, memory_operand_address, 1, error_margin),
+      IsOkAndHolds(true));
+  EXPECT_THAT(insn.may_access_region(
+                  regs, memory_operand_address - error_margin, 1, error_margin),
+              IsOkAndHolds(true));
+  EXPECT_THAT(
+      insn.may_access_region(regs, memory_operand_address - error_margin - 1, 1,
+                             error_margin),
+      IsOkAndHolds(false));
+  EXPECT_THAT(insn.may_access_region(
+                  regs, memory_operand_address + error_margin, 1, error_margin),
+              IsOkAndHolds(true));
+  EXPECT_THAT(
+      insn.may_access_region(regs, memory_operand_address + error_margin + 1, 1,
+                             error_margin),
+      IsOkAndHolds(false));
+
+  // Test overflows are handled correctly.
+  DecodedInsn insn2("\x48\x0f\xb6\x18");
+  ASSERT_TRUE(insn2.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn2.DebugString()),
+            "movzx rbx, byte ptr [rax]");
+  regs.rax = 42;
+  EXPECT_THAT(insn2.may_access_region(regs, 10, 11, 100), IsOkAndHolds(true));
+  constexpr uintptr_t kAddressMax = std::numeric_limits<uintptr_t>::max();
+  regs.rax = kAddressMax - 10;
+  EXPECT_THAT(insn2.may_access_region(regs, kAddressMax - 1, kAddressMax, 100),
+              IsOkAndHolds(true));
+
+  // Test implicit memory operand.
+  DecodedInsn insn3("\x50");
+  ASSERT_TRUE(insn3.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()), "push rax");
+  regs.rsp = 0x12345678;
+
+  // may_access_region() does not correctly take into account pre-decrement of
+  // push but it is okay since the default margin of error is 64k.
+  EXPECT_THAT(insn3.may_access_region(regs, regs.rsp, regs.rsp + 1),
+              IsOkAndHolds(true));
 }
 
 }  // namespace

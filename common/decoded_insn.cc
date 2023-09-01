@@ -18,9 +18,11 @@
 #include <sys/user.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <string>
 
 #include "absl/base/call_once.h"
@@ -490,9 +492,9 @@ absl::StatusOr<uint64_t> DecodedInsn::memory_operand_address(
   DCHECK_STATUS(status_);
   xed_uint64_t address;
 
-  // xed_agen() requires a non-const pointer. Make a copy of 'regs' and
-  // pass pointer to copy instead.
-  user_regs_struct writable_regs = regs;
+  // xed_agen() requires a non-const pointer. Make a copy of
+  // 'regs' and pass pointer to copy instead.
+  struct user_regs_struct writable_regs = regs;
   xed_error_enum_t error = xed_agen(&xed_insn_, i, &writable_regs, &address);
   if (error == XED_ERROR_NONE) {
     return address;
@@ -502,4 +504,37 @@ absl::StatusOr<uint64_t> DecodedInsn::memory_operand_address(
   }
 }
 
+absl::StatusOr<bool> DecodedInsn::may_access_region(
+    const struct user_regs_struct& regs, uintptr_t start, uintptr_t size,
+    uintptr_t error_margin) {
+  DCHECK_STATUS(status_);
+  const size_t num_mem_operands =
+      xed_decoded_inst_number_of_memory_operands(&xed_insn_);
+  // Exit early if possible.
+  if (size == 0 || num_mem_operands == 0) {
+    return false;
+  }
+
+  auto add_saturated = [](uintptr_t a, uintptr_t b) {
+    const uintptr_t b_max = std::numeric_limits<uintptr_t>::max() - a;
+    return a + std::min<uintptr_t>(b, b_max);
+  };
+
+  // Expand region by error margin and be careful about overflows.
+  const uintptr_t start_with_error_margin =
+      start > error_margin ? start - error_margin : 0;
+  const uintptr_t size_with_error_margin = add_saturated(size, error_margin);
+  // Size is at least 1, it is safe to subtract 1.
+  const uintptr_t last_address_with_error_margin =
+      add_saturated(start, size_with_error_margin - 1);
+  for (size_t i = 0; i < num_mem_operands; ++i) {
+    ASSIGN_OR_RETURN_IF_NOT_OK(uint64_t address,
+                               memory_operand_address(i, regs));
+    if (address >= start_with_error_margin &&
+        address <= last_address_with_error_margin) {
+      return true;
+    }
+  }
+  return false;
+}
 }  // namespace silifuzz

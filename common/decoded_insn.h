@@ -90,6 +90,19 @@ class DecodedInsn {
   // can have false negatives in theory. REQUIRES: is_valid().
   absl::StatusOr<bool> may_have_split_lock(const struct user_regs_struct& regs);
 
+  // Tells if executing instruction with register state in 'regs' may access
+  // the memory region specified by 'start' and 'size'. To simplify computation
+  // we use a very conservative estimate controlled by 'error_margin'.  False
+  // positives are possible but there should not be false negatives with a
+  // sufficiently large error margin. Returns a bool indicating if the region
+  // may be accessed or a status if any error has occurred internally.
+  //
+  // CAVEAT: rep instructions are treated as if they executed only 1 iteration.
+  // REQUIRES: is_valid().
+  absl::StatusOr<bool> may_access_region(const struct user_regs_struct& regs,
+                                         uintptr_t start, size_t size,
+                                         uintptr_t error_margin = 0x10000);
+
   // Tells if this is a rep byte store (movsb or stosb).
   // REQUIRES: is_valid().
   bool is_rep_byte_store() const;
