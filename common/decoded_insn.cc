@@ -41,6 +41,7 @@ extern "C" {
 #include "third_party/libxed/xed-address-width-enum.h"
 #include "third_party/libxed/xed-agen.h"
 #include "third_party/libxed/xed-attribute-enum.h"
+#include "third_party/libxed/xed-category-enum.h"
 #include "third_party/libxed/xed-decode.h"
 #include "third_party/libxed/xed-decoded-inst-api.h"
 #include "third_party/libxed/xed-error-enum.h"
@@ -513,6 +514,20 @@ absl::StatusOr<bool> DecodedInsn::may_access_region(
   // Exit early if possible.
   if (size == 0 || num_mem_operands == 0) {
     return false;
+  }
+
+  // Scatter and gather instructions use vector registers as indices
+  // Currently we do not read contents of vector register during tracing.
+  // Thus we cannot easily tell if any scatter and gather instructions touch
+  // the region or not.  To be conservative, return true always.
+  xed_category_enum_t category = xed_decoded_inst_get_category(&xed_insn_);
+  switch (category) {
+    case XED_CATEGORY_GATHER:
+    case XED_CATEGORY_SCATTER:
+      // Potentially this instruction can touch the vsyscall region.
+      return true;
+    default:
+      break;
   }
 
   auto add_saturated = [](uintptr_t a, uintptr_t b) {

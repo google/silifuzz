@@ -523,6 +523,17 @@ TEST(DecodedInsn, may_access_region) {
   // push but it is okay since the default margin of error is 64k.
   EXPECT_THAT(insn3.may_access_region(regs, regs.rsp, regs.rsp + 1),
               IsOkAndHolds(true));
+
+  // Gather/Scatter instructions use vector registers as indices. For now,
+  // may_access_region() always return true as we do not have vector register
+  // contents in tracing.
+  DecodedInsn insn4("\x62\xf2\xfd\x49\xa2\x0c\x07");
+  ASSERT_TRUE(insn4.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn4.DebugString()),
+            "vscatterdpd qword ptr [rdi+ymm0*1], k1, zmm1");
+  regs.rdi = 0;
+  EXPECT_THAT(insn4.may_access_region(regs, kVSyscallStart, kVSyscallSize),
+              IsOkAndHolds(true));
 }
 
 }  // namespace
