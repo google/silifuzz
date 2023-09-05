@@ -28,7 +28,9 @@ namespace silifuzz {
 namespace {
 using silifuzz::DefaultSnapMakerOptionsForTest;
 using silifuzz::FixSnapshotInTest;
+using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
+using ::testing::AnyOf;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
@@ -103,20 +105,40 @@ TEST(SnapMaker, VSyscallRegionAccess) {
   GTEST_SKIP()
       << "VSyscall region access detection implemented only on x86_64.";
 #endif
-
+  // Unfortunately this test depends on whether vsyscall is configured in
+  // the Linux kernel. If it is configured, fixing will succeed.  Otherwise it
+  // will fail due to snapshot overlapping with a reserved memory mapping.
   const auto vsyscallRegionAccessSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kVSyscallRegionAccess);
   SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
   TraceOptions trace_options;
   trace_options.x86_filter_vsyscall_region_access = false;
-  ASSERT_OK(
-      FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options));
-
-  trace_options.x86_filter_vsyscall_region_access = true;
   auto result_or =
       FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options);
-  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
-                                  HasSubstr("May access vsyscall region")));
+  EXPECT_THAT(
+      result_or,
+      AnyOf(IsOk(),
+            StatusIs(absl::StatusCode::kInvalidArgument,
+                     "memory mappings overlap reserved memory mappings")));
+
+  trace_options.x86_filter_vsyscall_region_access = true;
+  result_or =
+      FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options);
+
+  // Depending on whether vsyscall is configured in the kernel, we will get
+  // different results. If vsyscall is configured in the kernel vsyscall region
+  // access is detected during tracing. On a machine running a kernel without
+  // vsyscall configured, the vsyscall region is unmapped. When the test is
+  // being made, the vsyscall page will be added to the data memory of the
+  // snapshot. This will later cause the snapshot to be rejected due to snapshot
+  // overlapping with a reserved mapping and it happens before snapshot tracing.
+  EXPECT_THAT(
+      result_or,
+      AnyOf(StatusIs(absl::StatusCode::kInternal,
+                     HasSubstr("May access vsyscall region")),
+            StatusIs(absl::StatusCode::kInvalidArgument,
+                     HasSubstr(
+                         "memory mappings overlap reserved memory mappings"))));
 }
 
 }  // namespace
