@@ -17,6 +17,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "./common/snapshot_test_enum.h"
 #include "./player/trace_options.h"
 #include "./runner/snap_maker_test_util.h"
 #include "./snap/testing/snap_test_snapshots.h"
@@ -95,6 +96,27 @@ TEST(SnapMaker, ExitGroup) {
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("Unlikely: snapshot kExitGroup had an "
                                  "undefined end state yet ran successfully")));
+}
+
+TEST(SnapMaker, VSyscallRegionAccess) {
+#if !defined(__x86_64__)
+  GTEST_SKIP()
+      << "VSyscall region access detection implemented only on x86_64.";
+#endif
+
+  const auto vsyscallRegionAccessSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kVSyscallRegionAccess);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  TraceOptions trace_options;
+  trace_options.x86_filter_vsyscall_region_access = false;
+  ASSERT_OK(
+      FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options));
+
+  trace_options.x86_filter_vsyscall_region_access = true;
+  auto result_or =
+      FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options);
+  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
+                                  HasSubstr("May access vsyscall region")));
 }
 
 }  // namespace

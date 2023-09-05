@@ -372,6 +372,7 @@ cc_test(
     deps = [
         ":snap_maker",
         ":snap_maker_test_util",
+        "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//player:trace_options",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//util/testing:status_macros",
