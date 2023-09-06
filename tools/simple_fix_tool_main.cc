@@ -48,6 +48,9 @@ ABSL_FLAG(bool, x86_filter_split_lock, true,
           "On x86, filter snaps with lock instructions accessing memory across "
           "cache line boundaries.");
 
+ABSL_FLAG(bool, x86_filter_vsyscall_region_access, true,
+          "On x86, filter snaps with memory accesses to vsyscall region");
+
 namespace silifuzz {
 namespace {
 
@@ -70,6 +73,8 @@ int SimpleFixToolMain(int argc, char* argv[]) {
       absl::GetFlag(FLAGS_num_partitioning_iterations);
   options.parallelism = absl::GetFlag(FLAGS_parallelism);
   options.x86_filter_split_lock = absl::GetFlag(FLAGS_x86_filter_split_lock);
+  options.x86_filter_vsyscall_region_access =
+      absl::GetFlag(FLAGS_x86_filter_vsyscall_region_access);
 
   fix_tool_internal::SimpleFixToolCounters counters;
   FixupCorpus(options, inputs, absl::GetFlag(FLAGS_output_path_prefix),

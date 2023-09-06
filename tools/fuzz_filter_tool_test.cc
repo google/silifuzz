@@ -115,6 +115,11 @@ TEST(FuzzFilterTool, INC_SPLIT_LOCK) {
                                   0xc0, 0xf0, 0xff, 0x40, 0xff}));
 }
 
+TEST(FuzzFilterTool, VSyscallRegionAccess) {
+  EXPECT_FILTER_REJECT(
+      FromBytes({0x48, 0xc7, 0xc0, 0x00, 0x00, 0x60, 0xff, 0x48, 0x8b, 0x18}));
+}
+
 #elif defined(__aarch64__)
 
 TEST(FuzzFilterTool, ReadTPIDR) {
