@@ -430,6 +430,10 @@ constexpr InstructionBits kUserspaceSysreg = {
 
 // Specific banned sysregs that are not caught by more general filters.
 constexpr uint32_t kBannedSysregs[] = {
+    // RNDR - hardware random number
+    sysreg(0b11, 0b011, 0b0010, 0b0100, 0b000),
+    // RNDRSS - hardware random number
+    sysreg(0b11, 0b011, 0b0010, 0b0100, 0b001),
     // CNTP_TVAL_EL0 - older versions of QEMU do not control access to this
     // register so we need to explicitly ban it.
     sysreg(0b11, 0b011, 0b1110, 0b0010, 0b000),

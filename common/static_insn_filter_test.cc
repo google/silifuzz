@@ -69,6 +69,12 @@ TEST(StaticInsnFilter, SystemRegister) {
   // can give different results.
   // mrs     x0, id_aa64mmfr0_el1
   EXPECT_AARCH64_FILTER_REJECT({0xd5380700});
+
+  // Hardware random numbers are nondeterministic
+  // mrs     x0, rndr
+  EXPECT_AARCH64_FILTER_REJECT({0xd53b2400});
+  // mrs     x0, rndrrs
+  EXPECT_AARCH64_FILTER_REJECT({0xd53b2420});
 }
 
 TEST(StaticInsnFilter, LDXRB) {
