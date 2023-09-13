@@ -522,9 +522,10 @@ absl::StatusOr<bool> DecodedInsn::may_access_region(
   // the region or not.  To be conservative, return true always.
   xed_category_enum_t category = xed_decoded_inst_get_category(&xed_insn_);
   switch (category) {
+    case XED_CATEGORY_AVX2GATHER:
     case XED_CATEGORY_GATHER:
     case XED_CATEGORY_SCATTER:
-      // Potentially this instruction can touch the vsyscall region.
+      // Potentially this instruction can touch the region.
       return true;
     default:
       break;
