@@ -631,7 +631,7 @@ int MakerMain(const RunnerMainOptions& options) {
     return EXIT_FAILURE;
   }
 
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int RunnerMain(const RunnerMainOptions& options) {
