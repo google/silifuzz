@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_OPTIONS_H_
 #define THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_OPTIONS_H_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -83,7 +84,8 @@ class RunnerOptions {
   static RunnerOptions PlayOptions(absl::string_view snap_id);
   static RunnerOptions MakeOptions(absl::string_view snap_id);
   static RunnerOptions VerifyOptions(absl::string_view snap_id);
-  static RunnerOptions TraceOptions(absl::string_view snap_id);
+  static RunnerOptions TraceOptions(absl::string_view snap_id,
+                                    size_t num_iterations = 1);
 
  private:
   friend class RunnerDriver;

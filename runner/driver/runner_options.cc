@@ -14,9 +14,11 @@
 
 #include "./runner/driver/runner_options.h"
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "./util/checks.h"
@@ -71,11 +73,12 @@ RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
       .set_map_stderr_to_dev_null(!VLOG_IS_ON(3));
 }
 
-RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id) {
+RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id,
+                                          size_t num_iterations) {
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapTraceCpuTimeBudget)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
-                       "1", "--enable_tracer"});
+                       absl::StrCat(num_iterations), "--enable_tracer"});
 }
 
 RunnerOptions& RunnerOptions::set_extra_argv(

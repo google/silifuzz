@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_DRIVER_H_
 #define THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_DRIVER_H_
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -136,9 +137,11 @@ class RunnerDriver {
   absl::StatusOr<RunResult> MakeOne(absl::string_view snap_id) const;
 
   // Traces `snap_id` in single-step mode and invokes the provided callback for
-  // every instruction of the snapshot.
+  // every instruction of the snapshot. This runs the snapshot `num_iterations`
+  // times.
   absl::StatusOr<RunResult> TraceOne(absl::string_view snap_id,
-                                     HarnessTracer::Callback cb) const;
+                                     HarnessTracer::Callback cb,
+                                     size_t num_iterations = 1) const;
 
   // Ensures that `snap_id` replays deterministically.
   // REQUIRES snap_id is not empty.

@@ -16,8 +16,8 @@
 
 #include <sys/user.h>
 
+#include <cstddef>
 #include <optional>
-#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -31,6 +31,7 @@
 #include "./runner/driver/runner_driver.h"
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snapshots.h"
+#include "./util/arch.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -175,6 +176,28 @@ TEST(DisassemblingSnapTracer, TraceVSyscallRegionAccess) {
                           Insn("mov rbx, qword ptr [rax]")));
   EXPECT_EQ(trace_result2.early_termination_reason,
             "May access vsyscall region MOV");
+}
+
+TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
+  RunnerDriver driver = HelperDriver();
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
+  DisassemblingSnapTracer tracer(snapshot);
+  constexpr size_t kNumIterations = 3;
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      driver.TraceOne(snapshot.id(),
+                      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
+                      kNumIterations));
+  ASSERT_TRUE(result.success());
+  const auto& trace_result = tracer.trace_result();
+  EXPECT_EQ(trace_result.instructions_executed, 2 * kNumIterations);
+  EXPECT_THAT(
+      trace_result.disassembly,
+      ElementsAre(
+          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
+          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
+          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]")));
 }
 
 }  // namespace

@@ -45,7 +45,6 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//player:player_result_proto",
-        "@silifuzz//proto:player_result_cc_proto",
         "@silifuzz//proto:snapshot_execution_result_cc_proto",
         "@silifuzz//snap/gen:relocatable_snap_generator",
         "@silifuzz//util:byte_io",

@@ -60,9 +60,11 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::MakeOne(
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::TraceOne(
-    absl::string_view snap_id, HarnessTracer::Callback cb) const {
+    absl::string_view snap_id, HarnessTracer::Callback cb,
+    size_t num_iterations) const {
   CHECK(!snap_id.empty());
-  return RunImpl(RunnerOptions::TraceOptions(snap_id), snap_id, cb);
+  return RunImpl(RunnerOptions::TraceOptions(snap_id, num_iterations), snap_id,
+                 cb);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::VerifyOneRepeatedly(

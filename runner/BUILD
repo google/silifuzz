@@ -310,6 +310,7 @@ cc_test(
         "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snapshots",
+        "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/functional:bind_front",
