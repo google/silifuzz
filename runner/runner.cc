@@ -30,10 +30,12 @@
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./common/snapshot_enums.h"
+#include "./runner/endspot.h"
 #include "./runner/runner_util.h"
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
 #include "./util/itoa.h"
@@ -42,11 +44,12 @@
 #include "./util/misc_util.h"
 #include "./util/page_util.h"
 #include "./util/proc_maps_parser.h"
+#include "./util/reg_checksum.h"
 #include "./util/reg_group_io.h"
+#include "./util/reg_group_set.h"
 #include "./util/reg_groups.h"
 #include "./util/text_proto_printer.h"
 #include "./util/ucontext/serialize.h"
-#include "./util/ucontext/ucontext.h"
 
 // Snap runner binary.
 //
@@ -434,16 +437,6 @@ void PrepareSnapMemory(const Snap<Host>& snap) {
   }
 }
 
-void RunSnap(const Snap<Host>& snap, RunSnapResult& result) {
-  PrepareSnapMemory(snap);
-  result.cpu_id = GetCPUIdNoSyscall();
-  RunSnap(*snap.registers, result.end_spot);
-  if (result.cpu_id != GetCPUIdNoSyscall()) {
-    result.cpu_id = kUnknownCPUId;
-  }
-  result.outcome = EndSpotToOutcome(snap, result.end_spot);
-}
-
 // Logs the actual memory bytes of `snap` as a series of proto.MemoryBytes
 // protos formatted as text.
 // The output may appear fragmented due to internal buffer capacity limits e.g.
@@ -606,12 +599,21 @@ const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
   return corpus;
 }
 
-void RunSnapWithOpts(const Snap<Host>& snap, const RunnerMainOptions& options,
-                     RunSnapResult& run_result) {
+void RunSnap(const Snap<Host>& snap, const RunnerMainOptions& options,
+             RunSnapResult& result) {
   if (options.enable_tracer) {
     CHECK_EQ(kill(options.pid, SIGSTOP), 0);
   }
-  RunSnap(snap, run_result);
+  PrepareSnapMemory(snap);
+  result.cpu_id = GetCPUIdNoSyscall();
+  RunSnap(*snap.registers, result.end_spot);
+  if (result.cpu_id != GetCPUIdNoSyscall()) {
+    result.cpu_id = kUnknownCPUId;
+  }
+
+  result.outcome = options.skip_end_state_check
+                       ? RunSnapOutcome::kAsExpected
+                       : EndSpotToOutcome(snap, result.end_spot);
   if (options.enable_tracer) {
     CHECK_EQ(kill(options.pid, SIGSTOP), 0);
   }
@@ -624,7 +626,7 @@ int MakerMain(const RunnerMainOptions& options) {
 
   const Snap<Host>& snap = *corpus->snaps.at(0);
   RunSnapResult run_result;
-  RunSnapWithOpts(snap, options, run_result);
+  RunSnap(snap, options, run_result);
 
   LogSnapRunResult(snap, run_result);
   if (run_result.outcome != RunSnapOutcome::kAsExpected) {
@@ -668,7 +670,7 @@ int RunnerMain(const RunnerMainOptions& options) {
       const Snap<Host>& snap = *(corpus->snaps[batch[schedule_dist(gen)]]);
       VLOG_INFO(3, "#", IntStr(snap_execution_count), " Running ", snap.id);
       RunSnapResult run_result;
-      RunSnapWithOpts(snap, options, run_result);
+      RunSnap(snap, options, run_result);
       if (run_result.outcome != RunSnapOutcome::kAsExpected) {
         LogSnapRunResult(snap, run_result);
         LOG_ERROR("Seed = ", IntStr(options.seed), " iteration #",
@@ -695,7 +697,7 @@ int RunnerMainSequential(const RunnerMainOptions& options) {
     }
     VLOG_INFO(3, "#", IntStr(i), " Running ", snap.id);
     RunSnapResult run_result;
-    RunSnapWithOpts(snap, options, run_result);
+    RunSnap(snap, options, run_result);
     if (run_result.outcome != RunSnapOutcome::kAsExpected) {
       LogSnapRunResult(snap, run_result);
       LOG_ERROR("Id = ", snap.id, " Iteration #", IntStr(i));

@@ -14,13 +14,11 @@
 
 #include "./runner/runner.h"
 
-#include <cstdlib>  // EXIT_SUCCESS
-
+#include "./common/snapshot_test_enum.h"
 #include "./runner/runner_util.h"
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/testing/snap_test_snaps.h"
-#include "./snap/testing/snap_test_types.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
 
@@ -34,20 +32,39 @@ namespace {
 
 TEST(Runner, EndsAsExpected) {
   RunSnapResult result;
-  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected), result);
+  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected),
+          RunnerMainOptions::Default(), result);
   CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
 }
 
 TEST(Runner, RegsMismatch) {
   RunSnapResult result;
-  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch), result);
+  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch),
+          RunnerMainOptions::Default(), result);
   CHECK_EQ(result.outcome, RunSnapOutcome::kRegisterStateMismatch);
 }
 
 TEST(Runner, MemoryMismatch) {
   RunSnapResult result;
-  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch), result);
+  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch),
+          RunnerMainOptions::Default(), result);
   CHECK_EQ(result.outcome, RunSnapOutcome::kMemoryMismatch);
+}
+
+TEST(Runner, SkipEndStateCheck) {
+  RunnerMainOptions options = RunnerMainOptions::Default();
+  RunSnapResult result;
+  // Do not skip end state check. This should fails.
+  options.skip_end_state_check = false;
+  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch), options,
+          result);
+  CHECK_EQ(result.outcome, RunSnapOutcome::kMemoryMismatch);
+
+  // Skip end state check. This should ends as expected.
+  options.skip_end_state_check = true;
+  RunSnap(GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch), options,
+          result);
+  CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
 }
 
 }  // namespace
@@ -63,4 +80,5 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(Runner, EndsAsExpected);
   RUN_TEST(Runner, RegsMismatch);
   RUN_TEST(Runner, MemoryMismatch);
+  RUN_TEST(Runner, SkipEndStateCheck);
 })

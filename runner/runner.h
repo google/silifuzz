@@ -18,9 +18,11 @@
 #include <sys/types.h>
 
 #include <cstddef>
+#include <cstdint>
 
 #include "./runner/endspot.h"
 #include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/cpu_id.h"
 
 namespace silifuzz {
@@ -61,6 +63,9 @@ struct RunSnapResult {
 
 // Options passed to RunnerMain().
 struct RunnerMainOptions {
+  // Returns default options
+  static RunnerMainOptions Default() { return {}; }
+
   // A corpus of Snaps to be executed.
   const SnapCorpus<Host>* corpus;
 
@@ -130,6 +135,10 @@ struct RunnerMainOptions {
   // The FD of the corpus file, -1 if the FD is not available. The runner may
   // use the FD to create Snap mappings faster.
   int corpus_fd = -1;
+
+  // If true, the end state after snap execution is not checked. Snaps are
+  // considered to always end as expected.
+  bool skip_end_state_check = false;
 };
 
 // Establishes memory mappings in 'corpus'.
@@ -141,13 +150,14 @@ struct RunnerMainOptions {
 void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
                const void* corpus_mapping);
 
-// Executes 'snap' and stores the execution result in 'result'.
+// Executes 'snap' with 'options' and stores the execution result in 'result'.
 // REQUIRES: the runtime environment, including memory mapping used by 'snap'
 // must be properly initialized.
 //
 // We deliberately use a reference instead of returning a RunSnapResult object
 // to avoid unnecessary copying.
-void RunSnap(const Snap<Host>& snap, RunSnapResult& result);
+void RunSnap(const Snap<Host>& snap, const RunnerMainOptions& options,
+             RunSnapResult& result);
 
 // Executes Snaps from a corpus according to 'options' and returns an exit code
 // that can be passed to _exit(). This is intended to be used for implementing
