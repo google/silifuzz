@@ -21,9 +21,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 #include "./util/nolibc_gunit.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -72,7 +72,7 @@ TEST(SnapRunnerUtil, BasicTest) {
       reinterpret_cast<uint64_t>(stack_page) + kPageSize;
   execution_context.gregs.rdi = 0xabcd;
   EndSpot end_spot;
-  RunSnap(execution_context, end_spot);
+  RunSnap(execution_context, RunnerMainOptions::Default(), end_spot);
 
   // Verify that code has been executed.
   CHECK_EQ(snap_exit_context.gregs.rax, ~execution_context.gregs.rax);

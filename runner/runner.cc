@@ -31,6 +31,7 @@
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./common/snapshot_enums.h"
 #include "./runner/endspot.h"
+#include "./runner/runner_main_options.h"
 #include "./runner/runner_util.h"
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
@@ -601,22 +602,15 @@ const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
 
 void RunSnap(const Snap<Host>& snap, const RunnerMainOptions& options,
              RunSnapResult& result) {
-  if (options.enable_tracer) {
-    CHECK_EQ(kill(options.pid, SIGSTOP), 0);
-  }
   PrepareSnapMemory(snap);
   result.cpu_id = GetCPUIdNoSyscall();
-  RunSnap(*snap.registers, result.end_spot);
+  RunSnap(*snap.registers, options, result.end_spot);
   if (result.cpu_id != GetCPUIdNoSyscall()) {
     result.cpu_id = kUnknownCPUId;
   }
-
   result.outcome = options.skip_end_state_check
                        ? RunSnapOutcome::kAsExpected
                        : EndSpotToOutcome(snap, result.end_spot);
-  if (options.enable_tracer) {
-    CHECK_EQ(kill(options.pid, SIGSTOP), 0);
-  }
 }
 
 int MakerMain(const RunnerMainOptions& options) {

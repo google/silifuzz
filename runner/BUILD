@@ -91,7 +91,9 @@ cc_library_plus_nolibc(
     linkstatic = 1,
     deps = [
         ":endspot",
+        ":runner_main_options",
         "@silifuzz//snap:exit_sequence",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:logging_util",
@@ -123,12 +125,23 @@ cc_test_nolibc(
     linkstatic = 1,
     deps = [
         ":endspot",
+        ":runner_main_options",
         ":snap_runner_util",
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
         "@silifuzz//util/ucontext",
+    ],
+)
+
+cc_library_plus_nolibc(
+    name = "runner_main_options",
+    hdrs = ["runner_main_options.h"],
+    deps = [
+        "@silifuzz//snap",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:cpu_id",
     ],
 )
 
@@ -180,6 +193,7 @@ cc_library_nolibc(
     linkstatic = 1,
     deps = [
         ":endspot",
+        ":runner_main_options",
         ":runner_util",
         ":snap_runner_util",
         "@silifuzz//common:snapshot_enums",

@@ -23,6 +23,7 @@
 
 #include "absl/base/macros.h"
 #include "./runner/endspot.h"
+#include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -80,7 +81,7 @@ TEST(SnapRunnerUtil, BasicTest) {
 
   // Execute.
   EndSpot end_spot;
-  RunSnap(execution_context, end_spot);
+  RunSnap(execution_context, RunnerMainOptions::Default(), end_spot);
 
   // Verify that test code has been executed.
   CHECK_EQ(snap_exit_context.gregs.x[0], ~execution_context.gregs.x[0]);

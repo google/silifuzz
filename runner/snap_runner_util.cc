@@ -15,11 +15,15 @@
 #include "./runner/snap_runner_util.h"
 
 #include <signal.h>
+#include <sys/signal.h>
 #include <ucontext.h>
 
 #include <cstdint>
 
+#include "./runner/endspot.h"
+#include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/misc_util.h"
 #include "./util/reg_group_io.h"
@@ -154,14 +158,21 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
   __builtin_unreachable();
 }
 
-void RunSnap(const UContext<Host>& context, EndSpot& end_spot) {
+void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
+             EndSpot& end_spot) {
   snap_signal_context.signal_occurred = false;
   enter_snap_context = true;
 
   SaveUContextNoSyscalls(&runner_return_context);
   // We reach this point either by returning from SaveUContextNoSyscalls()
   // above or from a snap exit. In the latter case, enter_snap_context is
-  // cleared.
+  // cleared. Code between here and the RestoreUContextNoSyscalls() below
+  // is executed twice.
+
+  if (options.enable_tracer) {
+    CHECK_EQ(kill(options.pid, SIGSTOP), 0);
+  }
+
   if (enter_snap_context) {
     RestoreUContextNoSyscalls(&context);
     __builtin_unreachable();

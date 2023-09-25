@@ -43,15 +43,13 @@
 // Thread safety note: Except when denoted otherwise, all functions in this file
 // are not thread-safe as these manipulate global state without locking.
 
+#include <signal.h>
 #include <ucontext.h>
 
-#include <csignal>
-#include <cstddef>
-#include <cstdint>
-
 #include "./runner/endspot.h"
+#include "./runner/runner_main_options.h"
+#include "./util/arch.h"
 #include "./util/reg_group_io.h"
-#include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
 extern "C" void SnapExitImpl();
@@ -79,15 +77,15 @@ bool IsInsideSnap();
 void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
                              const siginfo_t& sig_info);
 
-// Switches to 'context' to execute code in Snap. After the snap exits,
-// switches back to the runner's context and returns to caller.
-// Stores CPU state at the time of Snap exit in 'end_spot'.
-// The caller MUST install a custom signal handler that invokes
-// RunnerReentryFromSignal() for RunSnap() to work properly for sig-causing
-// snaps.
+// Switches to 'context' to execute code in Snap with 'options'. After the snap
+// exits, switches back to the runner's context and returns to caller. Stores
+// CPU state at the time of Snap exit in 'end_spot'. The caller MUST install a
+// custom signal handler that invokes RunnerReentryFromSignal() for RunSnap() to
+// work properly for sig-causing snaps.
 //
 // REQUIRES: Called after calling InitSnapExit().
-void RunSnap(const UContext<Host>& context, EndSpot& end_spot);
+void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
+             EndSpot& end_spot);
 
 }  // namespace silifuzz
 
