@@ -383,10 +383,10 @@ void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
     }
     // If any of these memory mappings overlap, the mapping earlier in this list
     // will be silently overwritten by the mapping later in this list.
-    // Currently, the corpus creator should avoid overlaping RO pages, but there
-    // may be zero-initialized RW pages that overlap between snaps. The most
-    // obvious case will be that most Snaps will have stacks mapped in exactly
-    // the same location.
+    // Currently, the corpus creator should avoid overlapping RO pages, but
+    // there may be zero-initialized RW pages that overlap between snaps. The
+    // most obvious case will be that most Snaps will have stacks mapped in
+    // exactly the same location.
     MapSnap(*snap, corpus_fd, corpus_mapping);
   }
   VLOG_INFO(1, "Done creating memory mappings");
@@ -640,6 +640,7 @@ int RunnerMain(const RunnerMainOptions& options) {
   std::mt19937_64 gen(options.seed);  // 64-bit Mersenne Twister engine
   VLOG_INFO(1, "Seed = ", IntStr(options.seed));
   size_t snap_execution_count = 0;
+  const char* previous_snap_id = "<none>";
   while (snap_execution_count < options.num_iterations) {
     // Generate Snap batch
     size_t batch[RunnerMainOptions::kMaxBatchSize];
@@ -669,8 +670,11 @@ int RunnerMain(const RunnerMainOptions& options) {
         LogSnapRunResult(snap, run_result);
         LOG_ERROR("Seed = ", IntStr(options.seed), " iteration #",
                   IntStr(snap_execution_count));
+        LOG_ERROR("CPU id = ", IntStr(run_result.cpu_id));
+        LOG_ERROR("Previous snapshot [", previous_snap_id, "]");
         return EXIT_FAILURE;
       }
+      previous_snap_id = snap.id;
     }
   }
 
