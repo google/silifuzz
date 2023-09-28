@@ -181,8 +181,7 @@ constexpr T MakeMagic(const char (&data)[sizeof(T)]) {
 constexpr uint64_t kSnapCorpusMagic = snap_internal::MakeMagic<uint64_t>(
     {'S', 'n', 'a', 'p', 'C', 'o', 'r', 'p'});
 
-template <typename Arch>
-struct SnapCorpus {
+struct SnapCorpusHeader {
   // For checking this is actually a snap corpus.
   uint64_t magic;
 
@@ -197,18 +196,24 @@ struct SnapCorpus {
   // The expected size of the register state.
   uint32_t register_state_type_size;
 
-  // The architechture these snaps run on.
+  // The architecture these snaps run on.
   // The runner should check that this equals Host::architecture_id.
   uint8_t architecture_id;
 
   // Make the unused space in this struct explicit.
   uint8_t padding[3];
+};
+
+template <typename Arch>
+struct SnapCorpus {
+  // Should stay at the top of the struct so it's easy to find in the file.
+  SnapCorpusHeader header;
 
   // The corpus data.
   SnapArray<const Snap<Arch>*> snaps;
 
   bool IsExpectedArch() const {
-    return architecture_id == static_cast<int>(Arch::architecture_id);
+    return header.architecture_id == static_cast<int>(Arch::architecture_id);
   }
 
   // Find a Snap with the specified id.

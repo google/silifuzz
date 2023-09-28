@@ -83,14 +83,11 @@ ArchitectureId CorpusFileArchitecture(const char* filename) {
   int fd = open(filename, O_RDONLY);
   CHECK_NE(fd, -1);
 
-  // TODO(ncbray): separate out the corpus header into an arch-neutral struct.
-  // For now we can choose an arbitrary arch for this type since the header
-  // layout should be the same.
-  SnapCorpus<Host> corpus;
-  int bytes_read = read(fd, &corpus, sizeof(corpus));
-  if (bytes_read == sizeof(corpus)) {
-    if (corpus.magic == kSnapCorpusMagic) {
-      arch = static_cast<ArchitectureId>(corpus.architecture_id);
+  SnapCorpusHeader header;
+  int bytes_read = read(fd, &header, sizeof(header));
+  if (bytes_read == sizeof(header)) {
+    if (header.magic == kSnapCorpusMagic) {
+      arch = static_cast<ArchitectureId>(header.architecture_id);
     }
   }
   close(fd);

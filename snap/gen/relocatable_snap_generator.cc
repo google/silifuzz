@@ -452,12 +452,16 @@ void Traversal<Arch>::Process(PassType pass,
 
   if (pass == PassType::kGeneration) {
     new (corpus_ref.contents()) SnapCorpus<Arch>{
-        .magic = kSnapCorpusMagic,
-        .corpus_type_size = sizeof(SnapCorpus<Arch>),
-        .snap_type_size = sizeof(Snap<Arch>),
-        .register_state_type_size = sizeof(typename Snap<Arch>::RegisterState),
-        .architecture_id = static_cast<uint8_t>(Arch::architecture_id),
-        .padding = {},
+        .header =
+            {
+                .magic = kSnapCorpusMagic,
+                .corpus_type_size = sizeof(SnapCorpus<Arch>),
+                .snap_type_size = sizeof(Snap<Arch>),
+                .register_state_type_size =
+                    sizeof(typename Snap<Arch>::RegisterState),
+                .architecture_id = static_cast<uint8_t>(Arch::architecture_id),
+                .padding = {},
+            },
         .snaps =
             {
                 .size = snapshots.size(),

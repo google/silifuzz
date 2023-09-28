@@ -174,16 +174,16 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
       *reinterpret_cast<SnapCorpus<Arch>*>(start_address_);
 
   // If this constant isn't at the start of the file, it's likely not a corpus.
-  if (corpus.magic != kSnapCorpusMagic) {
+  if (corpus.header.magic != kSnapCorpusMagic) {
     return SnapRelocatorError::kBadData;
   }
-  if (corpus.corpus_type_size != sizeof(SnapCorpus<Arch>)) {
+  if (corpus.header.corpus_type_size != sizeof(SnapCorpus<Arch>)) {
     return SnapRelocatorError::kBadData;
   }
-  if (corpus.snap_type_size != sizeof(Snap<Arch>)) {
+  if (corpus.header.snap_type_size != sizeof(Snap<Arch>)) {
     return SnapRelocatorError::kBadData;
   }
-  if (corpus.register_state_type_size !=
+  if (corpus.header.register_state_type_size !=
       sizeof(typename Snap<Arch>::RegisterState)) {
     return SnapRelocatorError::kBadData;
   }

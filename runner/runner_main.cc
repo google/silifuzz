@@ -75,8 +75,9 @@ int Main(int argc, char* argv[]) {
   }
 
   if (!options.corpus->IsExpectedArch()) {
-    LOG_ERROR("Corpus has architecture ", options.corpus->architecture_id,
-              " but expected ", Host::architecture_id);
+    LOG_ERROR("Corpus has architecture ",
+              options.corpus->header.architecture_id, " but expected ",
+              Host::architecture_id);
     return EXIT_FAILURE;
   }
 
