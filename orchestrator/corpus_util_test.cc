@@ -29,7 +29,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/flags/flag.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/cord.h"
@@ -45,8 +44,9 @@ namespace {
 using silifuzz::testing::IsOkAndHolds;
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
+using ::testing::TempDir;
 
-// Check that opened file with desciptor `fd` has the `expected_contents`.
+// Check that opened file with descriptor `fd` has the `expected_contents`.
 // Returns a status.
 absl::Status CheckFileContents(int fd, const std::string& expected_contents) {
   struct stat stat_buf {};
@@ -81,7 +81,7 @@ TEST(CorpusUtil, ReadXZipFile) {
   };
 
   const std::string temp_filename =
-      absl::StrCat(std::string_view{getenv("TEST_TMPDIR")}, "/ReadXZipFileTest.xz");
+      absl::StrCat(TempDir(), "/ReadXZipFileTest.xz");
   const int temp_fd = open(temp_filename.c_str(), O_CREAT | O_WRONLY | O_TRUNC,
                            S_IRUSR | S_IWUSR);
   ASSERT_GE(temp_fd, 0);
@@ -172,8 +172,8 @@ TEST(CorpusUtil, LoadCorpora) {
 
   std::vector<std::string> corpus_paths;
   for (size_t i = 0; i < kCorporaSize; ++i) {
-    corpus_paths.push_back(absl::StrCat(std::string_view{getenv("TEST_TMPDIR")},
-                                        "/LoadCoporaTest_", i, ".xz"));
+    corpus_paths.push_back(
+        absl::StrCat(TempDir(), "/LoadCoporaTest_", i, ".xz"));
     const int fd = open(corpus_paths[i].c_str(), O_CREAT | O_TRUNC | O_WRONLY,
                         S_IRUSR | S_IWUSR);
     ASSERT_NE(fd, -1);
@@ -221,8 +221,8 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
 
   std::vector<std::string> corpus_paths;
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
-    corpus_paths.push_back(absl::StrCat(std::string_view{getenv("TEST_TMPDIR")},
-                                        "/LoadCoporaUncompressedTest_", i));
+    corpus_paths.push_back(
+        absl::StrCat(TempDir(), "/LoadCoporaUncompressedTest_", i));
     const int fd = open(corpus_paths[i].c_str(), O_CREAT | O_TRUNC | O_WRONLY,
                         S_IRUSR | S_IWUSR);
     ASSERT_NE(fd, -1);

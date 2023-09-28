@@ -145,9 +145,9 @@ absl::StatusOr<absl::Cord> ReadXzipFile(const std::string& path) {
 
   if (ret == LZMA_STREAM_END) {
     return decompressed_data;
-  } else {
-    return absl::InternalError("Failed to decompress data");
   }
+  return absl::InternalError(
+      absl::StrCat("Failed to decompress data ", path, ", lzma code = ", ret));
 }
 
 absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
