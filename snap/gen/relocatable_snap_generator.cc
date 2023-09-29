@@ -455,6 +455,7 @@ void Traversal<Arch>::Process(PassType pass,
         .header =
             {
                 .magic = kSnapCorpusMagic,
+                .num_bytes = main_block_.size(),
                 .corpus_type_size = sizeof(SnapCorpus<Arch>),
                 .snap_type_size = sizeof(Snap<Arch>),
                 .register_state_type_size =

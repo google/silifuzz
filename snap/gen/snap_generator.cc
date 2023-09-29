@@ -193,10 +193,10 @@ void SnapGenerator<Arch>::GenerateSnapArray(
 
   PrintLn(absl::StrFormat(
       "extern const SnapCorpus<%s> %s = { .header = { .magic = 0x%lx, "
-      ".corpus_type_size = sizeof(SnapCorpus<%s>), .snap_type_size = "
-      "sizeof(Snap<%s>), .register_state_type_size = sizeof(typename "
-      "Snap<%s>::RegisterState), .architecture_id = %d, .padding = {}, }, "
-      ".snaps = { .size = %zd, .elements = %s, }, };",
+      ".num_bytes = 0, .corpus_type_size = sizeof(SnapCorpus<%s>), "
+      ".snap_type_size = sizeof(Snap<%s>), .register_state_type_size = "
+      "sizeof(typename Snap<%s>::RegisterState), .architecture_id = %d, "
+      ".padding = {}, }, .snaps = { .size = %zd, .elements = %s, }, };",
       Arch::type_name, name, kSnapCorpusMagic, Arch::type_name, Arch::type_name,
       Arch::type_name, Arch::architecture_id, snap_var_name_list.size(),
       elements_var_name));

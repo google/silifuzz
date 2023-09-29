@@ -177,6 +177,17 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
   if (corpus.header.magic != kSnapCorpusMagic) {
     return SnapRelocatorError::kBadData;
   }
+  // If the corpus file isn't the same number of bytes it was when it was
+  // created, it likely is corrupt.
+  if (corpus.header.num_bytes != limit_address_ - start_address_) {
+    return SnapRelocatorError::kBadData;
+  }
+  // Detect if we're trying to load a corpus for the wrong arch.
+  if (!corpus.IsExpectedArch()) {
+    return SnapRelocatorError::kBadData;
+  }
+  // The header embeds size of various structs so that we can detect accidental
+  // version mismatches.
   if (corpus.header.corpus_type_size != sizeof(SnapCorpus<Arch>)) {
     return SnapRelocatorError::kBadData;
   }
@@ -185,9 +196,6 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
   }
   if (corpus.header.register_state_type_size !=
       sizeof(typename Snap<Arch>::RegisterState)) {
-    return SnapRelocatorError::kBadData;
-  }
-  if (!corpus.IsExpectedArch()) {
     return SnapRelocatorError::kBadData;
   }
 
