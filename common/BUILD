@@ -241,6 +241,7 @@ cc_library(
         ":snapshot",
         ":snapshot_types",
         ":snapshot_util",
+        "@silifuzz//tracing:default_disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
@@ -254,13 +255,7 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
-    ] + select({
-        "@silifuzz//build_defs/platform:aarch64": [
-        ],
-        "@silifuzz//build_defs/platform:x86_64": [
-            ":decoded_insn",
-        ],
-    }),
+    ],
 )
 
 cc_library(

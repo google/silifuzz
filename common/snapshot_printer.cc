@@ -29,6 +29,7 @@
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
+#include "./tracing/default_disassembler.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -36,10 +37,6 @@
 #include "./util/reg_checksum.h"
 #include "./util/reg_checksum_util.h"
 #include "./util/reg_group_set.h"
-
-#if defined(__x86_64__)
-#include "./common/decoded_insn.h"
-#endif
 
 namespace silifuzz {
 
@@ -88,7 +85,8 @@ void SnapshotPrinter::Print(const Snapshot& snapshot) {
   PrintEndStates(snapshot);
   PrintMemoryMappings(snapshot);
   PrintMemoryBytes(snapshot, snapshot.memory_bytes());
-  PrintExecutableMemoryBytes(snapshot, snapshot.memory_bytes());
+  ARCH_DISPATCH(PrintExecutableMemoryBytes, snapshot.architecture_id(),
+                snapshot, snapshot.memory_bytes());
 }
 
 void SnapshotPrinter::PrintEndpointsOnly(const Snapshot& snapshot) {
@@ -342,6 +340,7 @@ void SnapshotPrinter::PrintMemoryBytes(const Snapshot& snapshot,
   Unindent();
 }
 
+template <typename Arch>
 void SnapshotPrinter::PrintExecutableMemoryBytes(
     const Snapshot& snapshot, const MemoryBytesList& memory_bytes) {
   MemoryBytesList normalized_memory_bytes = memory_bytes;
@@ -350,6 +349,7 @@ void SnapshotPrinter::PrintExecutableMemoryBytes(
   Line("Memory bytes with executable permission:");
   Indent();
 
+  DefaultDisassembler<Arch> disasm;
   for (const auto& mb : normalized_memory_bytes) {
     // NormalizeMemoryBytes() above ensures identical permission in every
     // byte within this range.
@@ -371,39 +371,24 @@ void SnapshotPrinter::PrintExecutableMemoryBytes(
       std::string current_insn;
       size_t len;
 
-      if (snapshot.architecture() == Snapshot::Architecture::kX86_64) {
-        // TODO(ncbray): decouple DecodedInsn from user_regs_struct so that it
-        // can be used on non-x86_64 hosts.
-#if defined(__x86_64__)
-        DecodedInsn insn(byte_view, mb.start_address() + i);
-        // Skip to next byte if this cannot be disassembled.
-        if (!insn.is_valid()) {
-          CHECK(i < mb.num_bytes());
+      if (!disasm.Disassemble(
+              mb.start_address() + i,
+              reinterpret_cast<const uint8_t*>(byte_view.data()),
+              byte_view.size())) {
+        // Skip forward if this cannot be disassembled.
+        CHECK(i < mb.num_bytes());
+        if constexpr (Arch::architecture_id == ArchitectureId::kAArch64) {
+          uint32_t insn = *reinterpret_cast<const uint32_t*>(byte_view.data());
+          current_insn = absl::StrCat(".int ", HexStr(insn));
+          len = 4;
+        } else {
           const uint8_t b = byte_view[0];
           current_insn = absl::StrCat(".byte ", HexStr(b));
           len = 1;
-        } else {
-          current_insn = insn.DebugString();
-          len = insn.length();
-        }
-#else
-        const uint8_t b = byte_view[0];
-        current_insn = absl::StrCat(".byte ", HexStr(b));
-        len = 1;
-#endif
-      } else if (snapshot.architecture() == Snapshot::Architecture::kAArch64) {
-        // TODO(ncbray): disassemble.
-        if (byte_view.size() >= 4) {
-          uint32_t insn = *reinterpret_cast<const uint32_t*>(byte_view.data());
-          current_insn = HexStr(insn);
-          len = 4;
-        } else {
-          current_insn = HexStr(byte_view[0]);
-          len = 1;
         }
       } else {
-        LOG_FATAL("Unexpected arch: ",
-                  IntStr(static_cast<int>(snapshot.architecture())));
+        current_insn = disasm.FullText();
+        len = disasm.InstructionSize();
       }
 
       if (current_insn == last_insn) {

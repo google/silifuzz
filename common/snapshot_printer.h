@@ -142,6 +142,7 @@ class SnapshotPrinter : private SnapshotTypeNames {
                         const MemoryBytesList& memory_bytes);
 
   // Prints executable memory bytes in `snapshot` as instructions.
+  template <typename Arch>
   void PrintExecutableMemoryBytes(const Snapshot& snapshot,
                                   const MemoryBytesList& memory_bytes);
 
