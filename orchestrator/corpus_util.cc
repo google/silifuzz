@@ -143,11 +143,35 @@ absl::StatusOr<absl::Cord> ReadXzipFile(const std::string& path) {
     }
   } while (ret == LZMA_OK);
 
-  if (ret == LZMA_STREAM_END) {
-    return decompressed_data;
+  if (ret != LZMA_STREAM_END) {
+    return absl::InternalError(absl::StrCat("Failed to decompress data ", path,
+                                            ", lzma code = ", ret));
   }
-  return absl::InternalError(
-      absl::StrCat("Failed to decompress data ", path, ", lzma code = ", ret));
+
+  off_t consumed_size = lseek(input_fd, 0, SEEK_CUR);
+  if (consumed_size == (off_t)-1) {
+    return absl::InternalError(
+        absl::StrCat("Could not determine current position in ", path));
+  }
+  off_t total_size = lseek(input_fd, 0, SEEK_END);
+  if (total_size == (off_t)-1) {
+    return absl::InternalError(
+        absl::StrCat("Could not determine size of ", path));
+  }
+
+  // Decompressor may not have consumed every byte we read.
+  consumed_size -= decompressed_stream.avail_in;
+
+  // If decompression did not consume the entire file, the file is likely
+  // corrupt in some way that the decompressor did not notice.
+  if (consumed_size != total_size) {
+    return absl::InternalError(
+        absl::StrCat("Decompression did not consume every byte of ", path,
+                     ", remaining bytes = ", total_size - consumed_size));
+  }
+
+  // Data looks OK.
+  return decompressed_data;
 }
 
 absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(

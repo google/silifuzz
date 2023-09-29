@@ -94,10 +94,17 @@ TEST(CorpusUtil, ReadXZipFile) {
   absl::StatusOr<absl::Cord> cord_or = ReadXzipFile(temp_filename);
   EXPECT_THAT(cord_or, IsOkAndHolds(kContents));
 
-  // Truncate file and read it again.
-  struct stat stat_buffer;
-  ASSERT_EQ(stat(temp_filename.c_str(), &stat_buffer), 0);
-  ASSERT_EQ(truncate(temp_filename.c_str(), stat_buffer.st_size / 2), 0);
+  // Make the file too long read it again.
+  ASSERT_EQ(truncate(temp_filename.c_str(), sizeof(kCompressedContents) * 2),
+            0);
+
+  cord_or = ReadXzipFile(temp_filename);
+  EXPECT_THAT(cord_or, StatusIs(absl::StatusCode::kInternal,
+                                HasSubstr("did not consume")));
+
+  // Make the file too short read it again.
+  ASSERT_EQ(truncate(temp_filename.c_str(), sizeof(kCompressedContents) / 2),
+            0);
 
   cord_or = ReadXzipFile(temp_filename);
   EXPECT_THAT(cord_or, StatusIs(absl::StatusCode::kInternal,
