@@ -19,30 +19,55 @@
 
 #include <cerrno>
 #include <cstring>
-#include <memory>
 
 #include "./util/checks.h"
 
 namespace silifuzz {
 
-// Custom deleter for OwnedFileDescriptor below.
-struct OwnedFileDescriptorDeleter {
-  void operator()(int* fd) const {
-    if (close(*fd) < 0) {
-      LOG_ERROR("close() failed: ", strerror(errno));
-    }
-    delete fd;
+// A wrapper for FDs that will release them on destruction.
+// Cannot be copied.
+// May be moved.
+// May be empty (FD == -1).
+class OwnedFileDescriptor {
+ public:
+  // Empty by default.
+  OwnedFileDescriptor() : fd_(-1) {}
+
+  // Takes ownership of the FD.
+  explicit OwnedFileDescriptor(int fd) : fd_(fd) {}
+
+  // Copy not allowed.
+  OwnedFileDescriptor(const OwnedFileDescriptor&) = delete;
+  OwnedFileDescriptor& operator=(const OwnedFileDescriptor&) = delete;
+
+  OwnedFileDescriptor(OwnedFileDescriptor&& other) {
+    fd_ = other.fd_;
+    other.fd_ = -1;
   }
+
+  OwnedFileDescriptor& operator=(OwnedFileDescriptor&& other) {
+    release();
+    fd_ = other.fd_;
+    other.fd_ = -1;
+    return *this;
+  }
+
+  int borrow() const { return fd_; }
+
+  ~OwnedFileDescriptor() { release(); }
+
+ private:
+  void release() {
+    if (fd_ != -1) {
+      if (close(fd_) < 0) {
+        LOG_ERROR("close() failed: ", strerror(errno));
+      }
+      fd_ = -1;
+    }
+  }
+
+  int fd_;
 };
-
-// Specialized std::unique_ptr for managing life-time and ownership of a file
-// descriptor.
-using OwnedFileDescriptor = std::unique_ptr<int, OwnedFileDescriptorDeleter>;
-
-// Wraps a file descriptor with OwnedFileDescriptor.
-inline OwnedFileDescriptor WrapFileDescriptor(int fd) {
-  return {new int(fd), {}};
-}
 
 }  // namespace silifuzz
 

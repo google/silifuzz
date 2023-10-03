@@ -130,22 +130,23 @@ TEST(CorpusUtil, WriteSharedMemoryFile) {
   ASSERT_OK_AND_ASSIGN(OwnedFileDescriptor owned_fd,
                        WriteSharedMemoryFile(contents));
   struct stat stat_buf;
-  ASSERT_EQ(fstat(*owned_fd, &stat_buf), 0);
+  ASSERT_EQ(fstat(owned_fd.borrow(), &stat_buf), 0);
   EXPECT_EQ(stat_buf.st_size, contents.size());
 
   // Check that file is correctly sealed.
-  int seals = fcntl(*owned_fd, F_GET_SEALS);
+  int seals = fcntl(owned_fd.borrow(), F_GET_SEALS);
   EXPECT_NE(seals, -1);
   constexpr int kExpectedSeals = F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW;
   EXPECT_EQ(seals & kExpectedSeals, kExpectedSeals);
 
-  EXPECT_EQ(ftruncate(*owned_fd, 0), -1);
-  EXPECT_EQ(ftruncate(*owned_fd, stat_buf.st_size + 1), -1);
+  EXPECT_EQ(ftruncate(owned_fd.borrow(), 0), -1);
+  EXPECT_EQ(ftruncate(owned_fd.borrow(), stat_buf.st_size + 1), -1);
 
   // Check that contents are correctly written.
   std::string buffer(stat_buf.st_size, 0);
-  EXPECT_EQ(lseek(*owned_fd, 0, SEEK_SET), 0);
-  EXPECT_EQ(Read(*owned_fd, buffer.data(), buffer.size()), buffer.size());
+  EXPECT_EQ(lseek(owned_fd.borrow(), 0, SEEK_SET), 0);
+  EXPECT_EQ(Read(owned_fd.borrow(), buffer.data(), buffer.size()),
+            buffer.size());
   EXPECT_EQ(buffer, contents);
 }
 
@@ -203,8 +204,7 @@ TEST(CorpusUtil, LoadCorpora) {
   EXPECT_EQ(fd_paths.size(), kCorporaSize);
 
   for (size_t i = 0; i < kCorporaSize; ++i) {
-    const int fd = *(owned_fds[i].get());
-    EXPECT_OK(CheckFileContents(fd, corpus_contents[i]));
+    EXPECT_OK(CheckFileContents(owned_fds[i].borrow(), corpus_contents[i]));
 
     // Check again using file descriptor path.
     const int fd2 = open(fd_paths[i].c_str(), O_RDONLY);
@@ -250,8 +250,7 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
   EXPECT_EQ(fd_paths.size(), corpus_contents.size());
 
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
-    const int fd = *(owned_fds[i].get());
-    EXPECT_OK(CheckFileContents(fd, corpus_contents[i]));
+    EXPECT_OK(CheckFileContents(owned_fds[i].borrow(), corpus_contents[i]));
   }
 }
 

@@ -181,21 +181,21 @@ absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
   if (memfd == -1) {
     return absl::ErrnoToStatus(errno, "memfd_create()");
   }
-  OwnedFileDescriptor owned_fd = WrapFileDescriptor(memfd);
-  RETURN_IF_NOT_OK(WriteCord(contents, *owned_fd));
+  OwnedFileDescriptor owned_fd(memfd);
+  int fd = owned_fd.borrow();
+  RETURN_IF_NOT_OK(WriteCord(contents, fd));
 
   // Seal file after write to prevent modification of its contents and seals.
   // There appears to be a kernel bug that happens with large enough number of
   // concurrent threads calling fcntl(2). The bug manifests as fcntl returning
   // errno=EBUSY when passed F_SEAL_WRITE.
-  if (fcntl(*owned_fd, F_ADD_SEALS,
-            F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW) != 0) {
+  if (fcntl(fd, F_ADD_SEALS, F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW) != 0) {
     return absl::ErrnoToStatus(errno,
                                absl::StrCat("fcntl(F_ADD_SEALS): ", name));
   }
 
   // Move file descriptor to beginning of file.
-  if (lseek(*owned_fd, 0, SEEK_SET) != 0) {
+  if (lseek(fd, 0, SEEK_SET) != 0) {
     return absl::ErrnoToStatus(errno, "lseek()");
   }
 
@@ -265,8 +265,8 @@ absl::StatusOr<InMemoryCorpora> LoadCorpora(
   for (size_t i = 0; i < corpus_paths.size(); ++i) {
     RETURN_IF_NOT_OK(owned_fds[i].status());
     result.file_descriptor_paths.push_back(
-        absl::StrCat("/proc/", pid, "/fd/", *(owned_fds[i].value())));
-    result.file_descriptors.push_back(std::move(owned_fds[i].value()));
+        absl::StrCat("/proc/", pid, "/fd/", owned_fds[i]->borrow()));
+    result.file_descriptors.push_back(std::move(*owned_fds[i]));
     VLOG_INFO(1, "Loaded corpus ", corpus_paths[i], " as ",
               result.file_descriptor_paths[i]);
   }
