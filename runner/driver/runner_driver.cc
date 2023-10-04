@@ -114,6 +114,9 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
   } else if (VLOG_IS_ON(2)) {
     argv.push_back("--v=2");
   }
+  if (!corpus_name_.empty()) {
+    argv.push_back(absl::StrCat("--corpus_name=", corpus_name_));
+  }
   for (const std::string& extra : runner_options.extra_argv()) {
     argv.push_back(extra);
   }
@@ -261,9 +264,12 @@ absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
   //  * pass an extra --fd=$memfd to the runner or implement fd:// schema in
   //    the runner. This option requires runner changes and introduces added
   //    complexity around determining the file size.
-  std::string path = absl::StrCat("/proc/", getpid(), "/fd/", memfd);
+  std::string corpus_path = absl::StrCat("/proc/", getpid(), "/fd/", memfd);
 
-  return RunnerDriver::ReadingRunner(runner_path, path,
+  // Synthesize a fake corpus name.
+  std::string corpus_name = "snapshot_" + snapshot.id();
+
+  return RunnerDriver::ReadingRunner(runner_path, corpus_path, corpus_name,
                                      [memfd] { close(memfd); });
 }
 

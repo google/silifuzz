@@ -111,15 +111,19 @@ class RunnerDriver {
   // The `cleanup` callback will be invoked upon destruction.
   static RunnerDriver BakedRunner(absl::string_view binary_path,
                                   std::function<void()> cleanup = {}) {
-    return RunnerDriver(binary_path, "", cleanup);
+    return RunnerDriver(binary_path, "", "", cleanup);
   }
 
   // Creates a RunnerDriver for a binary that reads corpus from `corpus_path`.
+  // The runner will display the corpus name as `corpus_name`. If `corpus_name`
+  // is empty, it will use `corpus_path` instead. This allows us to pass a
+  // corpus either as a file or as a memfd with a meaningful name.
   // The `cleanup` callback will be invoked upon destruction.
   static RunnerDriver ReadingRunner(absl::string_view binary_path,
                                     absl::string_view corpus_path,
+                                    absl::string_view corpus_name = "",
                                     std::function<void()> cleanup = {}) {
-    return RunnerDriver(binary_path, corpus_path, cleanup);
+    return RunnerDriver(binary_path, corpus_path, corpus_name, cleanup);
   }
 
   // Movable but not copyable.
@@ -159,9 +163,11 @@ class RunnerDriver {
   // be passed as the last argument to the binary.
   explicit RunnerDriver(absl::string_view binary_path,
                         absl::string_view corpus_path,
+                        absl::string_view corpus_name,
                         std::function<void()> cleanup)
       : binary_path_(binary_path),
         corpus_path_(corpus_path),
+        corpus_name_(corpus_name),
         cleanup_(this, [cleanup = std::move(cleanup)](RunnerDriver*) mutable {
           if (cleanup) cleanup();
         }) {}
@@ -196,6 +202,7 @@ class RunnerDriver {
   // C-tor parameters.
   std::string binary_path_;
   std::string corpus_path_;
+  std::string corpus_name_;
 
   // Cleanup callback handle. Wraps the user-provided `cleanup` std::function in
   // a container with "at most once" cleanup semantics. When an instance of this

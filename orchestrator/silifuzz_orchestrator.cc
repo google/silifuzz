@@ -170,7 +170,7 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
 
     const InMemoryShard &shard = args.corpora->shards[shard_idx];
     RunnerDriver driver =
-        RunnerDriver::ReadingRunner(args.runner, shard.file_path);
+        RunnerDriver::ReadingRunner(args.runner, shard.file_path, shard.name);
     absl::StatusOr<RunnerDriver::RunResult> run_result_or =
         driver.Run(runner_options);
 

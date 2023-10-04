@@ -27,6 +27,7 @@ namespace silifuzz {
 
 // See the header for description.
 int FLAGS_cpu = silifuzz::kAnyCPUId;
+const char* FLAGS_corpus_name = nullptr;
 const char* FLAGS_snap_id = nullptr;
 int FLAGS_run_time_budget_ms = -1;
 int FLAGS_num_iterations = 1000000;
@@ -44,6 +45,7 @@ void ShowUsage(const char* program_name) {
   LOG_INFO("Usage: ", program_name, " <flags>... [corpus file]");
   LOG_INFO("  flags");
   LOG_INFO("  --cpu [pinned cpu]\tPin runner to specified CPU.");
+  LOG_INFO("  --corpus_name name\tPrintable corpus name.");
   LOG_INFO("  --snap_id snap_id\tSnap ID to run.");
   LOG_INFO(
       "  --run_time_budget_ms [value]\tAmount of CPU time allocated for each "
@@ -90,6 +92,9 @@ int ParseRunnerFlags(int argc, char* argv[]) {
         LOG_ERROR("Invalid seed ", matcher.optarg());
         return -1;
       }
+    } else if (matcher.Match("corpus_name",
+                             CommandLineFlagMatcher::kRequiredArgument)) {
+      FLAGS_corpus_name = matcher.optarg();
     } else if (matcher.Match("snap_id",
                              CommandLineFlagMatcher::kRequiredArgument)) {
       FLAGS_snap_id = matcher.optarg();

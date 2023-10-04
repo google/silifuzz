@@ -407,6 +407,7 @@ cc_library_nolibc(
     # is added by one {runner_main,reading_runner_main}
     hdrs = ["default_snap_corpus.h"],
     as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
         "@lss",
     ],
     linkstatic = 1,

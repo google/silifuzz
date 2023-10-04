@@ -162,7 +162,7 @@ TEST(RunnerTest, EmptyCorpus) {
   close(fd);
 
   RunnerDriver driver = RunnerDriver::ReadingRunner(
-      RunnerLocation(), path, [&path] { unlink(path.c_str()); });
+      RunnerLocation(), path, "", [&path] { unlink(path.c_str()); });
   auto opts = RunnerOptions::Default();
   ASSERT_OK(driver.Run(opts));
   opts.set_sequential_mode(true);

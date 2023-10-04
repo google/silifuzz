@@ -26,6 +26,7 @@
 
 #include <cstdlib>
 
+#include "absl/base/attributes.h"
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./runner/default_snap_corpus.h"
 #include "./runner/runner.h"
@@ -37,6 +38,18 @@
 namespace silifuzz {
 
 namespace {
+
+constexpr const char* RemoveLeadingDirectory(
+    const char* file_name ABSL_ATTRIBUTE_LIFETIME_BOUND) {
+  size_t str_begin = 0;
+  for (size_t str_end = 0; file_name[str_end]; ++str_end) {
+    // Look for the last '/' that is not at the end of the string.
+    if (file_name[str_end] == '/' && file_name[str_end + 1] != '\0') {
+      str_begin = str_end + 1;
+    }
+  }
+  return file_name + str_begin;
+}
 
 int Main(int argc, char* argv[]) {
   int flags_end = ParseRunnerFlags(argc, argv);
@@ -62,6 +75,13 @@ int Main(int argc, char* argv[]) {
   if (options.corpus == nullptr) {
     LOG_ERROR("No corpus file name was specified");
     return EXIT_FAILURE;
+  }
+  if (FLAGS_corpus_name) {
+    options.corpus_name = FLAGS_corpus_name;
+  } else if (corpus_file_name) {
+    options.corpus_name = RemoveLeadingDirectory(corpus_file_name);
+  } else {
+    options.corpus_name = "<builtin>";
   }
   if (++flags_end < argc) {
     LOG_ERROR(StrCat({"Flags must come before corpus ", argv[flags_end]}));

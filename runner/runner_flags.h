@@ -26,6 +26,10 @@ namespace silifuzz {
 // CPU on which the runner is pine. kAnyCPUId means not pinned.
 extern int FLAGS_cpu;
 
+// Printiple name of the corpus. If null, the corpus name should be derived
+// from the corpus path.
+extern const char* FLAGS_corpus_name;
+
 // If set, run just this one snap. When null, runs the entire corpus.
 extern const char* FLAGS_snap_id;
 

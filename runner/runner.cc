@@ -471,10 +471,12 @@ void LogSnapMemoryBytes(const Snap<Host>& snap,
 // Logs the run result of `snap` to stdout formatted as
 // proto.SnapshotExecutionResult text proto. Additionally, logs execution
 // result in human-readable format to stderr.
-void LogSnapRunResult(const Snap<Host>& snap, const RunSnapResult& run_result) {
+void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
+                      const RunSnapResult& run_result) {
   if (run_result.outcome != RunSnapOutcome::kAsExpected) {
     LOG_ERROR("Snapshot [", snap.id,
               "] failed, outcome = ", IntStr(ToInt(run_result.outcome)));
+    LOG_ERROR("Corpus   [", options.corpus_name, "]");
     if (run_result.outcome == RunSnapOutcome::kRegisterStateMismatch) {
       LOG_INFO("Registers (diff vs expected end_state 0):");
       LOG_INFO("  gregs (modified only):");
@@ -622,7 +624,7 @@ int MakerMain(const RunnerMainOptions& options) {
   RunSnapResult run_result;
   RunSnap(snap, options, run_result);
 
-  LogSnapRunResult(snap, run_result);
+  LogSnapRunResult(snap, options, run_result);
   if (run_result.outcome != RunSnapOutcome::kAsExpected) {
     return EXIT_FAILURE;
   }
@@ -667,7 +669,7 @@ int RunnerMain(const RunnerMainOptions& options) {
       RunSnapResult run_result;
       RunSnap(snap, options, run_result);
       if (run_result.outcome != RunSnapOutcome::kAsExpected) {
-        LogSnapRunResult(snap, run_result);
+        LogSnapRunResult(snap, options, run_result);
         LOG_ERROR("Seed = ", IntStr(options.seed), " iteration #",
                   IntStr(snap_execution_count));
         LOG_ERROR("CPU id = ", IntStr(run_result.cpu_id));
@@ -697,7 +699,7 @@ int RunnerMainSequential(const RunnerMainOptions& options) {
     RunSnapResult run_result;
     RunSnap(snap, options, run_result);
     if (run_result.outcome != RunSnapOutcome::kAsExpected) {
-      LogSnapRunResult(snap, run_result);
+      LogSnapRunResult(snap, options, run_result);
       LOG_ERROR("Id = ", snap.id, " Iteration #", IntStr(i));
       return EXIT_FAILURE;
     }

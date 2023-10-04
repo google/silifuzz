@@ -50,6 +50,9 @@ struct RunnerMainOptions {
   // Snapshot to run.
   const char* snap_id = nullptr;
 
+  // Name of the corpus file being run.
+  const char* corpus_name = "<unknown>";
+
   // When true, sends SIGSTOP to self before and after each snap.
   bool enable_tracer = false;
 
