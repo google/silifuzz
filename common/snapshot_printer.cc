@@ -149,7 +149,7 @@ void SnapshotPrinter::PrintCompleteness(const Snapshot& snapshot) {
     completeness = "INCOMPLETE: ";
     incomplete = true;
   }
-  Line("Compleness: ", completeness);
+  Line("Completeness: ", completeness);
   if (incomplete) {
     Indent();
     Line(normal.ToString());

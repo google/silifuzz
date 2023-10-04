@@ -239,7 +239,7 @@ echo -en '\xFF\xC0' > /tmp/inc_eax
 Metadata:
   Id: inc_eax
   Architecture: x86_64 Linux
-  Compleness: complete
+  Completeness: complete
 Registers:
   gregs (non-0 only)
     rax = 0x20000000
@@ -305,7 +305,7 @@ $ ./tools/snap_tool print /tmp/inc_eax.pb
 Metadata:
   Id: inc_eax
   Architecture: x86_64 Linux
-  Compleness: complete
+  Completeness: complete
 Registers:
   gregs (non-0 only):
     rax = 0x20000000
