@@ -32,6 +32,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/cord.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "./util/byte_io.h"
 #include "./util/owned_file_descriptor.h"
@@ -195,19 +196,18 @@ TEST(CorpusUtil, LoadCorpora) {
   ASSERT_OK_AND_ASSIGN(InMemoryCorpora load_corpora_result,
                        LoadCorpora(corpus_paths));
 
-  const std::vector<OwnedFileDescriptor>& owned_fds =
-      load_corpora_result.file_descriptors;
-  const std::vector<std::string>& fd_paths =
-      load_corpora_result.file_descriptor_paths;
-
-  EXPECT_EQ(owned_fds.size(), kCorporaSize);
-  EXPECT_EQ(fd_paths.size(), kCorporaSize);
+  EXPECT_EQ(load_corpora_result.shards.size(), kCorporaSize);
 
   for (size_t i = 0; i < kCorporaSize; ++i) {
-    EXPECT_OK(CheckFileContents(owned_fds[i].borrow(), corpus_contents[i]));
+    const InMemoryShard& shard = load_corpora_result.shards[i];
+    EXPECT_EQ(shard.name, absl::StrCat("LoadCoporaTest_", i));
+    EXPECT_TRUE(absl::StartsWith(shard.file_path, "/proc/"));
+
+    EXPECT_OK(
+        CheckFileContents(shard.file_descriptor.borrow(), corpus_contents[i]));
 
     // Check again using file descriptor path.
-    const int fd2 = open(fd_paths[i].c_str(), O_RDONLY);
+    const int fd2 = open(shard.file_path.c_str(), O_RDONLY);
     ASSERT_GE(fd2, 0);
     EXPECT_OK(CheckFileContents(fd2, corpus_contents[i]));
     EXPECT_EQ(close(fd2), 0);
@@ -241,16 +241,12 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
   ASSERT_OK_AND_ASSIGN(InMemoryCorpora load_corpora_result,
                        LoadCorpora(corpus_paths));
 
-  const std::vector<OwnedFileDescriptor>& owned_fds =
-      load_corpora_result.file_descriptors;
-  const std::vector<std::string>& fd_paths =
-      load_corpora_result.file_descriptor_paths;
-
-  EXPECT_EQ(owned_fds.size(), corpus_contents.size());
-  EXPECT_EQ(fd_paths.size(), corpus_contents.size());
+  EXPECT_EQ(load_corpora_result.shards.size(), corpus_contents.size());
 
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
-    EXPECT_OK(CheckFileContents(owned_fds[i].borrow(), corpus_contents[i]));
+    const InMemoryShard& shard = load_corpora_result.shards[i];
+    EXPECT_OK(
+        CheckFileContents(shard.file_descriptor.borrow(), corpus_contents[i]));
   }
 }
 

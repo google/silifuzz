@@ -26,6 +26,23 @@
 
 namespace silifuzz {
 
+struct InMemoryShard {
+  // A file descriptor holding the complete, uncompressed corpus shard.
+  OwnedFileDescriptor file_descriptor;
+
+  // Paths in /proc file system to access the file_descriptor above.
+  std::string file_path;
+
+  // Printable name of the shard.
+  // This should be the base file name of the shard without the directory and
+  // with any compression extension stripped off (".xz", etc).
+  std::string name;
+};
+
+struct InMemoryCorpora {
+  std::vector<InMemoryShard> shards;
+};
+
 // Reads an lzma compressed file into memory.  Returns its contents in a cord or
 // an error status.
 absl::StatusOr<absl::Cord> ReadXzipFile(const std::string& path);
@@ -44,23 +61,9 @@ absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
 
 // Loads a compressed relocatable Snap corpus in `path` and returns an owned
 // file descriptor of a temp file containing uncompressed corpus contents in
-// RAM. LoadCorpus determins the decompression algorithm to use based on
-// suffix of `path`. Currently only .gz and .xz are recognized.
-absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path);
-
-struct InMemoryCorpora {
-  // File descriptors returned by LoadCorpora() below, in the same order
-  // as their corresponding corpus paths in
-  std::vector<OwnedFileDescriptor> file_descriptors;
-
-  // Paths in /proc file system to access the elements of file_descriptors
-  // above. Paths are in the same order as corresponding file descriptors.
-  std::vector<std::string> file_descriptor_paths;
-
-  // Shard names corresponding to the file_descriptors above. The names are in
-  // the same order as the descriptors.
-  std::vector<std::string> shard_names;
-};
+// RAM. LoadCorpus determines the decompression algorithm to use based on
+// suffix of `path`. Currently only .xz is recognized.
+absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path);
 
 // Reads and decompresses gzipped relocatable Snap corpora whose paths are in
 // `corpus_path`. Contents of each corpus are written in a file created in RAM.

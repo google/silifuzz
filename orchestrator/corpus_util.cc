@@ -23,7 +23,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <memory>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
@@ -202,9 +201,18 @@ absl::StatusOr<OwnedFileDescriptor> WriteSharedMemoryFile(
   return owned_fd;
 }
 
-absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path) {
+std::string FilePathForFD(const OwnedFileDescriptor& fd) {
+  return absl::StrCat("/proc/", getpid(), "/fd/", fd.borrow());
+}
+
+constexpr const absl::string_view kXzExtension = ".xz";
+
+absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
+  std::string name = absl::StrCat(Basename(path));
   absl::Cord contents;
-  if (absl::EndsWith(path, ".xz")) {
+  if (absl::EndsWith(path, kXzExtension)) {
+    // Clip .xz the extension from the file name.
+    name = name.substr(0, name.size() - kXzExtension.size());
     ASSIGN_OR_RETURN_IF_NOT_OK(contents, ReadXzipFile(path));
   } else {
     // Assume this is an uncompressed corpus.
@@ -217,16 +225,24 @@ absl::StatusOr<OwnedFileDescriptor> LoadCorpus(const std::string& path) {
   }
 
   // Set linked name in /proc/self/fd/ for ease of debugging.
-  return WriteSharedMemoryFile(contents, std::string(Basename(path)));
+  ASSIGN_OR_RETURN_IF_NOT_OK(OwnedFileDescriptor owned_fd,
+                             WriteSharedMemoryFile(contents, path));
+
+  std::string file_path = FilePathForFD(owned_fd);
+
+  return InMemoryShard{
+      .file_descriptor = std::move(owned_fd),
+      .file_path = std::move(file_path),
+      .name = std::move(name),
+  };
 }
 
 absl::StatusOr<InMemoryCorpora> LoadCorpora(
     const std::vector<std::string>& corpus_paths) {
   // Cannot use construct owner_fds(size, init_value) because element type is
   // not copyable.
-  std::vector<absl::StatusOr<OwnedFileDescriptor>> owned_fds(
-      corpus_paths.size());
-  std::generate(owned_fds.begin(), owned_fds.end(),
+  std::vector<absl::StatusOr<InMemoryShard>> shards(corpus_paths.size());
+  std::generate(shards.begin(), shards.end(),
                 []() { return absl::UnknownError("LoadCorpora"); });
   size_t num_threads = std::min<size_t>(std::thread::hardware_concurrency(),
                                         corpus_paths.size());
@@ -236,7 +252,7 @@ absl::StatusOr<InMemoryCorpora> LoadCorpora(
   // results in the corresponding portion of owned_fds.
   auto load_corpus_span =
       [](absl::Span<const std::string> corpus_paths,
-         absl::Span<absl::StatusOr<OwnedFileDescriptor>> results) {
+         absl::Span<absl::StatusOr<InMemoryShard>> results) {
         CHECK_EQ(corpus_paths.size(), results.size());
         for (size_t i = 0; i < corpus_paths.size(); ++i) {
           results[i] = LoadCorpus(corpus_paths[i]);
@@ -246,11 +262,11 @@ absl::StatusOr<InMemoryCorpora> LoadCorpora(
   // Distribute corpus paths evenly over corpus loader threads.
   std::vector<std::thread> loader_threads;
   auto corpus_path_spans = PartitionEvenly(corpus_paths, num_threads);
-  auto owned_fd_spans = PartitionEvenly(owned_fds, num_threads);
+  auto shard_spans = PartitionEvenly(shards, num_threads);
   loader_threads.reserve(num_threads);
   for (size_t i = 0; i < num_threads; ++i) {
     loader_threads.emplace_back(load_corpus_span, corpus_path_spans[i],
-                                owned_fd_spans[i]);
+                                shard_spans[i]);
   }
 
   for (auto& thread : loader_threads) {
@@ -259,18 +275,13 @@ absl::StatusOr<InMemoryCorpora> LoadCorpora(
   }
 
   InMemoryCorpora result;
-  result.file_descriptors.reserve(corpus_paths.size());
-  result.file_descriptor_paths.reserve(corpus_paths.size());
-  const pid_t pid = getpid();
+  result.shards.reserve(shards.size());
   for (size_t i = 0; i < corpus_paths.size(); ++i) {
-    RETURN_IF_NOT_OK(owned_fds[i].status());
-    result.file_descriptor_paths.push_back(
-        absl::StrCat("/proc/", pid, "/fd/", owned_fds[i]->borrow()));
-    result.file_descriptors.push_back(std::move(*owned_fds[i]));
-    VLOG_INFO(1, "Loaded corpus ", corpus_paths[i], " as ",
-              result.file_descriptor_paths[i]);
+    RETURN_IF_NOT_OK(shards[i].status());
+    VLOG_INFO(1, "Loaded corpus ", shards[i]->name, " as ",
+              shards[i]->file_path);
+    result.shards.push_back(std::move(*shards[i]));
   }
-  result.shard_names = corpus_paths;
   return result;
 }
 

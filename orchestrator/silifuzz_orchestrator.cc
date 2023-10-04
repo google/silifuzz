@@ -29,6 +29,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "./orchestrator/corpus_util.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/checks.h"
 #include "./util/path_util.h"
@@ -146,8 +147,8 @@ int NextCorpusGenerator::operator()() {
 void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
   VLOG_INFO(0, "T", args.thread_idx, " started");
   NextCorpusGenerator next_corpus_generator(
-      args.corpora->file_descriptor_paths.size(),
-      args.runner_options.sequential_mode(), args.thread_idx);
+      args.corpora->shards.size(), args.runner_options.sequential_mode(),
+      args.thread_idx);
 
   while (!ctx->ShouldStop()) {
     absl::Time start_time = absl::Now();
@@ -166,20 +167,19 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
                 " Reached end of stream in sequential mode");
       break;
     }
-    const std::string &corpus_name =
-        args.corpora->file_descriptor_paths[shard_idx];
-    const std::string &corpus_shard_name = args.corpora->shard_names[shard_idx];
-    RunnerDriver driver = RunnerDriver::ReadingRunner(args.runner, corpus_name);
+
+    const InMemoryShard &shard = args.corpora->shards[shard_idx];
+    RunnerDriver driver =
+        RunnerDriver::ReadingRunner(args.runner, shard.file_path);
     absl::StatusOr<RunnerDriver::RunResult> run_result_or =
         driver.Run(runner_options);
 
     absl::Duration elapsed_time = absl::Now() - start_time;
 
-    std::string log_msg =
-        absl::StrCat("T", args.thread_idx, " cpu: ", args.runner_options.cpu(),
-                     " corpus: ", Basename(corpus_shard_name),
-                     " time: ", absl::ToInt64Seconds(elapsed_time),
-                     " exit_status: ", RunResultToDebugString(run_result_or));
+    std::string log_msg = absl::StrCat(
+        "T", args.thread_idx, " cpu: ", args.runner_options.cpu(),
+        " corpus: ", shard.name, " time: ", absl::ToInt64Seconds(elapsed_time),
+        " exit_status: ", RunResultToDebugString(run_result_or));
     if (!run_result_or.ok()) {
       LOG_ERROR(log_msg, " error: ", run_result_or.status().message());
     } else {

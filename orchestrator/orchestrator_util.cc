@@ -165,7 +165,7 @@ absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
         ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryCorpora top_shard,
                                    LoadCorpora({shards[0]}));
         off_t top_shard_size =
-            lseek64(top_shard.file_descriptors[0].borrow(), 0, SEEK_END);
+            lseek64(top_shard.shards[0].file_descriptor.borrow(), 0, SEEK_END);
         if (top_shard_size < 0) {
           return absl::InternalError(absl::StrCat("lseek64 errno = ", errno));
         }
