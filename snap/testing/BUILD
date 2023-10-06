@@ -83,24 +83,64 @@ cc_binary(
     ],
 )
 
+RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --output_mode=relocatable_runner_corpus > $@"
+
 genrule(
     name = "relocatable_snap_test_snaps",
     testonly = 1,
     outs = ["test_corpus"],
     cmd = select({
-        "@silifuzz//build_defs/platform:aarch64": "$(location :snap_test_snaps_gen) --arch=aarch64 --output_mode=relocatable_runner_corpus > $@",
-        "@silifuzz//build_defs/platform:x86_64": "$(location :snap_test_snaps_gen) --arch=x86_64 --output_mode=relocatable_runner_corpus > $@",
+        "@silifuzz//build_defs/platform:aarch64": RELOCATABLE_COMMAND.format(arch = "aarch64"),
+        "@silifuzz//build_defs/platform:x86_64": RELOCATABLE_COMMAND.format(arch = "x86_64"),
     }),
     tools = [":snap_test_snaps_gen"],
 )
+
+SINGLE_RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --snapshot_id={snapshot_id} --output_mode=relocatable_runner_corpus > $@"
+
+genrule(
+    name = "relocatable_ends_as_expected",
+    testonly = 1,
+    outs = ["ends_as_expected_corpus"],
+    cmd = select({
+        "@silifuzz//build_defs/platform:aarch64": SINGLE_RELOCATABLE_COMMAND.format(
+            arch = "aarch64",
+            snapshot_id = "kEndsAsExpected",
+        ),
+        "@silifuzz//build_defs/platform:x86_64": SINGLE_RELOCATABLE_COMMAND.format(
+            arch = "x86_64",
+            snapshot_id = "kEndsAsExpected",
+        ),
+    }),
+    tools = [":snap_test_snaps_gen"],
+)
+
+genrule(
+    name = "relocatable_runaway",
+    testonly = 1,
+    outs = ["runaway_corpus"],
+    cmd = select({
+        "@silifuzz//build_defs/platform:aarch64": SINGLE_RELOCATABLE_COMMAND.format(
+            arch = "aarch64",
+            snapshot_id = "kRunaway",
+        ),
+        "@silifuzz//build_defs/platform:x86_64": SINGLE_RELOCATABLE_COMMAND.format(
+            arch = "x86_64",
+            snapshot_id = "kRunaway",
+        ),
+    }),
+    tools = [":snap_test_snaps_gen"],
+)
+
+SOURCE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --output_mode=c++source > $@"
 
 genrule(
     name = "snap_test_snaps_cc",
     testonly = 1,
     outs = ["snap_test_snaps.cc"],
     cmd = select({
-        "@silifuzz//build_defs/platform:aarch64": "$(location :snap_test_snaps_gen) --arch=aarch64 --output_mode=c++source > $@",
-        "@silifuzz//build_defs/platform:x86_64": "$(location :snap_test_snaps_gen) --arch=x86_64 --output_mode=c++source > $@",
+        "@silifuzz//build_defs/platform:aarch64": SOURCE_COMMAND.format(arch = "aarch64"),
+        "@silifuzz//build_defs/platform:x86_64": SOURCE_COMMAND.format(arch = "x86_64"),
     }),
     tools = [":snap_test_snaps_gen"],
 )

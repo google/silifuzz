@@ -23,6 +23,14 @@ _ORCHESTRATOR_PATH = get_data_dependency(
 
 _RUNNER_PATH = get_data_dependency('silifuzz/orchestrator/test_runner')
 
+_ENDS_AS_EXPECTED_CORPUS_PATH = get_data_dependency(
+    'silifuzz/snap/testing/ends_as_expected_corpus'
+)
+
+_RUNAWAY_CORPUS_PATH = get_data_dependency(
+    'silifuzz/snap/testing/runaway_corpus'
+)
+
 
 class OrchestratorTest(absltest.TestCase):
   _FAKE_CORPUS: list[str] = []
@@ -30,21 +38,22 @@ class OrchestratorTest(absltest.TestCase):
   @classmethod
   def setUpClass(cls):
     super(OrchestratorTest, cls).setUpClass()
-    corpus_contents = ['One', 'Two']
-    for i, contents in enumerate(corpus_contents):
+    corpus_paths = [_ENDS_AS_EXPECTED_CORPUS_PATH, _RUNAWAY_CORPUS_PATH]
+    for i, original_path in enumerate(corpus_paths):
+      contents = open(original_path, 'rb').read()
       # Compress one corpus only. The orchestrator can load
       # both corpora with and without compression.
       is_compressed = i > 0
       suffix = '.xz' if is_compressed else ''
       path = os.path.join(
-          absltest.get_default_test_tmpdir(), f'fake_corpus_{contents}{suffix}'
+          absltest.get_default_test_tmpdir(),
+          f'{os.path.basename(original_path)}{suffix}',
       )
       with open(path, 'wb') as f:
-        encoded = f'Corpus {contents}'.encode('ascii')
         if is_compressed:
-          f.write(lzma.compress(encoded))
+          f.write(lzma.compress(contents))
         else:
-          f.write(encoded)
+          f.write(contents)
       cls._FAKE_CORPUS.append(path)
 
   def _popen_args(
@@ -180,14 +189,16 @@ class OrchestratorTest(absltest.TestCase):
   def test_multiple_corpora(self):
     # Check that the uncompressed contents of both fake corpora are present.
     (err_log, returncode) = self.run_orchestrator(
-        ['print_first_line'], extra_args=['--sequential_mode'], multicorpus=True
+        ['print_first_snap_id'],
+        extra_args=['--sequential_mode'],
+        multicorpus=True,
     )
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
         err_log,
         [
-            'Corpus One',
-            'Corpus Two',
+            'kEndsAsExpected',
+            'kRunaway',
         ],
     )
 
@@ -242,7 +253,7 @@ class OrchestratorTest(absltest.TestCase):
     self.assertStrSeqContainsAll(
         err_log,
         [
-            'corpus: fake_corpus_One',
+            'corpus: ends_as_expected_corpus',
             'error: Runner killed by signal 14',
             'exit_status: internal_error',
         ],

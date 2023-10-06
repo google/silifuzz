@@ -38,6 +38,9 @@
 #include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 
+ABSL_FLAG(std::string, snapshot_id, "",
+          "Generate a corpus with a single, named snapshot.");
+
 ABSL_FLAG(std::string, arch, "",
           "Architecture to target. One of x86_64, aarch64.");
 
@@ -47,6 +50,15 @@ ABSL_FLAG(
 
 namespace silifuzz {
 namespace {
+
+bool ShouldIncludeSnapshot(const Snapshot& snapshot) {
+  std::string snapshot_id = absl::GetFlag(FLAGS_snapshot_id);
+  if (!snapshot_id.empty()) {
+    return snapshot.id() == snapshot_id;
+  } else {
+    return true;
+  }
+}
 
 template <typename Arch>
 absl::Status GenerateRelocatableRunnerCorpus() {
@@ -62,12 +74,18 @@ absl::Status GenerateRelocatableRunnerCorpus() {
       continue;
     }
     Snapshot snapshot = MakeSnapRunnerTestSnapshot<Arch>(type);
-    // Note: it isn't guarenteed that all the test snaps will be snap
+    if (!ShouldIncludeSnapshot(snapshot)) {
+      continue;
+    }
+    // Note: it isn't guaranteed that all the test snaps will be snap
     // compatible. If this becomes an issue, we can add a query function and
     // filter them out here.
     ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified, Snapify(snapshot, opts));
     snapified_corpus.push_back(std::move(snapified));
   }
+
+  // Check if we filtered out everything due to a bad snapshot_id.
+  CHECK_GE(snapified_corpus.size(), 1);
 
   // Generate the SnapCorpus data.
   RelocatableSnapGeneratorOptions options;
@@ -105,15 +123,13 @@ absl::Status GenerateSource() {
         static_cast<SnapGeneratorTestType>(type);
     Snapshot snapshot =
         MakeSnapGeneratorTestSnapshot<Arch>(snap_generator_test_type);
+    if (!ShouldIncludeSnapshot(snapshot)) {
+      continue;
+    }
     std::string name = absl::StrCat("kGeneratorTestSnap_", type);
     generator_test_snap_names.push_back(name);
     CHECK_STATUS(generator.GenerateSnap(name, snapshot, snapify_opts));
   }
-
-  // We use types as array indices.
-  CHECK_EQ(first_generator_test_type, 0);
-  CHECK_EQ(last_generator_test_type + 1, generator_test_snap_names.size());
-
   // Print SnapArray containing pointers to Snaps generated above.
   generator.GenerateSnapArray("kSnapGeneratorTestCorpus",
                               generator_test_snap_names);
@@ -126,6 +142,9 @@ absl::Status GenerateSource() {
       continue;
     }
     Snapshot snapshot = MakeSnapRunnerTestSnapshot<Arch>(type);
+    if (!ShouldIncludeSnapshot(snapshot)) {
+      continue;
+    }
     std::string name = absl::StrCat("kRunnerTestSnap_", index);
     runner_test_snap_names.push_back(name);
     CHECK_STATUS(generator.GenerateSnap(name, snapshot, snapify_opts));

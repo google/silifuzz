@@ -25,6 +25,11 @@
 #include <csignal>
 #include <string>
 
+#include "./snap/snap.h"
+#include "./snap/snap_corpus_util.h"
+#include "./util/arch.h"
+#include "./util/mmapped_memory_ptr.h"
+
 // Some divisions in a loop. Make sure compiler doesn't remove them.
 __attribute__((noinline)) void MakeCpuBusy(size_t num_iterations) {
   volatile uint64_t x = 1234567, y;
@@ -41,18 +46,19 @@ void LogHumanReadable(const char* format, ...) {
   fflush(stderr);
 }
 
-// Prints first line of a text file.
-void PrintFirstLineOfFile(const char* filename) {
-  FILE* fp = fopen(filename, "r");
-  if (fp != nullptr) {
-    constexpr size_t kMaxLineSize = 1000;
-    char line[kMaxLineSize];
-    fgets(line, sizeof(line), fp);
-    line[sizeof(line) - 1] = '\0';
-    LogHumanReadable("%s", line);
-    fclose(fp);
+namespace silifuzz {
+
+// Print the first Snap ID in the corpus.
+void PrintFirstSnapId(const char* filename) {
+  MmappedMemoryPtr<const SnapCorpus<Host>> corpus =
+      LoadCorpusFromFile<Host>(filename);
+  if (corpus->snaps.size >= 1) {
+    LogHumanReadable("%s\n", corpus->snaps[0]->id);
+  } else {
+    LogHumanReadable("%s\n", "EMPTY");
   }
 }
+}  // namespace silifuzz
 
 int main(int argc, char** argv) {
   // Limit the file size with 1Mb.
@@ -60,9 +66,9 @@ int main(int argc, char** argv) {
   setrlimit(RLIMIT_FSIZE, &rlimit_fsize);
 
   // If true, the test runner considers any subsequent arguments after
-  // print_first_line that are not recognized as flags to be paths. The runner
-  // opens these files and prints the first text line of each.
-  bool print_first_line = false;
+  // print_first_snap_id that are not recognized as flags to be paths. The
+  // runner opens these files and prints the ID of the first Snap in the file.
+  bool print_first_snap_id = false;
 
   // Run commands supplied from the command line, one by one.
   for (int i = 1; i < argc; i++) {
@@ -101,10 +107,10 @@ int main(int argc, char** argv) {
               "} registers: { gregs: '' fpregs: '' } } }");
       fflush(stdout);
       return 1;
-    } else if (cmd == "print_first_line") {
-      print_first_line = true;
+    } else if (cmd == "print_first_snap_id") {
+      print_first_snap_id = true;
     } else if (cmd == "--sequential_mode") {
-      LogHumanReadable("TEST RUNNER sequential_mode");
+      LogHumanReadable("TEST RUNNER sequential_mode\n");
     } else if (cmd == "ignore_alarm") {
       struct sigaction sigact = {};
       sigact.sa_handler = SIG_IGN;
@@ -112,11 +118,11 @@ int main(int argc, char** argv) {
     } else if (cmd == "sleep100") {
       sleep(100);
     } else {
-      if (print_first_line) {
-        // An unrecognized argument after print_first_line.
-        PrintFirstLineOfFile(argv[i]);
+      if (print_first_snap_id) {
+        silifuzz::PrintFirstSnapId(argv[i]);
       }
     }
   }
+
   return 0;
 }

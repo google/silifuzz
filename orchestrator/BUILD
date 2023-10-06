@@ -199,6 +199,12 @@ cc_test(
 cc_binary(
     name = "test_runner",
     srcs = ["test_runner.cc"],
+    deps = [
+        "@silifuzz//snap",
+        "@silifuzz//snap:snap_corpus_util",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:mmapped_memory_ptr",
+    ],
 )
 
 py_test(
@@ -208,6 +214,8 @@ py_test(
     data = [
         ":silifuzz_orchestrator_main",
         ":test_runner",
+        "@silifuzz//snap/testing:ends_as_expected_corpus",
+        "@silifuzz//snap/testing:runaway_corpus",
     ],
     deps = [
         "@absl_py//absl/logging",
