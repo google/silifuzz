@@ -185,14 +185,21 @@ struct SnapCorpusHeader {
   // For checking this is actually a snap corpus.
   uint64_t magic;
 
+  // The expected sizeof(SnapCorpusHeader), for checking the data is in sync
+  // with the code. This should always be located just after the magic, and be
+  // checked just after the magic.
+  uint32_t header_size;
+
+  // The checksum of all the data in the corpus other than this field.
+  uint32_t checksum;
+
   // The size of the corpus file, in bytes. Can be used for integrity checking,
   // such as detecting if data has been appended to the file.
   // Zero if the corpus is not backed by a file.
   uint64_t num_bytes;
 
   // The expected sizeof(SnapCorpus), for checking the data is in sync with the
-  // code. This should always be located just after the magic, and be checked
-  // just after the magic.
+  // code.
   uint32_t corpus_type_size;
 
   // The expected sizeof(Snap), for checking the data is in sync with the code.

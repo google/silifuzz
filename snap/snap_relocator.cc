@@ -177,6 +177,12 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
   if (corpus.header.magic != kSnapCorpusMagic) {
     return SnapRelocatorError::kBadData;
   }
+  // If the header isn't the size we expected, this is likely a version
+  // mismatch. We check early since the rest of the checks rely on the header
+  // having the layout we expect.
+  if (corpus.header.header_size != sizeof(SnapCorpusHeader)) {
+    return SnapRelocatorError::kBadData;
+  }
   // If the corpus file isn't the same number of bytes it was when it was
   // created, it likely is corrupt.
   if (corpus.header.num_bytes != limit_address_ - start_address_) {

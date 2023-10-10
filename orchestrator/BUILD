@@ -164,8 +164,11 @@ cc_library(
     srcs = ["corpus_util.cc"],
     hdrs = ["corpus_util.h"],
     deps = [
+        "@silifuzz//snap",
+        "@silifuzz//snap:snap_checksum",
         "@silifuzz//util:byte_io",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:owned_file_descriptor",
         "@silifuzz//util:path_util",
         "@silifuzz//util:span_util",
@@ -184,6 +187,7 @@ cc_test(
     srcs = ["corpus_util_test.cc"],
     deps = [
         ":corpus_util",
+        "@silifuzz//snap",
         "@silifuzz//util:byte_io",
         "@silifuzz//util:owned_file_descriptor",
         "@silifuzz//util/testing:status_macros",

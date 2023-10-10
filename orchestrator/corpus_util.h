@@ -14,6 +14,7 @@
 
 #ifndef THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_CORPUS_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_CORPUS_UTIL_H_
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -37,11 +38,30 @@ struct InMemoryShard {
   // This should be the base file name of the shard without the directory and
   // with any compression extension stripped off (".xz", etc).
   std::string name;
+
+  // The bytes of the SnapCorpusHeader at the start of the file.
+  // Preserved so we can validate it.
+  // May be too small if the file is too small.
+  std::string header_bytes;
+
+  // The size of the file, in bytes.
+  uint64_t file_size;
+
+  // The checksum of the file.
+  uint32_t checksum;
 };
 
 struct InMemoryCorpora {
   std::vector<InMemoryShard> shards;
 };
+
+// Check that all the shards look OK.
+// The header seems consistent, the checksum is correct, etc.
+absl::Status ValidateCorpus(const InMemoryCorpora& corpora);
+
+// Checked that a single shard looks OK.
+// Exposed for testing.
+absl::Status ValidateShard(const InMemoryShard& shard);
 
 // Reads an lzma compressed file into memory.  Returns its contents in a cord or
 // an error status.

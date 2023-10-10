@@ -74,6 +74,7 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
         "@silifuzz//snap",
+        "@silifuzz//snap:snap_checksum",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",

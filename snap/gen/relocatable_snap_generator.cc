@@ -32,6 +32,7 @@
 #include "./snap/gen/relocatable_data_block.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/snap.h"
+#include "./snap/snap_checksum.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
@@ -451,10 +452,12 @@ void Traversal<Arch>::Process(PassType pass,
   main_block_.Allocate(page_data_block_);
 
   if (pass == PassType::kGeneration) {
-    new (corpus_ref.contents()) SnapCorpus<Arch>{
+    SnapCorpus<Arch>* corpus = new (corpus_ref.contents()) SnapCorpus<Arch>{
         .header =
             {
                 .magic = kSnapCorpusMagic,
+                .header_size = sizeof(SnapCorpusHeader),
+                .checksum = 0,
                 .num_bytes = main_block_.size(),
                 .corpus_type_size = sizeof(SnapCorpus<Arch>),
                 .snap_type_size = sizeof(Snap<Arch>),
@@ -481,6 +484,13 @@ void Traversal<Arch>::Process(PassType pass,
       *element_ref.contents_as_pointer_of<const Snap<Arch>*>() =
           snap_ref.load_address_as_pointer_of<const Snap<Arch>>();
     }
+
+    // Calculate the final checksum.
+    // The checksum calculation ignores the checksum field in the header. This
+    // lets us set this field without modifying the checksum.
+    CorpusChecksumCalculator checksum;
+    checksum.AddData(corpus, corpus->header.num_bytes);
+    corpus->header.checksum = checksum.Checksum();
   }
 }
 

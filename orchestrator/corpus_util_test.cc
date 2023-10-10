@@ -21,6 +21,7 @@
 
 #include <array>
 #include <cerrno>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
@@ -34,6 +35,7 @@
 #include "absl/strings/cord.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "./snap/snap.h"
 #include "./util/byte_io.h"
 #include "./util/owned_file_descriptor.h"
 #include "./util/testing/status_macros.h"
@@ -182,7 +184,7 @@ TEST(CorpusUtil, LoadCorpora) {
   std::vector<std::string> corpus_paths;
   for (size_t i = 0; i < kCorporaSize; ++i) {
     corpus_paths.push_back(
-        absl::StrCat(TempDir(), "/LoadCoporaTest_", i, ".xz"));
+        absl::StrCat(TempDir(), "/LoadCorporaTest_", i, ".xz"));
     const int fd = open(corpus_paths[i].c_str(), O_CREAT | O_TRUNC | O_WRONLY,
                         S_IRUSR | S_IWUSR);
     ASSERT_NE(fd, -1);
@@ -200,8 +202,9 @@ TEST(CorpusUtil, LoadCorpora) {
 
   for (size_t i = 0; i < kCorporaSize; ++i) {
     const InMemoryShard& shard = load_corpora_result.shards[i];
-    EXPECT_EQ(shard.name, absl::StrCat("LoadCoporaTest_", i));
+    EXPECT_EQ(shard.name, absl::StrCat("LoadCorporaTest_", i));
     EXPECT_TRUE(absl::StartsWith(shard.file_path, "/proc/"));
+    EXPECT_EQ(shard.file_size, corpus_contents[i].size());
 
     EXPECT_OK(
         CheckFileContents(shard.file_descriptor.borrow(), corpus_contents[i]));
@@ -229,7 +232,7 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
   std::vector<std::string> corpus_paths;
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
     corpus_paths.push_back(
-        absl::StrCat(TempDir(), "/LoadCoporaUncompressedTest_", i));
+        absl::StrCat(TempDir(), "/LoadCorporaUncompressedTest_", i));
     const int fd = open(corpus_paths[i].c_str(), O_CREAT | O_TRUNC | O_WRONLY,
                         S_IRUSR | S_IWUSR);
     ASSERT_NE(fd, -1);
@@ -245,9 +248,82 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
 
   for (size_t i = 0; i < corpus_contents.size(); ++i) {
     const InMemoryShard& shard = load_corpora_result.shards[i];
+    EXPECT_EQ(shard.name, absl::StrCat("LoadCorporaUncompressedTest_", i));
+    EXPECT_TRUE(absl::StartsWith(shard.file_path, "/proc/"));
+    EXPECT_EQ(shard.file_size, corpus_contents[i].size());
+
     EXPECT_OK(
         CheckFileContents(shard.file_descriptor.borrow(), corpus_contents[i]));
   }
+}
+
+class ValidateShardTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    header_ = SnapCorpusHeader{
+        .magic = kSnapCorpusMagic,
+        .header_size = sizeof(SnapCorpusHeader),
+        .checksum = 0xea7f00d,
+        .num_bytes = 4096,
+    };
+
+    shard_ = InMemoryShard{
+        .file_descriptor = OwnedFileDescriptor(),
+        .file_path = "foo/bar",
+        .name = "bar",
+        .header_bytes = HeaderBytes(),
+        .file_size = header_.num_bytes,
+        .checksum = header_.checksum,
+    };
+  }
+
+  std::string HeaderBytes() {
+    return std::string(reinterpret_cast<const char*>(&header_),
+                       sizeof(header_));
+  }
+
+  void SyncHeader() { shard_.header_bytes = HeaderBytes(); }
+
+  InMemoryShard shard_;
+  SnapCorpusHeader header_;
+};
+
+TEST_F(ValidateShardTest, OK) { EXPECT_OK(ValidateShard(shard_)); }
+
+TEST_F(ValidateShardTest, TooShort) {
+  shard_.file_size = 8;
+  EXPECT_THAT(ValidateShard(shard_), StatusIs(absl::StatusCode::kOutOfRange));
+}
+
+TEST_F(ValidateShardTest, MissingHeader) {
+  shard_.header_bytes.clear();
+  EXPECT_THAT(ValidateShard(shard_), StatusIs(absl::StatusCode::kInternal));
+}
+
+TEST_F(ValidateShardTest, SizeMismatch) {
+  shard_.file_size += 1;
+  EXPECT_THAT(ValidateShard(shard_),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(ValidateShardTest, BadMagic) {
+  header_.magic ^= 1;
+  SyncHeader();
+  EXPECT_THAT(ValidateShard(shard_),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(ValidateShardTest, VersionMismatch) {
+  header_.header_size += 8;
+  SyncHeader();
+  EXPECT_THAT(ValidateShard(shard_),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+}
+
+TEST_F(ValidateShardTest, ChecksumMismatch) {
+  header_.checksum ^= 1;
+  SyncHeader();
+  EXPECT_THAT(ValidateShard(shard_), StatusIs(absl::StatusCode::kDataLoss));
 }
 
 }  // namespace

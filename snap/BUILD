@@ -119,6 +119,35 @@ cc_library(
 )
 
 cc_library_plus_nolibc(
+    name = "snap_checksum",
+    srcs = [
+        "snap_checksum.cc",
+    ],
+    hdrs = [
+        "snap_checksum.h",
+    ],
+    as_is_deps = [
+        "@com_google_absl//absl/strings:string_view",
+    ],
+    deps = [
+        ":snap",
+        "@silifuzz//util:crc32c",
+    ],
+)
+
+cc_test(
+    name = "snap_checksum_test",
+    size = "medium",
+    srcs = ["snap_checksum_test.cc"],
+    deps = [
+        ":snap",
+        ":snap_checksum",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library_plus_nolibc(
     name = "snap_corpus_util",
     srcs = [
         "snap_corpus_util.cc",

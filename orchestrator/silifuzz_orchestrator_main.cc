@@ -44,6 +44,7 @@
 #include <unistd.h>
 
 #include <csignal>
+#include <cstddef>
 #include <cstdlib>
 #include <filesystem>  // NOLINT
 #include <fstream>
@@ -206,6 +207,12 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
       LoadCorpora(corpora);
   if (!in_memory_corpora.ok()) {
     LOG_ERROR("Cannot load corpora: ", in_memory_corpora.status().message());
+    return EXIT_FAILURE;
+  }
+
+  absl::Status validation_status = ValidateCorpus(*in_memory_corpora);
+  if (!validation_status.ok()) {
+    LOG_ERROR(validation_status.message());
     return EXIT_FAILURE;
   }
 

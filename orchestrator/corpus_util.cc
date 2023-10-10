@@ -37,8 +37,11 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "third_party/liblzma/lzma.h"
+#include "./snap/snap.h"
+#include "./snap/snap_checksum.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/owned_file_descriptor.h"
 #include "./util/path_util.h"
 #include "./util/span_util.h"
@@ -209,6 +212,7 @@ constexpr const absl::string_view kXzExtension = ".xz";
 
 absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
   std::string name = absl::StrCat(Basename(path));
+
   absl::Cord contents;
   if (absl::EndsWith(path, kXzExtension)) {
     // Clip .xz the extension from the file name.
@@ -224,6 +228,15 @@ absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
     ASSIGN_OR_RETURN_IF_NOT_OK(contents, ReadCord(fd));
   }
 
+  // Will be truncated if the contents are too short.
+  std::string header_bytes(contents.Subcord(0, sizeof(SnapCorpusHeader)));
+
+  // Calculate checksum.
+  CorpusChecksumCalculator checksum;
+  for (absl::string_view chunk : contents.Chunks()) {
+    checksum.AddData(chunk);
+  }
+
   // Set linked name in /proc/self/fd/ for ease of debugging.
   ASSIGN_OR_RETURN_IF_NOT_OK(OwnedFileDescriptor owned_fd,
                              WriteSharedMemoryFile(contents, path));
@@ -234,6 +247,9 @@ absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
       .file_descriptor = std::move(owned_fd),
       .file_path = std::move(file_path),
       .name = std::move(name),
+      .header_bytes = std::move(header_bytes),
+      .file_size = contents.size(),
+      .checksum = checksum.Checksum(),
   };
 }
 
@@ -283,6 +299,63 @@ absl::StatusOr<InMemoryCorpora> LoadCorpora(
     result.shards.push_back(std::move(*shards[i]));
   }
   return result;
+}
+
+absl::Status ValidateShard(const InMemoryShard& shard) {
+  if (shard.file_size < sizeof(SnapCorpusHeader)) {
+    return absl::OutOfRangeError(absl::StrCat(
+        "Shard ", shard.name, " is too small to be a valid corpus"));
+  }
+  if (shard.header_bytes.size() != sizeof(SnapCorpusHeader)) {
+    return absl::InternalError(
+        absl::StrCat("Shard ", shard.name,
+                     " - failed to capture the corpus header, somehow"));
+  }
+  const SnapCorpusHeader& header =
+      *reinterpret_cast<const SnapCorpusHeader*>(shard.header_bytes.data());
+  // Likely not a corpus file if the magic is wrong.
+  if (header.magic != kSnapCorpusMagic) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Shard ", shard.name, " has bad magic: ", HexStr(header.magic)));
+  }
+  // Likely a version mismatch if the header size is wrong.
+  if (header.header_size != sizeof(SnapCorpusHeader)) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Shard ", shard.name, " header size should be ",
+        sizeof(SnapCorpusHeader), " but it is ", header.header_size));
+  }
+  // Likely file corruption if the size is wrong.
+  if (header.num_bytes != shard.file_size) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("Shard ", shard.name, " should be ", header.num_bytes,
+                     " bytes but is ", shard.file_size, " bytes"));
+  }
+  // Likely file corruption if the checksum is wrong.
+  if (header.checksum != shard.checksum) {
+    return absl::DataLossError(absl::StrCat(
+        "Shard ", shard.name, " should have checksum ", HexStr(header.checksum),
+        " but it is ", HexStr(shard.checksum)));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ValidateCorpus(const InMemoryCorpora& corpora) {
+  size_t error_count = 0;
+  size_t shard_count = 0;
+  for (const InMemoryShard& shard : corpora.shards) {
+    absl::Status s = ValidateShard(shard);
+    if (!s.ok()) {
+      LOG_ERROR(s.message());
+      ++error_count;
+    }
+    ++shard_count;
+  }
+  if (error_count) {
+    return absl::InternalError(absl::StrCat("Failed to validate ", error_count,
+                                            "/", shard_count,
+                                            " corpus shards"));
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace silifuzz
