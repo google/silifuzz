@@ -70,8 +70,11 @@ int Main(int argc, char* argv[]) {
   }
 
   RunnerMainOptions options;
+  options.strict = FLAGS_strict;
+
   const char* corpus_file_name = flags_end < argc ? argv[flags_end] : nullptr;
-  options.corpus = LoadCorpus(corpus_file_name, &options.corpus_fd);
+  options.corpus =
+      LoadCorpus(corpus_file_name, options.strict, &options.corpus_fd);
   if (options.corpus == nullptr) {
     LOG_ERROR("No corpus file name was specified");
     return EXIT_FAILURE;

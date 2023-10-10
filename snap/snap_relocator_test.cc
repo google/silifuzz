@@ -63,8 +63,10 @@ class SnapRelocatorTest : public ::testing::Test {
 
   void ExpectRelocationResultIs(SnapRelocatorError expected_error) {
     SnapRelocatorError error;
+    // Skip validation since the corpus was modified.
     MmappedMemoryPtr<const SnapCorpus<Arch>> corpus_mmaped_memory_ptr =
-        SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable_), &error);
+        SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable_), false,
+                                            &error);
     EXPECT_EQ(error, expected_error);
   }
 

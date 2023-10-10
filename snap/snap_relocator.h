@@ -30,6 +30,7 @@ enum class [[nodiscard]] SnapRelocatorError {
   kOutOfBound,   // A pointer points outside of the relocatable.
   kMprotect,     // Error in setting up memory protection.
   kBadData,      // This is either not a corpus file or it is out of date.
+  kBadChecksum,  // Corpus checksum is incorrect.
 };
 
 // SnapRelocator relocates a relocatable Snap corpus loaded at an address
@@ -40,12 +41,13 @@ class SnapRelocator {
  public:
   // Relocates a relocatable Snap corpus pointed by `relocatable` and then
   // mprotect the memory to be read-only.
-  //
+  // Performs additional integrity checks if `verify` is set.
   // RETURNS: A mmapped memory pointer to the relocated corpus and an error
   // code indicating if relocation succeeded. If relocation failed, the return
   // contents are undefined.
   static MmappedMemoryPtr<const SnapCorpus<Arch>> RelocateCorpus(
-      MmappedMemoryPtr<char> relocatable, SnapRelocatorError* error);
+      MmappedMemoryPtr<char> relocatable, bool verify,
+      SnapRelocatorError* error);
 
  private:
   // Constructs a SnapRelocator object for a relocatable Snap corpus in
@@ -96,10 +98,12 @@ class SnapRelocator {
       SnapArray<SnapMemoryBytes>& memory_bytes_array);
 
   // Relocates corpus by adjusting all pointers inside the corpus.
+  // If `verify` is true, calculate and verify the corpus checksum before
+  // relocation.
   // REQUIRES: Only called once.
   // RETURNS: whether relocation succeeded. If it failed, contents of
   // corpus are undefined.
-  SnapRelocatorError RelocateCorpus();
+  SnapRelocatorError RelocateCorpus(bool verify);
 
   // Address of the beginning of the corpus.
   uintptr_t start_address_;

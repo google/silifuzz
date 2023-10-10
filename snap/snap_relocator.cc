@@ -20,6 +20,9 @@
 #include <cstdint>
 
 #include "./snap/snap.h"
+#include "./snap/snap_checksum.h"
+#include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
@@ -164,7 +167,7 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateMemoryBytesArray(
 }
 
 template <typename Arch>
-SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
+SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus(bool verify) {
   // We know the pointer is in bounds, but check that the struct fits in memory
   // and is aligned.
   RETURN_IF_RELOCATION_FAILED(
@@ -187,6 +190,19 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
   // created, it likely is corrupt.
   if (corpus.header.num_bytes != limit_address_ - start_address_) {
     return SnapRelocatorError::kBadData;
+  }
+  // Verifying the checksum is relatively expensive.
+  if (verify) {
+    uint32_t expected = corpus.header.checksum;
+    CorpusChecksumCalculator checksum;
+    checksum.AddData(&corpus, corpus.header.num_bytes);
+    uint32_t actual = checksum.Checksum();
+    if (expected != actual) {
+      // TODO(ncbray): propagate error information in return value.
+      LOG_ERROR("Expected corpus would have checksum ", HexStr(expected),
+                " but got ", HexStr(actual));
+      return SnapRelocatorError::kBadChecksum;
+    }
   }
   // Detect if we're trying to load a corpus for the wrong arch.
   if (!corpus.IsExpectedArch()) {
@@ -236,7 +252,8 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus() {
 // static
 template <typename Arch>
 MmappedMemoryPtr<const SnapCorpus<Arch>> SnapRelocator<Arch>::RelocateCorpus(
-    MmappedMemoryPtr<char> relocatable, SnapRelocatorError* error) {
+    MmappedMemoryPtr<char> relocatable, bool verify,
+    SnapRelocatorError* error) {
   const size_t byte_size = MmappedMemorySize(relocatable);
   if (byte_size == 0) {
     *error = SnapRelocatorError::kEmptyCorpus;
@@ -248,7 +265,7 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> SnapRelocator<Arch>::RelocateCorpus(
   SnapRelocator relocator(start_address, limit_address);
 
   // Relocate corpus
-  *error = relocator.RelocateCorpus();
+  *error = relocator.RelocateCorpus(verify);
   if (*error != SnapRelocatorError::kOk) return make_null_corpus<Arch>();
 
   // mprotect corpus after relocation.
@@ -269,12 +286,14 @@ template
     // static
     MmappedMemoryPtr<const SnapCorpus<X86_64>>
     SnapRelocator<X86_64>::RelocateCorpus(MmappedMemoryPtr<char> relocatable,
+                                          bool verify,
                                           SnapRelocatorError* error);
 
 template
     // static
     MmappedMemoryPtr<const SnapCorpus<AArch64>>
     SnapRelocator<AArch64>::RelocateCorpus(MmappedMemoryPtr<char> relocatable,
+                                           bool verify,
                                            SnapRelocatorError* error);
 
 }  // namespace silifuzz

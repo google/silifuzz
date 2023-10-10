@@ -39,6 +39,7 @@ size_t FLAGS_batch_size = RunnerMainOptions::kDefaultBatchSize;
 size_t FLAGS_schedule_size = RunnerMainOptions::kDefaultScheduleSize;
 bool FLAGS_sequential_mode = false;
 bool FLAGS_skip_end_state_check = false;
+bool FLAGS_strict = false;
 
 // Print all flags and exit.
 void ShowUsage(const char* program_name) {
@@ -61,6 +62,9 @@ void ShowUsage(const char* program_name) {
   LOG_INFO("  --sequential_mode\tRun Snaps sequentially once.");
   LOG_INFO(
       "  --skip_end_state_check\tDo not check end state after snap execution.");
+  LOG_INFO(
+      "  --strict\tPerform additional integrity checking. May slow down "
+      "execution.");
   LOG_INFO("  --help\tPrint usage information.");
 }
 
@@ -143,6 +147,8 @@ int ParseRunnerFlags(int argc, char* argv[]) {
     } else if (matcher.Match("skip_end_state_check",
                              CommandLineFlagMatcher::kNoArgument)) {
       FLAGS_skip_end_state_check = true;
+    } else if (matcher.Match("strict", CommandLineFlagMatcher::kNoArgument)) {
+      FLAGS_strict = true;
     } else {
       // Exit loop if argument is not recognized.
       break;

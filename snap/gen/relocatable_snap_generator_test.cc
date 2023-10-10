@@ -56,7 +56,7 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> GenerateRelocatedCorpus(
   auto relocatable = GenerateRelocatableSnaps(Arch::architecture_id, snapshots);
   SnapRelocatorError error;
   auto relocated_corpus =
-      SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable), &error);
+      SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable), true, &error);
   CHECK(error == SnapRelocatorError::kOk);
   CHECK_EQ(relocated_corpus->snaps.size, snapshots.size());
   return relocated_corpus;

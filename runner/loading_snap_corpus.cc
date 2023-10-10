@@ -15,10 +15,12 @@
 #include "./runner/default_snap_corpus.h"
 #include "./snap/snap.h"
 #include "./snap/snap_corpus_util.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
-const SnapCorpus<Host>* LoadCorpus(const char* filename, int* corpus_fd) {
+const SnapCorpus<Host>* LoadCorpus(const char* filename, bool verify,
+                                   int* corpus_fd) {
   if (filename == nullptr) {
     if (corpus_fd != nullptr) {
       *corpus_fd = -1;
@@ -27,7 +29,7 @@ const SnapCorpus<Host>* LoadCorpus(const char* filename, int* corpus_fd) {
   }
   // Release the pointer -- it is ok to leak memory since the runner always
   // runs to completion and then exits.
-  return LoadCorpusFromFile<Host>(filename, true, corpus_fd).release();
+  return LoadCorpusFromFile<Host>(filename, true, verify, corpus_fd).release();
 }
 
 }  // namespace silifuzz

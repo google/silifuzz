@@ -29,7 +29,8 @@ namespace silifuzz {
 // rather than closing it.
 template <typename Arch>
 MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
-    const char* filename, bool preload = true, int* corpus_fd = nullptr);
+    const char* filename, bool preload = true, bool verify = true,
+    int* corpus_fd = nullptr);
 
 // Snoop the file on disk to determine which architecture it is for.
 ArchitectureId CorpusFileArchitecture(const char* filename);

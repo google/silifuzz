@@ -69,6 +69,9 @@ cc_library_plus_nolibc(
     hdrs = ["snap_relocator.h"],
     deps = [
         ":snap",
+        ":snap_checksum",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:mmapped_memory_ptr",
     ],
 )
@@ -96,6 +99,7 @@ cc_test(
     srcs = ["snap_relocator_fuzz_test.cc"],
     deps = [
         ":snap_relocator",
+        "@silifuzz//util:arch",
         "@silifuzz//util:mmapped_memory_ptr",
         "@com_google_fuzztest//fuzztest",
         "@com_google_googletest//:gtest_main",

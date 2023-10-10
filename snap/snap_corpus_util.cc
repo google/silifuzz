@@ -33,7 +33,7 @@ namespace silifuzz {
 
 template <typename Arch>
 MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
-    const char* filename, bool preload, int* corpus_fd) {
+    const char* filename, bool preload, bool verify, int* corpus_fd) {
   // MAP_POPULATE interferes with memory sharing. Using it causes read
   // only portion of a corpus to be copied in each runner.
   constexpr char kProcPrefix[] = "/proc/";
@@ -57,9 +57,10 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
   VLOG_INFO(1, "Mapped corpus at ", HexStr(AsInt(relocatable)));
   auto mapped = MakeMmappedMemoryPtr<char>(reinterpret_cast<char*>(relocatable),
                                            file_size);
+
   SnapRelocatorError error;
   MmappedMemoryPtr<const SnapCorpus<Arch>> corpus =
-      SnapRelocator<Arch>::RelocateCorpus(std::move(mapped), &error);
+      SnapRelocator<Arch>::RelocateCorpus(std::move(mapped), verify, &error);
   CHECK(error == SnapRelocatorError::kOk);
   VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->snaps.size));
 
@@ -73,10 +74,11 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
 }
 
 template MmappedMemoryPtr<const SnapCorpus<X86_64>> LoadCorpusFromFile<X86_64>(
-    const char* filename, bool preload, int* corpus_fd);
+    const char* filename, bool preload, bool verify, int* corpus_fd);
 
 template MmappedMemoryPtr<const SnapCorpus<AArch64>>
-LoadCorpusFromFile<AArch64>(const char* filename, bool preload, int* corpus_fd);
+LoadCorpusFromFile<AArch64>(const char* filename, bool preload, bool verify,
+                            int* corpus_fd);
 
 ArchitectureId CorpusFileArchitecture(const char* filename) {
   ArchitectureId arch = ArchitectureId::kUndefined;

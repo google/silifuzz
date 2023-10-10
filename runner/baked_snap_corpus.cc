@@ -14,6 +14,7 @@
 
 #include "./runner/default_snap_corpus.h"
 #include "./snap/snap.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
@@ -24,7 +25,8 @@ namespace silifuzz {
 // See snap_examples.cc for an example usage.
 extern const SnapCorpus<Host> kDefaultSnapCorpus;
 
-const SnapCorpus<Host>* LoadCorpus(const char* filename, int* corpus_fd) {
+const SnapCorpus<Host>* LoadCorpus(const char* filename, bool verify,
+                                   int* corpus_fd) {
   if (corpus_fd != nullptr) {
     *corpus_fd = -1;
   }

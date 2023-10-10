@@ -46,6 +46,7 @@ cc_library_plus_nolibc(
     hdrs = ["default_snap_corpus.h"],
     deps = [
         "@silifuzz//snap",
+        "@silifuzz//util:arch",
     ],
 )
 
@@ -56,6 +57,7 @@ cc_library_plus_nolibc(
     deps = [
         "@silifuzz//snap",
         "@silifuzz//snap:snap_corpus_util",
+        "@silifuzz//util:arch",
     ],
 )
 

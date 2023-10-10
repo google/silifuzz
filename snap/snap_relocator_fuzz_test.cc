@@ -17,6 +17,7 @@
 
 #include "fuzztest/fuzztest.h"
 #include "./snap/snap_relocator.h"
+#include "./util/arch.h"
 #include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
@@ -34,8 +35,9 @@ void RelocateRandomBytes(const std::string& bytes) {
 
   // This should not crash.
   SnapRelocatorError error;
-  auto corpus =
-      SnapRelocator<Host>::RelocateCorpus(std::move(relocatable), &error);
+  // Skip validation since the corpus is random data.
+  auto corpus = SnapRelocator<Host>::RelocateCorpus(std::move(relocatable),
+                                                    false, &error);
 }
 
 constexpr size_t kMaxRandomCorpusSize = 1 << 16;

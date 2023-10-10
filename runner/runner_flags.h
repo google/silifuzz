@@ -69,6 +69,9 @@ extern bool FLAGS_sequential_mode;
 // If true, end state is not checked after snap execution.
 extern bool FLAGS_skip_end_state_check;
 
+// If true, perform additional integrity checking. May slow down execution.
+extern bool FLAGS_strict;
+
 // Parses command line flags of runner and sets flags accordingly. 'argv[]' is
 // an array of 'argc' command line argument passed to main(). Parsing starts
 // at 'argv[1]' and stops at the first non-flag argument or end of 'argv[]'.

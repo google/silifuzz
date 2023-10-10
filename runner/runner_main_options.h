@@ -107,6 +107,9 @@ struct RunnerMainOptions {
   // If true, the end state after snap execution is not checked. Snaps are
   // considered to always end as expected.
   bool skip_end_state_check = false;
+
+  // If true, perform additional integrity checking. May slow down execution.
+  bool strict;
 };
 
 }  // namespace silifuzz
