@@ -109,7 +109,8 @@ A logic bug is an invalid CPU behavior inherent to a particular CPU
 microarchitecture or stepping. SiliFuzz has identified the following bugs:
 
 *   [CVE-2021-26339](https://www.amd.com/en/corporate/product-security/bulletin/amd-sb-1028)
-*   [Erratum #1386](https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf)
+*   [Erratum #1386](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/revision-guides/56323-PUB_1_01.pdf)
+*   [Erratum #1468](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/revision-guides/56323-PUB_1_01.pdf)
 
 ### Defects
 
