@@ -239,7 +239,7 @@ absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
 
   // Set linked name in /proc/self/fd/ for ease of debugging.
   ASSIGN_OR_RETURN_IF_NOT_OK(OwnedFileDescriptor owned_fd,
-                             WriteSharedMemoryFile(contents, path));
+                             WriteSharedMemoryFile(contents, name));
 
   std::string file_path = FilePathForFD(owned_fd);
 
