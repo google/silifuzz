@@ -36,6 +36,7 @@
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/snap.h"
+#include "./snap/snap_checksum.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
@@ -396,6 +397,44 @@ void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
   }
 }
 
+uint32_t CalculateMemoryMappingChecksum(
+    const SnapMemoryMapping& memory_mapping) {
+  MemoryChecksumCalculator checksum;
+  checksum.AddData(AsPtr(memory_mapping.start_address),
+                   memory_mapping.num_bytes);
+  return checksum.Checksum();
+}
+
+bool VerifySnapChecksums(const Snap<Host>& snap) {
+  bool ok = true;
+  for (const SnapMemoryMapping& memory_mapping : snap.memory_mappings) {
+    // Writeable mappings will only be initialized right before execution.
+    if (memory_mapping.writable()) continue;
+    VLOG_INFO(1, "Checksumming ", snap.id, " @ ",
+              HexStr(memory_mapping.start_address));
+
+    uint32_t actual = CalculateMemoryMappingChecksum(memory_mapping);
+    if (memory_mapping.memory_checksum != actual) {
+      LOG_ERROR(snap.id, " @ ", HexStr(memory_mapping.start_address));
+      LOG_ERROR("    Expected checksum ",
+                HexStr(memory_mapping.memory_checksum), " but got ",
+                HexStr(actual));
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+void VerifyChecksums(const SnapCorpus<Host>& corpus) {
+  bool ok = true;
+  for (const Snap<Host>* snap : corpus.snaps) {
+    ok &= VerifySnapChecksums(*snap);
+  }
+  if (!ok) {
+    LOG_FATAL("Checksum mismatch");
+  }
+}
+
 RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
                                 const EndSpot& end_spot) {
   if (end_spot.signum != 0) {
@@ -597,6 +636,9 @@ const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
     LOG_FATAL("Snap ", options.snap_id, " not found in the corpus");
   }();
   MapCorpus(*corpus, options.corpus_fd, corpus_mapping);
+  if (options.strict) {
+    VerifyChecksums(*corpus);
+  }
   InstallSigHandler();
 
   return corpus;
@@ -674,6 +716,12 @@ int RunnerMain(const RunnerMainOptions& options) {
                   IntStr(snap_execution_count));
         LOG_ERROR("CPU id = ", IntStr(run_result.cpu_id));
         LOG_ERROR("Previous snapshot [", previous_snap_id, "]");
+        // Done last since there's a chance this can cause a fault if things
+        // have gone seriously wrong.
+        if (VerifySnapChecksums(snap)) {
+          // Print a positive message so we know it completed.
+          LOG_ERROR("Snap checksums verified");
+        }
         return EXIT_FAILURE;
       }
       previous_snap_id = snap.id;

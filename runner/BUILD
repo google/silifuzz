@@ -201,6 +201,7 @@ cc_library_nolibc(
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//snap",
         "@silifuzz//snap:exit_sequence",
+        "@silifuzz//snap:snap_checksum",
         "@silifuzz//util:arch",
         "@silifuzz//util:atoi",
         "@silifuzz//util:byte_io",

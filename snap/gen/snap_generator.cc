@@ -32,6 +32,7 @@
 #include "./common/snapshot.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/snap.h"
+#include "./snap/snap_checksum.h"
 #include "./util/checks.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_checksum_util.h"
@@ -339,6 +340,11 @@ std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
                           memory_mapping_list.size()));
   for (size_t i = 0; i < memory_mapping_list.size(); ++i) {
     const auto &memory_mapping = memory_mapping_list[i];
+    MemoryChecksumCalculator checksum;
+    for (const Snapshot::MemoryBytes *memory_bytes : bytes_per_mapping[i]) {
+      checksum.AddData(memory_bytes->byte_values());
+    }
+
     Print("{ .start_address=", AddressString(memory_mapping.start_address()),
           ", ");
     Print(
@@ -346,6 +352,7 @@ std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
     Print(absl::StrFormat(".perms = 0x%x, ",
                           memory_mapping.perms().ToMProtect()));
 
+    Print(absl::StrFormat(".memory_checksum = 0x%x, ", checksum.Checksum()));
     PrintLn(absl::StrFormat(
         ".memory_bytes = %s },",
         ArrayString(bytes_per_mapping[i].size(), memory_byte_var_names[i])));

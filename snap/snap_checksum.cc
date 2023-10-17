@@ -23,6 +23,11 @@
 
 namespace silifuzz {
 
+void MemoryChecksumCalculator::AddData(const void* data, size_t size) {
+  const uint8_t* bytes = reinterpret_cast<const uint8_t*>(data);
+  checksum_ = crc32c(checksum_, bytes, size);
+}
+
 const size_t kSnapCorpusChecksumBegin = offsetof(SnapCorpusHeader, checksum);
 
 const size_t kSnapCorpusChecksumEnd =

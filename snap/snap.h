@@ -112,6 +112,13 @@ struct SnapMemoryMapping {
   // This information is duplicated in MemoryBytes above.
   int32_t perms;
 
+  // Checksum of the initial state of the memory mapping.
+  // Naively, we could compare the memory mapping against the data encoded in
+  // memory_bytes, but when we use direct page mapping the data in memory_bytes
+  // is actually the same physical page as is in the mapping. The checksum will
+  // always be redundant and has a better chance of catching memory corruption.
+  uint32_t memory_checksum;
+
   // The memory state that exists at the start of the snapshot for this
   // mapping. This is Snapshot::memory_bytes(), but split and associated with
   // the mapping that contains the bytes.

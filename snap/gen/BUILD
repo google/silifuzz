@@ -186,6 +186,7 @@ cc_library(
         "@silifuzz//common:snapshot_util",
         "@silifuzz//snap",
         "@silifuzz//snap:exit_sequence",
+        "@silifuzz//snap:snap_checksum",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",

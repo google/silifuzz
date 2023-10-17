@@ -252,11 +252,16 @@ void Traversal<Arch>::ProcessMemoryMapping(
       ProcessMemoryBytesList(pass, memory_bytes_list);
 
   if (pass == PassType::kGeneration) {
+    MemoryChecksumCalculator checksum;
+    for (const Snapshot::MemoryBytes* memory_bytes : memory_bytes_list) {
+      checksum.AddData(memory_bytes->byte_values());
+    }
     new (memory_mapping_ref
              .contents_as_pointer_of<SnapMemoryMapping>()) SnapMemoryMapping{
         .start_address = memory_mapping.start_address(),
         .num_bytes = memory_mapping.num_bytes(),
         .perms = memory_mapping.perms().ToMProtect(),
+        .memory_checksum = checksum.Checksum(),
         .memory_bytes =
             {
                 .size = memory_bytes_list.size(),

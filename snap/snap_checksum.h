@@ -22,6 +22,18 @@
 
 namespace silifuzz {
 
+// A class for incrementally calculating the checksum of arbitrary memory.
+class MemoryChecksumCalculator {
+ public:
+  MemoryChecksumCalculator() : checksum_(0) {}
+  void AddData(const void* data, size_t size);
+  void AddData(absl::string_view data) { AddData(data.data(), data.size()); }
+  uint32_t Checksum() const { return checksum_; }
+
+ private:
+  uint32_t checksum_;
+};
+
 // A class for incrementally calculating the corpus checksum.
 // This is a normal checksum calculation, except that the bytes in the corpus
 // that contain the checksum of the corpus are skipped.
