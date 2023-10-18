@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <csignal>  // IWYU pragma: keep
 #include <string>
 
 #include "absl/base/internal/endian.h"
