@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-#include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -26,8 +26,9 @@
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/page_util.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
+#include "third_party/unicorn/x86.h"
 
 namespace silifuzz {
 
@@ -101,7 +102,7 @@ const int kUnicornX86_64RegNames[] = {
     UC_X86_REG_XMM15,
 };
 
-static_assert(ABSL_ARRAYSIZE(kUnicornX86_64RegNames) == kNumUnicornX86_64Reg);
+static_assert(std::size(kUnicornX86_64RegNames) == kNumUnicornX86_64Reg);
 
 std::array<const void *, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
     const UContext<X86_64> &ucontext) {

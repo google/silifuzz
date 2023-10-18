@@ -305,7 +305,6 @@ cc_test(
     deps = [
         ":snapshot_test_enum",
         "@silifuzz//util:itoa",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ],
 )

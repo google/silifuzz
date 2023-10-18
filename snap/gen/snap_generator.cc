@@ -17,26 +17,28 @@
 #include <sys/types.h>
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
-#include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_util.h"
 #include "./snap/gen/repeating_byte_runs.h"
 #include "./snap/snap.h"
 #include "./snap/snap_checksum.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -443,12 +445,12 @@ void SnapGenerator<X86_64>::GenerateFPRegs(
 
   // x87 FP stack
   Print(".st = ");
-  GenerateArray(fpregs.st, ABSL_ARRAYSIZE(fpregs.st));
+  GenerateArray(fpregs.st, std::size(fpregs.st));
   PrintLn(",");
 
   // XMM register.
   Print(".xmm = ");
-  GenerateArray(fpregs.xmm, ABSL_ARRAYSIZE(fpregs.xmm));
+  GenerateArray(fpregs.xmm, std::size(fpregs.xmm));
   Print(",");
 
   Print("}");
@@ -469,7 +471,7 @@ void SnapGenerator<AArch64>::GenerateGRegs(
   Print("{");
 
   Print(".x = ");
-  GenerateArray(gregs.x, ABSL_ARRAYSIZE(gregs.x));
+  GenerateArray(gregs.x, std::size(gregs.x));
   PrintLn(",");
 
   GEN_GREG(sp);
@@ -497,7 +499,7 @@ void SnapGenerator<AArch64>::GenerateFPRegs(
   Print("{");
 
   Print(".v = ");
-  GenerateArray(fpregs.v, ABSL_ARRAYSIZE(fpregs.v));
+  GenerateArray(fpregs.v, std::size(fpregs.v));
   PrintLn(",");
 
   GEN_FPREG(fpsr);

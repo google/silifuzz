@@ -194,7 +194,7 @@ cc_library(
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
-        "@com_google_absl//absl/base:core_headers",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

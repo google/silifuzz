@@ -335,7 +335,7 @@ absl::StatusOr<Snapshot::MemoryBytes> DecodedInsn::FetchInstruction(
   //
   // We don't know the size of the instruction and attempt to
   // opportunistically PEEK as many words as possible to fill up `buf`.
-  for (int i = 0; i < ABSL_ARRAYSIZE(buf); ++i) {
+  for (int i = 0; i < std::size(buf); ++i) {
     uint64_t read_addr = addr + sizeof(buf[0]) * i;
     buf[i] = ptrace(PTRACE_PEEKTEXT, pid, AsPtr(read_addr), nullptr);
     if (errno != 0) {

@@ -325,6 +325,8 @@ cc_library(
     deps = [
         ":checks",
         ":itoa",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
@@ -596,7 +598,6 @@ cc_test(
     deps = [
         ":checks",
         ":range_map",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",

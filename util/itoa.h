@@ -157,7 +157,7 @@ const char* EnumNameMap[] = {};
 template <typename EnumT, std::enable_if_t<std::is_enum<EnumT>::value, int> = 0>
 const char* EnumStr(EnumT e) {
   int i = static_cast<int>(e);
-  // Not using ABSL_ARRAYSIZE() here as we want to support 0-sized arrays too.
+  // Not using std::size() here as we want to support 0-sized arrays too.
   if (i < 0 || i >= sizeof(EnumNameMap<EnumT>) / sizeof(const char*) ||
       EnumNameMap<EnumT>[i] == nullptr)
     return "NO-ENUM-NAME-DEFINED";

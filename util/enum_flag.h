@@ -15,8 +15,11 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ENUM_FLAG_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ENUM_FLAG_H_
 
+#include <string>
 #include <type_traits>  // for std::enable_if_t, std::is_enum
 
+#include "absl/base/attributes.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -29,7 +32,7 @@ namespace silifuzz {
 // Relies on the same EnumNameMap<> as EnumStr() from ./itoa.h for the parsing.
 template <typename EnumT, std::enable_if_t<std::is_enum<EnumT>::value, int> = 0>
 ABSL_MUST_USE_RESULT absl::StatusOr<EnumT> ParseEnum(absl::string_view value) {
-  // Not using ABSL_ARRAYSIZE() here as we want to support 0-sized arrays too.
+  // Not using std::size() here as we want to support 0-sized arrays too.
   int num_values = sizeof(EnumNameMap<EnumT>) / sizeof(const char*);
   for (int i = 0; i < num_values; ++i) {
     if (EnumNameMap<EnumT>[i] != nullptr && value == EnumNameMap<EnumT>[i]) {

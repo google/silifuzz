@@ -15,9 +15,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
-#include "absl/base/macros.h"
 #include "absl/status/status.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -27,7 +27,7 @@
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/page_util.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/arm64.h"
 #include "third_party/unicorn/unicorn.h"
 
@@ -109,7 +109,7 @@ const int kUnicornAArch64RegNames[] = {
     // missing: fpsr, fpcr - upgrading Unicorn can fix this
 };
 
-static_assert(ABSL_ARRAYSIZE(kUnicornAArch64RegNames) == kNumUnicornAArch64Reg);
+static_assert(std::size(kUnicornAArch64RegNames) == kNumUnicornAArch64Reg);
 
 std::array<const void *, kNumUnicornAArch64Reg> UnicornAArch64RegValue(
     const UContext<AArch64> &ucontext) {

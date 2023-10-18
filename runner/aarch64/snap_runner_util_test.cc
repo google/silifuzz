@@ -20,6 +20,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 
 #include "absl/base/macros.h"
 #include "./runner/endspot.h"
@@ -70,7 +71,7 @@ TEST(SnapRunnerUtil, BasicTest) {
   SaveUContextNoSyscalls(&execution_context);
 
   // Initialize the general purpose registers with a pattern.
-  for (int i = 0; i < ABSL_ARRAYSIZE(execution_context.gregs.x); ++i) {
+  for (int i = 0; i < std::size(execution_context.gregs.x); ++i) {
     execution_context.gregs.x[i] = 0xabcd + i;
   }
 
@@ -110,7 +111,7 @@ TEST(SnapRunnerUtil, BasicTest) {
   CHECK_EQ(snap_exit_context.gregs.tpidrro, execution_context.gregs.tpidrro);
 
   // FP state defaulted to the current values.
-  for (int i = 0; i < ABSL_ARRAYSIZE(execution_context.fpregs.v); ++i) {
+  for (int i = 0; i < std::size(execution_context.fpregs.v); ++i) {
     CHECK_EQ(snap_exit_context.fpregs.v[i], execution_context.fpregs.v[i]);
   }
   CHECK_EQ(snap_exit_context.fpregs.fpsr, execution_context.fpregs.fpsr);

@@ -14,11 +14,15 @@
 
 #include "./util/logging_util.h"
 
-#include "absl/base/macros.h"
+#include <cstring>
+#include <iterator>
+
 #include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/reg_group_set.h"
 #include "./util/strcat.h"
+#include "./util/ucontext/signal.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -91,11 +95,11 @@ void LogFPRegs(const FPRegSet<X86_64>& regs, bool log_fp_data,
   if (log_fp_data) {
     if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
 
-    for (int i = 0; i < ABSL_ARRAYSIZE(regs.st); ++i) {
+    for (int i = 0; i < std::size(regs.st); ++i) {
       LOG_INDEXED_REG(st, i);
     }
 
-    for (int i = 0; i < ABSL_ARRAYSIZE(regs.xmm); ++i) {
+    for (int i = 0; i < std::size(regs.xmm); ++i) {
       LOG_INDEXED_REG(xmm, i);
     }
   }

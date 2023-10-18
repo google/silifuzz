@@ -21,13 +21,12 @@
 #include <utility>
 
 #include "gtest/gtest.h"
-#include "absl/base/macros.h"
 #include "absl/random/random.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
 #include "./util/checks.h"
 
-// Similar to ABSL_ARRAYSIZE but works for {}.
+// Similar to std::size() but works for {}.
 #define SILIFUZZ_ARRAYSIZE(a)   \
   ((sizeof(a) / sizeof(*(a))) / \
    static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
@@ -806,11 +805,10 @@ TEST(RangeMapTest, AddIntersectionOf_AddDifferenceOf) {
       IntRangeMap map;
       const int num_ranges = 1 + absl::Uniform<int32_t>(random, 0, 4);
       for (int r = 0; r < num_ranges; ++r) {
-        const int s =
-            absl::Uniform<int32_t>(random, 0, ABSL_ARRAYSIZE(kPoints) - 1);
+        const int s = absl::Uniform<int32_t>(random, 0, std::size(kPoints) - 1);
         const int e =
             s + 1 +
-            absl::Uniform<int32_t>(random, 0, ABSL_ARRAYSIZE(kPoints) - 1 - s);
+            absl::Uniform<int32_t>(random, 0, std::size(kPoints) - 1 - s);
         EXPECT_TRUE(map.Add(kPoints[s], kPoints[e], 7));
         all_map.Add(kPoints[s], kPoints[e], 1, &all_map_usage);
         if (kPoints[s] < kLimit &&

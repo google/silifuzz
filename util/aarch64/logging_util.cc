@@ -14,13 +14,14 @@
 
 #include "./util/logging_util.h"
 
-#include <stdint.h>
+#include <cstring>
+#include <iterator>
 
-#include "absl/base/macros.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/reg_group_set.h"
 #include "./util/strcat.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -45,7 +46,7 @@ namespace silifuzz {
 template <>
 void LogGRegs(const GRegSet<AArch64>& regs, RegsLogger logger, void* logger_arg,
               const GRegSet<AArch64>* base, bool log_diff) {
-  for (int i = 0; i < ABSL_ARRAYSIZE(regs.x); ++i) {
+  for (int i = 0; i < std::size(regs.x); ++i) {
     LOG_INDEXED_REG(x, i);
   }
   if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
@@ -61,7 +62,7 @@ void LogFPRegs(const FPRegSet<AArch64>& regs, bool log_fp_data,
                RegsLogger logger, void* logger_arg,
                const FPRegSet<AArch64>* base, bool log_diff) {
   if (log_fp_data) {
-    for (int i = 0; i < ABSL_ARRAYSIZE(regs.v); ++i) {
+    for (int i = 0; i < std::size(regs.v); ++i) {
       LOG_INDEXED_REG(v, i);
     }
     if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");

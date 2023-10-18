@@ -16,8 +16,9 @@
 
 #include <stddef.h>
 
+#include <iterator>
+
 #include "gtest/gtest.h"
-#include "absl/base/macros.h"
 #include "./util/itoa.h"
 
 namespace silifuzz {
@@ -28,7 +29,7 @@ TEST(SnapshotTestEnum, Complete) {
   // Array initializers will initialize missing elements to nullptr.
   // It's easy to overlook that you need to update the EnumNameMap when you
   // modify the TestSnapshot enum. Look for any nullptr.
-  for (size_t i = 0; i < ABSL_ARRAYSIZE(EnumNameMap<TestSnapshot>); ++i) {
+  for (size_t i = 0; i < std::size(EnumNameMap<TestSnapshot>); ++i) {
     EXPECT_NE(EnumNameMap<TestSnapshot>[i], nullptr) << i;
   }
 }
