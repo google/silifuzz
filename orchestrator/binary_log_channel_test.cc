@@ -20,18 +20,20 @@
 
 #include <cerrno>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
-#include <string>
 #include <thread>  // NOLINT
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/time/time.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
+#include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
@@ -51,9 +53,14 @@ class BinaryLogChannelTest : public ::testing::Test {
   };
 
   void SetUp() override {
-    // We do not close the file descriptors in TearDown because
-    // normaly their ownership is transferred to other objects.
     ASSERT_EQ(pipe(pipefd_), 0) << "pipe() failed: " << strerror(errno);
+    LOG(INFO) << "Opening pipe " << pipefd_[READ_FD] << " and "
+              << pipefd_[WRITE_FD];
+  }
+
+  void TearDown() override {
+    CloseFD(READ_FD);
+    CloseFD(WRITE_FD);
   }
 
   int GetFD(int index) const {
@@ -72,7 +79,11 @@ class BinaryLogChannelTest : public ::testing::Test {
   void CloseFD(int index) {
     ASSERT_TRUE(index >= 0 && index < kNumFDs);
     if (pipefd_[index] != -1) {
-      close(pipefd_[index]);  // ignore any error.
+      LOG(INFO) << "Closing pipe " << pipefd_[index];
+      if (close(pipefd_[index]) < 0) {
+        // ignore any error.
+        LOG(ERROR) << "close() failed: " << strerror(errno);
+      }
       pipefd_[index] = -1;
     }
   }
@@ -139,11 +150,25 @@ TEST_F(BinaryLogChannelTest, ProducerShutdown) {
 }
 
 TEST_F(BinaryLogChannelTest, ConsumerShutdown) {
-  BinaryLogProducer producer(GetFD(WRITE_FD));
+  BinaryLogProducer producer(ReleaseFD(WRITE_FD));
   CloseFD(READ_FD);
   proto::BinaryLogEntry e;
   e.mutable_snapshot_execution_result()->set_snapshot_id("some_snapshot");
   EXPECT_TRUE(IsEndOfChannelError(producer.Send(e)));
+}
+
+TEST_F(BinaryLogChannelTest, MalformedHeader) {
+  int fd = ReleaseFD(WRITE_FD);
+  std::thread producer_thread([fd]() {
+    int32_t short_int = 0xface;
+    ASSERT_EQ(Write(fd, &short_int, sizeof(short_int)), sizeof(short_int));
+    close(fd);
+  });
+  BinaryLogConsumer consumer(ReleaseFD(READ_FD));
+  absl::StatusOr<proto::BinaryLogEntry> entry_or = consumer.Receive();
+  producer_thread.join();
+  EXPECT_THAT(entry_or, StatusIs(absl::StatusCode::kDataLoss,
+                                 StartsWith("Malformed stream")));
 }
 
 // Check that we got expected error status when the channel is created with

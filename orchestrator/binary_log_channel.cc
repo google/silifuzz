@@ -20,11 +20,9 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <csignal>
 #include <string>
 
 #include "absl/base/internal/endian.h"
-#include "absl/log/absl_check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -141,11 +139,16 @@ absl::StatusOr<proto::BinaryLogEntry> BinaryLogConsumer::Receive() {
   absl::MutexLock l(&lock_);
 
   const ssize_t bytes_read = Read(fd_, le_proto_size, sizeof(le_proto_size));
-  if (bytes_read <= 0) {
+  if (bytes_read == 0) {
     return EndOfChannelError();
   }
-  if (bytes_read != sizeof(le_proto_size)) {
-    return absl::ErrnoToStatus(errno, "Cannot read BinaryLogEntry size");
+  if (bytes_read == -1) {
+    return absl::ErrnoToStatus(
+        errno, absl::StrCat("Cannot read BinaryLogEntry size, fd=", fd_));
+  } else if (bytes_read != sizeof(le_proto_size)) {
+    return absl::DataLossError(absl::StrCat("Malformed stream: expected ",
+                                            sizeof(le_proto_size), " but got ",
+                                            bytes_read, " bytes"));
   }
   const size_t proto_size = absl::little_endian::Load64(le_proto_size);
   std::string serialized_proto;
