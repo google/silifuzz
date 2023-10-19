@@ -242,6 +242,7 @@ cc_binary(
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:line_printer",
+        "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",
         "@silifuzz//util/ucontext",
         "@com_google_absl//absl/flags:flag",

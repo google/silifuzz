@@ -35,6 +35,7 @@
 #include "./util/checks.h"
 #include "./util/enum_flag.h"
 #include "./util/line_printer.h"
+#include "./util/logging_util.h"
 #include "./util/tool_util.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -52,6 +53,14 @@ ABSL_FLAG(size_t, max_instructions, 0x1000,
           "The maximum number of instructions that should be executed");
 
 namespace silifuzz {
+
+namespace {
+
+void PrintRegister(void* arg, const char* str1, const char* str2,
+                   const char* str3, const char* str4) {
+  LinePrinter& out = *reinterpret_cast<LinePrinter*>(arg);
+  out.Line(absl::StrCat("    ", str1, str2, str3, str4));
+}
 
 // Display the trace in a human-readable format with a bunch of metadata.
 template <typename Arch>
@@ -98,6 +107,15 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
           absl::StrAppend(&metadata, " crit=", info.critical);
         }
         out.Line(metadata, "    ", disasm.FullText());
+
+        // Print the contents of any registers that changed.
+        diff = prev;
+        // Avoid printing a diff for the instruction pointer, this is assumed.
+        diff.gregs.SetInstructionPointer(
+            info.ucontext.gregs.GetInstructionPointer());
+        LogGRegs(info.ucontext.gregs, PrintRegister, &out, &diff.gregs);
+        LogFPRegs(info.ucontext.fpregs, true, PrintRegister, &out,
+                  &diff.fpregs);
 
         last_valid = valid;
         expected_next = info.address + info.size;
@@ -309,6 +327,8 @@ constexpr Subcommand subcommands[] = {
         .func = Analyze,
     },
 };
+
+}  // namespace
 
 }  // namespace silifuzz
 
