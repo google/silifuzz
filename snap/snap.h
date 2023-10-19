@@ -170,6 +170,16 @@ struct Snap {
   // execution.  If register group set of the checksum is empty, the checksum
   // is ignored.
   RegisterChecksum<Arch> end_state_register_checksum;
+
+  // Checksums of the RegisterState data structures associated with this Snap.
+  // These checksums are for checking the integrity of the corpus itself and are
+  // not related to execution.
+  // These checksums cover data that is also covered by the corpus-level
+  // checksum. However - these checksums cover smaller snap-specific regions of
+  // data and they are not effected by relocation. This means we can do an
+  // efficient, focused integrity check after snap execution fails.
+  uint32_t registers_memory_checksum;
+  uint32_t end_state_registers_memory_checksum;
 };
 
 namespace snap_internal {

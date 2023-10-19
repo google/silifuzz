@@ -30,6 +30,7 @@
 #include "./common/snapshot_util.h"
 #include "./util/arch.h"
 #include "./util/platform.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -215,21 +216,19 @@ class SnapGenerator {
       const BorrowedMappingBytesList &bytes_per_mapping,
       const SnapifyOptions &opts);
 
-  // Generates a GRegSet expression correspoding to the 'gregs_byte_data', which
-  // is in the same format as returned by Snapshot::ReigsterState::gregs().
-  void GenerateGRegs(const Snapshot::ByteData &gregs_byte_data);
+  // Generates a GRegSet expression..
+  void GenerateGRegs(const GRegSet<Arch> &gregs);
 
   // Generate an array of scalar values.
   template <typename T>
   void GenerateArray(const T *data, size_t size);
 
-  // Generates a FPRegSet expression correspoding to the 'fpregs_byte_data',
-  // which is in the same format as returned by
-  // Snapshot::ReigsterState::fpregs().
-  void GenerateFPRegs(const Snapshot::ByteData &fpregs_byte_data);
+  // Generates a FPRegSet.
+  void GenerateFPRegs(const FPRegSet<Arch> &fpregs);
 
   // Generates code for the contents of 'registers'.
-  std::string GenerateRegisters(const Snapshot::RegisterState &registers);
+  std::string GenerateRegisters(const Snapshot::RegisterState &registers,
+                                uint32_t *memory_checksum);
 
   // Output stream for the generator.
   std::ostream &output_stream_;

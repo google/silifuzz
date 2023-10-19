@@ -49,6 +49,7 @@ namespace {
 template <typename Arch>
 void SetRegisterState(const Snapshot::RegisterState& src,
                       typename Snap<Arch>::RegisterState* tgt,
+                      uint32_t* memory_checksum,
                       bool allow_empty_register_state) {
   memset(tgt, 0, sizeof(*tgt));
 
@@ -67,6 +68,9 @@ void SetRegisterState(const Snapshot::RegisterState& src,
     CHECK(allow_empty_register_state);
     memset(&tgt->fpregs, 0, sizeof(tgt->fpregs));
   }
+
+  // Checksum the result
+  *memory_checksum = CalculateMemoryChecksum(*tgt);
 }
 
 // This encapsulates logic and data neccessary to build a relocatable
@@ -379,6 +383,22 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
   if (pass == PassType::kGeneration) {
     memcpy(id_ref.contents(), snapshot.id().c_str(), snapshot.id().size() + 1);
 
+    // Construct register state contents.
+    uint32_t registers_memory_checksum;
+    SetRegisterState<Arch>(
+        snapshot.registers(),
+        registers_ref.contents_as_pointer_of<RegisterState>(),
+        &registers_memory_checksum,
+        /*allow_empty_register_state=*/false);
+
+    // End state may be undefined initially in the making process.
+    uint32_t end_state_registers_memory_checksum;
+    SetRegisterState<Arch>(
+        end_state.registers(),
+        end_state_registers_ref.contents_as_pointer_of<RegisterState>(),
+        &end_state_registers_memory_checksum,
+        /*allow_empty_register_state=*/true);
+
     // Construct Snap in data block content buffer.
     // Fill in register states separately to avoid copying.
     Snap<Arch>* snap = snapshot_ref.contents_as_pointer_of<Snap<Arch>>();
@@ -406,16 +426,11 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                 end_state_memory_bytes_elements_ref
                     .load_address_as_pointer_of<const SnapMemoryBytes>(),
         },
-        .end_state_register_checksum = register_checksum_or.value()};
-    SetRegisterState<Arch>(
-        snapshot.registers(),
-        registers_ref.contents_as_pointer_of<RegisterState>(),
-        /*allow_empty_register_state=*/false);
-    // End state may be undefined initially in the making process.
-    SetRegisterState<Arch>(
-        end_state.registers(),
-        end_state_registers_ref.contents_as_pointer_of<RegisterState>(),
-        /*allow_empty_register_state=*/true);
+        .end_state_register_checksum = register_checksum_or.value(),
+        .registers_memory_checksum = registers_memory_checksum,
+        .end_state_registers_memory_checksum =
+            end_state_registers_memory_checksum,
+    };
   }
 }
 

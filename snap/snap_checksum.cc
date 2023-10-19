@@ -28,6 +28,12 @@ void MemoryChecksumCalculator::AddData(const void* data, size_t size) {
   checksum_ = crc32c(checksum_, bytes, size);
 }
 
+uint32_t CalculateMemoryChecksum(const void* data, size_t size) {
+  MemoryChecksumCalculator checksum;
+  checksum.AddData(data, size);
+  return checksum.Checksum();
+}
+
 const size_t kSnapCorpusChecksumBegin = offsetof(SnapCorpusHeader, checksum);
 
 const size_t kSnapCorpusChecksumEnd =

@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include "absl/strings/string_view.h"
 
@@ -33,6 +34,16 @@ class MemoryChecksumCalculator {
  private:
   uint32_t checksum_;
 };
+
+// A single-shot wrapper for the checksum calculator.
+uint32_t CalculateMemoryChecksum(const void* data, size_t size);
+
+template <typename T>
+uint32_t CalculateMemoryChecksum(const T& data) {
+  // Prevent an easy accidental misuse.
+  static_assert(!std::is_pointer_v<T>, "Should not be checksumming pointers.");
+  return CalculateMemoryChecksum(&data, sizeof(data));
+}
 
 // A class for incrementally calculating the corpus checksum.
 // This is a normal checksum calculation, except that the bytes in the corpus

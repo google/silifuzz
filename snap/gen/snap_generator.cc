@@ -144,10 +144,13 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
   const std::string memory_mappings_var_name = GenerateMemoryMappingList(
       snapified.memory_mappings(), bytes_per_mapping, opts);
 
-  const std::string registers_name = GenerateRegisters(snapified.registers());
+  uint32_t registers_memory_checksum;
+  const std::string registers_name =
+      GenerateRegisters(snapified.registers(), &registers_memory_checksum);
 
-  const std::string end_state_registers_name =
-      GenerateRegisters(end_state.registers());
+  uint32_t end_state_registers_memory_checksum;
+  const std::string end_state_registers_name = GenerateRegisters(
+      end_state.registers(), &end_state_registers_memory_checksum);
 
   // Generate code for Snap
   PrintLn("static const Snap<", Arch::type_name, "> ", name, " {");
@@ -175,8 +178,12 @@ absl::Status SnapGenerator<Arch>::GenerateSnap(const std::string &name,
   PrintLn(absl::StrFormat(
       ".register_groups = RegisterGroupSet<%s>::Deserialize(%x),",
       Arch::type_name, register_checksum.register_groups.Serialize()));
-  PrintLn(absl::StrFormat(".checksum = %x,", register_checksum.checksum));
+  PrintLn(absl::StrFormat(".checksum = 0x%x,", register_checksum.checksum));
   PrintLn("},");
+  PrintLn(absl::StrFormat(".registers_memory_checksum = 0x%x,",
+                          registers_memory_checksum));
+  PrintLn(absl::StrFormat(".end_state_registers_memory_checksum = 0x%x,",
+                          end_state_registers_memory_checksum));
   PrintLn("};");
   return absl::OkStatus();
 }
@@ -364,17 +371,11 @@ std::string SnapGenerator<Arch>::GenerateMemoryMappingList(
 }
 
 template <>
-void SnapGenerator<X86_64>::GenerateGRegs(
-    const Snapshot::ByteData &gregs_byte_data) {
-  GRegSet<X86_64> gregs = {};
+void SnapGenerator<X86_64>::GenerateGRegs(const GRegSet<X86_64> &gregs) {
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
   // This function does not check if the empty registers is actually permitted
   // The check is performed by Snapify().
-
-  if (!gregs_byte_data.empty()) {
-    CHECK(DeserializeGRegs(gregs_byte_data, &gregs));
-  }
 
 #define GEN_GREG(reg) GenerateNonZeroValue(#reg, gregs.reg)
 
@@ -419,16 +420,11 @@ void SnapGenerator<X86_64>::GenerateGRegs(
 }
 
 template <>
-void SnapGenerator<X86_64>::GenerateFPRegs(
-    const Snapshot::ByteData &fpregs_byte_data) {
-  FPRegSet<X86_64> fpregs = {};
+void SnapGenerator<X86_64>::GenerateFPRegs(const FPRegSet<X86_64> &fpregs) {
   // Only generate initializers for individual registers when the registers byte
   // data are not empty. Otherwise rely on zero-initialization.
   // This function does not check if the empty registers is actually permitted
   // The check is performed by Snapify().
-  if (!fpregs_byte_data.empty()) {
-    CHECK(DeserializeFPRegs(fpregs_byte_data, &fpregs));
-  }
 
 #define GEN_FPREG(reg) GenerateNonZeroValue(#reg, fpregs.reg)
 
@@ -458,14 +454,7 @@ void SnapGenerator<X86_64>::GenerateFPRegs(
 }
 
 template <>
-void SnapGenerator<AArch64>::GenerateGRegs(
-    const Snapshot::ByteData &gregs_byte_data) {
-  GRegSet<AArch64> gregs = {};
-
-  if (!gregs_byte_data.empty()) {
-    CHECK(DeserializeGRegs(gregs_byte_data, &gregs));
-  }
-
+void SnapGenerator<AArch64>::GenerateGRegs(const GRegSet<AArch64> &gregs) {
 #define GEN_GREG(reg) GenerateNonZeroValue(#reg, gregs.reg)
 
   Print("{");
@@ -486,14 +475,7 @@ void SnapGenerator<AArch64>::GenerateGRegs(
 }
 
 template <>
-void SnapGenerator<AArch64>::GenerateFPRegs(
-    const Snapshot::ByteData &fpregs_byte_data) {
-  FPRegSet<AArch64> fpregs = {};
-
-  if (!fpregs_byte_data.empty()) {
-    CHECK(DeserializeFPRegs(fpregs_byte_data, &fpregs));
-  }
-
+void SnapGenerator<AArch64>::GenerateFPRegs(const FPRegSet<AArch64> &fpregs) {
 #define GEN_FPREG(reg) GenerateNonZeroValue(#reg, fpregs.reg)
 
   Print("{");
@@ -511,14 +493,31 @@ void SnapGenerator<AArch64>::GenerateFPRegs(
 
 template <typename Arch>
 std::string SnapGenerator<Arch>::GenerateRegisters(
-    const Snapshot::RegisterState &registers) {
+    const Snapshot::RegisterState &registers, uint32_t *memory_checksum) {
+  UContext<Arch> ucontext;
+
+  // Make sure everything, including padding, is zeroed.
+  memset(&ucontext, 0, sizeof(ucontext));
+
+  // End states may or may not exist.
+  if (!registers.gregs().empty()) {
+    CHECK(DeserializeGRegs(registers.gregs(), &ucontext.gregs));
+  }
+
+  // End states may or may not exist.
+  if (!registers.fpregs().empty()) {
+    CHECK(DeserializeFPRegs(registers.fpregs(), &ucontext.fpregs));
+  }
+
+  *memory_checksum = CalculateMemoryChecksum(ucontext);
+
   std::string var_name = LocalVarName("local_registers");
   PrintLn("Snap<", Arch::type_name, ">::RegisterState ", var_name, " = {");
   Print("  .fpregs = ");
-  GenerateFPRegs(registers.fpregs());
+  GenerateFPRegs(ucontext.fpregs);
   PrintLn(",");
   Print("  .gregs = ");
-  GenerateGRegs(registers.gregs());
+  GenerateGRegs(ucontext.gregs);
   PrintLn(",");
   PrintLn("};");
   return var_name;

@@ -397,14 +397,6 @@ void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
   }
 }
 
-uint32_t CalculateMemoryMappingChecksum(
-    const SnapMemoryMapping& memory_mapping) {
-  MemoryChecksumCalculator checksum;
-  checksum.AddData(AsPtr(memory_mapping.start_address),
-                   memory_mapping.num_bytes);
-  return checksum.Checksum();
-}
-
 bool VerifySnapChecksums(const Snap<Host>& snap) {
   bool ok = true;
   for (const SnapMemoryMapping& memory_mapping : snap.memory_mappings) {
@@ -413,11 +405,34 @@ bool VerifySnapChecksums(const Snap<Host>& snap) {
     VLOG_INFO(1, "Checksumming ", snap.id, " @ ",
               HexStr(memory_mapping.start_address));
 
-    uint32_t actual = CalculateMemoryMappingChecksum(memory_mapping);
+    uint32_t actual = CalculateMemoryChecksum(
+        AsPtr(memory_mapping.start_address), memory_mapping.num_bytes);
     if (memory_mapping.memory_checksum != actual) {
       LOG_ERROR(snap.id, " @ ", HexStr(memory_mapping.start_address));
       LOG_ERROR("    Expected checksum ",
                 HexStr(memory_mapping.memory_checksum), " but got ",
+                HexStr(actual));
+      ok = false;
+    }
+  }
+  {
+    VLOG_INFO(1, "Checksumming ", snap.id, " initial registers");
+    uint32_t expected = snap.registers_memory_checksum;
+    uint32_t actual = CalculateMemoryChecksum(*snap.registers);
+    if (expected != actual) {
+      LOG_ERROR(snap.id, " initial registers");
+      LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
+                HexStr(actual));
+      ok = false;
+    }
+  }
+  {
+    VLOG_INFO(1, "Checksumming ", snap.id, " end state registers");
+    uint32_t expected = snap.end_state_registers_memory_checksum;
+    uint32_t actual = CalculateMemoryChecksum(*snap.end_state_registers);
+    if (expected != actual) {
+      LOG_ERROR(snap.id, " end state registers");
+      LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
                 HexStr(actual));
       ok = false;
     }
