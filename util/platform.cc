@@ -30,7 +30,7 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "intel-ivybridge", "intel-cascadelake", "amd-rome", "intel-icelake",
     "amd-milan", "intel-sapphirerapids", "amd-genoa", "intel-coffeelake",
     "intel-alderlake", "arm-neoverse-n1", "ampere-one", "intel-emeraldrapids",
-    "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
+    "amd-ryzen-v3000", "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
 };
 
 DEFINE_ENUM_FLAG(PlatformId);
@@ -53,6 +53,7 @@ ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
     "neovn1",
     "ampone",
     "emerrpds",
+    "ryzenv3000",
     "ANY",
     "NEXST",
 };
@@ -76,6 +77,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kIntelCoffeelake:
     case PlatformId::kIntelAlderlake:
     case PlatformId::kIntelEmeraldRapids:
+    case PlatformId::kAmdRyzenV3000:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
     case PlatformId::kAmpereOne:

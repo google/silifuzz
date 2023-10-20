@@ -123,6 +123,8 @@ static_assert(ToInt(PlatformId::kAmpereOne) ==
               ToInt(proto::PlatformId::AMPERE_ONE));
 static_assert(ToInt(PlatformId::kIntelEmeraldRapids) ==
               ToInt(proto::PlatformId::INTEL_EMERALDRAPIDS));
+static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
+              ToInt(proto::PlatformId::AMD_RYZEN_V3000));
 
 // ========================================================================= //
 
