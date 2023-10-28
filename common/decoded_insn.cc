@@ -173,6 +173,8 @@ bool DecodedInsn::is_deterministic() const {
     case XED_ICLASS_MONITOR:
     case XED_ICLASS_MONITORX:
     case XED_ICLASS_TPAUSE:
+    case XED_ICLASS_UMWAIT:
+    case XED_ICLASS_UMONITOR:
       return false;
     default:
       return true;
