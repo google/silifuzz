@@ -469,6 +469,7 @@ cc_library(
         ":sanless_reading_runner_main_nolibc",
     ],
     deps = [
+        "@silifuzz//util:checks",
         "@silifuzz//util:data_dependency",
     ],
 )

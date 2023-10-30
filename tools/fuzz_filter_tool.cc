@@ -17,13 +17,16 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 

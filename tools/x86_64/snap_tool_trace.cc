@@ -43,7 +43,7 @@ absl::Status Trace(const Snapshot& snapshot, PlatformId platform_id,
 
   TraceOptions trace_options = TraceOptions::Default();
   // Don't be opinionated about non-deterministic code like we are in SnapMaker.
-  // If there's an existing (possibily, legacy) snapshot with non-deterministic
+  // If there's an existing (possibly, legacy) snapshot with non-deterministic
   // instructions just trace it.
   trace_options.filter_non_deterministic_insn = false;
   DisassemblingSnapTracer tracer(snapshot, trace_options);

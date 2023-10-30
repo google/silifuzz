@@ -51,7 +51,9 @@
 #include "./snap/snap_corpus_util.h"
 #include "./snap/snap_util.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/line_printer.h"
+#include "./util/mmapped_memory_ptr.h"
 #include "./util/platform.h"
 #include "./util/proto_util.h"
 

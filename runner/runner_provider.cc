@@ -14,14 +14,24 @@
 
 #include "./runner/runner_provider.h"
 
+#include <sys/stat.h>
+
 #include <string>
 
+#include "./util/checks.h"
 #include "./util/data_dependency.h"
 
 namespace silifuzz {
 
 std::string RunnerLocation() {
-  return GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
+  std::string loc =
+      GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
+  struct stat s;
+  if (stat(loc.c_str(), &s) < 0) {
+    LOG_INFO(loc, " doesn't exist, defaulting to ./reading_runner_main_nolibc");
+    return "./reading_runner_main_nolibc";
+  }
+  return loc;
 }
 
 std::string RunnerTestHelperLocation() {

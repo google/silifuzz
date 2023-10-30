@@ -23,6 +23,7 @@
 namespace silifuzz {
 
 // Returns the one runner binary location.
+// Checks the data dependencies first and falls back to $CWD/runner if needed.
 std::string RunnerLocation();
 
 // Returns location of the runner_test_helper_nolibc binary.
