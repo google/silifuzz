@@ -177,6 +177,7 @@ cc_test(
     deps = [
         ":ucontext",
         ":ucontext_types",
+        "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@com_google_googletest//:gtest_main",
@@ -213,6 +214,7 @@ cc_test(
     deps = [
         ":ucontext",
         ":ucontext_types",
+        "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@com_google_googletest//:gtest_main",

@@ -21,6 +21,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/logging_util.h"
@@ -70,9 +71,8 @@ TEST(UContextTypes, NoGaps) {
           sizeof(uint64_t) * 2 /* fs_base, gs_base */ +
           sizeof(uint32_t) /* padding */
   );
-
-  // FPRegSet is defined in libc to match fxsave64/fxrstor64, so no
-  // need to check for gaps in that.
+  // FPRegSet must be exactly 512 for fxsave/fxrestor.
+  EXPECT_EQ(sizeof(FPRegSet<X86_64>), 512) << "FPRegSet has unexpected size.";
 
   // Check that there are no gaps in UContext:
   EXPECT_EQ(offsetof(UContext<X86_64>, fpregs), 0);
