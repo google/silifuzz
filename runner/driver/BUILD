@@ -18,11 +18,6 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-DISABLE_ARM_TAGS = [
-    "not_build:arm",
-    "not_run:arm",
-]
-
 cc_library(
     name = "runner_options",
     srcs = ["runner_options.cc"],
