@@ -17,7 +17,6 @@
 #   in them and thus could be potentially moved/usable elsewhere.
 #   Contrast with silifuzz/common.
 
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load(
     "@silifuzz//util:nolibc.bzl",
     "cc_binary_nolibc",
@@ -25,6 +24,7 @@ load(
     "cc_test_nolibc",
     "cc_test_plus_nolibc",
 )
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -726,9 +726,11 @@ cc_library(
         ":enum_flag",
         ":itoa",
         ":misc_util",
+        ":tool_util",
         ":x86_cpuid",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status:statusor",
     ],
 )
 
@@ -936,6 +938,19 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "tool_util_test",
+    srcs = ["tool_util_test.cc"],
+    deps = [
+        ":checks",
+        ":file_util",
+        ":path_util",
+        ":tool_util",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

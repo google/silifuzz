@@ -16,8 +16,10 @@
 
 #include <cstdint>
 
+#include "absl/status/statusor.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/tool_util.h"
 
 namespace silifuzz {
 

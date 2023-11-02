@@ -42,6 +42,12 @@ bool ExtraArgs(const std::vector<char*>& args);
 // Read all the bytes of a file.
 absl::StatusOr<std::string> GetFileContents(absl::string_view file_name);
 
+// Read all the bytes of a sysfs file.
+// Note: Reading from sysfs is slightly different from other filesystems because
+// all the buffers advertise as being PAGE_SIZE (often 4096 bytes) long and add
+// a terminating null when read.
+absl::StatusOr<std::string> GetSysfsFileContents(absl::string_view file_name);
+
 // The entrypoint for a specific subcommand.
 // This function can either return a exit code (0 for success, non-zero for
 // failure) or a status that will be printed and turned into a failure exit

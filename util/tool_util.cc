@@ -33,6 +33,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "./util/checks.h"
+#include "./util/line_printer.h"
 
 namespace silifuzz {
 
@@ -122,6 +123,10 @@ absl::StatusOr<std::string> GetFileContents(absl::string_view file_name) {
   size_t data_read = 0;
   while (data_read < size) {
     int result = read(fd, data, size - data_read);
+    if (result == 0) {
+      buffer.resize(data_read);
+      break;
+    }
     if (result == -1) {
       close(fd);
       return absl::UnknownError(absl::StrCat("Could only read ", data_read,
@@ -133,6 +138,13 @@ absl::StatusOr<std::string> GetFileContents(absl::string_view file_name) {
   }
   close(fd);
   return buffer;
+}
+
+absl::StatusOr<std::string> GetSysfsFileContents(absl::string_view file_name) {
+  ASSIGN_OR_RETURN_IF_NOT_OK(std::string contents, GetFileContents(file_name));
+  // Strip terminating null from end of buffer.
+  contents.resize(contents.size() - 1);
+  return contents;
 }
 
 }  // namespace silifuzz
