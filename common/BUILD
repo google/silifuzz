@@ -410,7 +410,6 @@ cc_library(
     srcs = ["decoded_insn.cc"],
     hdrs = ["decoded_insn.h"],
     deps = [
-        ":snapshot",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",

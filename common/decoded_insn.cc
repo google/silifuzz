@@ -32,7 +32,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "./common/snapshot.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
@@ -71,12 +70,6 @@ constexpr int kMaxX86InsnLength = 15;
 size_t l1_cache_line_size;
 
 }  // namespace
-
-DecodedInsn::DecodedInsn(const Snapshot::MemoryBytes& data) {
-  status_ = Decode({data.byte_values().data(), data.num_bytes()},
-                   data.start_address());
-  if (!status_.ok()) LOG_ERROR(status_.message());
-}
 
 DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
   status_ = Decode(data, address);
@@ -327,8 +320,8 @@ absl::Status DecodedInsn::Decode(absl::string_view data,
   return absl::OkStatus();
 }
 
-absl::StatusOr<Snapshot::MemoryBytes> DecodedInsn::FetchInstruction(
-    pid_t pid, Snapshot::Address addr) {
+absl::StatusOr<std::string> DecodedInsn::FetchInstruction(pid_t pid,
+                                                          uint64_t addr) {
   uint64_t buf[2] = {};
   static_assert(sizeof(buf) >= kMaxX86InsnLength);
   // TODO(ksteuck): [as-needed] can also consider reading /proc/$pid/mem or
@@ -350,9 +343,7 @@ absl::StatusOr<Snapshot::MemoryBytes> DecodedInsn::FetchInstruction(
           HexStr(read_addr), " was not mapped: ", ErrnoStr(errno)));
     }
   }
-  return Snapshot::MemoryBytes(
-      addr, Snapshot::ByteData(reinterpret_cast<const char*>(buf),
-                               kMaxX86InsnLength));
+  return std::string(reinterpret_cast<const char*>(buf), kMaxX86InsnLength);
 }
 
 // static

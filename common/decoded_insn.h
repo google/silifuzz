@@ -25,7 +25,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "./common/snapshot.h"
 #include "./util/checks.h"
 
 extern "C" {
@@ -47,9 +46,6 @@ class DecodedInsn {
     kRexR = 1 << 2,
     kRexW = 1 << 3,
   };
-
-  // Constructs an instance from MemoryBytes.
-  explicit DecodedInsn(const Snapshot::MemoryBytes& data);
 
   // Constructs an instance from a string-like object. The instruction is
   // to be decoded as if it was placed at `address`, which affects how
@@ -138,11 +134,10 @@ class DecodedInsn {
   // RETURNS: error if there was a problem fetching bytes from the process.
   // DecodedInsn otherwise. Caller still need to consule is_valid() before
   // using the returned instance.
-  static absl::StatusOr<DecodedInsn> FromLiveProcess(pid_t pid,
-                                                     Snapshot::Address addr) {
-    absl::StatusOr<Snapshot::MemoryBytes> data = FetchInstruction(pid, addr);
+  static absl::StatusOr<DecodedInsn> FromLiveProcess(pid_t pid, uint64_t addr) {
+    absl::StatusOr<std::string> data = FetchInstruction(pid, addr);
     RETURN_IF_NOT_OK(data.status());
-    return DecodedInsn(data.value());
+    return DecodedInsn(data.value(), addr);
   }
 
  private:
@@ -155,8 +150,7 @@ class DecodedInsn {
 
   // Fetches up to 16 bytes starting at `addr` from the ptrace-stopped process
   // identified by `pid`.
-  static absl::StatusOr<Snapshot::MemoryBytes> FetchInstruction(
-      pid_t pid, Snapshot::Address addr);
+  static absl::StatusOr<std::string> FetchInstruction(pid_t pid, uint64_t addr);
 
   // Helper function for address generation using XED.
   // Returns a 64-bit zero-extended value of `reg` from `regs` or an error.
