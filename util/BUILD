@@ -949,6 +949,7 @@ cc_test(
         ":file_util",
         ":path_util",
         ":tool_util",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_googletest//:gtest_main",
     ],

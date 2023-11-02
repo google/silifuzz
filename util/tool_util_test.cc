@@ -24,6 +24,7 @@
 #include "./util/checks.h"
 #include "./util/file_util.h"
 #include "./util/path_util.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
