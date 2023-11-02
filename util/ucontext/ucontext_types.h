@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_UCONTEXT_TYPES_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_UCONTEXT_TYPES_H_
 
-#include <string.h>    // for memcmp()
+#include <string.h>  // for memcmp()
 
 #include <cstdint>
 
@@ -107,10 +107,6 @@ template <typename Arch>
 inline bool operator==(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
   return 0 == memcmp(&x, &y, sizeof(x));
 }
-template <typename Arch>
-inline bool operator!=(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
-  return !(x == y);
-}
 
 // ========================================================================= //
 
@@ -169,10 +165,6 @@ static_assert(alignof(FPRegSet<AArch64>) == 16,
 template <typename Arch>
 inline bool operator==(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
   return 0 == memcmp(&x, &y, sizeof(x));
-}
-template <typename Arch>
-inline bool operator!=(const FPRegSet<Arch>& x, const FPRegSet<Arch>& y) {
-  return !(x == y);
 }
 
 // ========================================================================= //

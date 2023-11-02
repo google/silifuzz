@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./util/ucontext/ucontext.h"
-
 #include <type_traits>
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -51,6 +50,15 @@ TYPED_TEST(UContextGeneric, ConsistentArch) {
   EXPECT_TRUE((std::is_same<ARCH_OF(uctx), TypeParam>()));
   EXPECT_TRUE((std::is_same<ARCH_OF(uctx.gregs), TypeParam>()));
   EXPECT_TRUE((std::is_same<ARCH_OF(uctx.fpregs), TypeParam>()));
+}
+
+TYPED_TEST(UContextGeneric, RegsEquality) {
+  GRegSet<TypeParam> gregs;
+  ASSERT_EQ(gregs, gregs);
+  ASSERT_FALSE(gregs != gregs);
+  FPRegSet<TypeParam> fpregs;
+  ASSERT_EQ(fpregs, fpregs);
+  ASSERT_FALSE(fpregs != fpregs);
 }
 
 }  // namespace
