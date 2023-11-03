@@ -31,12 +31,12 @@ cc_test(
     name = "execution_trace_test",
     srcs = ["execution_trace_test.cc"],
     deps = [
-        ":capstone_disassembler",
         ":execution_trace",
         ":unicorn_tracer",
-        ":xed_disassembler",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//instruction:capstone_disassembler",
+        "@silifuzz//instruction:xed_disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
@@ -158,67 +158,13 @@ cc_test(
 )
 
 cc_library(
-    name = "disassembler",
-    hdrs = ["disassembler.h"],
-)
-
-cc_library(
-    name = "capstone_disassembler",
-    srcs = ["capstone_disassembler.cc"],
-    hdrs = ["capstone_disassembler.h"],
-    deps = [
-        ":disassembler",
-        "@silifuzz//util:arch",
-        "@silifuzz//util:checks",
-        "@capstone",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_library(
-    name = "xed_disassembler",
-    srcs = ["xed_disassembler.cc"],
-    hdrs = ["xed_disassembler.h"],
-    deps = [
-        ":disassembler",
-        "@silifuzz//util:arch",
-        "@silifuzz//util:checks",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/strings",
-        "@libxed//:xed",
-    ],
-)
-
-cc_library(
-    name = "default_disassembler",
-    hdrs = ["default_disassembler.h"],
-    deps = [
-        ":capstone_disassembler",
-        ":xed_disassembler",
-        "@silifuzz//util:arch",
-    ],
-)
-
-cc_test(
-    name = "disassembler_test",
-    srcs = ["disassembler_test.cc"],
-    deps = [
-        ":capstone_disassembler",
-        ":disassembler",
-        ":xed_disassembler",
-        "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "analysis",
     srcs = ["analysis.cc"],
     hdrs = ["analysis.h"],
     deps = [
-        ":disassembler",
         ":execution_trace",
         ":unicorn_tracer",
+        "@silifuzz//instruction:disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext",
@@ -233,10 +179,10 @@ cc_binary(
     ],
     deps = [
         ":analysis",
-        ":default_disassembler",
-        ":disassembler",
         ":execution_trace",
         ":unicorn_tracer",
+        "@silifuzz//instruction:default_disassembler",
+        "@silifuzz//instruction:disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:bitops",
         "@silifuzz//util:checks",

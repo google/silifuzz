@@ -29,7 +29,7 @@
 #include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot_util.h"
-#include "./tracing/default_disassembler.h"
+#include "./instruction/default_disassembler.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"

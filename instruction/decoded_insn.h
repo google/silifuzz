@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
-#define THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
+#ifndef THIRD_PARTY_SILIFUZZ_INSTRUCTION_DECODED_INSN_H_
+#define THIRD_PARTY_SILIFUZZ_INSTRUCTION_DECODED_INSN_H_
 
 #include <sys/types.h>
 #include <sys/user.h>
@@ -183,4 +183,4 @@ class DecodedInsn {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_COMMON_DECODED_INSN_H_
+#endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_DECODED_INSN_H_

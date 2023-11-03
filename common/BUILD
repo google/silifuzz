@@ -25,11 +25,6 @@ licenses(["notice"])
 
 # =========================================================================== #
 
-DISABLE_ARM_TAGS = [
-    "not_build:arm",
-    "not_run:arm",
-]
-
 cc_library(
     name = "memory_mapping",
     srcs = ["memory_mapping.cc"],
@@ -241,7 +236,7 @@ cc_library(
         ":snapshot",
         ":snapshot_types",
         ":snapshot_util",
-        "@silifuzz//tracing:default_disassembler",
+        "@silifuzz//instruction:default_disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
@@ -358,7 +353,7 @@ cc_library(
         ":proxy_config",
         ":snapshot",
         ":snapshot_util",
-        ":static_insn_filter",
+        "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
@@ -380,69 +375,6 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "static_insn_filter",
-    srcs = ["static_insn_filter.cc"],
-    hdrs = ["static_insn_filter.h"],
-    deps = [
-        "@silifuzz//util:arch",
-        "@com_google_absl//absl/strings",
-    ],
-)
-
-cc_test(
-    name = "static_insn_filter_test",
-    size = "small",
-    srcs = ["static_insn_filter_test.cc"],
-    deps = [
-        ":static_insn_filter",
-        "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "decoded_insn",
-    srcs = ["decoded_insn.cc"],
-    hdrs = ["decoded_insn.h"],
-    deps = [
-        "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
-        "@silifuzz//util:misc_util",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@libxed//:xed",
-    ],
-)
-
-cc_test(
-    name = "decoded_insn_test",
-    srcs = ["decoded_insn_test.cc"],
-    deps = [
-        ":decoded_insn",
-        "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest_main",
-        "@libxed//:xed",
-    ],
-)
-
-cc_test(
-    name = "decoded_insn_fuzz_test",
-    srcs = ["decoded_insn_fuzz_test.cc"],
-    deps = [
-        ":decoded_insn",
-        "@silifuzz//util/testing:status_matchers",
-        "@com_google_fuzztest//fuzztest",
         "@com_google_googletest//:gtest_main",
     ],
 )

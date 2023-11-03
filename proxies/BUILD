@@ -41,7 +41,7 @@ cc_library(
     deps = [
         ":arch_feature_generator",
         "@silifuzz//common:proxy_config",
-        "@silifuzz//tracing:capstone_disassembler",
+        "@silifuzz//instruction:capstone_disassembler",
         "@silifuzz//tracing:unicorn_tracer_aarch64",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",

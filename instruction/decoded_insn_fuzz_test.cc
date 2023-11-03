@@ -21,7 +21,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "fuzztest/fuzztest.h"
-#include "./common/decoded_insn.h"
+#include "./instruction/decoded_insn.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {

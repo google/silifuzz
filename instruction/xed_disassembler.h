@@ -12,32 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
-#define THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_INSTRUCTION_XED_DISASSEMBLER_H_
+#define THIRD_PARTY_SILIFUZZ_INSTRUCTION_XED_DISASSEMBLER_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-#include "third_party/capstone/capstone.h"
-#include "./tracing/disassembler.h"
+#include "./instruction/disassembler.h"
 #include "./util/arch.h"
+
+extern "C" {
+#include "third_party/libxed/xed-interface.h"
+}
 
 namespace silifuzz {
 
-// This class wraps Capstone for use by instruction tracers.
-// This class is not thread safe since a capstone instance is not thread safe.
-template <typename Arch>
-class CapstoneDisassembler : public Disassembler {
+// This class wraps XED for use by instruction tracers.
+// This class is not thread safe since a XED instance is not thread safe.
+class XedDisassembler : public Disassembler {
  public:
-  CapstoneDisassembler();
-  ~CapstoneDisassembler();
+  XedDisassembler();
+  ~XedDisassembler();
 
   // Non-copyable / non-moveable.
-  CapstoneDisassembler(const CapstoneDisassembler&) = delete;
-  CapstoneDisassembler(CapstoneDisassembler&&) = delete;
-  CapstoneDisassembler& operator=(const CapstoneDisassembler&) = delete;
-  CapstoneDisassembler& operator=(CapstoneDisassembler&&) = delete;
+  XedDisassembler(const XedDisassembler&) = delete;
+  XedDisassembler(XedDisassembler&&) = delete;
+  XedDisassembler& operator=(const XedDisassembler&) = delete;
+  XedDisassembler& operator=(XedDisassembler&&) = delete;
 
   // Disassmeble a single instruction.
   // `address` is the address of the instruction being disassembled. The address
@@ -72,12 +74,12 @@ class CapstoneDisassembler : public Disassembler {
   [[nodiscard]] std::string InstructionIDName(uint32_t id) const override;
 
  private:
-  csh capstone_handle_;
-  cs_insn* decoded_insn_;
-  uint32_t num_instruction_ids_;
+  xed_decoded_inst_t xedd_;
+  uint64_t address_;
+  char full_text_[96];
   bool valid_;
 };
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_TRACING_CAPSTONE_DISASSEMBLER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_XED_DISASSEMBLER_H_

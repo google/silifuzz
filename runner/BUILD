@@ -310,9 +310,9 @@ cc_library(
     srcs = ["disassembling_snap_tracer.cc"],
     hdrs = ["disassembling_snap_tracer.h"],
     deps = [
-        "@silifuzz//common:decoded_insn",
         "@silifuzz//common:harness_tracer",
         "@silifuzz//common:snapshot",
+        "@silifuzz//instruction:decoded_insn",
         "@silifuzz//player:trace_options",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",

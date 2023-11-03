@@ -22,9 +22,9 @@
 #include "absl/status/status.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
-#include "./tracing/capstone_disassembler.h"
+#include "./instruction/capstone_disassembler.h"
+#include "./instruction/xed_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
-#include "./tracing/xed_disassembler.h"
 #include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
 

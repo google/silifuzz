@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_
-#define THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_INSTRUCTION_DISASSEMBLER_H_
+#define THIRD_PARTY_SILIFUZZ_INSTRUCTION_DISASSEMBLER_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -80,4 +80,4 @@ class Disassembler {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_TRACING_DISASSEMBLER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_DISASSEMBLER_H_

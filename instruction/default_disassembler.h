@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_TRACING_DEFAULT_DISASSEMBLER_H_
-#define THIRD_PARTY_SILIFUZZ_TRACING_DEFAULT_DISASSEMBLER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_INSTRUCTION_DEFAULT_DISASSEMBLER_H_
+#define THIRD_PARTY_SILIFUZZ_INSTRUCTION_DEFAULT_DISASSEMBLER_H_
 
-#include "./tracing/capstone_disassembler.h"
-#include "./tracing/xed_disassembler.h"
+#include "./instruction/capstone_disassembler.h"
+#include "./instruction/xed_disassembler.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
@@ -43,4 +43,4 @@ using DefaultDisassembler = typename disassembler_internal::Default<Arch>::Type;
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_TRACING_DEFAULT_DISASSEMBLER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_DEFAULT_DISASSEMBLER_H_

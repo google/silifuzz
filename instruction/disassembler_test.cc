@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./tracing/disassembler.h"
+#include "./instruction/disassembler.h"
 
 #include <cstdint>
 #include <string>
@@ -20,8 +20,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "./tracing/capstone_disassembler.h"
-#include "./tracing/xed_disassembler.h"
+#include "./instruction/capstone_disassembler.h"
+#include "./instruction/xed_disassembler.h"
 #include "./util/arch.h"
 
 namespace silifuzz {

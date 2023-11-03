@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./common/decoded_insn.h"
+#include "./instruction/decoded_insn.h"
 
 #include <sys/ptrace.h>
 #include <sys/user.h>

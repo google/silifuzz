@@ -24,8 +24,8 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "./common/decoded_insn.h"
 #include "./common/harness_tracer.h"
+#include "./instruction/decoded_insn.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 

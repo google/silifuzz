@@ -20,7 +20,7 @@
 #include <string>
 
 #include "absl/status/statusor.h"
-#include "./tracing/disassembler.h"
+#include "./instruction/disassembler.h"
 #include "./tracing/execution_trace.h"
 
 namespace silifuzz {

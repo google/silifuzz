@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./tracing/capstone_disassembler.h"
+#include "./instruction/capstone_disassembler.h"
 
 #include <stdint.h>
 
@@ -23,7 +23,7 @@
 #include "third_party/capstone/arm64.h"
 #include "third_party/capstone/capstone.h"
 #include "third_party/capstone/x86.h"
-#include "./tracing/disassembler.h"
+#include "./instruction/disassembler.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 

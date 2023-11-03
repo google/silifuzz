@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_COMMON_STATIC_INSN_FILTER_H_
-#define THIRD_PARTY_SILIFUZZ_COMMON_STATIC_INSN_FILTER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_INSTRUCTION_STATIC_INSN_FILTER_H_
+#define THIRD_PARTY_SILIFUZZ_INSTRUCTION_STATIC_INSN_FILTER_H_
 
 #include "absl/strings/string_view.h"
 #include "./util/arch.h"
@@ -61,4 +61,4 @@ bool StaticInstructionFilter(absl::string_view code,
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_COMMON_STATIC_INSN_FILTER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_STATIC_INSN_FILTER_H_

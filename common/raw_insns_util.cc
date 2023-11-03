@@ -29,7 +29,7 @@
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
-#include "./common/static_insn_filter.h"
+#include "./instruction/static_insn_filter.h"
 #include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"

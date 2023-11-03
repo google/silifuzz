@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./tracing/xed_disassembler.h"
+#include "./instruction/xed_disassembler.h"
 
 #include <stdint.h>
 
@@ -22,7 +22,7 @@
 #include "absl/base/call_once.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
-#include "./tracing/disassembler.h"
+#include "./instruction/disassembler.h"
 #include "./util/checks.h"
 
 extern "C" {
