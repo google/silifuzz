@@ -32,6 +32,7 @@
 #include "./runner/runner_provider.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./util/arch.h"
+#include "./util/data_dependency.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -43,7 +44,8 @@ using snapshot_types::SigNum;
 using ::testing::ElementsAre;
 
 RunnerDriver HelperDriver() {
-  return RunnerDriver::BakedRunner(RunnerTestHelperLocation());
+  return RunnerDriver::ReadingRunner(
+      RunnerLocation(), GetDataDependencyFilepath("snap/testing/test_corpus"));
 }
 
 auto InsnAtAddr(absl::string_view x, int addr, int size) {

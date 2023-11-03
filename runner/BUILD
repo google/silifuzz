@@ -41,16 +41,6 @@ DISABLE_ARM_TAGS = [
 ]
 
 cc_library_plus_nolibc(
-    name = "baked_snap_corpus",
-    srcs = ["baked_snap_corpus.cc"],
-    hdrs = ["default_snap_corpus.h"],
-    deps = [
-        "@silifuzz//snap",
-        "@silifuzz//util:arch",
-    ],
-)
-
-cc_library_plus_nolibc(
     name = "loading_snap_corpus",
     srcs = ["loading_snap_corpus.cc"],
     hdrs = ["default_snap_corpus.h"],
@@ -226,19 +216,27 @@ cc_test_nolibc(
     name = "runner_test",
     timeout = "short",
     srcs = ["runner_test.cc"],
+    data = [
+        "@silifuzz//snap/testing:test_corpus",
+    ],
+    env = {"TEST_CORPUS": "$(location @silifuzz//snap/testing:test_corpus)"},
     linkopts = [
         "-Xlinker",
         "--image-base=" + SILIFUZZ_RUNNER_BASE_ADDRESS,
     ],
     linkstatic = 1,
     deps = [
+        ":loading_snap_corpus",
         ":runner",
+        ":runner_main_options",
         ":runner_util",
         ":snap_runner_util",
         "@silifuzz//common:snapshot_test_enum",
+        "@silifuzz//snap",
         "@silifuzz//snap:exit_sequence",
-        "@silifuzz//snap/testing:snap_test_snaps",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
     ],
 )
@@ -253,20 +251,6 @@ cc_library_nolibc(
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:flag_matcher",
-    ],
-)
-
-cc_binary_nolibc(
-    name = "runner_test_helper",
-    testonly = 1,
-    linkopts = [
-        "-Xlinker",
-        "--image-base=" + SILIFUZZ_RUNNER_BASE_ADDRESS,
-    ],
-    deps = [
-        ":baked_snap_corpus",
-        ":runner_main_as_lib",
-        "@silifuzz//snap/testing:snap_test_snaps",
     ],
 )
 
@@ -327,7 +311,7 @@ cc_test(
     size = "medium",
     srcs = ["disassembling_snap_tracer_test.cc"],
     data = [
-        ":sanless_runner_test_helper_nolibc",
+        "@silifuzz//snap/testing:test_corpus",
     ],
     deps = [
         ":disassembling_snap_tracer",
@@ -338,6 +322,7 @@ cc_test(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//util:arch",
+        "@silifuzz//util:data_dependency",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/functional:bind_front",
@@ -451,14 +436,6 @@ sh_test(
     timeout = "short",
     srcs = ["global_static_initializers_test.sh"],
     data = [":reading_runner_main_nolibc"],
-)
-
-nosan_filegroup(
-    name = "sanless_runner_test_helper_nolibc",
-    testonly = 1,
-    srcs = [
-        ":runner_test_helper_nolibc",
-    ],
 )
 
 nosan_filegroup(

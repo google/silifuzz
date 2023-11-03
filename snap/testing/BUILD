@@ -65,12 +65,12 @@ cc_binary(
     srcs = ["snap_test_snaps_gen.cc"],
     deps = [
         ":snap_test_snapshots",
-        ":snap_test_types",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//snap/gen:relocatable_snap_generator",
         "@silifuzz//snap/gen:snap_generator",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:file_util",
         "@silifuzz//util:misc_util",
@@ -78,12 +78,11 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
     ],
 )
 
-RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --output_mode=relocatable_runner_corpus > $@"
+RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} > $@"
 
 genrule(
     name = "relocatable_snap_test_snaps",
@@ -96,7 +95,7 @@ genrule(
     tools = [":snap_test_snaps_gen"],
 )
 
-SINGLE_RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --snapshot_id={snapshot_id} --output_mode=relocatable_runner_corpus > $@"
+SINGLE_RELOCATABLE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --snapshot_id={snapshot_id} > $@"
 
 genrule(
     name = "relocatable_ends_as_expected",
@@ -130,34 +129,6 @@ genrule(
         ),
     }),
     tools = [":snap_test_snaps_gen"],
-)
-
-SOURCE_COMMAND = "$(location :snap_test_snaps_gen) --arch={arch} --output_mode=c++source > $@"
-
-genrule(
-    name = "snap_test_snaps_cc",
-    testonly = 1,
-    outs = ["snap_test_snaps.cc"],
-    cmd = select({
-        "@silifuzz//build_defs/platform:aarch64": SOURCE_COMMAND.format(arch = "aarch64"),
-        "@silifuzz//build_defs/platform:x86_64": SOURCE_COMMAND.format(arch = "x86_64"),
-    }),
-    tools = [":snap_test_snaps_gen"],
-)
-
-cc_library_plus_nolibc(
-    name = "snap_test_snaps",
-    testonly = 1,
-    srcs = ["snap_test_snaps.cc"],
-    hdrs = ["snap_test_snaps.h"],
-    deps = [
-        ":snap_test_types",
-        "@silifuzz//common:snapshot_test_enum",
-        "@silifuzz//snap",
-        "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
-        "@silifuzz//util:misc_util",
-    ],
 )
 
 cc_library(

@@ -20,30 +20,27 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_test_util.h"
 #include "./snap/gen/snap_generator.h"
+#include "./snap/snap.h"
 #include "./snap/snap_relocator.h"
 #include "./snap/snap_util.h"
 #include "./snap/testing/snap_generator_test_lib.h"
 #include "./snap/testing/snap_test_snapshots.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
-#include "./util/platform.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {

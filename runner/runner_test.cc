@@ -14,17 +14,35 @@
 
 #include "./runner/runner.h"
 
+#include <cstdlib>
+
 #include "./common/snapshot_test_enum.h"
+#include "./runner/default_snap_corpus.h"
+#include "./runner/runner_main_options.h"
 #include "./runner/runner_util.h"
 #include "./runner/snap_runner_util.h"
 #include "./snap/exit_sequence.h"
-#include "./snap/testing/snap_test_snaps.h"
+#include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/nolibc_gunit.h"
 
 namespace silifuzz {
 
 namespace {
+
+// An instance of the test corpus. main() loads this from $TEST_CORPUS.
+const SnapCorpus<Host>* kSnapRunnerTestCorpus;
+
+// Returns a Snap runner test Snap of the given type.
+const Snap<Host>& GetSnapRunnerTestSnap(TestSnapshot type) {
+  const Snap<Host>* snap = kSnapRunnerTestCorpus->Find(EnumStr(type));
+  if (snap == nullptr) {
+    LOG_FATAL("Cannot find snap with ID: ", EnumStr(type));
+  }
+  return *snap;
+}
 
 // Runner tests do not run well with normal libc because of an invalid fs_base.
 // We could make the tests work but it would not be how the runner is intended
@@ -67,16 +85,24 @@ TEST(Runner, SkipEndStateCheck) {
   CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
 }
 
+// Initializes the test environment. Loads and maps the corpus, then drops into
+// the seccomp sandbox.
+void InitTestEnv() {
+  const char* corpus_file = getenv("TEST_CORPUS");
+  CHECK_NE(corpus_file, nullptr);
+  kSnapRunnerTestCorpus = LoadCorpus(corpus_file, true, nullptr);
+  InitSnapExit(&SnapExitImpl);
+  MapCorpus(*kSnapRunnerTestCorpus, -1, nullptr);
+  EnterSeccompStrictMode();
+}
+
 }  // namespace
 }  // namespace silifuzz
 
 // ========================================================================= //
 
 NOLIBC_TEST_MAIN({
-  silifuzz::InitSnapExit(&SnapExitImpl);
-  silifuzz::MapCorpus(silifuzz::kSnapRunnerTestCorpus, -1, nullptr);
-  silifuzz::EnterSeccompStrictMode();
-
+  silifuzz::InitTestEnv();
   RUN_TEST(Runner, EndsAsExpected);
   RUN_TEST(Runner, RegsMismatch);
   RUN_TEST(Runner, MemoryMismatch);

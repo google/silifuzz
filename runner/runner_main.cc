@@ -31,6 +31,7 @@
 #include "./runner/default_snap_corpus.h"
 #include "./runner/runner.h"
 #include "./runner/runner_flags.h"
+#include "./runner/runner_main_options.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/strcat.h"

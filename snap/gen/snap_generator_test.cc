@@ -27,9 +27,6 @@
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
 #include "./snap/exit_sequence.h"
-#include "./snap/snap.h"
-#include "./snap/testing/snap_generator_test_lib.h"
-#include "./snap/testing/snap_test_snaps.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
 #include "./util/testing/status_macros.h"
@@ -45,59 +42,6 @@ namespace silifuzz {
 
 namespace {
 using silifuzz::testing::StatusIs;
-
-TEST(SnapGenerator, BasicSnapGeneratorTest) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
-      SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  const Snap<Host>& snap =
-      GetSnapGeneratorTestSnap(SnapGeneratorTestType::kBasicSnapGeneratorTest);
-  VerifyTestSnap(snapshot, snap,
-                 SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));
-}
-
-TEST(SnapGenerator, MemoryBytesAttributesTest) {
-  Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
-      SnapGeneratorTestType::kMemoryBytesPermsTest);
-  const Snap<Host>& snap =
-      GetSnapGeneratorTestSnap(SnapGeneratorTestType::kMemoryBytesPermsTest);
-  VerifyTestSnap(snapshot, snap,
-                 SnapifyOptions::V2InputRunOpts(snapshot.architecture_id()));
-
-  // Check that any memory bytes in list that overlap with [start, limit)
-  // must 1) completely lie inside [start, limit) and 2) is not writable.
-  auto validate_memory_bytes_list =
-      [](Snapshot::Address start, Snapshot::Address limit,
-         const SnapArray<SnapMemoryBytes>& memory_bytes_list) {
-        for (const auto& memory_bytes : memory_bytes_list) {
-          const Snapshot::Address memory_bytes_limit =
-              memory_bytes.start_address + memory_bytes.size();
-          if (memory_bytes.start_address >= start &&
-              memory_bytes_limit <= limit) {
-            // memory bytes is completely inside [start,limit)
-          } else {
-            // Check that memory byte is completely outside of [start,limit).
-            EXPECT_TRUE(memory_bytes_limit <= start ||
-                        memory_bytes.start_address >= limit);
-          }
-        }
-      };
-
-  // Check that there is a code page and it is read-only.
-  bool found_code = false;
-  for (const auto& mapping : snap.memory_mappings) {
-    if (mapping.perms & PROT_EXEC) {
-      EXPECT_EQ(mapping.perms & PROT_WRITE, 0);
-      validate_memory_bytes_list(mapping.start_address,
-                                 mapping.start_address + mapping.num_bytes,
-                                 mapping.memory_bytes);
-      validate_memory_bytes_list(mapping.start_address,
-                                 mapping.start_address + mapping.num_bytes,
-                                 snap.end_state_memory_bytes);
-      found_code = true;
-    }
-  }
-  EXPECT_TRUE(found_code);
-}
 
 TEST(SnapGenerator, Snapify) {
   Snapshot snapshot = MakeSnapGeneratorTestSnapshot<Host>(
