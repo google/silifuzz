@@ -17,20 +17,27 @@
 #include <sys/types.h>
 #include <sys/user.h>
 
-#include <filesystem>
-#include <string>
+#include <cstdint>
+#include <filesystem>  // NOLINT
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "./common/harness_tracer.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./common/snapshot_test_enum.h"
 #include "./runner/runner_provider.h"
-#include "./snap/testing/snap_test_snaps.h"
-#include "./snap/testing/snap_test_types.h"
+#include "./snap/testing/snap_test_snapshots.h"
+#include "./util/arch.h"
+#include "./util/data_dependency.h"
+#include "./util/itoa.h"
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
+#include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
@@ -39,51 +46,50 @@ using snapshot_types::PlaybackOutcome;
 using ::testing::HasSubstr;
 
 RunnerDriver HelperDriver() {
-  return RunnerDriver::BakedRunner(RunnerTestHelperLocation());
+  return RunnerDriver::ReadingRunner(
+      RunnerLocation(), GetDataDependencyFilepath("snap/testing/test_corpus"));
 }
 
 TEST(RunnerDriver, BasicRun) {
   RunnerDriver driver = HelperDriver();
-  Snap<Host> endAsExpectedSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
-  auto run_result_or = driver.PlayOne(endAsExpectedSnap.id);
+  auto run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kEndsAsExpected));
   ASSERT_OK(run_result_or);
   ASSERT_TRUE(run_result_or->success());
 
-  Snap<Host> syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
-  run_result_or = driver.PlayOne(syscallSnap.id);
+  run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kSyscall));
   ASSERT_THAT(run_result_or,
               StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
 }
 
 TEST(RunnerDriver, BasicMake) {
   RunnerDriver driver = HelperDriver();
-  Snap<Host> sigSegvReadSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
-  auto make_result_or = driver.MakeOne(sigSegvReadSnap.id);
+  auto make_result_or = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvRead));
   ASSERT_OK(make_result_or);
   ASSERT_FALSE(make_result_or->success());
   ASSERT_EQ(make_result_or->player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
-  ASSERT_EQ(make_result_or->snapshot_id(), sigSegvReadSnap.id);
+  ASSERT_EQ(make_result_or->snapshot_id(), EnumStr(TestSnapshot::kSigSegvRead));
 }
 
 TEST(RunnerDriver, BasicTrace) {
   RunnerDriver driver = HelperDriver();
-  Snap<Host> endAsExpectedSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  Snapshot endAsExpectedSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
+  GRegSet<Host> gregs;
+  ASSERT_TRUE(DeserializeGRegs(endAsExpectedSnap.registers().gregs(), &gregs));
+  const uint64_t start_address = gregs.GetInstructionPointer();
   bool hit_initial_snap_rip = false;
-  auto cb = [&hit_initial_snap_rip, &endAsExpectedSnap](
+  auto cb = [&hit_initial_snap_rip, start_address](
                 pid_t pid, const user_regs_struct& regs,
                 HarnessTracer::CallbackReason reason) {
-    if (GetInstructionPointer(regs) ==
-        endAsExpectedSnap.registers->gregs.GetInstructionPointer()) {
+    if (GetInstructionPointer(regs) == start_address) {
       hit_initial_snap_rip = true;
       return HarnessTracer::kStopTracing;
     }
     return HarnessTracer::kKeepTracing;
   };
-  auto trace_result_or = driver.TraceOne(endAsExpectedSnap.id, cb);
+  auto trace_result_or =
+      driver.TraceOne(EnumStr(TestSnapshot::kEndsAsExpected), cb);
   ASSERT_OK(trace_result_or);
   ASSERT_TRUE(trace_result_or->success());
   ASSERT_TRUE(hit_initial_snap_rip);

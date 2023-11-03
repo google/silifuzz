@@ -25,16 +25,25 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./common/snapshot_test_config.h"
+#include "./common/snapshot_test_enum.h"
 #include "./runner/driver/runner_driver.h"
+#include "./runner/driver/runner_options.h"
 #include "./runner/runner_provider.h"
 #include "./snap/gen/relocatable_snap_generator.h"
-#include "./snap/testing/snap_test_snaps.h"
+#include "./snap/testing/snap_test_snapshots.h"
+#include "./util/arch.h"
+#include "./util/data_dependency.h"
 #include "./util/file_util.h"
+#include "./util/itoa.h"
+#include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
@@ -49,9 +58,11 @@ using ::testing::Not;
 //
 // NOTE: Assumes that the snap is already built into the test helper binary.
 absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
-    const Snap<Host>& snap, absl::Duration timeout = absl::InfiniteDuration()) {
-  RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
-  auto opts = RunnerOptions::PlayOptions(snap.id);
+    TestSnapshot test_snap_type,
+    absl::Duration timeout = absl::InfiniteDuration()) {
+  RunnerDriver driver = RunnerDriver::ReadingRunner(
+      RunnerLocation(), GetDataDependencyFilepath("snap/testing/test_corpus"));
+  RunnerOptions opts = RunnerOptions::PlayOptions(EnumStr(test_snap_type));
   if (timeout != absl::InfiniteDuration()) {
     opts.set_wall_time_budget(timeout);
     opts.set_cpu_time_budget(timeout * 10);
@@ -60,37 +71,34 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
 }
 
 TEST(RunnerTest, AsExpectedSnap) {
-  Snap<Host> asExpectedSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(asExpectedSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kEndsAsExpected));
   ASSERT_TRUE(result.success());
 }
 
 TEST(RunnerTest, RegisterMismatchSnap) {
-  Snap<Host> regsMismatchSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kRegsMismatch);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(regsMismatchSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kRegsMismatch));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kRegisterStateMismatch);
 }
 
 TEST(RunnerTest, MemoryMismatchSnap) {
-  Snap<Host> memoryMismatchSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kMemoryMismatch);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(memoryMismatchSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kMemoryMismatch));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kMemoryMismatch);
   const auto& end_state = *result.player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
+
+  Snapshot memoryMismatchSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
   EXPECT_EQ(end_state.endpoint().instruction_address(),
-            memoryMismatchSnap.end_state_instruction_address);
+            memoryMismatchSnap.expected_end_states()[0]
+                .endpoint()
+                .instruction_address());
 }
 
 TEST(RunnerTest, SigSegvSnap) {
-  Snap<Host> sigSegvReadSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kSigSegvRead);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(sigSegvReadSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kSigSegvRead));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
@@ -98,10 +106,11 @@ TEST(RunnerTest, SigSegvSnap) {
       *result.player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
   const snapshot_types::Endpoint& ep = end_state.endpoint();
-  // The two magic addresses are snapshot-dependent but should be stable.
-  // See TestSnapshots::Create() for the actual code sequence.
+  // sig_address and sig_instruction_address addresses are snapshot-dependent
+  // but should be stable. See TestSnapshot::kSigSegvRead in
+  // snapshot_test_config.cc for the actual code sequence.
   const uint64_t start_address =
-      sigSegvReadSnap.registers->gregs.GetInstructionPointer();
+      GetTestSnapshotConfig<Host>(TestSnapshot::kSigSegvRead)->code_addr;
   EXPECT_EQ(ep.sig_instruction_address(), start_address + 4);
   EXPECT_EQ(ep.sig_address(), 0x1000000);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigSegv);
@@ -109,24 +118,25 @@ TEST(RunnerTest, SigSegvSnap) {
 }
 
 TEST(RunnerTest, SyscallSnap) {
-  Snap<Host> syscallSnap = GetSnapRunnerTestSnap(TestSnapshot::kSyscall);
-  auto result = RunOneSnap(syscallSnap);
+  auto result = RunOneSnap(TestSnapshot::kSyscall);
   ASSERT_THAT(result,
               StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
 }
 
 TEST(RunnerTest, BreakpointSnap) {
-  Snap<Host> breakpointSnap = GetSnapRunnerTestSnap(TestSnapshot::kBreakpoint);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(breakpointSnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kBreakpoint));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
   const snapshot_types::Endpoint& ep =
       result.player_result().actual_end_state->endpoint();
-  const uint64_t start_address =
-      breakpointSnap.registers->gregs.GetInstructionPointer();
+  Snapshot breakpointSnap =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kBreakpoint);
+  GRegSet<Host> gregs;
+  ASSERT_TRUE(DeserializeGRegs(breakpointSnap.registers().gregs(), &gregs));
+  const uint64_t start_address = gregs.GetInstructionPointer();
   EXPECT_EQ(ep.sig_instruction_address(), start_address);
-  // The docs say that si_addr should be set for SIGTRAP, but emperically
+  // The docs say that si_addr should be set for SIGTRAP, but empirically
   // speaking it is not set on x86_64.
 #if defined(__x86_64__)
   const uintptr_t kExpectedSigAddress = 0x0;
@@ -138,15 +148,14 @@ TEST(RunnerTest, BreakpointSnap) {
 }
 
 TEST(RunnerTest, RunawaySnap) {
-  Snap<Host> runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap));
+  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kRunaway));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kExecutionRunaway);
 }
 
 TEST(RunnerTest, Deadline) {
-  Snap<Host> runawaySnap = GetSnapRunnerTestSnap(TestSnapshot::kRunaway);
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(runawaySnap, absl::Seconds(2)));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       RunOneSnap(TestSnapshot::kRunaway, absl::Seconds(2)));
   ASSERT_TRUE(result.success());
 }
 
@@ -170,10 +179,19 @@ TEST(RunnerTest, EmptyCorpus) {
 }
 
 TEST(RunnerTest, UnknownFlags) {
-  RunnerDriver driver = RunnerDriver::BakedRunner(RunnerTestHelperLocation());
-  Snap<Host> asExpectedSnap =
-      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
-  RunnerOptions opts = RunnerOptions::PlayOptions(asExpectedSnap.id);
+  MmappedMemoryPtr<char> buffer =
+      GenerateRelocatableSnaps(Host::architecture_id, {});
+  ASSERT_OK_AND_ASSIGN(auto path, CreateTempFile("EmptyCorpus", ""));
+
+  int fd = open(path.c_str(), O_WRONLY);
+  ASSERT_NE(fd, -1);
+  absl::string_view buf(buffer.get(), MmappedMemorySize(buffer));
+  ASSERT_TRUE(WriteToFileDescriptor(fd, buf));
+  close(fd);
+
+  RunnerDriver driver = RunnerDriver::ReadingRunner(
+      RunnerLocation(), path, "", [&path] { unlink(path.c_str()); });
+  RunnerOptions opts = RunnerOptions::PlayOptions("<bogus>");
   opts.set_extra_argv({"--foobar=1"});
   absl::StatusOr<RunnerDriver::RunResult> result = driver.Run(opts);
   ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
