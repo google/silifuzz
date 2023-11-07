@@ -163,7 +163,7 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
 
     // TODO(dougkwan): Parallelize this to speed up blob reading.
     absl::Status status;
-    absl::Span<uint8_t> blob;
+    absl::Span<const uint8_t> blob;
     while ((status = reader->Read(blob)).ok()) {
       const std::string id = InstructionsToSnapshotId(
           {reinterpret_cast<const char*>(blob.data()), blob.size()});
