@@ -14,20 +14,20 @@
 
 #include "./snap/testing/snap_test_snapshots.h"
 
-#include <sys/types.h>
-
 #include <cstddef>
 #include <cstring>
 
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_test_util.h"
 #include "./common/snapshot_util.h"
 #include "./snap/testing/snap_test_types.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/misc_util.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/platform.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {

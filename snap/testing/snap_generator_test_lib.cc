@@ -16,15 +16,14 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <string>
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_util.h"
 #include "./snap/gen/snap_generator.h"
 #include "./snap/snap.h"
 #include "./util/checks.h"
