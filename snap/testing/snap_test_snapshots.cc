@@ -164,9 +164,6 @@ Snapshot MakeSnapRunnerTestSnapshot(TestSnapshot type) {
   // Need to force the normal (i.e. with registers) end state to confirm
   // to Snapify() contract.
   opts.force_normal_state = true;
-  opts.read_address = 0x1000000;   // some mappable address
-  opts.write_address = 0x1000000;  // some mappable address
-
   return CreateTestSnapshot<Arch>(type, opts);
 }
 

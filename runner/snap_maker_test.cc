@@ -17,10 +17,13 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
 #include "./player/trace_options.h"
 #include "./runner/snap_maker_test_util.h"
 #include "./snap/testing/snap_test_snapshots.h"
+#include "./util/arch.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -56,7 +59,7 @@ TEST(SnapMaker, RandomRegsMismatch) {
 
 TEST(SnapMaker, SigSegvRead) {
   auto sigSegvReadSnap =
-      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvRead);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvReadFixable);
   ASSERT_OK_AND_ASSIGN(auto result, FixSnapshotInTest(sigSegvReadSnap));
   ASSERT_EQ(result.memory_mappings().size(),
             sigSegvReadSnap.memory_mappings().size() + 1)

@@ -316,6 +316,8 @@ cc_library(
         "snapshot_test_util.h",
     ],
     deps = [
+        ":memory_mapping",
+        ":memory_perms",
         ":memory_state",
         ":snapshot",
         ":snapshot_proto",
@@ -328,9 +330,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
-        "@silifuzz//util/ucontext",
-        "@com_google_absl//absl/base:endian",
-        "@com_google_absl//absl/status",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status:statusor",
     ],
 )

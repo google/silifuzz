@@ -15,6 +15,7 @@
 #include "./common/snapshot_test_enum.h"
 
 #include "absl/base/attributes.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -35,7 +36,9 @@ ABSL_CONST_INIT const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kINT3_CD03",
     "kSigIll",
     "kSigSegvWrite",
+    "kSigSegvWriteFixable",
     "kSigSegvRead",
+    "kSigSegvReadFixable",
     "kSigSegvExec",
     "kSyscall",
     "kGeneralProtectionFault",

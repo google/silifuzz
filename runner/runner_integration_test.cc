@@ -98,7 +98,8 @@ TEST(RunnerTest, MemoryMismatchSnap) {
 }
 
 TEST(RunnerTest, SigSegvSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kSigSegvRead));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       RunOneSnap(TestSnapshot::kSigSegvReadFixable));
   ASSERT_FALSE(result.success());
   EXPECT_EQ(result.player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
@@ -110,9 +111,12 @@ TEST(RunnerTest, SigSegvSnap) {
   // but should be stable. See TestSnapshot::kSigSegvRead in
   // snapshot_test_config.cc for the actual code sequence.
   const uint64_t start_address =
-      GetTestSnapshotConfig<Host>(TestSnapshot::kSigSegvRead)->code_addr;
-  EXPECT_EQ(ep.sig_instruction_address(), start_address + 4);
-  EXPECT_EQ(ep.sig_address(), 0x1000000);
+      GetTestSnapshotConfig<Host>(TestSnapshot::kSigSegvReadFixable)->code_addr;
+  // The exact location of the faulting instruction depends on the arch.
+  // Check that the PC is close to the start of the code page.
+  EXPECT_GT(ep.sig_instruction_address(), start_address);
+  EXPECT_LT(ep.sig_instruction_address(), start_address + 15);
+  EXPECT_EQ(ep.sig_address(), 0x10000);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigSegv);
   EXPECT_EQ(ep.sig_cause(), snapshot_types::SigCause::kSegvCantRead);
 }

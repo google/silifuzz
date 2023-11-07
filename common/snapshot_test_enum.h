@@ -71,9 +71,13 @@ enum class TestSnapshot {
   // All kSigSegv* snapshots fault on an address within the first 1K of
   // the address space (which is never mapped).
   kSigSegvWrite,
+  kSigSegvWriteFixable,
 
   // Snapshot that causes SIGSEGV on read.
   kSigSegvRead,
+
+  // Snapshot that causes SIGSEGV on read and can be fixed.
+  kSigSegvReadFixable,
 
   // Snapshot that causes SIGSEGV on exec.
   kSigSegvExec,

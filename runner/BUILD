@@ -385,12 +385,15 @@ cc_test(
     deps = [
         ":snap_maker",
         ":snap_maker_test_util",
+        "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//player:trace_options",
         "@silifuzz//snap/testing:snap_test_snapshots",
+        "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )

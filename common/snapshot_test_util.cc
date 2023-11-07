@@ -18,13 +18,14 @@
 #include <cstring>
 #include <string>
 
-#include "absl/base/internal/endian.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_proto.h"
 #include "./common/snapshot_test_config.h"
+#include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./snap/exit_sequence.h"
@@ -33,7 +34,7 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -222,23 +223,10 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
       config.data_addr, config.data_num_bytes, MemoryPerms::RW());
   snapshot.add_memory_mapping(data_mapping);
 
-  // Populate the data page with the 3 user-defined data pieces. These can be
-  // addressed relative to RBP by the snapshots.
-  Snapshot::ByteData addresses_data = Snapshot::ByteData(8 * 3, '\0');
-  absl::little_endian::Store64(addresses_data.data(), options.read_address);
-  absl::little_endian::Store64(addresses_data.data() + 8,
-                               options.write_address);
-  absl::little_endian::Store64(addresses_data.data() + 16,
-                               options.exec_address);
-  snapshot.add_memory_bytes(
-      Snapshot::MemoryBytes(data_mapping.start_address(), addresses_data));
-
-  // Define the rest of the data mapping.
-  Snapshot::Address start =
-      data_mapping.start_address() + addresses_data.size();
-  int size = data_mapping.num_bytes() - addresses_data.size();
-  snapshot.add_memory_bytes(
-      Snapshot::MemoryBytes(start, Snapshot::ByteData(size, '\0')));
+  // Zero-initialize the data mapping.
+  snapshot.add_memory_bytes(Snapshot::MemoryBytes(
+      data_mapping.start_address(),
+      Snapshot::ByteData(data_mapping.num_bytes(), '\0')));
 
   std::string bytecode = config.instruction_bytes;
   const auto bytecode_size = bytecode.size();  // so we can ignore the fix-up

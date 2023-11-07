@@ -346,9 +346,16 @@ ud2
       arch=X86_64,
       normal_end=False,
       src="""
-// rbp points to the start of the data region.
-// Three pointers are stored at the start of the data region.
-movq 8(%rbp), %rax
+xor %rax, %rax
+mov %rbx, 0(%rax)
+""",
+  )
+  b.snapshot(
+      name="SigSegvWriteFixable",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+movq $0x10000, %rax
 mov %rbx, 0(%rax)
 """,
   )
@@ -358,9 +365,17 @@ mov %rbx, 0(%rax)
       arch=X86_64,
       normal_end=False,
       src="""
-// rbp points to the start of the data region.
-// Three pointers are stored at the start of the data region.
-movq 0(%rbp), %rax
+xor %rax, %rax
+mov 0(%rax), %rbx
+""",
+  )
+
+  b.snapshot(
+      name="SigSegvReadFixable",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+movq $0x10000, %rax
 mov 0(%rax), %rbx
 """,
   )
@@ -370,9 +385,7 @@ mov 0(%rax), %rbx
       arch=X86_64,
       normal_end=False,
       src="""
-// rbp points to the start of the data region.
-// Three pointers are stored at the start of the data region.
-movq 16(%rbp), %rax
+xor %rax, %rax
 jmp *%rax
 """,
   )
@@ -574,9 +587,17 @@ brk 0
       arch=AARCH64,
       normal_end=False,
       src="""
-// x6 points to the start of the data region.
-// Three pointers are stored at the start of the data region.
-ldr x0, [x6, #8]
+mov x0, xzr
+str x1, [x0]
+""",
+  )
+
+  b.snapshot(
+      name="SigSegvWriteFixable",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+mov x0, #0x10000
 str x1, [x0]
 """,
   )
@@ -586,9 +607,17 @@ str x1, [x0]
       arch=AARCH64,
       normal_end=False,
       src="""
-// x6 points to the start of the data region.
-// Three pointers are stored at the start of the data region.
-ldr x0, [x6, #0]
+mov x0, xzr
+ldr x0, [x0]
+""",
+  )
+
+  b.snapshot(
+      name="SigSegvReadFixable",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+mov x0, #0x10000
 ldr x0, [x0]
 """,
   )

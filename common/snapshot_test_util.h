@@ -32,13 +32,6 @@ class CreateTestSnapshotOptions {
   // If set, the returned snapshot will always have a normal state. This
   // is only useful for Snap/Runner testing.
   bool force_normal_state = false;
-
-  // Addresses from which to read/write/execute. The values can be accessed
-  // by the snapshot as 0(%rbp), 8(%rbp) and 16(%rbp).
-  // Used by some snapshots only.
-  Snapshot::Address read_address = 0x300;
-  Snapshot::Address write_address = 0x300;
-  Snapshot::Address exec_address = 0x300;
 };
 
 // Not every test snapshot exists for every architecture.
