@@ -446,7 +446,6 @@ nosan_filegroup(
     srcs = [
         ":reading_runner_main_nolibc",
     ],
-    visibility = ["//visibility:private"],
 )
 
 # A single library for obtaining all runner binaries that can be depended on

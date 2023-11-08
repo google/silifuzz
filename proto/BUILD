@@ -16,6 +16,7 @@
 #   All SiliFuzz ptotocol messages are to live here.
 #   Exceptions are example or for-test protos with very local usage scope.
 
+load("@rules_python//python:proto.bzl", "py_proto_library")
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -34,6 +35,11 @@ cc_proto_library(
     deps = [":snapshot"],
 )
 
+py_proto_library(
+    name = "snapshot_py_proto",
+    deps = [":snapshot"],
+)
+
 proto_library(
     name = "player_result",
     srcs = ["player_result.proto"],
@@ -45,6 +51,11 @@ proto_library(
 
 cc_proto_library(
     name = "player_result_cc_proto",
+    deps = [":player_result"],
+)
+
+py_proto_library(
+    name = "player_result_py_proto",
     deps = [":player_result"],
 )
 
@@ -86,6 +97,11 @@ cc_proto_library(
     deps = [":snapshot_execution_result_proto"],
 )
 
+py_proto_library(
+    name = "snapshot_execution_result_py_proto",
+    deps = [":snapshot_execution_result_proto"],
+)
+
 proto_library(
     name = "binary_log_entry_proto",
     srcs = ["binary_log_entry.proto"],
@@ -99,5 +115,10 @@ proto_library(
 
 cc_proto_library(
     name = "binary_log_entry_cc_proto",
+    deps = [":binary_log_entry_proto"],
+)
+
+py_proto_library(
+    name = "binary_log_entry_py_pb2",
     deps = [":binary_log_entry_proto"],
 )
