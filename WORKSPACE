@@ -48,19 +48,11 @@ py_repositories()
 # Abseil
 ###############################################################################
 
-abseil_ref = "refs/tags"
-
-abseil_ver = "20230802.1"
-
-# Use these values to get the tip of the master branch:
-# abseil_ref = "refs/heads"
-# abseil_ver = "master"
-
 http_archive(
     name = "com_google_absl",
-    sha256 = "987ce98f02eefbaf930d6e38ab16aa05737234d7afbab2d5c4ea7adbe50c28ed",
-    strip_prefix = "abseil-cpp-%s" % abseil_ver,
-    url = "https://github.com/abseil/abseil-cpp/archive/%s/%s.tar.gz" % (abseil_ref, abseil_ver),
+    sha256 = "f17ba8d569af3ebf649cbce80d089fed35e046a44f40e0714b6bd6fe83d82738",
+    strip_prefix = "abseil-cpp-db08109eeb15fcd856761557f1668c2b34690036",
+    url = "https://github.com/abseil/abseil-cpp/archive/db08109eeb15fcd856761557f1668c2b34690036.tar.gz",
 )
 
 ###############################################################################
