@@ -3,11 +3,14 @@
 import lzma
 import os
 import re
+import struct
 import subprocess
 import time
 
 import absl.logging
 from absl.testing import absltest
+
+from silifuzz.proto import binary_log_entry_pb2 as bpb2
 
 
 def get_data_dependency(name: str) -> str:
@@ -34,6 +37,7 @@ _RUNAWAY_CORPUS_PATH = get_data_dependency(
 
 class OrchestratorTest(absltest.TestCase):
   _FAKE_CORPUS: list[str] = []
+  _CORPUS_METADATA_FILE: str = ''
 
   @classmethod
   def setUpClass(cls):
@@ -55,6 +59,11 @@ class OrchestratorTest(absltest.TestCase):
         else:
           f.write(contents)
       cls._FAKE_CORPUS.append(path)
+    cls._CORPUS_METADATA_FILE = os.path.join(
+        absltest.get_default_test_tmpdir(), 'corpus_metadata'
+    )
+    with open(cls._CORPUS_METADATA_FILE, 'w') as f:
+      f.write('version: "corpus_version"')
 
   def _popen_args(
       self,
@@ -67,6 +76,8 @@ class OrchestratorTest(absltest.TestCase):
     args = (
         [
             _ORCHESTRATOR_PATH,
+            '--orchestrator_version=my_version',
+            f'--corpus_metadata_file={self._CORPUS_METADATA_FILE}',
             f'--runner={_RUNNER_PATH}',
             f'--shard_list_file={shard_list_file}',
             '--stderrthreshold=0',
@@ -272,11 +283,25 @@ class OrchestratorTest(absltest.TestCase):
         ],
     )
 
+  def _parse_binary_log(self, data):
+    """A quick parser for the binary log format. See binary_log_channel.h."""
+    while data:
+      l = struct.unpack('<Q', data[:8])[0]
+      e = bpb2.BinaryLogEntry()
+      e.ParseFromString(data[8 : 8 + l])
+      yield e
+      data = data[8 + l :]
+
   def test_binary_logging(self):
     (read_fd, write_fd) = os.pipe()
     (err_log, returncode) = self.run_orchestrator(
         ['snap_fail'],
-        extra_args=['--sequential_mode', '--binary_log_fd', str(write_fd)],
+        extra_args=[
+            '--sequential_mode',
+            '--log_session_summary_probability=1',
+            '--binary_log_fd',
+            str(write_fd),
+        ],
     )
     self.assertEqual(returncode, 1)
     self.assertStrSeqContainsAll(
@@ -289,8 +314,20 @@ class OrchestratorTest(absltest.TestCase):
     os.close(write_fd)
     bin_log = os.read(read_fd, 4096)
     os.close(read_fd)
-    # TODO(ksteuck): Inspect the contents.
-    self.assertNotEmpty(bin_log)
+    self.assertLess(len(bin_log), 4096, msg='Binary log was likely truncated')
+    session_summary = None
+    for e in self._parse_binary_log(bin_log):
+      if e.HasField('session_summary'):
+        self.assertIsNone(session_summary, msg='Expected exactly 1')
+        session_summary = e.session_summary
+    self.assertIsNotNone(
+        session_summary,
+        msg='SessionSummary was not set in any log entry, expected exactly 1',
+    )
+    # the value is sampled by the orchestrator and it's hard to reliably
+    # catch non-zero value in the test setting so we avoid testing the actual
+    # value.
+    # self.assertTrue(session_summary.resource_usage.HasField('max_rss_kb'))
 
   def test_rlimit_fsize(self):
     (err_log, returncode) = self.run_orchestrator(

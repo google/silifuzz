@@ -224,6 +224,7 @@ py_test(
     deps = [
         "@absl_py//absl/logging",
         "@absl_py//absl/testing:absltest",
+        "@silifuzz//proto:binary_log_entry_py_pb2",
     ],
 )
 
