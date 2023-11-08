@@ -50,10 +50,31 @@ cc_test(
 )
 
 cc_library(
+    name = "xed_util",
+    srcs = ["xed_util.cc"],
+    hdrs = ["xed_util.h"],
+    deps = [
+        "@com_google_absl//absl/base",
+        "@libxed//:xed",
+    ],
+)
+
+cc_test(
+    name = "xed_util_test",
+    srcs = ["xed_util_test.cc"],
+    deps = [
+        ":xed_util",
+        "@com_google_googletest//:gtest_main",
+        "@libxed//:xed",
+    ],
+)
+
+cc_library(
     name = "decoded_insn",
     srcs = ["decoded_insn.cc"],
     hdrs = ["decoded_insn.h"],
     deps = [
+        ":xed_util",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
@@ -115,9 +136,9 @@ cc_library(
     hdrs = ["xed_disassembler.h"],
     deps = [
         ":disassembler",
+        ":xed_util",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/strings",
         "@libxed//:xed",
     ],

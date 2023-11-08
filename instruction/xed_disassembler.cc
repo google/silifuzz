@@ -19,10 +19,10 @@
 #include <cstddef>
 #include <string>
 
-#include "absl/base/call_once.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/str_cat.h"
 #include "./instruction/disassembler.h"
+#include "./instruction/xed_util.h"
 #include "./util/checks.h"
 
 extern "C" {
@@ -33,17 +33,7 @@ extern "C" {
 
 namespace silifuzz {
 
-namespace {
-absl::once_flag xed_init_once;
-}
-
-XedDisassembler::XedDisassembler() : valid_(false) {
-  // It should be safe to call xed_tables_init multiple times from a single
-  // thread (the implementation checks if it's been called before) but it
-  // doesn't look safe if it's being called by multiple threads at the same
-  // time.
-  absl::call_once(xed_init_once, xed_tables_init);
-}
+XedDisassembler::XedDisassembler() : valid_(false) { InitXedIfNeeded(); }
 
 XedDisassembler::~XedDisassembler() {}
 
@@ -102,18 +92,7 @@ bool XedDisassembler::CanStore() const {
 
 std::string XedDisassembler::FullText() {
   if (valid_) {
-    xed_print_info_t pi;
-    xed_init_print_info(&pi);
-    pi.p = &xedd_;
-    pi.buf = full_text_;
-    pi.blen = sizeof(full_text_) - 1;
-    pi.context = nullptr;
-    pi.disassembly_callback = nullptr;
-    pi.runtime_address = address_;
-    pi.syntax = XED_SYNTAX_INTEL;
-    pi.format_options_valid = false;
-    pi.buf[0] = 0;
-    CHECK(xed_format_generic(&pi));
+    CHECK(FormatInstruction(xedd_, address_, full_text_, sizeof(full_text_)));
     return full_text_;
   } else {
     return kInvalidInstructionName;

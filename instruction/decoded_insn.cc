@@ -32,6 +32,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "./instruction/xed_util.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
@@ -46,14 +47,12 @@ extern "C" {
 #include "third_party/libxed/xed-error-enum.h"
 #include "third_party/libxed/xed-iclass-enum.h"
 #include "third_party/libxed/xed-iform-enum.h"
-#include "third_party/libxed/xed-init.h"
 #include "third_party/libxed/xed-machine-mode-enum.h"
 #include "third_party/libxed/xed-operand-accessors.h"
 #include "third_party/libxed/xed-operand-enum.h"
 #include "third_party/libxed/xed-print-info.h"
 #include "third_party/libxed/xed-reg-class.h"
 #include "third_party/libxed/xed-reg-enum.h"
-#include "third_party/libxed/xed-syntax-enum.h"
 #include "third_party/libxed/xed-types.h"
 };
 
@@ -78,100 +77,7 @@ DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
 
 bool DecodedInsn::is_deterministic() const {
   DCHECK_STATUS(status_);
-  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
-  switch (iclass) {
-    case XED_ICLASS_RDPID:
-    case XED_ICLASS_RDRAND:
-    case XED_ICLASS_RDSEED:
-    case XED_ICLASS_RDTSC:
-    case XED_ICLASS_RDTSCP:
-      return false;
-    case XED_ICLASS_CPUID:
-    case XED_ICLASS_RDFSBASE:
-    case XED_ICLASS_RDGSBASE:
-    case XED_ICLASS_RDMSR:
-    case XED_ICLASS_RDMSRLIST:
-    case XED_ICLASS_RDPKRU:
-    case XED_ICLASS_RDPMC:
-    case XED_ICLASS_RDPRU:
-    case XED_ICLASS_RDSSPD:
-    case XED_ICLASS_RDSSPQ:
-    case XED_ICLASS_WRFSBASE:
-    case XED_ICLASS_WRGSBASE:
-    case XED_ICLASS_WRMSR:
-    case XED_ICLASS_WRMSRLIST:
-    case XED_ICLASS_WRMSRNS:
-    case XED_ICLASS_WRPKRU:
-    case XED_ICLASS_WRSSD:
-    case XED_ICLASS_WRSSQ:
-    case XED_ICLASS_WRUSSD:
-    case XED_ICLASS_WRUSSQ:
-    case XED_ICLASS_XGETBV:
-      // These are deterministic in the mathematical sense. However, they touch
-      // registers that either cannot or are not currently preserved as part of
-      // the UContext struct.
-      // Such instructions can and often do cause false positives.
-      return false;
-    case XED_ICLASS_SYSCALL:
-    case XED_ICLASS_SYSENTER:
-    case XED_ICLASS_INT:
-    case XED_ICLASS_INT1:
-    case XED_ICLASS_INTO:
-      return false;
-    case XED_ICLASS_FNSAVE:
-    case XED_ICLASS_FXSAVE:
-    case XED_ICLASS_FXSAVE64:
-    case XED_ICLASS_XSAVE:
-    case XED_ICLASS_XSAVE64:
-    case XED_ICLASS_XSAVEC:
-    case XED_ICLASS_XSAVEC64:
-    case XED_ICLASS_XSAVEOPT:
-    case XED_ICLASS_XSAVEOPT64:
-    case XED_ICLASS_XSAVES:
-    case XED_ICLASS_XSAVES64:
-    case XED_ICLASS_FLDENV:
-    case XED_ICLASS_FLDCW:
-    case XED_ICLASS_FNSTENV:
-    case XED_ICLASS_FNSTSW:
-    case XED_ICLASS_FXRSTOR:
-    case XED_ICLASS_FRSTOR:
-    case XED_ICLASS_FXRSTOR64:
-    case XED_ICLASS_XRSTOR:
-    case XED_ICLASS_XRSTORS:
-    case XED_ICLASS_XRSTOR64:
-      // These insns cause spurious {REGISTER,MEMORY}_MISMATCH failures. See
-      // b/231974502
-      return false;
-    // Segment descriptor related instructions.
-    // We cannot control contents of the segment descriptor tables.
-    // So these produce non-deterministic results.
-    case XED_ICLASS_ARPL:
-    case XED_ICLASS_LAR:
-    case XED_ICLASS_LSL:
-    case XED_ICLASS_SIDT:
-    case XED_ICLASS_SGDT:
-    case XED_ICLASS_SLDT:
-    case XED_ICLASS_SMSW:
-    case XED_ICLASS_STR:
-    case XED_ICLASS_VERR:
-    case XED_ICLASS_VERW:
-      // Non-deterministic but also controlled by CR4.UMIP disables these on
-      // newer platforms.
-      return false;
-    case XED_ICLASS_XBEGIN:
-    case XED_ICLASS_XEND:
-    case XED_ICLASS_XABORT:
-    case XED_ICLASS_MWAIT:
-    case XED_ICLASS_MWAITX:
-    case XED_ICLASS_MONITOR:
-    case XED_ICLASS_MONITORX:
-    case XED_ICLASS_TPAUSE:
-    case XED_ICLASS_UMWAIT:
-    case XED_ICLASS_UMONITOR:
-      return false;
-    default:
-      return true;
-  }
+  return InstructionIsDeterministicInRunner(xed_insn_);
 }
 
 bool DecodedInsn::is_locking() const {
@@ -275,7 +181,8 @@ std::string DecodedInsn::mnemonic() const {
 
 void DecodedInsn::InitXed() {
   auto init = []() {
-    xed_tables_init();
+    InitXedIfNeeded();
+
     // The callbacks are global and visible to all xed clients.
     xed_agen_register_callback(agen_reg_callback, agen_segment_callback);
 
@@ -301,20 +208,8 @@ absl::Status DecodedInsn::Decode(absl::string_view data,
   if (!xed_decoded_inst_valid(&xed_insn_)) {
     return absl::InternalError("!xed_decoded_inst_valid");
   }
-
-  xed_print_info_t pi;
-  xed_init_print_info(&pi);
-  pi.p = &xed_insn_;
-  pi.buf = formatted_insn_buf_;
-  pi.blen = sizeof(formatted_insn_buf_) - 1;
-  pi.context = nullptr;
-  pi.disassembly_callback = 0;
-  pi.runtime_address = start_address;
-  pi.syntax = XED_SYNTAX_INTEL;
-  pi.format_options_valid = false;
-  pi.buf[0] = 0;
-
-  if (!xed_format_generic(&pi)) {
+  if (!FormatInstruction(xed_insn_, start_address, formatted_insn_buf_,
+                         sizeof(formatted_insn_buf_))) {
     return absl::InternalError("!xed_format_generic, buffer too small?");
   }
   return absl::OkStatus();
