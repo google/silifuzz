@@ -1,7 +1,7 @@
 workspace(name = "silifuzz")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 ###############################################################################
 # Bazel Skylib (transitively required by com_google_absl).
@@ -199,4 +199,12 @@ http_archive(
     sha256 = "f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f",
     strip_prefix = "re2-2022-06-01",
     url = "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz",
+)
+
+# libpf4m required by PMU event proxy
+new_git_repository(
+  name = "libpfm4",
+  build_file = "@silifuzz//:third_party/BUILD.libpfm4",
+  commit = "535c204286d84079a8102bdc7a53b1f50990c0a3",
+  remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
 )
