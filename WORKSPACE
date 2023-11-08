@@ -127,7 +127,7 @@ new_git_repository(
 new_git_repository(
     name = "libxed",
     build_file = "@silifuzz//:third_party/BUILD.libxed",
-    commit = "01a6da8090af84cd52f6c1070377ae6e885b078f",
+    commit = "d7d46c73fb04a1742e99c9382a4acb4ed07ae272",
     patch_cmds = [
         "sed -i -e 's|xed/xed-interface.h|xed-interface.h|' examples/xed-tester.c",
     ],
