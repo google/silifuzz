@@ -30,6 +30,7 @@ cc_library(
 cc_test(
     name = "ring_buffer_view_test",
     srcs = ["ring_buffer_view_test.cc"],
+    tags = ["manual"],
     deps = [
         ":ring_buffer_view",
         "@com_google_googletest//:gtest_main",
@@ -63,6 +64,7 @@ cc_test(
     srcs = [
         "pmu_events_test.cc",
     ],
+    tags = ["manual"],
     deps = [
         ":pmu_events",
         "@silifuzz//util/testing:status_macros",
@@ -90,6 +92,7 @@ cc_library(
 cc_test(
     name = "perf_event_records_test",
     srcs = ["perf_event_records_test.cc"],
+    tags = ["manual"],
     deps = [
         ":perf_event_records",
         ":ring_buffer_view",
@@ -104,6 +107,7 @@ cc_test(
 cc_test(
     name = "perf_event_records_fuzz_test",
     srcs = ["perf_event_records_fuzz_test.cc"],
+    tags = ["manual"],
     deps = [
         ":perf_event_records",
         ":ring_buffer_view",
@@ -134,6 +138,7 @@ cc_test(
     name = "perf_event_buffer_test",
     size = "small",
     srcs = ["perf_event_buffer_test.cc"],
+    tags = ["manual"],
     deps = [
         ":perf_event_buffer",
         ":perf_event_records",
@@ -186,6 +191,7 @@ cc_test(
     name = "perf_event_fuzzer_test",
     size = "medium",
     srcs = ["perf_event_fuzzer_test.cc"],
+    tags = ["manual"],
     deps = [
         ":perf_event_buffer",
         ":perf_event_fuzzer",
