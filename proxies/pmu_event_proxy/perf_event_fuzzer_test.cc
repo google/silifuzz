@@ -43,7 +43,10 @@
 #include "./runner/snap_maker.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
+#include "external/libpfm4/include/perfmon/pfmlib.h"
+#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
 
 using ::silifuzz::testing::IsOk;
 using ::silifuzz::testing::IsOkAndHolds;
@@ -59,6 +62,18 @@ using ::testing::SizeIs;
 
 namespace silifuzz {
 namespace {
+
+class Environment : public ::testing::Environment {
+ public:
+  ~Environment() override {}
+
+  void SetUp() override { CHECK_EQ(pfm_initialize(), PFM_SUCCESS); }
+
+  void TearDown() override {}
+};
+
+::testing::Environment* const test_env =
+    ::testing::AddGlobalTestEnvironment(new Environment);
 
 TEST(PerfEventMeasurement, BasicTest) {
   std::vector<uint64_t> counts = {1, 2, 3};

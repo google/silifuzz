@@ -198,11 +198,13 @@ cc_test(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
+        "@libpfm4//:pfm4",
     ],
 )
 
