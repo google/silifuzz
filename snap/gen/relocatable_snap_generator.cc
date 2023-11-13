@@ -16,16 +16,12 @@
 
 #include <cstdint>
 #include <cstring>
-#include <memory>
-#include <new>
 #include <string>
-#include <tuple>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
-#include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
@@ -35,6 +31,7 @@
 #include "./snap/snap_checksum.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/misc_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/page_util.h"
 #include "./util/reg_checksum.h"
@@ -104,10 +101,13 @@ class Traversal {
   // the Snap objects corresponding to `snapshots`. In the generation pass,
   // contents of the Snap objects are generated.
   //
+  // RETURNS: a map of string -> int recording sizes of various internal
+  // sections of the generated corpus. This is intended for debugging only.
   // REQUIRES: This needs to be call twice for `snapshots`, First for the layout
-  // pass and then the generation pass. The generation pass must be preceeded by
+  // pass and then the generation pass. The generation pass must be preceded by
   // a call to  PrepareSnapGeneration().
-  void Process(PassType pass, const std::vector<Snapshot>& snapshots);
+  absl::flat_hash_map<std::string, uint64_t> Process(
+      PassType pass, const std::vector<Snapshot>& snapshots);
 
   // Sets up content buffers and load addresses for main data block and its
   // component. This also sets up sub data blocks.
@@ -435,8 +435,8 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
 }
 
 template <typename Arch>
-void Traversal<Arch>::Process(PassType pass,
-                              const std::vector<Snapshot>& snapshots) {
+absl::flat_hash_map<std::string, uint64_t> Traversal<Arch>::Process(
+    PassType pass, const std::vector<Snapshot>& snapshots) {
   // For compatiblity with an older Silifuzz version, we use a corpus containing
   // SnapArray<const Snap*>.  We can get rid of the redirection when we
   // change the runner to take SnapArray<Snap> later.
@@ -512,6 +512,18 @@ void Traversal<Arch>::Process(PassType pass,
     checksum.AddData(corpus, corpus->header.num_bytes);
     corpus->header.checksum = checksum.Checksum();
   }
+
+  absl::flat_hash_map<std::string, uint64_t> block_sizes = {
+      {"main_block", main_block_.size()},
+      {"snap_block", snap_block_.size()},
+      {"memory_bytes_block", memory_bytes_block_.size()},
+      {"memory_mapping_block", memory_mapping_block_.size()},
+      {"byte_data_block", byte_data_block_.size()},
+      {"string_block", string_block_.size()},
+      {"register_state_block", register_state_block_.size()},
+      {"page_data_block", page_data_block_.size()},
+  };
+  return block_sizes;
 }
 
 template <typename Arch>
@@ -566,7 +578,11 @@ MmappedMemoryPtr<char> GenerateRelocatableSnapsImpl(
   constexpr uintptr_t kNominalLoadAddress = 0;
   traversal.PrepareSnapGeneration(buffer.get(), MmappedMemorySize(buffer),
                                   kNominalLoadAddress);
-  traversal.Process(Traversal<Arch>::PassType::kGeneration, snapshots);
+  auto counters =
+      traversal.Process(Traversal<Arch>::PassType::kGeneration, snapshots);
+  if (options.counters) {
+    *options.counters = std::move(counters);
+  }
   return buffer;
 }
 

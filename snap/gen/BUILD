@@ -69,7 +69,6 @@ cc_library(
     deps = [
         ":relocatable_data_block",
         ":repeating_byte_runs",
-        "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
@@ -77,6 +76,7 @@ cc_library(
         "@silifuzz//snap:snap_checksum",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:misc_util",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:page_util",
         "@silifuzz//util:reg_checksum",
@@ -108,6 +108,7 @@ cc_test(
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util/testing:status_macros",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",

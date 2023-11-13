@@ -15,8 +15,11 @@
 #ifndef THIRD_PARTY_SILIFUZZ_SNAP_GEN_RELOCATABLE_SNAP_GENERATOR_H_
 #define THIRD_PARTY_SILIFUZZ_SNAP_GEN_RELOCATABLE_SNAP_GENERATOR_H_
 
+#include <cstdint>
+#include <string>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "./common/snapshot.h"
 #include "./util/arch.h"
 #include "./util/mmapped_memory_ptr.h"
@@ -110,6 +113,11 @@ namespace silifuzz {
 struct RelocatableSnapGeneratorOptions {
   // If true, apply run-length compression to memory bytes data.
   bool compress_repeating_bytes = true;
+
+  // When present, this map will be populated with various _debug-only_
+  // counters representing sizes of different parts of the generated corpus.
+  // The keys are human-readable but are not guaranteed to be stable.
+  absl::flat_hash_map<std::string, uint64_t>* counters = nullptr;
 };
 
 // Generates a relocatable Snap corpus for `architecture_id` from `snapshots`

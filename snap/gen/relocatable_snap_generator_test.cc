@@ -20,10 +20,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/status.h"
 #include "./common/memory_mapping.h"
@@ -49,8 +51,10 @@ namespace {
 // to the mmap buffer address.
 template <typename Arch>
 MmappedMemoryPtr<const SnapCorpus<Arch>> GenerateRelocatedCorpus(
-    const std::vector<Snapshot>& snapshots) {
-  auto relocatable = GenerateRelocatableSnaps(Arch::architecture_id, snapshots);
+    const std::vector<Snapshot>& snapshots,
+    const RelocatableSnapGeneratorOptions& options = {}) {
+  auto relocatable =
+      GenerateRelocatableSnaps(Arch::architecture_id, snapshots, options);
   SnapRelocatorError error;
   auto relocated_corpus =
       SnapRelocator<Arch>::RelocateCorpus(std::move(relocatable), true, &error);
@@ -75,7 +79,7 @@ TYPED_TEST(RelocatableSnapGenerator, UndefinedEndState) {
   SnapifyOptions snapify_options =
       SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
   snapify_options.allow_undefined_end_state = true;
-  // Note: it isn't guarenteed that all the test snaps will be snap
+  // Note: it isn't guaranteed that all the test snaps will be snap
   // compatible. If this becomes an issue, we can add a query function and
   // filter them out here.
   ASSERT_OK_AND_ASSIGN(Snapshot snapified, Snapify(snapshot, snapify_options));
@@ -250,7 +254,13 @@ TYPED_TEST(RelocatableSnapGenerator, DedupeMemoryBytes) {
   std::vector<Snapshot> snapified_corpus;
   snapified_corpus.push_back(std::move(snapified));
 
-  auto relocated_corpus = GenerateRelocatedCorpus<TypeParam>(snapified_corpus);
+  absl::flat_hash_map<std::string, uint64_t> counters;
+  auto relocated_corpus = GenerateRelocatedCorpus<TypeParam>(
+      snapified_corpus, {.counters = &counters});
+  // Hard to find a reasonable expected value that doesn't vary between x86
+  // and ARM. "string_block" is the size of snapshot id (kEndsAsExpected) in
+  // asciiz.
+  EXPECT_EQ(counters["string_block"], 16);
 
   // Test byte data should appear twice in two MemoryBytes objects but
   // the array element addresses should be the same.
