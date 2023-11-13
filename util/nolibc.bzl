@@ -72,6 +72,7 @@ def _cc_library_plus_nolibc_impl(
         nolibc_deps = [],
         copts = [],
         linkstatic = False,
+        tags = None,
         nolibc_only = False,
         **rule_kwargs):
     """Generates two variants of cc_library: the normal and the _nolibc one.
@@ -89,10 +90,12 @@ def _cc_library_plus_nolibc_impl(
       nolibc_deps: deps for the no-libc case
       copts: same as in cc_library
       linkstatic: same as in cc_library
+      tags: same as in cc_library
       nolibc_only: only create _nolibc variant.
       **rule_kwargs: other args passed to cc_library
     """
 
+    tags = tags or []
     if not nolibc_only:
         native.cc_library(
             name = name,
@@ -101,6 +104,7 @@ def _cc_library_plus_nolibc_impl(
             deps = deps + libc_deps + as_is_deps,
             linkstatic = linkstatic,
             copts = copts,
+            tags = tags,
             **rule_kwargs
         )
 
@@ -115,6 +119,7 @@ def _cc_library_plus_nolibc_impl(
         copts = copts + NOLIBC_COPTS,
         linkstatic = linkstatic,
         features = NOLIBC_FEATURES,
+        tags = tags + ["avoid_dep"],
         **rule_kwargs
     )
 
