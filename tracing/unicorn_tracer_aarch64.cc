@@ -216,6 +216,11 @@ uint64_t UnicornTracer<AArch64>::GetCurrentStackPointer() {
 template <>
 void UnicornTracer<AArch64>::InitUnicorn() {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc_));
+  // TODO(ncbray): remove #if when transition is complete.
+#if UC_API_MAJOR >= 2
+  // TODO(ncbray): make this configurable.
+  UNICORN_CHECK(uc_ctl_set_cpu_model(uc_, UC_CPU_ARM64_MAX));
+#endif
   SetupCPUState(uc_);
 }
 
