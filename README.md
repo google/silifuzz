@@ -153,7 +153,7 @@ cd "${SILIFUZZ_BIN_DIR}"
 
 NOTE: You can use a Docker container to avoid polluting the host system: `docker
 run -it --tty --security-opt seccomp=unconfined --mount
-type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian /bin/bash -c "cd /app &&
+type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian:bookworm /bin/bash -c "cd /app &&
 ./install_build_dependencies.sh && bazel build ... && bazel test ..."`
 
 ### Prework (fuzzing Unicorn target)
