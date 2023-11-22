@@ -20,7 +20,7 @@
 
 #include "absl/log/check.h"
 
-namespace silifuzz::proxies::dsim {
+namespace silifuzz::proxies {
 
 // A bit struct that packs bit fields into a uint64_t.
 class BitStruct {
@@ -76,6 +76,6 @@ class BitStruct {
     return *this;                                                 \
   }
 
-}  // namespace silifuzz::proxies::dsim
+}  // namespace silifuzz::proxies
 
 #endif  // TESTING_SILIFUZZ_PROXIES_DSIM_BIT_STRUCT_H_

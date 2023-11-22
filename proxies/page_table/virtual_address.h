@@ -20,7 +20,7 @@
 #include "absl/log/log.h"
 #include "./proxies/page_table/bit_struct.h"
 
-namespace silifuzz::proxies::dsim {
+namespace silifuzz::proxies {
 
 // Represents how a 48-bit virtual address resolves into translation table
 // indices and the least significant bits of the physical address for a 4KB
@@ -89,6 +89,6 @@ class VirtualAddress : public BitStruct {
   }
 };
 
-}  // namespace silifuzz::proxies::dsim
+}  // namespace silifuzz::proxies
 
 #endif  // THIRD_PARTY_SILIFUZZ_PROXIES_PAGE_TABLE_VIRTUAL_ADDRESS_H_

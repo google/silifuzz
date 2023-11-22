@@ -19,7 +19,7 @@
 
 #include "./proxies/page_table/bit_struct.h"
 
-namespace silifuzz::proxies::dsim {
+namespace silifuzz::proxies {
 
 // Represents how a 48-bit physical address is composed of bits taken directly
 // from and translated from the virtual address (for a 4KB translation granule).
@@ -49,6 +49,6 @@ class PhysicalAddress : public BitStruct {
   SILIFUZZ_PROXY_BIT_STRUCT_FIELD(physical_address_msbs, 12, 47)
 };
 
-}  // namespace silifuzz::proxies::dsim
+}  // namespace silifuzz::proxies
 
 #endif  // THIRD_PARTY_SILIFUZZ_PROXIES_PAGE_TABLE_PHYSICAL_ADDRESS_H_
