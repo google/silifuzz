@@ -1,4 +1,4 @@
-# Copyright 2022 The SiliFuzz Authors.
+# Copyright 2023 The SiliFuzz Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,10 +25,32 @@ cc_library(
 )
 
 cc_library(
+    name = "page_descriptor_entry",
+    hdrs = [
+        "aarch64/page_descriptor_entry.h",
+    ],
+    deps = [
+        ":bit_struct",
+        "@silifuzz//util:arch",
+    ],
+)
+
+cc_library(
     name = "physical_address",
     hdrs = ["physical_address.h"],
     deps = [
         ":bit_struct",
+    ],
+)
+
+cc_library(
+    name = "table_descriptor_entry",
+    hdrs = [
+        "aarch64/table_descriptor_entry.h",
+    ],
+    deps = [
+        ":bit_struct",
+        "@silifuzz//util:arch",
     ],
 )
 
