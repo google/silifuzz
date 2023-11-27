@@ -20,7 +20,7 @@
 #include "./proxies/page_table/bit_struct.h"
 #include "./util/arch.h"
 
-namespace silifuzz::proxies::dsim {
+namespace silifuzz::proxies {
 
 // Represents a page table entry intended to describe another page table
 // for 'arch'.
@@ -142,6 +142,6 @@ class TableDescriptorEntry<AArch64> : public BitStruct {
   }
 };
 
-}  // namespace silifuzz::proxies::dsim
+}  // namespace silifuzz::proxies
 
 #endif  // THIRD_PARTY_SILIFUZZ_PROXIES_PAGE_TABLE_AARCH64_TABLE_DESCRIPTOR_ENTRY_H_
