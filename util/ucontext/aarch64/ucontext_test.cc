@@ -292,6 +292,10 @@ TEST(UContextTest, SetJmpLongJmp) {
   ASSERT_EQ(post_save_count, 2);
   SAVE_UCONTEXT(&restored);
 
+  // Make MSAN happy.
+  ZeroOutRegsPadding(&saved);
+  ZeroOutRegsPadding(&restored);
+
   // The save function should see the structure as its argument.
   EXPECT_EQ(saved.gregs.x[0], reinterpret_cast<uintptr_t>(&saved));
   EXPECT_EQ(restored.gregs.x[0], reinterpret_cast<uintptr_t>(&restored));
