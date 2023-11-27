@@ -36,6 +36,21 @@ cc_library(
 )
 
 cc_library(
+    name = "page_table_entry_util",
+    srcs = ["page_table_entry_util.cc"],
+    hdrs = ["page_table_entry_util.h"],
+    deps = [
+        ":page_descriptor_entry",
+        ":physical_address",
+        ":table_descriptor_entry",
+        "@silifuzz//util:arch",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
     name = "physical_address",
     hdrs = ["physical_address.h"],
     deps = [
@@ -60,5 +75,20 @@ cc_library(
     deps = [
         ":bit_struct",
         "@com_google_absl//absl/log",
+    ],
+)
+
+cc_test(
+    name = "page_table_entry_util_test",
+    size = "small",
+    srcs = ["page_table_entry_util_test.cc"],
+    deps = [
+        ":page_table_entry_util",
+        ":physical_address",
+        "@silifuzz//util:arch",
+        "@silifuzz//util/testing:status_macros",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
     ],
 )
