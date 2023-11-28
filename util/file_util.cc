@@ -19,6 +19,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <string>
+
 #include "absl/strings/string_view.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"

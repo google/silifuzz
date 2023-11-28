@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include <sstream>
+
 #include "./util/checks.h"
 #include "./util/platform.h"
 #ifdef __x86_64__

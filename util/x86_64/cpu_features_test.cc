@@ -14,11 +14,15 @@
 
 #include "./util/x86_64/cpu_features.h"
 
+#include <cstddef>
 #include <fstream>
+#include <set>
+#include <string>
 
 #include "gtest/gtest.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_split.h"
+#include "absl/strings/string_view.h"
 
 namespace silifuzz {
 namespace {

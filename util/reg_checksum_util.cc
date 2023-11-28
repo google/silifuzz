@@ -14,6 +14,9 @@
 
 #include "./util/reg_checksum_util.h"
 
+#include <string>
+
+#include "absl/status/statusor.h"
 #include "./util/arch.h"
 #include "./util/reg_checksum.h"
 

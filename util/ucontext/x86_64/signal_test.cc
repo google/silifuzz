@@ -14,9 +14,17 @@
 
 #include "./util/ucontext/signal_test.h"
 
+#include <csignal>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <type_traits>
+
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 #include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {

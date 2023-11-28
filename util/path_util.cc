@@ -16,6 +16,12 @@
 
 #include <stdlib.h>  // for getenv()
 
+#include <cerrno>
+#include <string>
+#include <utility>
+
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./util/itoa.h"

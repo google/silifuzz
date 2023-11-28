@@ -283,6 +283,8 @@ cc_test(
     deps = [
         ":signal",
         ":ucontext",
+        ":ucontext_types",
+        "@silifuzz//util:arch",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ] + select({
