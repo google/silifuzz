@@ -18,11 +18,13 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
-#include "./instruction/capstone_disassembler.h"
+#include "./instruction/default_disassembler.h"
 #include "./proxies/arch_feature_generator.h"
+#include "./proxies/user_features.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -32,11 +34,22 @@ namespace {
 // In practice, over 25k user features have been observed.
 USER_FEATURE_ARRAY static user_feature_t features[100000];
 
+// This proxy will be run on a batch of inputs to amortize the cost of creating
+// the process. The number of inputs in a batch is controlled by the caller. We
+// want to execute some operations on a per-batch basis rather than a per-input
+// basis for two reasons.
+// First, performance. Speed matters for fuzzing.
+// Second, coverage. Anything we do per-input will generate branch coverage,
+// path coverage, etc. In theory it should be the same for every input and
+// therefore will be ignored, but it consumes memory, adds noise in the coverage
+// report, etc.
+// In general, we should try to do work per-batch rather than per-input when it
+// is possible.
 class BatchState {
  public:
   BatchState() { feature_gen.BeforeBatch(disasm.NumInstructionIDs()); }
 
-  CapstoneDisassembler<AArch64> disasm;
+  DefaultDisassembler<AArch64> disasm;
   ArchFeatureGenerator<AArch64> feature_gen;
 };
 
@@ -59,7 +72,7 @@ absl::Status RunAArch64Instructions(
   // TODO(ncbray) why do atomic ops using the initial stack pointer not fault?
   // 1000000: 787f63fc ldumaxlh    wzr, w28, [sp]
 
-  CapstoneDisassembler<AArch64> &disasm = batch->disasm;
+  DefaultDisassembler<AArch64> &disasm = batch->disasm;
   ArchFeatureGenerator<AArch64> &feature_gen = batch->feature_gen;
 
   UnicornTracer<AArch64> tracer;
@@ -71,7 +84,7 @@ absl::Status RunAArch64Instructions(
   tracer.GetRegisters(registers);
   feature_gen.BeforeExecution(registers);
 
-  // QEMU generates callbacks before the instruction executes and not after.
+  // Unicorn generates callbacks before the instruction executes and not after.
   // We need to do a little extra work to synthesize a callback after every
   // instruction.
   uint32_t instruction_id = kInvalidInstructionId;
