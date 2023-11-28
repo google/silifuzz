@@ -23,6 +23,8 @@
 #include "./proxies/page_table/aarch64/page_descriptor_entry.h"
 #include "./proxies/page_table/aarch64/table_descriptor_entry.h"
 #include "./proxies/page_table/physical_address.h"
+#include "./proxies/page_table/x86_64/page_descriptor_entry.h"
+#include "./proxies/page_table/x86_64/table_descriptor_entry.h"
 #include "./util/arch.h"
 
 namespace silifuzz::proxies {
@@ -155,6 +157,114 @@ absl::StatusOr<uint64_t> CheckTableDescriptor<AArch64>(uint64_t entry,
         "Table descriptor entry is not executable.");
   }
   return descriptor.next_table_address();
+}
+
+template <>
+absl::StatusOr<uint64_t> CreatePageDescriptor<X86_64>(
+    uint64_t existing_entry, PhysicalAddress decoded_pa, bool writeable,
+    bool executable) {
+  // We use a new PageDescriptorEntry here so that it is properly populated with
+  // default values (rather than starting as 0).
+  PageDescriptorEntry<X86_64> new_descriptor;
+  new_descriptor.set_present(1);
+  new_descriptor.set_physical_address(decoded_pa.physical_address_msbs());
+  new_descriptor.set_read_write(writeable
+                                    ? PageDescriptorEntry<X86_64>::kReadWrite
+                                    : PageDescriptorEntry<X86_64>::kReadOnly);
+  new_descriptor.set_execute_disable(executable ? 0 : 1);
+
+  // Check that there is no conflict with the existing page descriptor entry.
+  PageDescriptorEntry<X86_64> existing_descriptor(existing_entry);
+  if (existing_descriptor.present() &&
+      existing_entry != *new_descriptor.GetEncodedValue()) {
+    PhysicalAddress decoded_existing_pa;
+    decoded_existing_pa.set_physical_address_msbs(
+        existing_descriptor.physical_address());
+    return absl::AlreadyExistsError(absl::StrFormat(
+        "Mapping already exists with existing physical_addr=0x%x",
+        *decoded_existing_pa.GetEncodedValue()));
+  }
+
+  return *new_descriptor.GetEncodedValue();
+}
+
+template <>
+uint64_t UpdateTableDescriptor<X86_64>(uint64_t existing_entry,
+                                       PhysicalAddress next_table_pa,
+                                       bool writeable, bool executable) {
+  TableDescriptorEntry<X86_64> existing_descriptor(existing_entry);
+  if (!existing_descriptor.present()) {
+    // We use a new TableDescriptorEntry here so that it is properly populated
+    // with default values (rather than starting as 0).
+    TableDescriptorEntry<X86_64> new_descriptor;
+    new_descriptor.set_present(1);
+    new_descriptor.set_physical_address(next_table_pa.physical_address_msbs());
+    existing_descriptor = new_descriptor;
+  }
+
+  // Update to the most permissive version of writeable/executable of all the
+  // mappings related to this page.
+  if (writeable) {
+    existing_descriptor.set_read_write(
+        TableDescriptorEntry<X86_64>::kReadWrite);
+  }
+  if (executable) {
+    existing_descriptor.set_execute_disable(0);
+  }
+  return *existing_descriptor.GetEncodedValue();
+}
+
+template <>
+absl::StatusOr<uint64_t> CheckPageDescriptor<X86_64>(uint64_t entry,
+                                                     bool writeable,
+                                                     bool executable) {
+  PageDescriptorEntry<X86_64> descriptor(entry);
+  if (!descriptor.present()) {
+    return absl::InvalidArgumentError("Page descriptor entry is invalid.");
+  }
+
+  if (descriptor.user_supervisor() !=
+      PageDescriptorEntry<X86_64>::kUserModeAccessAllowed) {
+    return absl::InvalidArgumentError(
+        "Page descriptor entry does not permit unprivileged access.");
+  }
+
+  if (writeable &&
+      descriptor.read_write() != PageDescriptorEntry<X86_64>::kReadWrite) {
+    return absl::InvalidArgumentError(
+        "Page descriptor entry is not writeable.");
+  }
+  if (executable && descriptor.execute_disable() != 0) {
+    return absl::InvalidArgumentError(
+        "Page descriptor entry is not executable.");
+  }
+  return descriptor.physical_address();
+}
+
+template <>
+absl::StatusOr<uint64_t> CheckTableDescriptor<X86_64>(uint64_t entry,
+                                                      bool writeable,
+                                                      bool executable) {
+  TableDescriptorEntry<X86_64> descriptor(entry);
+  if (!descriptor.present()) {
+    return absl::InvalidArgumentError("Table descriptor entry is invalid.");
+  }
+
+  if (descriptor.user_supervisor() !=
+      TableDescriptorEntry<X86_64>::kUserModeAccessAllowed) {
+    return absl::InvalidArgumentError(
+        "Table descriptor entry does not permit unprivileged access.");
+  }
+  if (writeable &&
+      descriptor.read_write() != TableDescriptorEntry<X86_64>::kReadWrite) {
+    return absl::InvalidArgumentError(
+        "Table descriptor entry is not writeable.");
+  }
+  if (executable && descriptor.execute_disable() != 0) {
+    return absl::InvalidArgumentError(
+        "Table descriptor entry is not executable.");
+  }
+  return descriptor.physical_address();
 }
 
 }  // namespace silifuzz::proxies

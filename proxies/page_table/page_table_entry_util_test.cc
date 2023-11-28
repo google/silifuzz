@@ -164,5 +164,8 @@ REGISTER_TYPED_TEST_SUITE_P(PageTableEntryUtilTest,
 INSTANTIATE_TYPED_TEST_SUITE_P(AArch64PageTableEntryUtilTest,
                                PageTableEntryUtilTest, AArch64);
 
+INSTANTIATE_TYPED_TEST_SUITE_P(X86_64PageTableEntryUtilTest,
+                               PageTableEntryUtilTest, X86_64);
+
 }  // namespace
 }  // namespace silifuzz::proxies

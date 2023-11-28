@@ -79,6 +79,24 @@ absl::StatusOr<uint64_t> CheckTableDescriptor<AArch64>(uint64_t entry,
                                                        bool writeable,
                                                        bool executable);
 
+// Declaractions of x86_64 specializations.
+template <>
+absl::StatusOr<uint64_t> CreatePageDescriptor<X86_64>(
+    uint64_t existing_entry, PhysicalAddress decoded_pa, bool writeable,
+    bool executable);
+template <>
+uint64_t UpdateTableDescriptor<X86_64>(uint64_t existing_entry,
+                                       PhysicalAddress next_table_pa,
+                                       bool writeable, bool executable);
+template <>
+absl::StatusOr<uint64_t> CheckPageDescriptor<X86_64>(uint64_t entry,
+                                                     bool writeable,
+                                                     bool executable);
+template <>
+absl::StatusOr<uint64_t> CheckTableDescriptor<X86_64>(uint64_t entry,
+                                                      bool writeable,
+                                                      bool executable);
+
 }  // namespace silifuzz::proxies
 
 #endif  // THIRD_PARTY_SILIFUZZ_PROXIES_PAGE_TABLE_PAGE_TABLE_ENTRY_UTIL_H_
