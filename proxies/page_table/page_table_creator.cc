@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include <ios>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -183,5 +182,7 @@ void PageTableCreator<arch>::SetupTableDescriptor(
 }
 
 template class PageTableCreator<AArch64>;
+
+template class PageTableCreator<X86_64>;
 
 }  // namespace silifuzz::proxies

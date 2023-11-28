@@ -321,5 +321,7 @@ REGISTER_TYPED_TEST_SUITE_P(PageTableCreatorTest, UnalignedPageTableAddress,
 INSTANTIATE_TYPED_TEST_SUITE_P(AArch64PageTableCreatorTest,
                                PageTableCreatorTest, AArch64);
 
+INSTANTIATE_TYPED_TEST_SUITE_P(X86_64PageTableCreatorTest, PageTableCreatorTest,
+                               X86_64);
 }  // namespace
 }  // namespace silifuzz::proxies
