@@ -49,7 +49,7 @@ TYPED_TEST_P(PageTableEntryUtilTest, CreateAndCheckPageDescriptor) {
       CheckPageDescriptor<TypeParam>(page_descriptor, kWriteable, kExecutable));
   PhysicalAddress actual_pa;
   actual_pa.set_physical_address_msbs(output_addr);
-  EXPECT_EQ(*expected_pa.GetEncodedValue(), *actual_pa.GetEncodedValue());
+  EXPECT_EQ(expected_pa.GetEncodedValue(), actual_pa.GetEncodedValue());
 }
 
 TYPED_TEST_P(PageTableEntryUtilTest, CreateSamePageDescriptor) {
@@ -119,8 +119,8 @@ TYPED_TEST_P(PageTableEntryUtilTest, CreateAndCheckTableDescriptor) {
                            table_descriptor, kWriteable, kExecutable));
   PhysicalAddress actual_next_table_pa;
   actual_next_table_pa.set_physical_address_msbs(output_addr);
-  EXPECT_EQ(*expected_next_table_pa.GetEncodedValue(),
-            *actual_next_table_pa.GetEncodedValue());
+  EXPECT_EQ(expected_next_table_pa.GetEncodedValue(),
+            actual_next_table_pa.GetEncodedValue());
 }
 
 TYPED_TEST_P(PageTableEntryUtilTest,

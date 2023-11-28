@@ -49,16 +49,16 @@ absl::StatusOr<uint64_t> CreatePageDescriptor<AArch64>(
   // Check that there is no conflict with the existing page descriptor entry.
   PageDescriptorEntry<AArch64> existing_descriptor(existing_entry);
   if (existing_descriptor.valid() &&
-      existing_entry != *new_descriptor.GetEncodedValue()) {
+      existing_entry != new_descriptor.GetEncodedValue()) {
     PhysicalAddress decoded_existing_pa;
     decoded_existing_pa.set_physical_address_msbs(
         existing_descriptor.output_address());
     return absl::AlreadyExistsError(absl::StrFormat(
         "Mapping already exists with existing physical_addr=0x%x",
-        *decoded_existing_pa.GetEncodedValue()));
+        decoded_existing_pa.GetEncodedValue()));
   }
 
-  return *new_descriptor.GetEncodedValue();
+  return new_descriptor.GetEncodedValue();
 }
 
 template <>
@@ -86,7 +86,7 @@ uint64_t UpdateTableDescriptor<AArch64>(uint64_t existing_entry,
     existing_descriptor.set_uxn_table(
         TableDescriptorEntry<AArch64>::kUxnTableNoEffect);
   }
-  return *existing_descriptor.GetEncodedValue();
+  return existing_descriptor.GetEncodedValue();
 }
 
 template <>
@@ -176,16 +176,16 @@ absl::StatusOr<uint64_t> CreatePageDescriptor<X86_64>(
   // Check that there is no conflict with the existing page descriptor entry.
   PageDescriptorEntry<X86_64> existing_descriptor(existing_entry);
   if (existing_descriptor.present() &&
-      existing_entry != *new_descriptor.GetEncodedValue()) {
+      existing_entry != new_descriptor.GetEncodedValue()) {
     PhysicalAddress decoded_existing_pa;
     decoded_existing_pa.set_physical_address_msbs(
         existing_descriptor.physical_address());
     return absl::AlreadyExistsError(absl::StrFormat(
         "Mapping already exists with existing physical_addr=0x%x",
-        *decoded_existing_pa.GetEncodedValue()));
+        decoded_existing_pa.GetEncodedValue()));
   }
 
-  return *new_descriptor.GetEncodedValue();
+  return new_descriptor.GetEncodedValue();
 }
 
 template <>
@@ -211,7 +211,7 @@ uint64_t UpdateTableDescriptor<X86_64>(uint64_t existing_entry,
   if (executable) {
     existing_descriptor.set_execute_disable(0);
   }
-  return *existing_descriptor.GetEncodedValue();
+  return existing_descriptor.GetEncodedValue();
 }
 
 template <>

@@ -35,8 +35,8 @@ class BitStruct {
   BitStruct(BitStruct&&) = default;
   BitStruct& operator=(BitStruct&&) = default;
 
-  // Returns a pointer to the bit encoding of as uint64_t.
-  const uint64_t* GetEncodedValue() const { return &bits_; }
+  // Returns bit encoding of as uint64_t.
+  uint64_t GetEncodedValue() const { return bits_; }
 
  protected:
   static inline constexpr uint64_t bit_mask(size_t n) {

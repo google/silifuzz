@@ -62,7 +62,7 @@ class PageTableCreatorTest : public ::testing::Test {
         CheckTableDescriptor<arch>(*l0_entry_addr, writeable, executable));
     next_table_pa.set_physical_address_msbs(l1_table_addr);
     uint64_t *l1_entry_addr =
-        reinterpret_cast<uint64_t *>(*next_table_pa.GetEncodedValue()) +
+        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
         va.table_index_l1();
 
     ASSERT_OK_AND_ASSIGN(
@@ -70,7 +70,7 @@ class PageTableCreatorTest : public ::testing::Test {
         CheckTableDescriptor<arch>(*l1_entry_addr, writeable, executable));
     next_table_pa.set_physical_address_msbs(l2_table_addr);
     uint64_t *l2_entry_addr =
-        reinterpret_cast<uint64_t *>(*next_table_pa.GetEncodedValue()) +
+        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
         va.table_index_l2();
 
     ASSERT_OK_AND_ASSIGN(
@@ -78,7 +78,7 @@ class PageTableCreatorTest : public ::testing::Test {
         CheckTableDescriptor<arch>(*l2_entry_addr, writeable, executable));
     next_table_pa.set_physical_address_msbs(l3_table_addr);
     uint64_t *l3_entry_addr =
-        reinterpret_cast<uint64_t *>(*next_table_pa.GetEncodedValue()) +
+        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
         va.table_index_l3();
 
     ASSERT_OK_AND_ASSIGN(
@@ -87,7 +87,7 @@ class PageTableCreatorTest : public ::testing::Test {
     PhysicalAddress translated_pa;
     translated_pa.set_physical_address_lsbs(va.physical_address_lsbs());
     translated_pa.set_physical_address_msbs(output_addr);
-    EXPECT_EQ(physical_addr, *translated_pa.GetEncodedValue());
+    EXPECT_EQ(physical_addr, translated_pa.GetEncodedValue());
   }
 };
 

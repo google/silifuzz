@@ -100,7 +100,7 @@ PageTableCreator<arch>::DecodedVirtualAddress::DecodedVirtualAddress(
     for (size_t l = level; l < kNumLevels; ++l) {
       va_bit_struct.set_table_index_l(l, 0);
     }
-    starting_interval[level] = *va_bit_struct.GetEncodedValue();
+    starting_interval[level] = va_bit_struct.GetEncodedValue();
   }
 }
 
