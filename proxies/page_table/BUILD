@@ -28,6 +28,7 @@ cc_library(
     name = "page_descriptor_entry",
     hdrs = [
         "aarch64/page_descriptor_entry.h",
+        "x86_64/page_descriptor_entry.h",
     ],
     deps = [
         ":bit_struct",
@@ -82,6 +83,7 @@ cc_library(
     name = "table_descriptor_entry",
     hdrs = [
         "aarch64/table_descriptor_entry.h",
+        "x86_64/table_descriptor_entry.h",
     ],
     deps = [
         ":bit_struct",
