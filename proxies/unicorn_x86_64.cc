@@ -12,29 +12,158 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
+#include "./instruction/default_disassembler.h"
+#include "./proxies/arch_feature_generator.h"
+#include "./proxies/user_features.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
+
+namespace {
+
+// This array lives in an ELF segment that the Centipede runner will read from.
+USER_FEATURE_ARRAY static user_feature_t features[100000];
+
+// This proxy will be run on a batch of inputs to amortize the cost of creating
+// the process. The number of inputs in a batch is controlled by the caller. We
+// want to execute some operations on a per-batch basis rather than a per-input
+// basis for two reasons.
+// First, performance. Speed matters for fuzzing.
+// Second, coverage. Anything we do per-input will generate branch coverage,
+// path coverage, etc. In theory it should be the same for every input and
+// therefore will be ignored, but it consumes memory, adds noise in the coverage
+// report, etc.
+// In general, we should try to do work per-batch rather than per-input when it
+// is possible.
+class BatchState {
+ public:
+  BatchState() { feature_gen.BeforeBatch(disasm.NumInstructionIDs()); }
+
+  DefaultDisassembler<X86_64> disasm;
+  ArchFeatureGenerator<X86_64> feature_gen;
+};
+
+BatchState *batch;
+
+void BeforeBatch() {
+  CHECK_EQ(batch, nullptr);
+  batch = new BatchState();
+}
 
 absl::Status RunInstructions(absl::string_view instructions,
                              const FuzzingConfig<X86_64> &fuzzing_config,
                              size_t max_inst_executed) {
+  DefaultDisassembler<X86_64> &disasm = batch->disasm;
+  ArchFeatureGenerator<X86_64> &feature_gen = batch->feature_gen;
+
   UnicornTracer<X86_64> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions, fuzzing_config));
 
+  feature_gen.BeforeInput(features);
+
+  UContext<X86_64> registers;
+  tracer.GetRegisters(registers);
+  feature_gen.BeforeExecution(registers);
+
+  // Unicorn generates callbacks before the instruction executes and not after.
+  // We need to do a little extra work to synthesize a callback after every
+  // instruction.
+  uint32_t instruction_id = kInvalidInstructionId;
+  bool instruction_pending = false;
+
+  auto after_instruction = [&]() {
+    if (instruction_pending) {
+      tracer.GetRegisters(registers);
+      feature_gen.AfterInstruction(instruction_id, registers);
+      instruction_pending = false;
+    }
+  };
+
+  bool instructions_are_in_range = true;
+
+  tracer.SetInstructionCallback(
+      [&](UnicornTracer<X86_64> *tracer, uint64_t address, size_t max_size) {
+        after_instruction();
+
+        // Read the next instruction.
+        // 16 bytes should hold any x86-64 instruction. The actual limit should
+        // be 15 bytes, but keep things as nice powers of two.
+        uint8_t insn[16];
+
+        // Sometimes Unicorn will invoke this function with an invalid max_size
+        // when it has absolutely no idea what the instruction does. (AVX512 for
+        // example.) It appears to be some sort of error code gone wrong?
+        max_size = std::min(max_size, sizeof(insn));
+
+        tracer->ReadMemory(address, insn, max_size);
+
+        // Decompile the next instruction.
+        if (disasm.Disassemble(address, insn, max_size)) {
+          instruction_id = disasm.InstructionID();
+          CHECK_LT(instruction_id, disasm.NumInstructionIDs());
+          // If an instruction doesn't entirely lie within the code snippet,
+          // we're likely executing an incomplete instruction that includes
+          // bytes immediately after the snippet. We try to filter out this
+          // case because it can make the snippet hard to disassemble.
+          instructions_are_in_range &=
+              tracer->InstructionIsInRange(address, disasm.InstructionSize());
+        } else {
+          instruction_id = kInvalidInstructionId;
+        }
+
+        instruction_pending = true;
+      });
+
   // Stop at an arbitrary instruction count to avoid infinite loops.
-  return tracer.Run(max_inst_executed);
+  absl::Status status = tracer.Run(max_inst_executed);
+
+  // Flush the last instruction.
+  after_instruction();
+
+  feature_gen.AfterExecution();
+
+  // Emit features for memory bits that are different from the initial state.
+  // The initial state is zero, so we can skip the diff.
+  // (The inital stack state is not entirely zero, but close enough.)
+  constexpr size_t kMemBytesPerChunk = 8192;
+  uint8_t mem[kMemBytesPerChunk];
+
+  // Data 1
+  tracer.ReadMemory(fuzzing_config.data1_range.start_address, mem,
+                    kMemBytesPerChunk);
+  feature_gen.FinalMemory(mem);
+
+  // Data 2
+  tracer.ReadMemory(fuzzing_config.data2_range.start_address, mem,
+                    kMemBytesPerChunk);
+  feature_gen.FinalMemory(mem);
+
+  if (!instructions_are_in_range) {
+    return absl::OutOfRangeError(
+        "Instructions are not entirely contained in code.");
+  }
+
+  return status;
 }
 
+}  // namespace
+
 }  // namespace silifuzz
+
+extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
+  silifuzz::BeforeBatch();
+  return 0;
+}
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   const size_t max_inst_executed = 100;

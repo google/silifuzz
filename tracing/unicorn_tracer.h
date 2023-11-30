@@ -219,6 +219,13 @@ class UnicornTracer {
     UNICORN_CHECK(uc_mem_read(uc_, address, buffer, size));
   }
 
+  // HACK so X86_64 can check it isn't executing an instruction that dangles
+  // past the end of code. This can happens if the fuzzing input ends with a
+  // partial instruction that depends on the bytes that come after the test.
+  bool InstructionIsInRange(uint64_t address, size_t size) const {
+    return address >= start_of_code_ && address + size <= end_of_code_;
+  }
+
  private:
   // Initialize Unicorn and put it in a state that it can execute code snippets
   // and Snapshots. This may involve setting system registers, etc.
