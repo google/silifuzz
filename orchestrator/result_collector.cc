@@ -99,7 +99,6 @@ absl::StatusOr<proto::BinaryLogEntry> RunResultToSnapshotExecutionResult(
       run_result.player_result(),
       *snapshot_execution_result->mutable_player_result()));
 
-  *snapshot_execution_result->mutable_time() = TimeToProto(now);
   snapshot_execution_result->set_hostname(std::string(ShortHostname()));
 
   *entry.mutable_timestamp() = TimeToProto(now);

@@ -119,10 +119,6 @@ TEST_F(BinaryLogChannelTest, SnapshotExecutionResults) {
                                  player_result->mutable_cpu_usage()));
   player_result->set_cpu_id(12);
 
-  // Some random date.
-  const absl::Time t = absl::UniversalEpoch() + absl::Hours(24);
-  ASSERT_OK(EncodeGoogleApiProto(t, result->mutable_time()));
-
   // Sends a SnapshotExecutionProto over a pipe and checks that we got
   // the same proto back at the other end.
   absl::Status producer_status;

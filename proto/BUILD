@@ -86,10 +86,7 @@ cc_proto_library(
 proto_library(
     name = "snapshot_execution_result_proto",
     srcs = ["snapshot_execution_result.proto"],
-    deps = [
-        ":player_result",
-        "@com_google_protobuf//:timestamp_proto",
-    ],
+    deps = [":player_result"],
 )
 
 cc_proto_library(

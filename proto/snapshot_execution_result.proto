@@ -16,7 +16,6 @@ syntax = "proto2";
 
 package silifuzz.proto;
 
-import "google/protobuf/timestamp.proto";
 import "proto/player_result.proto";
 
 // A proto to store snapshot execution result identified by a snapshot ID
@@ -33,6 +32,5 @@ message SnapshotExecutionResult {
   // Execution result from Player.
   optional PlayerResult player_result = 2;
 
-  // Time when this result was recorded.
-  optional google.protobuf.Timestamp time = 3 [deprecated = true];
+  reserved 3;
 }
