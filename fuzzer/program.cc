@@ -24,7 +24,7 @@
 namespace silifuzz {
 
 void InstructionData::Copy(const uint8_t* bytes, size_t num_bytes) {
-  CHECK(num_bytes < kInsnBufferSize);
+  CHECK_LE(num_bytes, sizeof(bytes_));
   memcpy(bytes_, bytes, num_bytes);
   num_bytes_ = num_bytes;
 }
@@ -101,6 +101,7 @@ void Program::RemoveInstruction(size_t index) {
 
 void Program::ToBytes(std::vector<uint8_t>& output) {
   output.clear();
+  output.reserve(byte_len_);
   for (const Instruction& insn : instructions_) {
     CHECK_EQ(insn.offset, output.size());
     output.insert(output.end(), insn.encoded.begin(), insn.encoded.end());

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <cstdint>
+#include <cstring>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -23,6 +24,25 @@ namespace silifuzz {
 
 namespace {
 
+TEST(InstructionFromBytes_X86_64, Copy) {
+  uint8_t buffer[kInsnBufferSize];
+  memset(buffer, 0xff, sizeof(buffer));
+  buffer[sizeof(buffer) - 1] = 0xa5;
+
+  InstructionData data;
+  data.Copy(buffer, sizeof(buffer));
+  ASSERT_EQ(data.size(), kInsnBufferSize);
+  EXPECT_EQ(data.data()[data.size() - 1], 0xa5);
+}
+
+TEST(InstructionFromBytes_X86_64, CopyDeathTest) {
+  uint8_t buffer[kInsnBufferSize + 1];
+  memset(buffer, 0xff, sizeof(buffer));
+
+  InstructionData data;
+  ASSERT_DEATH({ data.Copy(buffer, sizeof(buffer)); }, "");
+}
+
 TEST(InstructionFromBytes_X86_64, Junk) {
   std::vector<uint8_t> bytes = {0xff, 0xff};
   Instruction instruction;
@@ -30,6 +50,7 @@ TEST(InstructionFromBytes_X86_64, Junk) {
   // Did not decode.
   EXPECT_EQ(instruction.encoded.size(), 0);
 }
+
 TEST(InstructionFromBytes_X86_64, NOP) {
   std::vector<uint8_t> bytes = {0x90};
   Instruction instruction;
