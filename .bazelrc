@@ -1,5 +1,9 @@
 build --client_env=CC=clang
 
+# Building Unicorn v2 on x86 requires a CPU that supports CX16.
+# This means at least core2. We chose the oldest arch we actually test on.
+build --copt=-march=haswell
+
 build --cxxopt=-std=c++20 --cxxopt=-fno-stack-protector --copt=-Wno-narrowing --copt=-fno-exceptions --cxxopt=-Wno-unused-private-field --cxxopt=-Wno-defaulted-function-deleted
 
 # SiliFuzz build is "selfhosted" (i.e. uses its own stack for some of the build tools).

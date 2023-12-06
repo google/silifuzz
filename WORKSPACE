@@ -145,7 +145,7 @@ new_git_repository(
         "sed -i -e 's|xed/xed-interface.h|xed-interface.h|' examples/xed-tester.c",
     ],
     remote = "https://github.com/intelxed/xed",
-    shallow_since = "1692638366 +0300",
+    shallow_since = "1697457597 +0300",
 )
 
 http_archive(
@@ -179,13 +179,11 @@ new_git_repository(
 new_git_repository(
     name = "unicorn",
     build_file = "@silifuzz//:third_party/BUILD.unicorn",
-    commit = "63a445cbba18bf1313ac3699b5d25462b5d529f4",
+    commit = "d4b92485b1a228fb003e1218e42f6c778c655809",
     patch_cmds = [
-        "sed -i -e 's|ARM64_REGS_STORAGE_SIZE|DEFAULT_VISIBILITY ARM64_REGS_STORAGE_SIZE|' qemu/target-arm/unicorn.h",
-        "sed -i -e 's|X86_REGS_STORAGE_SIZE|DEFAULT_VISIBILITY X86_REGS_STORAGE_SIZE|' qemu/target-i386/unicorn.h",
     ],
     remote = "https://github.com/unicorn-engine/unicorn",
-    shallow_since = "1639356032 +0800",
+    shallow_since = "1687038706 +0200",
 )
 
 http_archive(

@@ -5,17 +5,6 @@
 
 licenses(["restricted"])
 
-DEFAULT_COPTS = [
-        "-DPIE",
-        "-DUNICORN_HAS_ARM64",
-        "-DUNICORN_HAS_X86",
-        "-D_GNU_SOURCE",
-        "-D_FILE_OFFSET_BITS=64",
-        "-D_LARGEFILE_SOURCE",
-        "-fno-strict-aliasing",
-        "-Wno-vla",
-]
-
 package(
     default_visibility = ["//visibility:public"],
     # so many headers missing required includes.
@@ -27,6 +16,7 @@ package(
 
 unicorn_includes = [
   "include",
+  "glib_compat",
   "qemu/include",
   "qemu",
   "qemu/tcg",
@@ -38,7 +28,7 @@ unicorn_includes = [
 # versions of functions such as uc_open().
 BUILD_VARIANT_FULL = "UNICORN_BUILD_VARIANT=full_build"
 
-BUILD_VARIANT_ARM = "UNICORN_BUILD_VARIANT=arm_only_build"
+BUILD_VARIANT_ARM64 = "UNICORN_BUILD_VARIANT=arm64_only_build"
 
 BUILD_VARIANT_X86 = "UNICORN_BUILD_VARIANT=x86_only_build"
 
@@ -51,450 +41,320 @@ exports_files(
     glob(["bindings/python/unicorn/*.py"]),
 )
 
+UNICORN_COPTS = [
+    # From the original build file.
+    "-D_GNU_SOURCE",
+    "-D_FILE_OFFSET_BITS=64",
+    "-D_LARGEFILE_SOURCE",
+    # Mostly out of caution.
+    "-fno-strict-aliasing",
+]
+
 cc_library(
     name = "unicorn_qemu_common",
     srcs = [
-        "qemu/accel.c",
-        "qemu/glib_compat.c",
-        "qemu/include/glib_compat.h",
-        "qemu/target-mips/cpu-qom.h",
-        "qemu/target-mips/cpu.h",
-        "qemu/vl.c",
-        "qemu/qemu-timer.c",
-        "qemu/qemu-log.c",
-        "qemu/tcg-runtime.c",
-        "qemu/hw/core/qdev.c",
-        "qemu/hw/core/machine.c",
-        "qemu/qapi-types.c",
-        "qemu/qapi-visit.c",
-        "qemu/util/cutils.c",
-        "qemu/util/qemu-timer-common.c",
-        "qemu/util/oslib-posix.c",
-        "qemu/util/qemu-thread-posix.c",
-        "qemu/util/module.c",
+        "glib_compat/garray.c",
+        "glib_compat/glib_compat.c",
+        "glib_compat/glist.c",
+        "glib_compat/gmem.c",
+        "glib_compat/gpattern.c",
+        "glib_compat/grand.c",
+        "glib_compat/gslice.c",
+        "glib_compat/gtestutils.c",
+        "glib_compat/gtree.c",
+        "list.c",
+        "qemu/crypto/aes.c",
         "qemu/util/bitmap.c",
         "qemu/util/bitops.c",
-        "qemu/util/error.c",
-        "qemu/util/aes.c",
+        "qemu/util/cacheinfo.c",
         "qemu/util/crc32c.c",
-        "qemu/util/host-utils.c",
+        "qemu/util/cutils.c",
         "qemu/util/getauxval.c",
-    ] + glob([
-        "qemu/qapi/*.c",
-        "qemu/qobject/*.c",
-        "qemu/qom/*.c",
-    ]),
-    hdrs = glob(
-        [
-            "include/*.h",
-            "include/unicorn/*.h",
-            "qemu/*.h",
-            "qemu/tcg/*.h",
-            "qemu/include/*.h",
-            "qemu/include/*/*.h",
-            "qemu/include/*/*/*.h",
-        ],
-        exclude = [
-            "qemu/aarch64eb.h",
-            "qemu/aarch64.h",
-            "qemu/armeb.h",
-            "qemu/arm.h",
-        ],
-    ) + [ "qemu/config-host.h" ],
-    includes = unicorn_includes,
-    copts = DEFAULT_COPTS + [
-        "-Wno-unused-variable",
-        "-Wno-initializer-overrides",
-        "-Wno-pointer-to-int-cast",
+        "qemu/util/guest-random.c",
+        "qemu/util/host-utils.c",
+        "qemu/util/osdep.c",
+        "qemu/util/oslib-posix.c",
+        "qemu/util/pagesize.c",
+        "qemu/util/qdist.c",
+        "qemu/util/qemu-thread-posix.c",
+        "qemu/util/qemu-timer.c",
+        "qemu/util/qemu-timer-common.c",
+        "qemu/util/qht.c",
+        "qemu/util/range.c",
     ],
+    hdrs = [
+        "qemu/config-host.h",
+        "qemu/include/qemu-common.h",
+        "qemu/vl.h",
+        "unicorn-headers",
+    ] + glob(
+        [
+            "glib_compat/*.h",
+            "include/*.h",
+            "qemu/include/crypto/*.h",
+            "qemu/include/exec/*.h",
+            "qemu/include/fpu/*.h",
+            "qemu/include/hw/core/*.h",
+            "qemu/include/qemu/*.h",
+            "qemu/include/sysemu/*.h",
+        ],
+    ),
+    includes = unicorn_includes,
+    copts = UNICORN_COPTS,
 )
 
-# Each of these targets is going to include "tcg/i386/tcg-target.c" during the
-# compilation process, and there is just no way to make bazel accept that other
-# than disabling header checking. Yep, QEMU.
+# This library select the architecture QEMU will generate code for.
+cc_library(
+    name = "unicorn_qemu_backend_target",
+    hdrs = select({
+        "@silifuzz//build_defs/platform:aarch64": glob([
+            "qemu/tcg/aarch64/*.h",
+            "qemu/tcg/aarch64/*.inc.c",
+        ]),
+        "@silifuzz//build_defs/platform:x86_64": glob([
+            "qemu/tcg/i386/*.h",
+            "qemu/tcg/i386/*.inc.c",
+        ]),
+    }) + glob([
+        "qemu/tcg/*.inc.c",
+    ]),
+    includes = select({
+        "@silifuzz//build_defs/platform:aarch64": ["qemu/tcg/aarch64"],
+        "@silifuzz//build_defs/platform:x86_64": ["qemu/tcg/i386"],
+    }),
+    visibility = ["//visibility:private"],
+)
+
+# QEMU compiles the same front-end sources once for each arch. It uses preprocessor defines to
+# rename functions differently for each arch, allowing frontends for multiple architechtures to be
+# linked in the same binary.
+UNICORN_FRONTEND_COMMON_SRCS = [
+    "qemu/exec.c",
+    "qemu/exec-vary.c",
+    "qemu/softmmu/cpus.c",
+    "qemu/softmmu/ioport.c",
+    "qemu/softmmu/memory.c",
+    "qemu/softmmu/memory_mapping.c",
+    "qemu/fpu/softfloat.c",
+    "qemu/tcg/optimize.c",
+    "qemu/tcg/tcg.c",
+    "qemu/tcg/tcg-op.c",
+    "qemu/tcg/tcg-op-gvec.c",
+    "qemu/tcg/tcg-op-vec.c",
+    "qemu/accel/tcg/cpu-exec.c",
+    "qemu/accel/tcg/cpu-exec-common.c",
+    "qemu/accel/tcg/cputlb.c",
+    "qemu/accel/tcg/tcg-all.c",
+    "qemu/accel/tcg/tcg-runtime.c",
+    "qemu/accel/tcg/tcg-runtime-gvec.c",
+    "qemu/accel/tcg/translate-all.c",
+    "qemu/accel/tcg/translator.c",
+]
+
+UNICORN_FRONTEND_COMMON_HEADERS = [
+    "unicorn-headers",
+    "qemu/unicorn_common.h",
+] + glob([
+    "include/*.h",
+    "qemu/*.inc.c",
+    "qemu/accel/tcg/*.h",
+    "qemu/fpu/*.inc.c",
+    "qemu/trace/*.h",
+    "qemu/vl.h",
+    "qemu/include/*.h",
+    "qemu/include/exec/*.h",
+    "qemu/include/fpu/*.h",
+    "qemu/include/hw/registerfields.h",
+    "qemu/include/tcg/*.h",
+    "qemu/include/qemu/*.h",
+])
+
+UNICORN_FRONTEND_COPTS = UNICORN_COPTS + [
+    "-fvisibility=hidden",
+    "-DNEED_CPU_H",
+]
+
+# Factored out into a separate target so that *.inc.c can be include without being built.
+cc_library(
+    name = "unicorn_qemu_arm_frontend_headers",
+    hdrs = UNICORN_FRONTEND_COMMON_HEADERS + glob([
+        "qemu/include/hw/arm/*.h",
+        "qemu/target/arm/*.h",
+        "qemu/target/arm/*.inc.c",
+    ]),
+    visibility = ["//visibility:private"],
+)
 
 cc_library(
     name = "unicorn_qemu_aarch64",
-    srcs = [
-        "include/qemu.h",
-        "include/uc_priv.h",
-        # arch independent files
-        "qemu/exec.c",
-        "qemu/fpu/softfloat-macros.h",
-        "qemu/fpu/softfloat-specialize.h",
-        "qemu/include/exec/address-spaces.h",
-        "qemu/include/exec/cpu-all.h",
-        "qemu/include/exec/cpu-common.h",
-        "qemu/include/exec/cpu_ldst.h",
-        "qemu/include/exec/cputlb.h",
-        "qemu/include/exec/exec-all.h",
-        "qemu/include/exec/gen-icount.h",
-        "qemu/include/exec/helper-tcg.h",
-        "qemu/include/exec/ioport.h",
-        "qemu/include/exec/memory-internal.h",
-        "qemu/include/exec/memory.h",
-        "qemu/include/exec/ram_addr.h",
-        "qemu/include/fpu/softfloat.h",
-        "qemu/include/hw/arm/arm.h",
-        "qemu/include/hw/boards.h",
-        "qemu/include/hw/hw.h",
-        "qemu/include/hw/qdev.h",
-        "qemu/include/qemu-common.h",
-        "qemu/include/qemu/bswap.h",
-        "qemu/include/qemu/crc32c.h",
-        "qemu/include/qemu/log.h",
-        "qemu/include/qemu/timer.h",
-        "qemu/include/qom/cpu.h",
-        "qemu/include/sysemu/cpus.h",
-        "qemu/include/sysemu/memory_mapping.h",
-        "qemu/include/sysemu/sysemu.h",
-        "qemu/softmmu_template.h",
-        "qemu/tcg/tcg-op.h",
-        "qemu/tcg/tcg.h",
-        "qemu/translate-all.c",
-        "qemu/cpu-exec.c",
-        "qemu/tcg/tcg.c",
-        "qemu/tcg/optimize.c",
-        "qemu/tcg/i386/tcg-target.h",
-        "qemu/fpu/softfloat.c",
-        "qemu/cpus.c",
-        "qemu/memory.c",
-        "qemu/ioport.c",
-        "qemu/cputlb.c",
-        "qemu/memory_mapping.c",
-
-        # arch specific hardware files
-        "qemu/hw/arm/tosa.c",
-        "qemu/hw/arm/virt.c",
-
-        # arch specific files
+    srcs = UNICORN_FRONTEND_COMMON_SRCS + [
         "qemu/aarch64.h",
-        "qemu/target-arm/cpu.c",
-        "qemu/target-arm/cpu64.c",
-        "qemu/target-arm/crypto_helper.c",
-        "qemu/target-arm/helper-a64.c",
-        "qemu/target-arm/helper.c",
-        "qemu/target-arm/iwmmxt_helper.c",
-        "qemu/target-arm/neon_helper.c",
-        "qemu/target-arm/op_helper.c",
-        "qemu/target-arm/psci.c",
-        "qemu/target-arm/translate.c",
-        "qemu/target-arm/translate-a64.c",
-        "qemu/target-arm/unicorn_aarch64.c",
-        "qemu/translate-all.h",
-        "qemu/unicorn_common.h",
-    ] + glob([
-        "qemu/target-arm/*.h",
-        "qemu/aarch64-softmmu/*.h",
-    ]) + ["qemu/aarch64-softmmu/config-target.h"],
-    hdrs = ["qemu/tcg/i386/tcg-target.c"],
-    copts = DEFAULT_COPTS + [
-        "-fno-common",
-        "-fvisibility=hidden",
-        "-DNEED_CPU_H",
+        "qemu/aarch64-softmmu/config-target.h",
+        "qemu/target/arm/cpu.c",
+        "qemu/target/arm/cpu64.c",
+        "qemu/target/arm/crypto_helper.c",
+        "qemu/target/arm/debug_helper.c",
+        "qemu/target/arm/helper.c",
+        "qemu/target/arm/helper-a64.c",
+        "qemu/target/arm/iwmmxt_helper.c",
+        "qemu/target/arm/m_helper.c",
+        "qemu/target/arm/neon_helper.c",
+        "qemu/target/arm/op_helper.c",
+        "qemu/target/arm/pauth_helper.c",
+        "qemu/target/arm/psci.c",
+        "qemu/target/arm/sve_helper.c",
+        "qemu/target/arm/tlb_helper.c",
+        "qemu/target/arm/translate.c",
+        "qemu/target/arm/translate-a64.c",
+        "qemu/target/arm/translate-sve.c",
+        "qemu/target/arm/unicorn_aarch64.c",
+        "qemu/target/arm/vec_helper.c",
+        "qemu/target/arm/vfp_helper.c",
+    ],
+    copts = UNICORN_FRONTEND_COPTS + [
         "-include",
         "qemu/aarch64.h",
         "-I",
-        "qemu/target-arm",
+        "qemu/target/arm",
         "-I",
         "qemu/aarch64-softmmu",
         "-Wno-constant-conversion",
-        "-Wno-sometimes-uninitialized",
-        "-Wno-return-type",
+        "-Wno-initializer-overrides",
     ],
+    hdrs_check = "strict",
     includes = [
         "qemu/aarch64-softmmu",
-        "qemu/target-arm",
-        "qemu/tcg/i386",
+        "qemu/target/arm",
     ],
     deps = [
+        "unicorn_qemu_arm_frontend_headers",
+        "unicorn_qemu_backend_target",
         "unicorn_qemu_common",
     ],
 )
 
+# Factored out into a separate target so that *.inc.c can be include without being built.
 cc_library(
-    name = "unicorn_qemu_aarch64eb",
-    srcs = [
-        "include/qemu.h",
-        "include/uc_priv.h",
-        # arch independent files
-        "qemu/exec.c",
-        "qemu/fpu/softfloat-macros.h",
-        "qemu/fpu/softfloat-specialize.h",
-        "qemu/include/exec/address-spaces.h",
-        "qemu/include/exec/cpu-all.h",
-        "qemu/include/exec/cpu-common.h",
-        "qemu/include/exec/cpu_ldst.h",
-        "qemu/include/exec/cputlb.h",
-        "qemu/include/exec/exec-all.h",
-        "qemu/include/exec/gen-icount.h",
-        "qemu/include/exec/helper-tcg.h",
-        "qemu/include/exec/ioport.h",
-        "qemu/include/exec/memory-internal.h",
-        "qemu/include/exec/memory.h",
-        "qemu/include/exec/ram_addr.h",
-        "qemu/include/fpu/softfloat.h",
-        "qemu/include/hw/arm/arm.h",
-        "qemu/include/hw/boards.h",
-        "qemu/include/hw/hw.h",
-        "qemu/include/hw/qdev.h",
-        "qemu/include/qemu-common.h",
-        "qemu/include/qemu/bswap.h",
-        "qemu/include/qemu/crc32c.h",
-        "qemu/include/qemu/log.h",
-        "qemu/include/qemu/timer.h",
-        "qemu/include/qom/cpu.h",
-        "qemu/include/sysemu/cpus.h",
-        "qemu/include/sysemu/memory_mapping.h",
-        "qemu/include/sysemu/sysemu.h",
-        "qemu/softmmu_template.h",
-        "qemu/tcg/tcg-op.h",
-        "qemu/tcg/tcg.h",
-        "qemu/translate-all.c",
-        "qemu/cpu-exec.c",
-        "qemu/tcg/tcg.c",
-        "qemu/tcg/optimize.c",
-        "qemu/tcg/i386/tcg-target.h",
-        "qemu/fpu/softfloat.c",
-        "qemu/cpus.c",
-        "qemu/memory.c",
-        "qemu/ioport.c",
-        "qemu/cputlb.c",
-        "qemu/memory_mapping.c",
-
-        # arch specific hardware files
-        "qemu/hw/arm/tosa.c",
-        "qemu/hw/arm/virt.c",
-
-        # arch specific files
-        "qemu/aarch64eb.h",
-        "qemu/target-arm/cpu.c",
-        "qemu/target-arm/cpu64.c",
-        "qemu/target-arm/crypto_helper.c",
-        "qemu/target-arm/helper-a64.c",
-        "qemu/target-arm/helper.c",
-        "qemu/target-arm/iwmmxt_helper.c",
-        "qemu/target-arm/neon_helper.c",
-        "qemu/target-arm/op_helper.c",
-        "qemu/target-arm/psci.c",
-        "qemu/target-arm/translate.c",
-        "qemu/target-arm/translate-a64.c",
-        "qemu/target-arm/unicorn_aarch64.c",
-        "qemu/translate-all.h",
-        "qemu/unicorn_common.h",
-    ] + glob([
-        "qemu/target-arm/*.h",
-        "qemu/aarch64eb-softmmu/*.h",
-    ]) + ["qemu/aarch64eb-softmmu/config-target.h"],
-    hdrs = ["qemu/tcg/i386/tcg-target.c"],
-    copts = DEFAULT_COPTS + [
-        "-fno-common",
-        "-fvisibility=hidden",
-        "-DNEED_CPU_H",
-        "-include",
-        "qemu/aarch64eb.h",
-        "-I",
-        "qemu/target-arm",
-        "-I",
-        "qemu/aarch64eb-softmmu",
-        "-Wno-constant-conversion",
-        "-Wno-sometimes-uninitialized",
-        "-Wno-return-type",
-    ],
-    includes = unicorn_includes + [
-        "qemu/aarch64eb-softmmu",
-        "qemu/target-arm",
-        "qemu/tcg/i386",
-    ],
-    deps = [
-        "unicorn_qemu_common",
-    ],
+    name = "unicorn_qemu_i386_frontend_headers",
+    hdrs = UNICORN_FRONTEND_COMMON_HEADERS + glob([
+        "qemu/include/hw/i386/*.h",
+        "qemu/target/i386/*.h",
+        "qemu/target/i386/*.inc.c",
+    ]),
+    visibility = ["//visibility:private"],
 )
 
 cc_library(
     name = "unicorn_qemu_x86_64",
-    srcs = [
-        "include/qemu.h",
-        "include/uc_priv.h",
-        # arch independent files
-        "qemu/exec.c",
-        "qemu/fpu/softfloat-macros.h",
-        "qemu/fpu/softfloat-specialize.h",
-        "qemu/include/exec/address-spaces.h",
-        "qemu/include/exec/cpu-all.h",
-        "qemu/include/exec/cpu-common.h",
-        "qemu/include/exec/cpu_ldst.h",
-        "qemu/include/exec/cputlb.h",
-        "qemu/include/exec/exec-all.h",
-        "qemu/include/exec/gen-icount.h",
-        "qemu/include/exec/ioport.h",
-        "qemu/include/exec/memory-internal.h",
-        "qemu/include/exec/memory.h",
-        "qemu/include/exec/ram_addr.h",
-        "qemu/include/fpu/softfloat.h",
-        "qemu/include/hw/boards.h",
-        "qemu/include/hw/cpu/icc_bus.h",
-        "qemu/include/hw/hw.h",
-        "qemu/include/hw/i386/apic.h",
-        "qemu/include/hw/i386/apic_internal.h",
-        "qemu/include/hw/i386/pc.h",
-        "qemu/include/hw/qdev.h",
-        "qemu/include/qemu-common.h",
-        "qemu/include/qemu/bswap.h",
-        "qemu/include/qemu/log.h",
-        "qemu/include/qemu/timer.h",
-        "qemu/include/qom/cpu.h",
-        "qemu/include/sysemu/cpus.h",
-        "qemu/include/sysemu/memory_mapping.h",
-        "qemu/include/sysemu/sysemu.h",
-        "qemu/softmmu_template.h",
-        "qemu/target-arm/cpu-qom.h",
-        "qemu/target-arm/cpu.h",
-        "qemu/tcg/tcg-op.h",
-        "qemu/tcg/tcg.h",
-        "qemu/translate-all.c",
-        "qemu/cpu-exec.c",
-        "qemu/tcg/tcg.c",
-        "qemu/tcg/optimize.c",
-        "qemu/fpu/softfloat.c",
-        "qemu/cpus.c",
-        "qemu/memory.c",
-        "qemu/ioport.c",
-        "qemu/cputlb.c",
-        "qemu/memory_mapping.c",
-
-        # arch specific hardware files
-        "qemu/hw/intc/apic.c",
-        "qemu/hw/intc/apic_common.c",
-        "qemu/hw/i386/pc.c",
-        "qemu/hw/i386/pc_piix.c",
-
-        # backend files
-        "qemu/tcg/i386/tcg-target.h",
-        "qemu/translate-all.h",
-        "qemu/unicorn_common.h",
-    ] + glob([
-        "qemu/target-i386/*.c",
-        "qemu/target-i386/*.h",
-        "qemu/x86_64-softmmu/*.h",
-    ]) + ["qemu/x86_64-softmmu/config-target.h"],
-    hdrs = ["qemu/tcg/i386/tcg-target.c"],
-    copts = DEFAULT_COPTS + [
-        "-fno-common",
-        "-fvisibility=hidden",
-        "-DNEED_CPU_H",
+    srcs = UNICORN_FRONTEND_COMMON_SRCS + [
+        "qemu/hw/i386/x86.c",
+        "qemu/target/i386/arch_memory_mapping.c",
+        "qemu/target/i386/bpt_helper.c",
+        "qemu/target/i386/cc_helper.c",
+        "qemu/target/i386/cpu.c",
+        "qemu/target/i386/excp_helper.c",
+        "qemu/target/i386/fpu_helper.c",
+        "qemu/target/i386/helper.c",
+        "qemu/target/i386/int_helper.c",
+        "qemu/target/i386/machine.c",
+        "qemu/target/i386/mem_helper.c",
+        "qemu/target/i386/misc_helper.c",
+        "qemu/target/i386/mpx_helper.c",
+        "qemu/target/i386/seg_helper.c",
+        "qemu/target/i386/smm_helper.c",
+        "qemu/target/i386/svm_helper.c",
+        "qemu/target/i386/translate.c",
+        "qemu/target/i386/unicorn.c",
+        "qemu/target/i386/xsave_helper.c",
+        "qemu/x86_64.h",
+        "qemu/x86_64-softmmu/config-target.h",
+    ],
+    copts = UNICORN_FRONTEND_COPTS + [
         "-include",
         "qemu/x86_64.h",
         "-I",
-        "qemu/target-i386",
+        "qemu/target/i386",
         "-I",
         "qemu/x86_64-softmmu",
-        "-Wno-constant-conversion",
     ],
-    includes = unicorn_includes + [
-        "qemu/target-i386",
+    hdrs_check = "strict",
+    includes = [
+        "qemu/target/i386",
         "qemu/x86_64-softmmu",
-        "qemu/tcg/i386",
     ],
     deps = [
+        "unicorn_qemu_backend_target",
         "unicorn_qemu_common",
+        "unicorn_qemu_i386_frontend_headers",
     ],
 )
 
+UNICORN_LIB_SRCS = [
+    "uc.c",
+    "qemu/hw/core/cpu.c",
+    "qemu/softmmu/vl.c",
+]
+
+UNICORN_LIB_HEADERS = glob([
+    "qemu/target/*/unicorn.h",
+])
+
+UNICORN_LIB_COPTS = UNICORN_COPTS + [
+    "-Wno-unused-variable",
+]
+
+# It should be straight forward to add support for ppc, riscv, s390x, and tricore.
+# There is currently no use case, however.
 cc_library(
     name = "unicorn",
     srcs = [
-        "list.c",
         "include/list.h",
-        "uc.c",
-    ] + glob([
-        "qemu/target-*/unicorn.h",
-    ]),
+    ] + UNICORN_LIB_SRCS + UNICORN_LIB_HEADERS,
     hdrs = [":unicorn-headers"],
     include_prefix = "third_party",
     strip_include_prefix = "include",
+    copts = UNICORN_LIB_COPTS + [
+        "-DUNICORN_HAS_ARM64",
+        "-DUNICORN_HAS_X86",
+    ],
     defines = [
         BUILD_VARIANT_FULL,
     ],
-    copts = DEFAULT_COPTS + [
-        "-UUNICORN_HAS_ARM",
-        "-UUNICORN_HAS_ARMEB",
-        "-UUNICORN_HAS_M68K",
-        "-UUNICORN_HAS_MIPS",
-        "-UUNICORN_HAS_MIPS64",
-        "-UUNICORN_HAS_MIPS64EL",
-        "-UUNICORN_HAS_MIPSEL",
-        "-UUNICORN_HAS_SPARC",
-    ],
-    includes = unicorn_includes,
     deps = [
         ":unicorn_qemu_aarch64",
-        ":unicorn_qemu_aarch64eb",
         ":unicorn_qemu_x86_64",
     ],
 )
 
 cc_library(
     name = "unicorn_arm64",
-    srcs = [
-        "list.c",
-        "include/list.h",
-        "uc.c",
-    ] + glob([
-        "qemu/target-*/unicorn.h",
-        "qemu/aarch64-softmmu/config-target.h",
-    ]),
+    srcs = UNICORN_LIB_SRCS + UNICORN_LIB_HEADERS,
     hdrs = [":unicorn-headers"],
     include_prefix = "third_party",
     strip_include_prefix = "include",
-    copts = DEFAULT_COPTS + [
-        "-UUNICORN_HAS_ARM",
-        "-UUNICORN_HAS_ARMEB",
-        "-UUNICORN_HAS_M68K",
-        "-UUNICORN_HAS_MIPS",
-        "-UUNICORN_HAS_MIPS64",
-        "-UUNICORN_HAS_MIPS64EL",
-        "-UUNICORN_HAS_MIPSEL",
-        "-UUNICORN_HAS_SPARC",
-        "-UUNICORN_HAS_X86",
+    copts = UNICORN_LIB_COPTS + [
+        "-DUNICORN_HAS_ARM64",
     ],
     defines = [
-        BUILD_VARIANT_ARM,
+        BUILD_VARIANT_ARM64,
     ],
-    includes = unicorn_includes,
     deps = [
         ":unicorn_qemu_aarch64",
-        ":unicorn_qemu_aarch64eb",
     ],
 )
 
 cc_library(
     name = "unicorn_x86",
-    srcs = [
-        "list.c",
-        "include/list.h",
-        "uc.c",
-    ] + glob([
-        "qemu/target-*/unicorn.h",
-    ]),
+    srcs = UNICORN_LIB_SRCS + UNICORN_LIB_HEADERS,
     hdrs = [":unicorn-headers"],
     include_prefix = "third_party",
     strip_include_prefix = "include",
-    copts = DEFAULT_COPTS + [
-        "-UUNICORN_HAS_ARM",
-        "-UUNICORN_HAS_ARM64",
-        "-UUNICORN_HAS_ARMEB",
-        "-UUNICORN_HAS_M68K",
-        "-UUNICORN_HAS_MIPS",
-        "-UUNICORN_HAS_MIPS64",
-        "-UUNICORN_HAS_MIPS64EL",
-        "-UUNICORN_HAS_MIPSEL",
-        "-UUNICORN_HAS_SPARC",
+    copts = UNICORN_LIB_COPTS + [
+        "-DUNICORN_HAS_X86",
     ],
     defines = [
         BUILD_VARIANT_X86,
     ],
-    includes = unicorn_includes,
     deps = [
         ":unicorn_qemu_x86_64",
     ],
@@ -506,12 +366,49 @@ genrule(
   outs = ["qemu/config-host.h"],
   cmd = """cat - > $@ <<'EOF'
 /* Automatically generated by create_config - do not modify */
+#define CONFIG_QEMU_CONFDIR "/usr/local/etc/qemu"
+#define CONFIG_QEMU_LOCALSTATEDIR "/usr/local/var"
+#define CONFIG_QEMU_HELPERDIR "/usr/local/libexec"
+#define CONFIG_QEMU_LOCALEDIR "/locale"
 #define HOST_X86_64 1
 #define CONFIG_POSIX 1
 #define CONFIG_LINUX 1
+#define QEMU_VERSION "5.0.1"
+#define QEMU_VERSION_MAJOR 5
+#define QEMU_VERSION_MINOR 0
+#define QEMU_VERSION_MICRO 1
+#define CONFIG_SYNC_FILE_RANGE 1
+#define CONFIG_DUP3 1
+#define CONFIG_PRCTL_PR_SET_TIMERSLACK 1
+#define CONFIG_EPOLL 1
+#define CONFIG_CLOCK_ADJTIME 1
+#define CONFIG_SYNCFS 1
+#define CONFIG_SEM_TIMEDWAIT 1
+#define HAVE_STRCHRNUL 1
+#define HAVE_STRUCT_STAT_ST_ATIM 1
 #define CONFIG_BYTESWAP_H 1
+#define CONFIG_SIGNALFD 1
+#define CONFIG_TCG 1
+#define CONFIG_MADVISE 1
+#define CONFIG_POSIX_MADVISE 1
+#define CONFIG_POSIX_MEMALIGN 1
+#define CONFIG_MALLOC_TRIM 1
+#define CONFIG_OPEN_BY_HANDLE 1
+#define CONFIG_LINUX_MAGIC_H 1
+#define CONFIG_PRAGMA_DIAGNOSTIC_AVAILABLE 1
+#define CONFIG_HAS_ENVIRON 1
 #define CONFIG_CPUID_H 1
 #define CONFIG_INT128 1
+#define CONFIG_CMPXCHG128 1
+#define CONFIG_ATTRIBUTE_ALIAS 1
+#define CONFIG_GETAUXVAL 1
+#define CONFIG_SYSMACROS 1
+#define CONFIG_STATIC_ASSERT 1
+#define HAVE_UTMPX 1
+#define CONFIG_GETRANDOM 1
+#define CONFIG_THREAD_SETNAME_BYTHREAD 1
+#define CONFIG_PTHREAD_SETNAME_NP_W_TID 1
+#define HOST_DSOSUF ".so"
 EOF""")
 
 genrule(
@@ -522,7 +419,9 @@ genrule(
 #define TARGET_X86_64 1
 #define TARGET_NAME "x86_64"
 #define TARGET_I386 1
+#define TARGET_SYSTBL_ABI common, 64
 #define CONFIG_SOFTMMU 1
+#define TARGET_SUPPORTS_MTTCG 1
 EOF""")
 
 genrule(
@@ -533,17 +432,7 @@ genrule(
 #define TARGET_AARCH64 1
 #define TARGET_NAME "aarch64"
 #define TARGET_ARM 1
+#define TARGET_SYSTBL_ABI common, oabi
 #define CONFIG_SOFTMMU 1
-EOF""")
-
-genrule(
-  name = "gen_qemu_aarch64eb_config_target_h",
-  outs = ["qemu/aarch64eb-softmmu/config-target.h"],
-  cmd = """cat - > $@ <<'EOF'
-/* Automatically generated by create_config - do not modify */
-#define TARGET_AARCH64 1
-#define TARGET_NAME "aarch64eb"
-#define TARGET_ARM 1
-#define TARGET_WORDS_BIGENDIAN 1
-#define CONFIG_SOFTMMU 1
+#define TARGET_SUPPORTS_MTTCG 1
 EOF""")
