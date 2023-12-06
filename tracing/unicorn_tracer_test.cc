@@ -137,19 +137,12 @@ void ZeroOutUnimplementedRegs(UContext<Arch>& ucontext);
 
 template <>
 void ZeroOutUnimplementedRegs<X86_64>(UContext<X86_64>& ucontext) {
-  ucontext.fpregs.fcw = 0;
-  ucontext.fpregs.fsw = 0;
   ucontext.fpregs.ftw = 0;
-  ucontext.fpregs.fop = 0;
-  ucontext.fpregs.rip = 0;
-  ucontext.fpregs.rdp = 0;
   ucontext.fpregs.mxcsr_mask = 0;
 }
 
 template <>
 void ZeroOutUnimplementedRegs<AArch64>(UContext<AArch64>& ucontext) {
-  ucontext.fpregs.fpcr = 0;
-  ucontext.fpregs.fpsr = 0;
 }
 
 // Not ever reg can accept arbitrary bit patterns, fix up the randomized values
@@ -179,6 +172,14 @@ template <>
 void FixupRandomRegs<AArch64>(UContext<AArch64>& ucontext) {
   // Only NZCV supported
   ucontext.gregs.pstate &= 0xf0000000;
+
+  // Bits 31-28 of FPSR are saved and restored by Unicorn, but they are
+  // technically RES0 on aarch64, so we ignore them in this test.
+  ucontext.fpregs.fpsr &= 0x0800009f;
+
+  // Bit 14 of FPCR is saved and restored, even though it should be RES0. We
+  // ignore it for the test.
+  ucontext.fpregs.fpcr &= 0x07bf0000;
 }
 
 template <typename Arch>

@@ -34,7 +34,7 @@ namespace silifuzz {
 
 namespace {
 
-const size_t kNumUnicornX86_64Reg = 51;
+const size_t kNumUnicornX86_64Reg = 56;
 
 const int kUnicornX86_64RegNames[] = {
     // GP Reg
@@ -69,7 +69,17 @@ const int kUnicornX86_64RegNames[] = {
     UC_X86_REG_GS_BASE,
 
     // FP Reg
-    // missing: fcw, fsw, ftw, fop, rip, rdp
+    UC_X86_REG_FPCW,
+    UC_X86_REG_FPSW,
+
+    // missing: ftw
+    // Unicorn technically has UC_X86_REG_FPTAG, but this is a 16-bit value.
+    // FTW from fxsave is an abridged 8-bit version. Skipping for now.
+    // TODO(ncbray): pack/unpack abridged tag word.
+
+    UC_X86_REG_FOP,
+    UC_X86_REG_FIP,
+    UC_X86_REG_FDP,
 
     UC_X86_REG_MXCSR,
 
@@ -141,6 +151,13 @@ std::array<const void *, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
       &gregs.gs_base,
 
       // FP Reg
+      &fpregs.fcw,
+      &fpregs.fsw,
+
+      &fpregs.fop,
+      &fpregs.rip,
+      &fpregs.rdp,
+
       &fpregs.mxcsr,
 
       &fpregs.st[0],
