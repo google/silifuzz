@@ -22,7 +22,7 @@
 
 namespace silifuzz {
 
-// Error codes for corpus relocation operaion.
+// Error codes for corpus relocation operation.
 enum class [[nodiscard]] SnapRelocatorError {
   kOk = 0,       // No error.
   kEmptyCorpus,  // Cannot relocate an empty corpus.
