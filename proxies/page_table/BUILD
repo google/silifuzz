@@ -123,7 +123,6 @@ cc_library(
         ":page_table_entry_util",
         ":physical_address",
         ":virtual_address",
-        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@com_google_absl//absl/status:statusor",
     ],
@@ -176,7 +175,6 @@ cc_test(
         "@silifuzz//common:snapshot",
         "@silifuzz//util:arch",
         "@com_google_absl//absl/cleanup",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
