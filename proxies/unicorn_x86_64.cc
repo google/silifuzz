@@ -166,7 +166,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  const size_t max_inst_executed = 100;
+  const size_t max_inst_executed = 1000;
   absl::Status status = silifuzz::RunInstructions(
       absl::string_view(reinterpret_cast<const char *>(data), size),
       silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::X86_64>, max_inst_executed);
