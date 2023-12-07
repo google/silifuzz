@@ -18,19 +18,15 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/base/casts.h"
 #include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
-#include "./proxies/page_table/page_table_entry_util.h"
-#include "./proxies/page_table/physical_address.h"
-#include "./proxies/page_table/virtual_address.h"
+#include "./proxies/page_table/page_table_test_util.h"
 #include "./util/arch.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
@@ -48,46 +44,15 @@ class PageTableCreatorTest : public ::testing::Test {
   // a physical address. Checks that this result matches the provided
   // `physical_addr`. Also checks that `writeable` and `executable` are set
   // properly as it traverses the page table levels.
-  static void TranslateVirtualAddress(uint64_t *page_table_addr,
-                                      uint64_t virtual_addr,
-                                      uint64_t physical_addr, bool writeable,
-                                      bool executable) {
-    VirtualAddress va(virtual_addr);
-    PhysicalAddress next_table_pa;
-
-    uint64_t *l0_entry_addr = page_table_addr + va.table_index_l0();
-
+  static void CheckTranslatedVirtualAddress(uint64_t *page_table_addr,
+                                            uint64_t virtual_addr,
+                                            uint64_t physical_addr,
+                                            bool writeable, bool executable) {
     ASSERT_OK_AND_ASSIGN(
-        uint64_t l1_table_addr,
-        CheckTableDescriptor<arch>(*l0_entry_addr, writeable, executable));
-    next_table_pa.set_physical_address_msbs(l1_table_addr);
-    uint64_t *l1_entry_addr =
-        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
-        va.table_index_l1();
-
-    ASSERT_OK_AND_ASSIGN(
-        uint64_t l2_table_addr,
-        CheckTableDescriptor<arch>(*l1_entry_addr, writeable, executable));
-    next_table_pa.set_physical_address_msbs(l2_table_addr);
-    uint64_t *l2_entry_addr =
-        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
-        va.table_index_l2();
-
-    ASSERT_OK_AND_ASSIGN(
-        uint64_t l3_table_addr,
-        CheckTableDescriptor<arch>(*l2_entry_addr, writeable, executable));
-    next_table_pa.set_physical_address_msbs(l3_table_addr);
-    uint64_t *l3_entry_addr =
-        reinterpret_cast<uint64_t *>(next_table_pa.GetEncodedValue()) +
-        va.table_index_l3();
-
-    ASSERT_OK_AND_ASSIGN(
-        uint64_t output_addr,
-        CheckPageDescriptor<arch>(*l3_entry_addr, writeable, executable));
-    PhysicalAddress translated_pa;
-    translated_pa.set_physical_address_lsbs(va.physical_address_lsbs());
-    translated_pa.set_physical_address_msbs(output_addr);
-    EXPECT_EQ(physical_addr, translated_pa.GetEncodedValue());
+        uint64_t translated_physical_addr,
+        TranslateVirtualAddress<arch>(page_table_addr, virtual_addr, writeable,
+                                      executable));
+    EXPECT_EQ(physical_addr, translated_physical_addr);
   }
 };
 
@@ -296,16 +261,16 @@ TYPED_TEST_P(PageTableCreatorTest, MakeMappings) {
 
   // Check that the two mappings were setup properly by translating different
   // addresses.
-  ASSERT_NO_FATAL_FAILURE(
-      this->TranslateVirtualAddress(page_table, kVirtualAddr1, kPhysicalAddr1,
-                                    /*writeable=*/false, /*executable=*/true));
-  ASSERT_NO_FATAL_FAILURE(this->TranslateVirtualAddress(
+  ASSERT_NO_FATAL_FAILURE(this->CheckTranslatedVirtualAddress(
+      page_table, kVirtualAddr1, kPhysicalAddr1,
+      /*writeable=*/false, /*executable=*/true));
+  ASSERT_NO_FATAL_FAILURE(this->CheckTranslatedVirtualAddress(
       page_table, kVirtualAddr1 + 0x2222, kPhysicalAddr1 + 0x2222,
       /*writeable=*/false, /*executable=*/true));
-  ASSERT_NO_FATAL_FAILURE(
-      this->TranslateVirtualAddress(page_table, kVirtualAddr2, kPhysicalAddr2,
-                                    /*writeable=*/true, /*executable=*/false));
-  ASSERT_NO_FATAL_FAILURE(this->TranslateVirtualAddress(
+  ASSERT_NO_FATAL_FAILURE(this->CheckTranslatedVirtualAddress(
+      page_table, kVirtualAddr2, kPhysicalAddr2,
+      /*writeable=*/true, /*executable=*/false));
+  ASSERT_NO_FATAL_FAILURE(this->CheckTranslatedVirtualAddress(
       page_table, kVirtualAddr2 + 0xFFF, kPhysicalAddr2 + 0xFFF,
       /*writeable=*/true, /*executable=*/false));
 }

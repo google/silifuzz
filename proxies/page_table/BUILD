@@ -115,15 +115,27 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "page_table_test_util",
+    testonly = True,
+    hdrs = ["page_table_test_util.h"],
+    deps = [
+        ":page_table_entry_util",
+        ":physical_address",
+        ":virtual_address",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
 cc_test(
     name = "page_table_creator_test",
     size = "small",
     srcs = ["page_table_creator_test.cc"],
     deps = [
         ":page_table_creator",
-        ":page_table_entry_util",
-        ":physical_address",
-        ":virtual_address",
+        ":page_table_test_util",
         "@silifuzz//common:memory_mapping",
         "@silifuzz//common:memory_perms",
         "@silifuzz//util:arch",
@@ -131,6 +143,39 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "memory_state_image",
+    srcs = ["memory_state_image.cc"],
+    hdrs = ["memory_state_image.h"],
+    deps = [
+        ":page_table_creator",
+        "@silifuzz//common:mapped_memory_map",
+        "@silifuzz//common:memory_mapping",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:memory_state",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+    ],
+)
+
+cc_test(
+    name = "memory_state_image_test",
+    srcs = ["memory_state_image_test.cc"],
+    deps = [
+        ":memory_state_image",
+        ":page_table_test_util",
+        "@silifuzz//common:memory_mapping",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:memory_state",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//util:arch",
+        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
