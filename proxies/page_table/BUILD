@@ -174,6 +174,7 @@ cc_test(
         "@silifuzz//common:memory_state",
         "@silifuzz//common:snapshot",
         "@silifuzz//util:arch",
+        "@silifuzz//util/testing:status_macros",
         "@com_google_absl//absl/cleanup",
         "@com_google_googletest//:gtest_main",
     ],

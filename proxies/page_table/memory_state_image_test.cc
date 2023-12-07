@@ -28,6 +28,7 @@
 #include "./common/snapshot.h"
 #include "./proxies/page_table/page_table_test_util.h"
 #include "./util/arch.h"
+#include "./util/testing/status_macros.h"
 
 namespace silifuzz::proxies {
 
