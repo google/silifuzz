@@ -46,10 +46,17 @@ void DumpProgram(const Program &program) {
 
 constexpr const bool kPrintData = false;
 
-void RoundtripTest(const std::vector<uint8_t> &data) {
+void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
+  MutatorRng rng(seed);
+
   // Decode the random data.
   if (kPrintData) printf("from\n");
   Program program1(data, false);
+  if (kPrintData) DumpProgram(program1);
+
+  // Re-encode the instructions with fixed-up displacements.
+  if (kPrintData) printf("rewrite\n");
+  program1.FixupEncodedDisplacements(rng);
   if (kPrintData) DumpProgram(program1);
 
   // Regenerate the bytes from the parsed, re-encoded instructions.
@@ -66,6 +73,11 @@ void RoundtripTest(const std::vector<uint8_t> &data) {
   Program program2(first.data(), first.size(), true);
   if (kPrintData) DumpProgram(program2);
 
+  // This should be a no-op.
+  if (kPrintData) printf("rewrite\n");
+  ASSERT_FALSE(program2.FixupEncodedDisplacements(rng));
+  if (kPrintData) DumpProgram(program2);
+
   // The second round trip should not modify anything.
   if (kPrintData) printf("to\n");
   std::vector<uint8_t> second;
@@ -75,7 +87,7 @@ void RoundtripTest(const std::vector<uint8_t> &data) {
 }
 
 FUZZ_TEST(FuzzProgramMutator, RoundtripTest)
-    .WithDomains(Arbitrary<std::vector<uint8_t>>());
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
 
 }  // namespace
 

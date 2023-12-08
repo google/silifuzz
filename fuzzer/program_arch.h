@@ -40,6 +40,13 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
                           Instruction& instruction,
                           bool must_decode_everything = false);
 
+// Attempt to reencode the instruction bytes with the byte displacements implied
+// by the instruction boundaries.
+// This will not always succeed because some instructions do not allocate enough
+// bits to encode every displacement. For example, some x86_64 branches can only
+// encode signed, 8-bit displacements.
+bool TryToReencodeInstructionDisplacements(Instruction& insn);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_ARCH_H_
