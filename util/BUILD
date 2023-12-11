@@ -139,7 +139,6 @@ cc_library_plus_nolibc(
     name = "checks",
     srcs = [
         "checks.cc",
-        "vlog_is_on.h",
     ],
     hdrs = ["checks.h"],
     as_is_deps = [

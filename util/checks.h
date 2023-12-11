@@ -111,8 +111,6 @@
 // VLOG_IS_ON() is for explicit VLOG() level testing.
 #if defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 #define VLOG_IS_ON(level) ((level) <= ::silifuzz::checks_internal::vlog_level)
-#else
-#include "./util/vlog_is_on.h"
 #endif
 #define VLOG_INFO(level, ...) LOG_INFO_IF(VLOG_IS_ON(level), __VA_ARGS__)
 
@@ -152,7 +150,13 @@
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
-// absl/log/log.h will provide CHECK*, DCHECK*, and DEBUG_MODE.
+// absl/log/log.h will provide CHECK*, DCHECK*.
+// Also provide DEBUG_MODE.
+#ifndef NDEBUG
+const bool DEBUG_MODE = true;
+#else   // defined(NDEBUG)
+const bool DEBUG_MODE = false;
+#endif  // defined(NDEBUG)
 
 #else  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 

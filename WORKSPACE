@@ -50,9 +50,9 @@ py_repositories()
 
 http_archive(
     name = "com_google_absl",
-    sha256 = "f17ba8d569af3ebf649cbce80d089fed35e046a44f40e0714b6bd6fe83d82738",
-    strip_prefix = "abseil-cpp-db08109eeb15fcd856761557f1668c2b34690036",
-    url = "https://github.com/abseil/abseil-cpp/archive/db08109eeb15fcd856761557f1668c2b34690036.tar.gz",
+    sha256 = "0ddd37f347c58d89f449dd189a645bfd97bcd85c5284404a3af27a3ca3476f39",
+    strip_prefix = "abseil-cpp-fad946221cec37175e762c399760f54b9de9a9fa",
+    url = "https://github.com/abseil/abseil-cpp/archive/fad946221cec37175e762c399760f54b9de9a9fa.tar.gz",
 )
 
 ###############################################################################
@@ -61,9 +61,9 @@ http_archive(
 
 http_archive(
     name = "com_google_googletest",
-    sha256 = "8ad598c73ad796e0d8280b082cebd82a630d73e73cd3c70057938a6501bba5d7",
-    strip_prefix = "googletest-1.14.0",
-    url = "https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz",
+    sha256 = "2ebedb9330ff0e7e07abd77df9bd8c62692016a8138a4722f5259e7f657c89c1",
+    strip_prefix = "googletest-b3a9ba2b8e975550799838332803d468797ae2e1",
+    url = "https://github.com/google/googletest/archive/b3a9ba2b8e975550799838332803d468797ae2e1.tar.gz",
 )
 
 ###############################################################################
