@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "fuzztest/fuzztest.h"
 #include "./fuzzer/program.h"
+#include "./fuzzer/program_mutation_ops.h"
 
 using ::fuzztest::Arbitrary;
 
@@ -86,7 +87,86 @@ void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
   ASSERT_EQ(first, second);
 }
 
+void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
+  MutatorRng rng(seed);
+
+  Program program(data, false);
+
+  // Do a mixture of mutation operations so that we have a decently-sized
+  // program.
+  for (size_t i = 0; i < 2000; ++i) {
+    InsertRandomInstruction(rng, program);
+  }
+
+  for (size_t i = 0; i < 1000; ++i) {
+    MutateRandomInstruction(rng, program);
+  }
+
+  for (size_t i = 0; i < 200; ++i) {
+    RemoveRandomInstruction(rng, program);
+  }
+
+  program.CheckConsistency();
+
+  program.FixupEncodedDisplacements(rng);
+
+  std::vector<uint8_t> first;
+  program.ToBytes(first);
+
+  Program reparse(first, true);
+  EXPECT_EQ(program.NumInstructions(), reparse.NumInstructions());
+
+  // Nothing to fixup.
+  EXPECT_FALSE(reparse.FixupEncodedDisplacements(rng));
+
+  // Make sure the generated program can roundtrip.
+  std::vector<uint8_t> second;
+  reparse.ToBytes(second);
+  EXPECT_EQ(first, second);
+}
+
+void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
+  MutatorRng rng(seed);
+
+  Program program(data, false);
+
+  // Generate a random program.
+  for (size_t i = 0; i < 1000; ++i) {
+    InsertRandomInstruction(rng, program);
+  }
+
+  // This should canonicalize most branches.
+  program.FixupEncodedDisplacements(rng);
+
+  size_t max_len = rng() % 200;
+
+  // The program will always be too large.
+  EXPECT_GT(program.ByteLen(), max_len);
+  EXPECT_TRUE(LimitProgramLength(rng, program, max_len));
+  program.FixupEncodedDisplacements(rng);
+
+  std::vector<uint8_t> limited;
+  program.ToBytes(limited);
+
+  // The program is under the limit.
+  EXPECT_LE(limited.size(), max_len);
+
+  // The program is one instruction or less under the limit.
+  // Note: this test is a little shaky because re-canonicalization after
+  // limiting the length could drop the size more than expected.
+  // However, since the instructions are purely random the first fixup should
+  // canonicalize most of the instructions. It is also unlikely that the last
+  // instruction removed was the maximum possible size for an instruction.
+  EXPECT_GT(limited.size() + 15, max_len);
+}
+
 FUZZ_TEST(FuzzProgramMutator, RoundtripTest)
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
+
+FUZZ_TEST(FuzzProgramMutator, MutationTest)
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
+
+FUZZ_TEST(FuzzProgramMutator, MaxLenTest)
     .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
 
 }  // namespace

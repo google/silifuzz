@@ -156,9 +156,15 @@ class Program {
   Program(Program&& other) = default;
   Program& operator=(Program&& other) = default;
 
+  // Note that GetInstruction returns a const reference. This is so the state of
+  // Program cannot be modified without going through a method that maintains
+  // internal invariants like SetInstruction.
   const Instruction& GetInstruction(size_t index) const {
     return instructions_[index];
   }
+
+  // Overwrite the instruction at `index` with `insn`.
+  void SetInstruction(size_t index, const Instruction& insn);
 
   size_t NumInstructions() const { return instructions_.size(); }
 

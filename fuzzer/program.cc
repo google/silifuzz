@@ -244,6 +244,21 @@ Program::Program(const uint8_t* bytes, size_t len, bool strict)
   FixupInvariants();
 }
 
+void Program::SetInstruction(size_t index, const Instruction& insn) {
+  CHECK_LT(index, NumInstructions());
+  // Keep the size in sync.
+  byte_len_ -= instructions_[index].encoded.size();
+  byte_len_ += insn.encoded.size();
+
+  // Copy the instruction.
+  instructions_[index] = insn;
+
+  // Displacements may require fixup.
+  // Instruction size may have changed or the instruction itself may have
+  // displacements that need to be re-encoded.
+  encodings_may_be_invalid = true;
+}
+
 void Program::AdjustInstructionIndexes(size_t boundary, int64_t amount) {
   // When we do a stealing insert at the end of the program, we don't want
   // any of the instruction indexes to change. To support this we accept a

@@ -20,11 +20,15 @@ cc_library(
     name = "program_mutator",
     srcs = [
         "program.cc",
+        "program_mutation_ops.cc",
+        "program_mutator.cc",
         "program_x86_64.cc",
     ],
     hdrs = [
         "program.h",
         "program_arch.h",
+        "program_mutation_ops.h",
+        "program_mutator.h",
     ],
     deps = [
         "@silifuzz//instruction:xed_util",
@@ -50,5 +54,25 @@ cc_test(
         ":program_mutator",
         "@com_google_fuzztest//fuzztest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "silifuzz_centipede",
+    srcs = [
+        "silifuzz_centipede_main.cc",
+    ],
+    deps = [
+        ":program_mutator",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_fuzztest//centipede:centipede_callbacks",
+        "@com_google_fuzztest//centipede:centipede_default_callbacks",
+        "@com_google_fuzztest//centipede:centipede_interface",
+        "@com_google_fuzztest//centipede:config_file",
+        "@com_google_fuzztest//centipede:defs",
+        "@com_google_fuzztest//centipede:environment",
+        "@com_google_fuzztest//centipede:environment_flags",
+        "@com_google_fuzztest//centipede:mutation_input",
+        "@com_google_fuzztest//centipede:util",
     ],
 )

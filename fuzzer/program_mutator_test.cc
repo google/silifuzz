@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_arch.h"
+#include "./fuzzer/program_mutation_ops.h"
 
 namespace silifuzz {
 
@@ -101,6 +102,49 @@ TEST(MutatorUtil, RandomInstructionBoundaryEmpty) {
 
   EXPECT_EQ(min, 0);
   EXPECT_EQ(max, p.NumInstructionBoundaries() - 1);
+}
+
+TEST(MutatorUtil, FlipBit) {
+  uint64_t buffer;
+  for (size_t i = 0; i < sizeof(buffer) * 8; ++i) {
+    buffer = 0ULL;
+
+    // Flip on.
+    FlipBit(reinterpret_cast<uint8_t*>(&buffer), i);
+    EXPECT_EQ(buffer, 1ULL << i);
+
+    // Flip off.
+    FlipBit(reinterpret_cast<uint8_t*>(&buffer), i);
+    EXPECT_EQ(buffer, 0ULL);
+
+    // Show it works fine with other non-zero bits.
+    buffer = ~0ULL;
+
+    // Flip off.
+    FlipBit(reinterpret_cast<uint8_t*>(&buffer), i);
+    EXPECT_EQ(buffer, ~(1ULL << i));
+
+    // Flip on.
+    FlipBit(reinterpret_cast<uint8_t*>(&buffer), i);
+    EXPECT_EQ(buffer, ~0ULL);
+  }
+}
+
+TEST(MutatorUtil, FlipRandomBit) {
+  // Fixed seed for deterministic test.
+  MutatorRng rng(0);
+
+  for (size_t range = 1; range <= 4; range++) {
+    uint64_t all_bits = 0;
+    for (size_t i = 0; i < 10000; ++i) {
+      uint64_t buffer = 0;
+      // Only flip bits in the lower `range` bytes.
+      FlipRandomBit(rng, reinterpret_cast<uint8_t*>(&buffer), range);
+      all_bits |= buffer;
+    }
+    // Did we flip every bit in the target bytes?
+    EXPECT_EQ(all_bits, (1ULL << (range * 8)) - 1) << range;
+  }
 }
 
 TEST(InstructionFromBytes_X86_64, Copy) {
