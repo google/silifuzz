@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+#include <ios>
 #include <string>
 #include <vector>
 
@@ -203,6 +204,37 @@ TEST(StaticInsnFilter, DataPAC) {
 
   // paciza    x17
   EXPECT_AARCH64_FILTER_REJECT({0xdac123f1});
+}
+
+TEST(StaticInsnFilter, LoadStoreBanned) {
+  InstructionFilterConfig<AArch64> banned =
+      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
+  banned.load_store_instructions_allowed = false;
+  banned.sve_instructions_allowed = true;
+  InstructionFilterConfig<AArch64> with_sve =
+      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
+  with_sve.sve_instructions_allowed = true;
+  std::vector<uint32_t> load_store_instructions = {
+      0x0c0064df,  // st1 {v31.4h, v0.4h, v1.4h}, [x6]
+      0xc8a0fcd8,  // stlxr w10, x24, [x6]
+      0xb82560e1,  // ldumax   w5, w1, [x7]
+      0x4d4000d4,  // ld1    {v20.b}[8], [x6]
+      0xa5e0a000,  // ld1d   z0.d, p0/z, [x0]
+      0xe0355545   // st1b    {za0h.b[w14, 5]}, p5, [x10, x21]
+  };
+  for (uint32_t instruction : load_store_instructions) {
+    EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({instruction}, with_sve)
+        << std::hex << instruction
+        << " must be accepted if loads are not banned";
+    EXPECT_AARCH64_FILTER_REJECT_CONFIG({instruction}, banned)
+        << std::hex << instruction;
+  }
+
+  // Test a few non-load-store insns.
+  // fnmadd    s4, s20, s8, s22
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x1f285a84}, banned);
+  // br       x3
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xd61f0060}, banned);
 }
 
 TEST(StaticInsnFilter, LoadStore) {

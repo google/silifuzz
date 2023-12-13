@@ -37,12 +37,14 @@ static constexpr InstructionFilterConfig<X86_64>
 template <>
 struct InstructionFilterConfig<AArch64> {
   bool sve_instructions_allowed;
+  bool load_store_instructions_allowed;
 };
 
 template <>
 static constexpr InstructionFilterConfig<AArch64>
     DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64> = {
         .sve_instructions_allowed = false,
+        .load_store_instructions_allowed = true,
 };
 
 // Accept or reject this instruction sequence using simple static analysis.
