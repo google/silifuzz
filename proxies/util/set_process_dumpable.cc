@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#include "./proxies/util/set_process_dumpable.h"
 
 #include <sys/prctl.h>
 #include <sys/resource.h>

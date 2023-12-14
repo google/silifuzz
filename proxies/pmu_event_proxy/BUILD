@@ -227,6 +227,7 @@ cc_binary(
         ":perf_event_fuzzer",
         ":pmu_events",
         "@silifuzz//proxies:user_features",
+        "@silifuzz//proxies/util:set_process_dumpable",
         "@silifuzz//util:checks",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
