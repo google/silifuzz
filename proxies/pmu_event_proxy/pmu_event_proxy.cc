@@ -22,7 +22,6 @@
 #include <sys/resource.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -40,6 +39,7 @@
 #include "./proxies/pmu_event_proxy/perf_event_fuzzer.h"
 #include "./proxies/pmu_event_proxy/pmu_events.h"
 #include "./proxies/user_features.h"
+#include "./proxies/util/set_process_dumpable.h"
 #include "./util/checks.h"
 #include "external/libpfm4/include/perfmon/pfmlib.h"
 #include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
@@ -137,25 +137,9 @@ absl::Status PMUEventProxyInitialize(int *argc, char ***argv) {
         absl::StrCat("Failed to initialize libpfm: ", pfm_strerror(init_err)));
   }
 
-  // This is linked with the centipede runner, which uses PR_SET_DUMPABLE to
-  // disable core dumps. Unfortunately that also makes most of /proc/self to be
-  // owned by root and generally inaccessible. That breaks the snap maker as
-  // passing mem file paths /proc/XX/fd/YY will not work. Here we undo the
-  // PR_SET_DUMPALBE and limits core dump size to be 0 instead. It is better
-  // to generate empty core files than to have snap maker not working.
-  // In theory, this can still be a problem if for some reason, the proxy
-  // crashes extremely frequently such that too many core files can pose a
-  // problem.  Empirically this has not be observed in a limited-time test run.
-  // Core dumping is rare.
-  if (prctl(PR_SET_DUMPABLE, 1 /* SUID_DUMP_USER */) != 0) {
-    return absl::ErrnoToStatus(errno, "prctl(PR_SET_DUMPABLE) failed");
-  }
-  struct rlimit core_rlimit {
-    .rlim_cur = 0, .rlim_max = 0,
-  };
-  if (setrlimit(RLIMIT_CORE, &core_rlimit) != 0) {
-    return absl::ErrnoToStatus(errno, "setrlimit(RLIMIT_CORE) failed");
-  }
+  // Revert dumpable setting for snap maker to work.
+  // See comments in set_process_dumpable.h for details.
+  RETURN_IF_NOT_OK(proxies::SetProcessDumpable());
 
   // Get PMU perf events.
   // TODO(dougkwan): Instead of calling GetUniqueCPUCorePMUEvents(), use a
