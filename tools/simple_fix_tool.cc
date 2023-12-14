@@ -40,6 +40,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "external/com_google_fuzztest/centipede/blob_file.h"
+#include "external/com_google_fuzztest/centipede/defs.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"
@@ -163,7 +164,7 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
 
     // TODO(dougkwan): Parallelize this to speed up blob reading.
     absl::Status status;
-    absl::Span<const uint8_t> blob;
+    centipede::ByteSpan blob;
     while ((status = reader->Read(blob)).ok()) {
       const std::string id = InstructionsToSnapshotId(
           {reinterpret_cast<const char*>(blob.data()), blob.size()});
