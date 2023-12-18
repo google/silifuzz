@@ -153,11 +153,21 @@ bool RewriteInitialState(Snapshot& snapshot, FixToolCounters* counters) {
                        snapshot, counters);
 }
 
+std::string SnapshotOrigin(const Snapshot& input) {
+  if (input.metadata().origin() == Snapshot::Metadata::Origin::kUseString) {
+    return std::string(input.metadata().origin_string());
+  }
+  return std::string(EnumStr(input.metadata().origin()));
+}
+
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
                                        const FixupSnapshotOptions& options,
                                        PlatformFixToolCounters* counters) {
   absl::StatusOr<Snapshot> remade_snapshot_or = RemakeAndVerify(input, options);
   if (!remade_snapshot_or.ok()) {
+    counters->IncCounter("ERROR-Make-",
+                         absl::StrCat(SnapshotOrigin(input), ":",
+                                      remade_snapshot_or.status().message()));
     counters->IncCounter("ERROR-Make:", remade_snapshot_or.status().message());
     return remade_snapshot_or.status();
   }

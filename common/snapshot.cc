@@ -33,19 +33,23 @@
 #include "absl/strings/string_view.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/misc_util.h"
 #include "./util/platform.h"
 #include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<Snapshot::Metadata::Origin>[14] = {
-    "kUndefined",  "UNKNOWN(1)",  "kIfuzz",      "kUnicorn",   "UNKNOWN(4)",
-    "kBochs",      "kXed",        "kGem5",       "UNKNOWN(8)", "UNKNOWN(9)",
-    "UNKNOWN(10)", "UNKNOWN(11)", "UNKNOWN(12)", "kUseString",
+    "UNDEFINED_ORIGIN", "UNKNOWN(1)", "IFUZZ",       "UNICORN",
+    "UNKNOWN(4)",       "BOCHS",      "XED",         "GEM5",
+    "UNKNOWN(8)",       "UNKNOWN(9)", "UNKNOWN(10)", "UNKNOWN(11)",
+    "UNKNOWN(12)",      "USE_STRING",
 };
 
 // Descriptor for an architecture for which we support snapshot data.
