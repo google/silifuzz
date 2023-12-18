@@ -165,6 +165,8 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
   InstructionFilterConfig<AArch64> filter_config =
       DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
   filter_config.sve_instructions_allowed = config.sve_instructions_allowed;
+  filter_config.load_store_instructions_allowed =
+      config.load_store_instructions_allowed;
   if (!StaticInstructionFilter<AArch64>(code, filter_config)) {
     return absl::InvalidArgumentError(
         "code snippet contains problematic instructions.");

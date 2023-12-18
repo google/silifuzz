@@ -376,6 +376,7 @@ cc_test(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],

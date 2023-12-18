@@ -18,7 +18,9 @@
 
 #include <string>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/testing/status_macros.h"
@@ -26,6 +28,8 @@
 
 namespace silifuzz {
 namespace {
+
+using silifuzz::testing::StatusIs;
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
   auto config = DEFAULT_FUZZING_CONFIG<X86_64>;
@@ -85,6 +89,44 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Stable) {
   ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));
+}
+
+TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Filter) {
+  // sqdecb    x11, vl8, mul #16
+  std::string sve_insn({0x0b, 0xf9, 0x3f, 0x04});
+  // ldumax   w5, w1, [x7]
+  std::string load_insn({0xe1, 0x60, 0x25, 0xb8});
+  // ld1d   z0.d, p0/z, [x0]
+  std::string load_sve_insn({0x0, 0xa0, 0xe0, 0xa5});
+
+  auto config = DEFAULT_FUZZING_CONFIG<AArch64>;
+  config.sve_instructions_allowed = false;
+  config.load_store_instructions_allowed = false;
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(sve_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_sve_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+
+  config.load_store_instructions_allowed = true;
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(sve_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_OK(InstructionsToSnapshot<AArch64>(load_insn, config));
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_sve_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+
+  config.sve_instructions_allowed = true;
+  EXPECT_OK(InstructionsToSnapshot<AArch64>(sve_insn, config));
+  EXPECT_OK(InstructionsToSnapshot<AArch64>(load_insn, config));
+  EXPECT_OK(InstructionsToSnapshot<AArch64>(load_sve_insn, config));
+
+  config.load_store_instructions_allowed = false;
+  EXPECT_OK(InstructionsToSnapshot<AArch64>(sve_insn, config));
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_sve_insn, config),
+              StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
 }  // namespace

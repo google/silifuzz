@@ -99,6 +99,7 @@ struct FuzzingConfig<AArch64> {
   MemoryRange data1_range;
   MemoryRange data2_range;
   bool sve_instructions_allowed;
+  bool load_store_instructions_allowed;
 };
 
 template <>
@@ -125,6 +126,7 @@ static constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
             .num_bytes = 0x40'0000,  // 4 MB
         },
     .sve_instructions_allowed = false,
+    .load_store_instructions_allowed = true,
 };
 
 // This config is used to accommodate proxies with limited physical memory.
@@ -153,6 +155,7 @@ static constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
                 .num_bytes = 0x4000,  // 16 KB
             },
         .sve_instructions_allowed = false,
+        .load_store_instructions_allowed = true,
 };
 
 }  // namespace silifuzz
