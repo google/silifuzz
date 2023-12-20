@@ -190,7 +190,7 @@ The data can be processed by `simple_fix_tool` or used to seed future fuzzing ru
 This helper tool is to check that the machine you're running on is supported.
 
 ```shell
-$ ${SILIFUZZ_BIN_DIR}/tools/silifuzz_platform_id
+$ ${SILIFUZZ_BIN_DIR}/tools/silifuzz_platform_id --short
 ```
 
 ```
@@ -345,7 +345,7 @@ In this example, the resulting corpus targets the platform it was generated on.
 
 ```shell
 $ cd "${SILIFUZZ_BIN_DIR}"
-$ PLATFORM_ID=$(./tools/silifuzz_platform_id)
+$ PLATFORM_ID=$(./tools/silifuzz_platform_id --short)
 
 $ ./tools/snap_tool generate_corpus /tmp/inc_eax.pb \
 --target_platform="${PLATFORM_ID}" > /tmp/inc_eax.corpus

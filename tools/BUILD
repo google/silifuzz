@@ -71,8 +71,11 @@ cc_binary(
     name = "silifuzz_platform_id",
     srcs = ["silifuzz_platform_id.cc"],
     deps = [
+        "@silifuzz//util:arch",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 

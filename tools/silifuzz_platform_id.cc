@@ -12,20 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdlib>
 #include <iostream>
+#include <vector>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
 
-// A simple binary to output the current platform ID. Used by shell test(s).
-int main() {
-  auto platform_id = silifuzz::CurrentPlatformId();
+// The linter thinks "short" is a type.
+ABSL_FLAG(bool, short, false, "Print only the platform ID.");  // NOLINT
 
-  if (platform_id != silifuzz::PlatformId::kUndefined) {
-    std::cout << silifuzz::EnumStr(platform_id) << std::endl;
+namespace silifuzz {
+
+int ToolMain(std::vector<char*>& positional_args) {
+  PlatformId platform_id = CurrentPlatformId();
+
+  if (absl::GetFlag(FLAGS_short)) {
+    // Output only the current platform ID. Used by shell scripts.
+    if (platform_id != PlatformId::kUndefined) {
+      std::cout << EnumStr(platform_id) << std::endl;
+    } else {
+      std::cerr << "Unsupported platform" << std::endl;
+    }
   } else {
-    std::cerr << "Unsupported platform" << std::endl;
-    return 1;
+    // A more verbose output for humans.
+    // Arch is "obvious" / baked into the ELF file, but we may as well output
+    // it to assist bug reports, etc.
+    std::cout << "Arch:     " << Host::arch_name << std::endl;
+    std::cout << "Platform: " << EnumStr(platform_id) << std::endl;
   }
-  return 0;
+
+  return platform_id == PlatformId::kUndefined ? EXIT_FAILURE : EXIT_SUCCESS;
+}
+
+}  // namespace silifuzz
+
+int main(int argc, char* argv[]) {
+  std::vector<char*> positional_args = absl::ParseCommandLine(argc, argv);
+  return silifuzz::ToolMain(positional_args);
 }
