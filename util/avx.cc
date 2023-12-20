@@ -20,7 +20,7 @@
 
 #include <atomic>
 
-#include "./util/x86_64/cpu_features.h"
+#include "./util/cpu_features.h"
 
 namespace silifuzz {
 namespace {

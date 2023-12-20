@@ -21,12 +21,12 @@
 
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/cpu_features.h"
 #include "./util/crc32c.h"
 #include "./util/nolibc_gunit.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
 #include "./util/reg_groups.h"
-#include "./util/x86_64/cpu_features.h"
 
 namespace silifuzz {
 namespace {

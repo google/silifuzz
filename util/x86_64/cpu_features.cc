@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifdef __x86_64__
-#include "./util/x86_64/cpu_features.h"
+#include "./util/cpu_features.h"
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 
-#include ".//util/x86_cpuid.h"
+#include "./util/x86_cpuid.h"
 
 namespace silifuzz {
 namespace {
@@ -31,8 +31,13 @@ static constexpr uint64_t kInitializedBitMask = static_cast<uint64_t>(1) << 63;
 std::atomic<uint64_t> x86_cpu_features;
 static_assert(x86_cpu_features.is_always_lock_free);
 
-inline bool IsBitSet(uint64_t bitmask, size_t pos) {
+inline constexpr bool IsBitSet(uint64_t bitmask, size_t pos) {
   return (bitmask & (static_cast<uint64_t>(1) << pos)) != 0;
+}
+
+// Returns a bit mask for `feature`.
+inline constexpr uint64_t X86CPUFeatureBitmask(X86CPUFeatures feature) {
+  return static_cast<uint64_t>(1) << static_cast<int>(feature);
 }
 
 uint64_t GetX86CPUFeatures() {
@@ -100,4 +105,3 @@ bool HasX86CPUFeature(X86CPUFeatures feature) {
 }
 
 }  // namespace silifuzz
-#endif  // __x86_64__

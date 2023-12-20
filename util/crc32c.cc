@@ -28,9 +28,7 @@
 #include <algorithm>
 #include <atomic>
 
-#ifdef __x86_64__
-#include "./util/x86_64/cpu_features.h"
-#endif
+#include "./util/cpu_features.h"
 
 namespace silifuzz {
 

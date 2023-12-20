@@ -17,7 +17,7 @@
 #include <cstring>
 
 #include "gtest/gtest.h"
-#include "./util/x86_64/cpu_features.h"
+#include "./util/cpu_features.h"
 #include "./util/x86_64/extension_registers_test_helpers.h"
 
 namespace silifuzz {

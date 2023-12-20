@@ -78,7 +78,7 @@ cc_library_plus_nolibc(
     hdrs = ["avx.h"],
     deps = [
         ":checks",
-        ":x86_cpu_features",
+        ":cpu_features",
     ],
 )
 
@@ -169,17 +169,23 @@ cc_test_plus_nolibc(
 )
 
 cc_library_plus_nolibc(
-    name = "x86_cpu_features",
-    srcs = ["x86_64/cpu_features.cc"],
-    hdrs = ["x86_64/cpu_features.h"],
+    name = "cpu_features",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:x86_64": ["x86_64/cpu_features.cc"],
+    }),
+    hdrs = ["cpu_features.h"],
     deps = [":x86_cpuid"],
 )
 
 cc_test(
-    name = "x86_cpu_features_test",
-    srcs = ["x86_64/cpu_features_test.cc"],
+    name = "cpu_features_test",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:x86_64": ["x86_64/cpu_features_test.cc"],
+    }),
     deps = [
-        ":x86_cpu_features",
+        ":cpu_features",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
@@ -189,9 +195,7 @@ cc_library_plus_nolibc(
     name = "crc32c",
     srcs = ["crc32c.cc"],
     hdrs = ["crc32c.h"],
-    # aarch64 should not depend on x86_cpu_features but select() does
-    # not play well with cc_library_plus_nolibc.
-    deps = [":x86_cpu_features"],
+    deps = [":cpu_features"],
 )
 
 cc_test_plus_nolibc(
@@ -1047,7 +1051,7 @@ cc_test(
     # The dynamic linker may clobber some extention registers.
     linkstatic = True,
     deps = [
-        ":x86_cpu_features",
+        ":cpu_features",
         ":x86_extension_registers",  # buildcleaner: keep
         "@com_google_googletest//:gtest_main",
     ],
@@ -1094,8 +1098,8 @@ cc_library_plus_nolibc(
     # support select() in deps.  So we unconditionally add this dependency.
     deps = [
         ":arch",
+        ":cpu_features",
         ":reg_group_set",
-        ":x86_cpu_features",
     ],
 )
 
@@ -1138,11 +1142,11 @@ cc_library_plus_nolibc(
     deps = [
         ":arch",
         ":checks",
+        ":cpu_features",
         ":crc32c",
         ":reg_checksum",
         ":reg_group_bits",
         ":reg_group_set",
-        ":x86_cpu_features",
         ":x86_extension_registers",  # buildcleaner: keep
     ],
 )
@@ -1165,13 +1169,13 @@ cc_test_plus_nolibc(
     deps = [
         ":arch",
         ":checks",
+        ":cpu_features",
         ":crc32c",
         ":nolibc_gunit",
         ":reg_checksum",
         ":reg_group_io",
         ":reg_group_set",
         ":reg_groups",
-        ":x86_cpu_features",
         ":x86_extension_registers",  # buildcleaner: keep
     ],
 )

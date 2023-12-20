@@ -18,10 +18,10 @@
 #include <x86intrin.h>
 
 #include "./util/arch.h"
+#include "./util/cpu_features.h"
 #include "./util/crc32c.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
-#include "./util/x86_64/cpu_features.h"
 
 namespace silifuzz {
 

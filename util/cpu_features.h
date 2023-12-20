@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_UTIL_X86_64_CPU_FEATURES_H_
-#define THIRD_PARTY_SILIFUZZ_UTIL_X86_64_CPU_FEATURES_H_
-#ifdef __x86_64__
-
-#include <cstdint>
+#ifndef THIRD_PARTY_SILIFUZZ_UTIL_CPU_FEATURES_H_
+#define THIRD_PARTY_SILIFUZZ_UTIL_CPU_FEATURES_H_
 
 namespace silifuzz {
 
@@ -25,7 +22,7 @@ namespace silifuzz {
 enum class X86CPUFeatures {
   kBegin = 0,
   kAMX_TILE = kBegin,  // for accessing tile and tileconfig registers.
-  kAVX,                // for accessing accessing ymm registers.
+  kAVX,                // for accessing ymm registers.
   kAVX512BW,           // for accessing upper 48 bits of opmask registers.
   kAVX512F,  // for accessing zmm and lower 16 bits of opmask registers.
   kOSXSAVE,  // OS provides processor extended state management.
@@ -39,17 +36,15 @@ enum class X86CPUFeatures {
 // in a uint64_t for an implementation reason.
 static_assert(static_cast<int>(X86CPUFeatures::kEnd) < 64);
 
-// Returns a bit maks for `feature`.
-inline constexpr uint64_t X86CPUFeatureBitmask(X86CPUFeatures feature) {
-  return static_cast<uint64_t>(1) << static_cast<int>(feature);
-}
+#ifdef __x86_64__
 
 // Returns true if the current CPU has this feature enabled.
 // We assume supported features do not change dynamically, this function
 // may return cached information.
 bool HasX86CPUFeature(X86CPUFeatures feature);
 
+#endif  // __x86_64__
+
 }  // namespace silifuzz
 
-#endif  // __x86_64__
-#endif  // THIRD_PARTY_SILIFUZZ_UTIL_X86_64_CPU_FEATURES_H_
+#endif  // THIRD_PARTY_SILIFUZZ_UTIL_CPU_FEATURES_H_

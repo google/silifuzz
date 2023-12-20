@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./util/x86_64/cpu_features.h"
+#include "./util/cpu_features.h"
 
 #include <cstddef>
 #include <fstream>
