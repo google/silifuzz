@@ -170,22 +170,29 @@ cc_test_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "cpu_features",
-    srcs = select({
+    srcs = ["cpu_features.cc"] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/cpu_features.cc"],
     }),
     hdrs = ["cpu_features.h"],
-    deps = [":x86_cpuid"],
+    as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
+    ],
+    deps = [
+        ":itoa",
+        ":x86_cpuid",
+    ],
 )
 
 cc_test(
     name = "cpu_features_test",
-    srcs = select({
+    srcs = ["cpu_features_test.cc"] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/cpu_features_test.cc"],
     }),
     deps = [
         ":cpu_features",
+        ":itoa",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],

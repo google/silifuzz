@@ -19,6 +19,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "./util/arch.h"
+#include "./util/cpu_features.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
 
@@ -26,6 +27,22 @@
 ABSL_FLAG(bool, short, false, "Print only the platform ID.");  // NOLINT
 
 namespace silifuzz {
+
+#if defined(__x86_64__)
+void PrintCPUFeatures() {
+  std::cout << "Features" << std::endl;
+  for (X86CPUFeatures feature = X86CPUFeatures::kBegin;
+       feature != X86CPUFeatures::kEnd;
+       feature = X86CPUFeatures{static_cast<int>(feature) + 1}) {
+    std::cout << "    " << (HasX86CPUFeature(feature) ? "+" : "-") << " "
+              << EnumStr(feature) << std::endl;
+  }
+}
+#elif defined(__aarch64__)
+void PrintCPUFeatures() {}
+#else
+#error "Unsupported architecture"
+#endif
 
 int ToolMain(std::vector<char*>& positional_args) {
   PlatformId platform_id = CurrentPlatformId();
@@ -43,6 +60,7 @@ int ToolMain(std::vector<char*>& positional_args) {
     // it to assist bug reports, etc.
     std::cout << "Arch:     " << Host::arch_name << std::endl;
     std::cout << "Platform: " << EnumStr(platform_id) << std::endl;
+    PrintCPUFeatures();
   }
 
   return platform_id == PlatformId::kUndefined ? EXIT_FAILURE : EXIT_SUCCESS;

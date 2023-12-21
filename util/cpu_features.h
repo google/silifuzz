@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_CPU_FEATURES_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_CPU_FEATURES_H_
 
+#include "./util/itoa.h"
+
 namespace silifuzz {
 
 // A small subset of X86 CPU features that we want to know about.
@@ -35,6 +37,11 @@ enum class X86CPUFeatures {
 // The number of features is limited to be one fewer than the number of bits
 // in a uint64_t for an implementation reason.
 static_assert(static_cast<int>(X86CPUFeatures::kEnd) < 64);
+
+// EnumStr() works for X86CPUFeatures.
+template <>
+extern const char*
+    EnumNameMap<X86CPUFeatures>[static_cast<int>(X86CPUFeatures::kEnd)];
 
 #ifdef __x86_64__
 

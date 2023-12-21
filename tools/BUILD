@@ -72,6 +72,7 @@ cc_binary(
     srcs = ["silifuzz_platform_id.cc"],
     deps = [
         "@silifuzz//util:arch",
+        "@silifuzz//util:cpu_features",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@com_google_absl//absl/flags:flag",
