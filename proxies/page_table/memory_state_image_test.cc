@@ -18,8 +18,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/cleanup/cleanup.h"
 #include "./common/memory_mapping.h"
@@ -71,11 +71,23 @@ TYPED_TEST_P(MemoryStateImageTest, BasicTest) {
     free(fake_physical_memory);
   };
 
+  // Also add an external mapping. This will be included in the created page
+  // table but without memory allocate.
+  constexpr Snapshot::Address kExternalVirtualAddr = 0x222220000;
+  constexpr Snapshot::Address kExternalPhysicalAddr = 0x333330000;
+  std::vector<typename MemoryStateImage<TypeParam>::ExternalMapping>
+      external_mappings{
+          {MemoryMapping::MakeSized(kExternalVirtualAddr, kPageSize,
+                                    MemoryPerms::RW()),
+           kExternalPhysicalAddr},
+      };
+
   // Build the image and copy it to fake physical memory.
   ASSERT_OK_AND_ASSIGN(
       MemoryStateImage<TypeParam> image,
       MemoryStateImage<TypeParam>::Build(
-          memory_state, reinterpret_cast<uintptr_t>(fake_physical_memory)));
+          memory_state, reinterpret_cast<uintptr_t>(fake_physical_memory),
+          external_mappings));
   ASSERT_LE(image.image_data().size(), kMaxSize);
   memcpy(fake_physical_memory, image.image_data().data(),
          image.image_data().size());
@@ -88,23 +100,33 @@ TYPED_TEST_P(MemoryStateImageTest, BasicTest) {
   // Verify that we can get code and data using page table.
   uint64_t *page_table_root =
       reinterpret_cast<uint64_t *>(image.page_table_root());
-  auto code_addr = TranslateVirtualAddress<TypeParam>(
-      page_table_root, kCodeAddr,
-      /*writeable=*/false, /*executable=*/true);
+  auto code_addr =
+      TranslateVirtualAddress<TypeParam>(page_table_root, kCodeAddr,
+                                         /*writeable=*/false,
+                                         /*executable=*/true);
   ASSERT_OK(code_addr);
   ASSERT_TRUE(is_in_range(code_addr.value()));
   EXPECT_EQ(memcmp(reinterpret_cast<void *>(code_addr.value()),
                    code_bytes.data(), code_bytes.size()),
             0);
 
-  auto data_addr = TranslateVirtualAddress<TypeParam>(
-      page_table_root, kDataAddr,
-      /*writeable=*/true, /*executable=*/false);
+  auto data_addr =
+      TranslateVirtualAddress<TypeParam>(page_table_root, kDataAddr,
+                                         /*writeable=*/true,
+                                         /*executable=*/false);
   ASSERT_OK(data_addr);
   ASSERT_TRUE(is_in_range(data_addr.value()));
   EXPECT_EQ(memcmp(reinterpret_cast<void *>(data_addr.value()),
                    data_bytes.data(), data_bytes.size()),
             0);
+
+  // Check external mapping is present.
+  auto external_addr = TranslateVirtualAddress<TypeParam>(
+      page_table_root, kExternalVirtualAddr,
+      /*writeable=*/true, /*executable=*/false);
+  ASSERT_OK(external_addr);
+  EXPECT_EQ(external_addr.value(), kExternalPhysicalAddr);
+  EXPECT_FALSE(is_in_range(external_addr.value()));
 }
 
 REGISTER_TYPED_TEST_SUITE_P(MemoryStateImageTest, BasicTest);

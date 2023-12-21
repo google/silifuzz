@@ -34,8 +34,55 @@ namespace silifuzz::proxies {
 
 // static method.
 template <typename arch>
+absl::StatusOr<PageTableCreator<arch>> MemoryStateImage<arch>::LayoutPageTable(
+    const MemoryState& memory_state, uint64_t physical_address,
+    const std::vector<ExternalMapping>& external_mappings, bool copy_data,
+    size_t data_offset, std::vector<uint8_t>& memory_image_data) {
+  PageTableCreator<arch> page_table_creator(physical_address);
+  absl::Status status;
+
+  // Build the page table. Assign physical addresses for mapped memory
+  // regions and optionally copy contents to memory images.
+  memory_state.mapped_memory().Iterate([&](MappedMemoryMap::Address start,
+                                           MappedMemoryMap::Address limit,
+                                           MemoryPerms perms) {
+    // Strip mapped bit or constructor below would fail.
+    perms.Clear(MemoryPerms::kMapped);
+    const MemoryMapping mapping =
+        MemoryMapping::MakeRanged(start, limit, perms);
+    status.Update(page_table_creator.AddContiguousMapping(
+        mapping, physical_address + data_offset));
+    if (copy_data) {
+      const std::string byte_data =
+          memory_state.memory_bytes(start, mapping.num_bytes());
+      CHECK_LE(data_offset + byte_data.size(), memory_image_data.size());
+      memcpy(&memory_image_data[data_offset], byte_data.data(),
+             byte_data.size());
+    }
+    data_offset += mapping.num_bytes();
+  });
+
+  // Add external mappings, these have no memory contents inside the image.
+  for (const ExternalMapping& external_mapping : external_mappings) {
+    status.Update(page_table_creator.AddContiguousMapping(
+        external_mapping.virtual_memory_mapping,
+        external_mapping.physical_start));
+  }
+
+  RETURN_IF_NOT_OK(status);
+
+  // If copying data, we should reach the end of memory_image_data.
+  if (copy_data) {
+    CHECK_EQ(data_offset, memory_image_data.size());
+  }
+  return page_table_creator;
+}
+
+// static method.
+template <typename arch>
 absl::StatusOr<MemoryStateImage<arch>> MemoryStateImage<arch>::Build(
-    const MemoryState& memory_state, uint64_t physical_address) {
+    const MemoryState& memory_state, uint64_t physical_address,
+    const std::vector<ExternalMapping>& external_mappings) {
   // We need to fit both the page data and contents of the virtual address
   // space in one contiguous block. We use the page table creator to create
   // a page table as a single block of memory and put the virtual address
@@ -53,50 +100,27 @@ absl::StatusOr<MemoryStateImage<arch>> MemoryStateImage<arch>::Build(
   // or we can put the virtual pages before page table. In that case page table
   // root is no longer the beginning of block.  We may need to add a header to
   // the block so that the client can find out physical address of the root.
-  PageTableCreator<arch> page_table_size_measure(physical_address);
-  absl::Status status;
-  size_t virtual_address_space_size = 0;
-  memory_state.mapped_memory().Iterate(
-      [&page_table_size_measure, &virtual_address_space_size, &status](
-          MappedMemoryMap::Address start, MappedMemoryMap::Address limit,
-          MemoryPerms perms) {
-        // Strip mapped bit or constructor below would fail.
-        perms.Clear(MemoryPerms::kMapped);
-        const MemoryMapping mapping =
-            MemoryMapping::MakeRanged(start, limit, perms);
-        status.Update(page_table_size_measure.AddContiguousMapping(mapping, 0));
-        virtual_address_space_size += mapping.num_bytes();
-      });
-  RETURN_IF_NOT_OK(status);
+  std::vector<uint8_t> memory_image_data;
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      PageTableCreator<arch> page_table_size_measure,
+      LayoutPageTable(memory_state, physical_address, external_mappings,
+                      /*copy_data=*/false,
+                      /*data_offset=*/0, memory_image_data));
 
   const uint64_t page_table_byte_size =
       page_table_size_measure.GetBinaryData().size() * sizeof(uint64_t);
   const size_t memory_image_size =
-      page_table_byte_size + virtual_address_space_size;
+      page_table_byte_size + memory_state.num_written_bytes();
+  memory_image_data.resize(memory_image_size);
 
   // Build the page table again. Assign physical addresses for mapped memory
   // regions and copy contents to memory images.
-  uint64_t offset = page_table_byte_size;
-  std::vector<uint8_t> memory_image_data(memory_image_size);
-  PageTableCreator<arch> page_table_creator(physical_address);
-  memory_state.mapped_memory().Iterate([&](MappedMemoryMap::Address start,
-                                           MappedMemoryMap::Address limit,
-                                           MemoryPerms perms) {
-    // Strip mapped bit or constructor below would fail.
-    perms.Clear(MemoryPerms::kMapped);
-    const MemoryMapping mapping =
-        MemoryMapping::MakeRanged(start, limit, perms);
-    status.Update(page_table_creator.AddContiguousMapping(
-        mapping, physical_address + offset));
-    const std::string byte_data =
-        memory_state.memory_bytes(start, mapping.num_bytes());
-    CHECK_LE(offset + byte_data.size(), memory_image_data.size());
-    memcpy(&memory_image_data[offset], byte_data.data(), byte_data.size());
-    offset += mapping.num_bytes();
-  });
-  RETURN_IF_NOT_OK(status);
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      PageTableCreator<arch> page_table_creator,
+      LayoutPageTable(memory_state, physical_address, external_mappings,
+                      /*copy_data=*/true,
+                      /*data_offset=*/page_table_byte_size, memory_image_data));
 
-  CHECK_EQ(offset, memory_image_data.size());
   CHECK_EQ(page_table_size_measure.GetBinaryData().size(),
            page_table_creator.GetBinaryData().size());
   memcpy(memory_image_data.data(), page_table_creator.GetBinaryData().data(),
