@@ -138,7 +138,7 @@ void LogV1SingleSnapFailure(const RunnerDriver::RunResult &run_result) {
   if (!enable_v1_compat_logging) return;
   std::cerr << "Silifuzz detected issue on CPU "
             << run_result.player_result().cpu_id << " running snapshot "
-            << run_result.snapshot_id() << std::endl;
+            << run_result.snapshot_id() << '\n';
 }
 
 // Logs V1-style summary e.g.
@@ -165,7 +165,7 @@ void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
             << ", snapshot_execution_errors = 0"
             << ", runaway_count = " << summary.num_runaway_snapshots
             << ", max_rss_kb = " << max_rss_kb
-            << ", had_checker_misconfigurations = false}" << std::endl;
+            << ", had_checker_misconfigurations = false}" << '\n';
 }
 
 }  // namespace

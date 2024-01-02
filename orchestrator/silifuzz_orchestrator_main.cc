@@ -330,13 +330,13 @@ int main(int argc, char **argv) {
   absl::InitializeLog();
   std::string runner = absl::GetFlag(FLAGS_runner);
   if (runner.empty()) {
-    std::cerr << "--runner must be set" << std::endl;
+    std::cerr << "--runner must be set" << '\n';
     return EXIT_FAILURE;
   }
   // Load the corpus shard list.
   std::string shard_list_file = absl::GetFlag(FLAGS_shard_list_file);
   if (shard_list_file.empty()) {
-    std::cerr << "--shard_list_file must be set" << std::endl;
+    std::cerr << "--shard_list_file must be set" << '\n';
     return EXIT_FAILURE;
   }
   std::vector<std::string> shards =
@@ -344,7 +344,7 @@ int main(int argc, char **argv) {
   if (shards.empty()) {
     std::cerr
         << "At least one corpus file must be listed in the shard_file_list"
-        << std::endl;
+        << '\n';
     return EXIT_FAILURE;
   }
   const int total_shards = shards.size();
