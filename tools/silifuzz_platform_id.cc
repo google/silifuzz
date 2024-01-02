@@ -30,12 +30,12 @@ namespace silifuzz {
 
 #if defined(__x86_64__)
 void PrintCPUFeatures() {
-  std::cout << "Features" << std::endl;
+  std::cout << "Features" << '\n';
   for (X86CPUFeatures feature = X86CPUFeatures::kBegin;
        feature != X86CPUFeatures::kEnd;
        feature = X86CPUFeatures{static_cast<int>(feature) + 1}) {
     std::cout << "    " << (HasX86CPUFeature(feature) ? "+" : "-") << " "
-              << EnumStr(feature) << std::endl;
+              << EnumStr(feature) << '\n';
   }
 }
 #elif defined(__aarch64__)
@@ -50,16 +50,16 @@ int ToolMain(std::vector<char*>& positional_args) {
   if (absl::GetFlag(FLAGS_short)) {
     // Output only the current platform ID. Used by shell scripts.
     if (platform_id != PlatformId::kUndefined) {
-      std::cout << EnumStr(platform_id) << std::endl;
+      std::cout << EnumStr(platform_id) << '\n';
     } else {
-      std::cerr << "Unsupported platform" << std::endl;
+      std::cerr << "Unsupported platform" << '\n';
     }
   } else {
     // A more verbose output for humans.
     // Arch is "obvious" / baked into the ELF file, but we may as well output
     // it to assist bug reports, etc.
-    std::cout << "Arch:     " << Host::arch_name << std::endl;
-    std::cout << "Platform: " << EnumStr(platform_id) << std::endl;
+    std::cout << "Arch:     " << Host::arch_name << '\n';
+    std::cout << "Platform: " << EnumStr(platform_id) << '\n';
     PrintCPUFeatures();
   }
 

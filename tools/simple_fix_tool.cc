@@ -132,7 +132,7 @@ void MakeProgressMonitor(size_t num_blobs, std::atomic<bool>& stop) {
     // Print progress at checkpoint or exit.
     if (stop_monitoring || absl::Now() >= next_checkpoint) {
       std::cout << "Make snapshot count: " << num_blobs_processed.load()
-                << " of " << num_blobs << std::endl;
+                << " of " << num_blobs << '\n';
       if (stop_monitoring) {
         break;  // exit progress monitor.
       } else {
