@@ -19,7 +19,6 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_PROXY_CONFIG_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_PROXY_CONFIG_H_
 
-#include <cstddef>
 #include <cstdint>
 
 #include "./util/arch.h"
@@ -48,6 +47,7 @@ static constexpr FuzzingConfig<Arch> LIMITED_MEMORY_FUZZING_CONFIG;
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
 // Can include things like "default GPR value" in the future.
+
 template <>
 struct FuzzingConfig<X86_64> {
   // The start_address address must be page aligned.
