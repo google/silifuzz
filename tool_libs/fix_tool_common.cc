@@ -163,35 +163,42 @@ std::string SnapshotOrigin(const Snapshot& input) {
 absl::StatusOr<Snapshot> FixupSnapshot(const Snapshot& input,
                                        const FixupSnapshotOptions& options,
                                        PlatformFixToolCounters* counters) {
+  const std::string origin = SnapshotOrigin(input);
+
+  // Count the number of inputs so we can easily normalize the counters that
+  // come after this - both per-origin and aggregated counters.
+  counters->IncOriginCounter(origin, "INFO-INPUT");
+
   absl::StatusOr<Snapshot> remade_snapshot_or = RemakeAndVerify(input, options);
   if (!remade_snapshot_or.ok()) {
-    counters->IncCounter("ERROR-Make-",
-                         absl::StrCat(SnapshotOrigin(input), ":",
-                                      remade_snapshot_or.status().message()));
-    counters->IncCounter("ERROR-Make:", remade_snapshot_or.status().message());
+    counters->IncOriginCounter(
+        origin, "ERROR-Make:", remade_snapshot_or.status().message());
     return remade_snapshot_or.status();
   }
 
   int num_end_states = remade_snapshot_or->expected_end_states().size();
   if (num_end_states > 1) {
-    counters->IncCounter("ERROR-multi-state-test:", num_end_states);
+    counters->IncOriginCounter(origin,
+                               "ERROR-multi-state-test:", num_end_states);
     return absl::InternalError("multi-state-test");
   }
 
   if (num_end_states == 0) {
-    counters->IncCounter("ERROR-zero-end-states-test:", num_end_states);
+    counters->IncOriginCounter(origin,
+                               "ERROR-zero-end-states-test:", num_end_states);
     return absl::InternalError("zero-end-states-test");
   }
   // Sanity check the only expected end state -- it must have the current
   // platform.
   if (!remade_snapshot_or->expected_end_states()[0].has_platform(
           CurrentPlatformId())) {
-    counters->IncCounter("ERROR-invalid-platform-id:", ShortHostname());
+    counters->IncOriginCounter(origin,
+                               "ERROR-invalid-platform-id:", ShortHostname());
     return absl::InternalError("invalid-platform-id");
   }
   // Snapshot has passed all tests and transformations.
   remade_snapshot_or->NormalizeAll();
-  counters->IncCounter("INFO-ALL-OK:", num_end_states);
+  counters->IncOriginCounter(origin, "INFO-ALL-OK:", num_end_states);
   return remade_snapshot_or;
 }
 

@@ -64,11 +64,22 @@ class PlatformFixToolCounters {
   PlatformFixToolCounters& operator=(PlatformFixToolCounters&&) = default;
   PlatformFixToolCounters& operator=(const PlatformFixToolCounters&) = default;
 
-  // Increments a counter whose name is silifuzz-<platform>-`name`-`suffix`.
-  template <typename T>
-  void IncCounter(absl::string_view name, const T& suffix) {
-    counters_->Increment(
-        absl::StrCat("silifuzz-", platform_, "-", name, suffix));
+  // Increments a counter whose name is silifuzz-<platform>-`args` where the
+  // args have been concatenated.
+  template <typename... Args>
+  void IncCounter(Args&&... args) {
+    counters_->Increment(absl::StrCat("silifuzz-", platform_, "-", args...));
+  }
+
+  // Increments two counters.
+  // An origin-specific counter:
+  // silifuzz-<platform>-`origin`-`args`
+  // And a counter aggregated across origins.
+  // silifuzz-<platform>-ALL-`args`
+  template <typename... Args>
+  void IncOriginCounter(absl::string_view origin, Args&&... args) {
+    IncCounter(origin, "-", args...);
+    IncCounter("ALL", "-", args...);
   }
 
  private:
