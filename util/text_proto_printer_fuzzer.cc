@@ -12,24 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstddef>
-#include <cstdint>
 #include <string>
 
 #include "google/protobuf/text_format.h"
+#include "fuzztest/fuzztest.h"
 #include "absl/strings/string_view.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/checks.h"
 #include "./util/text_proto_printer.h"
 
+using fuzztest::String;
 using silifuzz::proto::PlayerResult;
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
-  if (size > 1024) {  // Current max size of a single bytes field.
-    return 0;
-  }
-  absl::string_view str(reinterpret_cast<const char *>(data), size);
+void Bytes(const std::string& str) {
   google::protobuf::TextFormat::Parser parser;
   PlayerResult result;
 
@@ -41,7 +37,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   }
 
   CHECK(parser.ParseFromString(printer.c_str(), &result));
-  CHECK_EQ(result.actual_end_state().registers().gregs(),
-           std::string(str.data(), str.size()));
-  return 0;
+  CHECK_EQ(result.actual_end_state().registers().gregs(), str);
 }
+
+FUZZ_TEST(TextProtoPrinterFuzzTest, Bytes)
+    .WithDomains(String().WithMaxSize(1023));
