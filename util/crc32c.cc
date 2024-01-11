@@ -22,6 +22,9 @@
 
 #include "./util/crc32c.h"
 
+#include <cstddef>
+#include <cstdint>
+
 #ifdef __aarch64__
 #include <sys/auxv.h>
 #endif
@@ -29,6 +32,14 @@
 #include <atomic>
 
 #include "./util/cpu_features.h"
+
+// On x86, we want to generate CRC32C instructions in SSE 4.2 regardless of
+// target setting of the compiler.
+#ifdef __x86_64__
+#define SSE4_2_TARGET_ATTRIBUTE __attribute__((target("sse4.2")))
+#else
+#define SSE4_2_TARGET_ATTRIBUTE  // NOP on non-x86.
+#endif
 
 namespace silifuzz {
 
@@ -41,7 +52,12 @@ namespace {
 // Compute CRC32C using hardware acceleration. This is optimized for the
 // case when both 'data' and 'n' are 64-bit aligned.
 template <typename CRC32CFunctions>
-uint32_t crc32c_accelerated_impl(uint32_t seed, const uint8_t* data, size_t n) {
+// We need to add target attribute in crc32c_accelerated_impl on the x86 or
+// else methods in X86CRC32CFunctions will not be inlined. This is fine as the
+// accelerated implementation is only called if SSE 4.2 is reported in CPUID.
+SSE4_2_TARGET_ATTRIBUTE uint32_t crc32c_accelerated_impl(uint32_t seed,
+                                                         const uint8_t* data,
+                                                         size_t n) {
   uint32_t value = seed ^ 0xffffffffU;
 
   // Align input to 64-bit boundary.
@@ -73,12 +89,12 @@ uint32_t crc32c_accelerated_impl(uint32_t seed, const uint8_t* data, size_t n) {
 
 #ifdef __x86_64__
 struct X86CRC32CFunctions {
-  __attribute__((target("sse4.2"))) static inline uint32_t crc32c_uint8(
-      uint32_t crc, uint8_t value) {
+  SSE4_2_TARGET_ATTRIBUTE static inline uint32_t crc32c_uint8(uint32_t crc,
+                                                              uint8_t value) {
     return __builtin_ia32_crc32qi(crc, value);
   }
-  __attribute__((target("sse4.2"))) static inline uint32_t crc32c_uint64(
-      uint32_t crc, uint64_t value) {
+  SSE4_2_TARGET_ATTRIBUTE static inline uint32_t crc32c_uint64(uint32_t crc,
+                                                               uint64_t value) {
     return __builtin_ia32_crc32di(crc, value);
   }
 };
