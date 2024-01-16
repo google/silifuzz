@@ -18,6 +18,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/strings/str_format.h"
 #include "./util/arch.h"
 #include "./util/cpu_features.h"
 #include "./util/itoa.h"
@@ -28,9 +29,15 @@ ABSL_FLAG(bool, short, false, "Print only the platform ID.");  // NOLINT
 
 namespace silifuzz {
 
+void PrintPlatformIdRegister() {
+  std::cout << '\n';
+  std::cout << "Platform ID Register" << '\n';
+  std::cout << absl::StrFormat("    0x%08x", PlatformIdRegister()) << '\n';
+}
+
 #if defined(__x86_64__)
 void PrintCPUFeatures() {
-  std::cout << "Features" << '\n';
+  std::cout << '\n' << "Features" << '\n';
   for (X86CPUFeatures feature = X86CPUFeatures::kBegin;
        feature != X86CPUFeatures::kEnd;
        feature = X86CPUFeatures{static_cast<int>(feature) + 1}) {
@@ -60,6 +67,7 @@ int ToolMain(std::vector<char*>& positional_args) {
     // it to assist bug reports, etc.
     std::cout << "Arch:     " << Host::arch_name << '\n';
     std::cout << "Platform: " << EnumStr(platform_id) << '\n';
+    PrintPlatformIdRegister();
     PrintCPUFeatures();
   }
 

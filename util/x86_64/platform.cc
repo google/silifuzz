@@ -140,6 +140,12 @@ PlatformId DoCurrentPlatformId() {
 
 }  // namespace
 
+uint32_t PlatformIdRegister() {
+  X86CPUIDResult result;
+  X86CPUID(0x1, &result);  // get family, model and stepping.
+  return result.eax;
+}
+
 PlatformId CurrentPlatformId() {
   static const PlatformId x = DoCurrentPlatformId();
   return x;

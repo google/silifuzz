@@ -25,11 +25,16 @@ namespace silifuzz {
 
 namespace {
 
-PlatformId DoCurrentPlatformId() {
+uint64_t GetMidr() {
   uint64_t midr;
   // The kernel will trap and emulate access to MIDR_EL1.
   // https://www.kernel.org/doc/Documentation/arm64/cpu-feature-registers.txt
   asm("mrs %0, MIDR_EL1" : "=r"(midr));
+  return midr;
+}
+
+PlatformId DoCurrentPlatformId() {
+  uint64_t midr = GetMidr();
 
   uint32_t implementer = (midr >> 24) & 0xff;
   // uint32_t variant = (midr >> 20) & 0xf;
@@ -60,6 +65,8 @@ PlatformId DoCurrentPlatformId() {
 }
 
 }  // namespace
+
+uint32_t PlatformIdRegister() { return static_cast<uint32_t>(GetMidr()); }
 
 PlatformId CurrentPlatformId() {
   static const PlatformId x = DoCurrentPlatformId();

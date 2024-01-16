@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
 
+#include <cstdint>
+
 #include "./util/arch.h"
 #include "./util/enum_flag.h"
 #include "./util/itoa.h"
@@ -64,6 +66,12 @@ const char* ShortPlatformName(PlatformId platform);
 // Returns the PlatformId of where this code runs on or kUndefined if
 // we don't have a needed PlatformId value defined or it can't be determined.
 PlatformId CurrentPlatformId();
+
+// The raw data used to derive CurrentPlatformId.
+// Useful for dumping the info we need on platforms we don't support, yet.
+// Currently this us a uint32_t on every arch, but we may need to migrate to
+// arch-specific structs in the future.
+uint32_t PlatformIdRegister();
 
 ArchitectureId PlatformArchitecture(PlatformId platform);
 
