@@ -27,9 +27,9 @@ bazel_skylib_workspace()
 
 http_archive(
     name = "rules_cc",
-    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.9/rules_cc-0.0.9.tar.gz"],
     sha256 = "2037875b9a4456dce4a79d112a8ae885bbc4aad968e6587dca6e64f3a0900cdf",
     strip_prefix = "rules_cc-0.0.9",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.9/rules_cc-0.0.9.tar.gz"],
 )
 
 http_archive(
@@ -92,8 +92,8 @@ http_archive(
 load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
 
 rules_proto_dependencies()
-rules_proto_toolchains()
 
+rules_proto_toolchains()
 
 ###############################################################################
 # Minor third_party dependencies
@@ -198,8 +198,8 @@ FUZZTEST_COMMIT = "27cb942d10ae69cc197f17939a3b3a8255211eb6"
 
 http_archive(
     name = "com_google_fuzztest",
-    strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
     sha256 = "ab5d55d52f3d59b943bfa9e374b85c8952b3057ce092f35e5d0ce01f682831c2",
+    strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
     url = "https://github.com/google/fuzztest/archive/" + FUZZTEST_COMMIT + ".zip",
 )
 
@@ -213,10 +213,10 @@ http_archive(
 
 # libpf4m required by PMU event proxy
 new_git_repository(
-  name = "libpfm4",
-  build_file = "@silifuzz//:third_party/BUILD.libpfm4",
-  commit = "535c204286d84079a8102bdc7a53b1f50990c0a3",
-  remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
+    name = "libpfm4",
+    build_file = "@silifuzz//:third_party/BUILD.libpfm4",
+    commit = "535c204286d84079a8102bdc7a53b1f50990c0a3",
+    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
 )
 
 http_archive(
@@ -232,10 +232,10 @@ http_archive(
 
 http_archive(
     name = "highwayhash",
+    build_file = "@com_google_riegeli//third_party:highwayhash.BUILD",
     sha256 = "cf891e024699c82aabce528a024adbe16e529f2b4e57f954455e0bf53efae585",
     strip_prefix = "highwayhash-276dd7b4b6d330e4734b756e97ccfb1b69cc2e12",
     urls = ["https://github.com/google/highwayhash/archive/276dd7b4b6d330e4734b756e97ccfb1b69cc2e12.zip"],  # 2019-02-22
-    build_file = "@com_google_riegeli//third_party:highwayhash.BUILD",
 )
 
 http_archive(
@@ -247,16 +247,16 @@ http_archive(
 
 http_archive(
     name = "net_zstd",
+    build_file = "@com_google_riegeli//third_party:net_zstd.BUILD",
     sha256 = "b6c537b53356a3af3ca3e621457751fa9a6ba96daf3aebb3526ae0f610863532",
     strip_prefix = "zstd-1.4.5/lib",
     urls = ["https://github.com/facebook/zstd/archive/v1.4.5.zip"],  # 2020-05-22
-    build_file = "@com_google_riegeli//third_party:net_zstd.BUILD",
 )
 
 http_archive(
     name = "snappy",
+    build_file = "@com_google_riegeli//third_party:snappy.BUILD",
     sha256 = "38b4aabf88eb480131ed45bfb89c19ca3e2a62daeb081bdf001cfb17ec4cd303",
     strip_prefix = "snappy-1.1.8",
     urls = ["https://github.com/google/snappy/archive/1.1.8.zip"],  # 2020-01-14
-    build_file = "@com_google_riegeli//third_party:snappy.BUILD",
 )
