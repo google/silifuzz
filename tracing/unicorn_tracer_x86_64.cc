@@ -210,7 +210,8 @@ uint64_t UnicornTracer<X86_64>::GetCurrentStackPointer() {
 }
 
 template <>
-void UnicornTracer<X86_64>::InitUnicorn() {
+void UnicornTracer<X86_64>::InitUnicorn(
+    const UnicornTracerConfig<X86_64> &tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_X86, UC_MODE_64, &uc_));
 
   // TODO(ncbray): remove #if when transition is complete.

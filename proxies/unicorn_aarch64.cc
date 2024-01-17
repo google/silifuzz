@@ -75,8 +75,10 @@ absl::Status RunAArch64Instructions(
   DefaultDisassembler<AArch64> &disasm = batch->disasm;
   ArchFeatureGenerator<AArch64> &feature_gen = batch->feature_gen;
 
+  UnicornTracerConfig<AArch64> tracer_config{.force_a72 = true};
   UnicornTracer<AArch64> tracer;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions, fuzzing_config));
+  RETURN_IF_NOT_OK(
+      tracer.InitSnippet(instructions, tracer_config, fuzzing_config));
 
   feature_gen.BeforeInput(features);
 

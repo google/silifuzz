@@ -30,12 +30,28 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
 #include "./tracing/unicorn_util.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ucontext/ucontext.h"
 #include "third_party/unicorn/unicorn.h"
 
 namespace silifuzz {
+
+template <typename Arch>
+struct UnicornTracerConfig;
+
+template <>
+struct UnicornTracerConfig<X86_64> {};
+
+template <>
+struct UnicornTracerConfig<AArch64> {
+  // Force Unicorn to emulate a A72 processor.
+  // This is a bit old, but if used as a fuzz target the resulting tests should
+  // be compatible with most hardware you would want to run on.
+  // By default Unicorn is roughly a A77+, it support sha512, sm3, and sm4.
+  bool force_a72 = false;
+};
 
 // An architecture-generic class for executing code snippets in Unicorn.
 // This class is not thread safe.  Each thread should have its own instance.
@@ -59,6 +75,8 @@ class UnicornTracer {
 
   // Prepare Unicorn to run a code snippet.
   absl::Status InitSnippet(absl::string_view instructions,
+                           const UnicornTracerConfig<Arch>& tracer_config =
+                               UnicornTracerConfig<Arch>{},
                            const FuzzingConfig<Arch>& fuzzing_config =
                                DEFAULT_FUZZING_CONFIG<Arch>) {
     ASSIGN_OR_RETURN_IF_NOT_OK(
@@ -72,7 +90,7 @@ class UnicornTracer {
       LOG_FATAL("Failed to deserialize registers - ", status.message());
     }
 
-    InitUnicorn();
+    InitUnicorn(tracer_config);
 
     SetupSnippetMemory(snapshot, ucontext, fuzzing_config);
 
@@ -229,7 +247,7 @@ class UnicornTracer {
  private:
   // Initialize Unicorn and put it in a state that it can execute code snippets
   // and Snapshots. This may involve setting system registers, etc.
-  void InitUnicorn();
+  void InitUnicorn(const UnicornTracerConfig<Arch>& tracer_config);
 
   // Create a memory mapping or die. Helps avoid error handling in the cases we
   // know should succeed unless there is a bug.

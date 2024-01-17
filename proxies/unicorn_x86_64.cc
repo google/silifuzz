@@ -66,8 +66,10 @@ absl::Status RunInstructions(absl::string_view instructions,
   DefaultDisassembler<X86_64> &disasm = batch->disasm;
   ArchFeatureGenerator<X86_64> &feature_gen = batch->feature_gen;
 
+  UnicornTracerConfig<X86_64> tracer_config{};
   UnicornTracer<X86_64> tracer;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions, fuzzing_config));
+  RETURN_IF_NOT_OK(
+      tracer.InitSnippet(instructions, tracer_config, fuzzing_config));
 
   feature_gen.BeforeInput(features);
 
