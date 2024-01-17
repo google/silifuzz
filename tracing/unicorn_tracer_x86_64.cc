@@ -214,11 +214,8 @@ void UnicornTracer<X86_64>::InitUnicorn(
     const UnicornTracerConfig<X86_64> &tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_X86, UC_MODE_64, &uc_));
 
-  // TODO(ncbray): remove #if when transition is complete.
-#if UC_API_MAJOR >= 2
   // TODO(ncbray): make this configurable.
   UNICORN_CHECK(uc_ctl_set_cpu_model(uc_, UC_CPU_X86_CASCADELAKE_SERVER));
-#endif
 
   // Set OSFXSR bit in CR4 to enable FXSAVE and FXRSTOR handling of XMM
   // registers. See https://en.wikipedia.org/wiki/Control_register#CR4

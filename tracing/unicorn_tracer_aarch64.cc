@@ -271,11 +271,8 @@ template <>
 void UnicornTracer<AArch64>::InitUnicorn(
     const UnicornTracerConfig<AArch64> &tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc_));
-  // TODO(ncbray): remove #if when transition is complete.
-#if UC_API_MAJOR >= 2
   UNICORN_CHECK(uc_ctl_set_cpu_model(
       uc_, tracer_config.force_a72 ? UC_CPU_ARM64_A72 : UC_CPU_ARM64_MAX));
-#endif
   SetupCPUState(uc_);
 }
 
