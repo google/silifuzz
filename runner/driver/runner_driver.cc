@@ -211,8 +211,8 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     RETURN_IF_NOT_OK_PLUS(player_result_or.status(),
                           "PlayerResultProto::FromProto: ");
     if (!player_result_or->actual_end_state.has_value()) {
-      return absl::InternalError(absl::StrCat(exec_result_proto.DebugString(),
-                                              " has no actual_end_state"));
+      return absl::InternalError(
+          absl::StrCat(exec_result_proto, " has no actual_end_state"));
     }
     return RunResult(*player_result_or, exec_result_proto.snapshot_id());
   }
