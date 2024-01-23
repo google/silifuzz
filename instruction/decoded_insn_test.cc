@@ -348,7 +348,7 @@ TEST(DecodedInsn, ConstructWithAddress) {
 
 TEST(DecodedInsn, IsRepByteStore) {
   struct TestCase {
-    const char* raw_bytes = nullptr;    // insturction bytes.
+    const char* raw_bytes = nullptr;    // instruction bytes.
     const char* disassembly = nullptr;  // expected value for DebugString().
     bool is_rep_byte_store = false;  // expected value for is_rep_byte_store().
   };
@@ -536,5 +536,23 @@ TEST(DecodedInsn, may_access_region) {
               IsOkAndHolds(true));
 }
 
+TEST(DecodedInsn, may_access_memory) {
+  DecodedInsn insn("\x90");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "nop");
+  EXPECT_FALSE(insn.may_access_memory());
+
+  DecodedInsn insn2("\xc6\x03\x01");
+  ASSERT_TRUE(insn2.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn2.DebugString()),
+            "mov byte ptr [rbx], 0x1");
+  EXPECT_TRUE(insn2.may_access_memory());
+
+  // Implicit memory operand.
+  DecodedInsn insn3("\xc3");
+  ASSERT_TRUE(insn3.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()), "ret");
+  EXPECT_TRUE(insn3.may_access_memory());
+}
 }  // namespace
 }  // namespace silifuzz

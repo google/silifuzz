@@ -109,6 +109,13 @@ class DecodedInsn {
   // REQUIRES: is_valid().
   uint8_t rex_bits() const;
 
+  // Tells if instruction may access memory. This is determined statically
+  // so rep or conditional memory accesses are treated as always executed.
+  bool may_access_memory() const {
+    DCHECK_STATUS(status_);
+    return xed_decoded_inst_number_of_memory_operands(&xed_insn_) != 0;
+  }
+
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
   absl::string_view DebugString() const {
