@@ -144,5 +144,23 @@ TEST(SnapMaker, VSyscallRegionAccess) {
                          "memory mappings overlap reserved memory mappings"))));
 }
 
+TEST(SnapMaker, MemoryAccess) {
+#if !defined(__x86_64__)
+  GTEST_SKIP() << "Memory access filter implemented only on x86_64.";
+#endif
+
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  TraceOptions trace_options;
+  trace_options.filter_memory_access = false;
+  ASSERT_OK(FixSnapshotInTest(snapshot, options, trace_options));
+
+  trace_options.filter_memory_access = true;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
+                                  HasSubstr("Memory access not allowed")));
+}
+
 }  // namespace
 }  // namespace silifuzz
