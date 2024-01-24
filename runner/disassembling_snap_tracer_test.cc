@@ -42,6 +42,8 @@ namespace {
 using silifuzz::testing::StatusIs;
 using snapshot_types::SigNum;
 using ::testing::ElementsAre;
+using ::testing::IsEmpty;
+using ::testing::Not;
 
 RunnerDriver HelperDriver() {
   return RunnerDriver::ReadingRunner(
@@ -200,6 +202,59 @@ TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
           InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
           InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
           InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]")));
+}
+
+TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {
+  RunnerDriver driver = HelperDriver();
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
+  TraceOptions options = TraceOptions::Default();
+  options.filter_memory_access = false;
+  DisassemblingSnapTracer tracer(snapshot, options);
+  ASSERT_OK_AND_ASSIGN(
+      const auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  // The test snapshot does not have a matching memory state.
+  EXPECT_FALSE(result.success());
+  const auto& trace_result = tracer.trace_result();
+  // We should reach the snap exit.
+  ASSERT_THAT(trace_result.disassembly, Not(IsEmpty()));
+  EXPECT_THAT(trace_result.disassembly.back(), Insn("call qword ptr [rip]"));
+
+  // Trace again with memory access filtering.
+  // The exit instruction actually reads from memory but it is exempted.
+  options.filter_memory_access = true;
+  DisassemblingSnapTracer tracer_with_filter(snapshot, options);
+  const auto result_with_filter = driver.TraceOne(
+      snapshot.id(),
+      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer_with_filter));
+  EXPECT_THAT(result_with_filter, StatusIs(absl::StatusCode::kInvalidArgument));
+  const auto& trace_result_with_filter = tracer_with_filter.trace_result();
+  EXPECT_EQ(trace_result_with_filter.instructions_executed, 1);
+  EXPECT_THAT(trace_result_with_filter.disassembly,
+              ElementsAre(Insn("pushfq")));
+  EXPECT_EQ(trace_result_with_filter.early_termination_reason,
+            "Memory access not allowed");
+
+  // Trace NOP snapshot with memory filtering. The indirect exit call should
+  // be exempted.
+  auto ends_as_expected_snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
+  DisassemblingSnapTracer ends_as_expected_tracer(ends_as_expected_snapshot,
+                                                  options);
+  ASSERT_OK_AND_ASSIGN(
+      const auto ends_as_expected_result,
+      driver.TraceOne(ends_as_expected_snapshot.id(),
+                      absl::bind_front(&DisassemblingSnapTracer::Step,
+                                       &ends_as_expected_tracer)));
+  EXPECT_TRUE(ends_as_expected_result.success());
+  const auto& ends_as_expected_trace_result =
+      ends_as_expected_tracer.trace_result();
+  EXPECT_EQ(ends_as_expected_trace_result.instructions_executed, 2);
+  EXPECT_THAT(ends_as_expected_trace_result.disassembly,
+              ElementsAre(Insn("nop"), Insn("call qword ptr [rip]")));
 }
 
 }  // namespace

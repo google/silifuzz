@@ -300,6 +300,7 @@ cc_library(
         "@silifuzz//player:trace_options",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",

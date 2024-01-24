@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
 #include "./player/trace_options.h"
@@ -62,7 +63,12 @@ class DisassemblingSnapTracer {
                           const TraceOptions& options = TraceOptions::Default())
       : snapshot_(snapshot),
         was_in_snapshot_(false),
-        stepper_(snapshot, options, trace_result_) {}
+        stepper_(snapshot, options, trace_result_) {
+    // In some cases, we need to access the end state. Make sure there is one
+    // an only one expected end state. This should be the case after
+    // snapification.
+    CHECK_EQ(snapshot.expected_end_states().size(), 1);
+  }
 
   // Not movable or copyable. Not just a data container.
   DisassemblingSnapTracer(const DisassemblingSnapTracer&) = delete;

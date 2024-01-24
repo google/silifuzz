@@ -138,6 +138,16 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
         return HarnessTracer::kInjectSigusr1;
       }
     }
+    if (options_.filter_memory_access && insn_or->may_access_memory()) {
+      // We need to check if this is the ending address because on the x86,
+      // the exit sequence is an indirect call.
+      const uint64_t end_state_rip =
+          snapshot_.ExtractRip(snapshot_.expected_end_states()[0].registers());
+      if (regs.rip != end_state_rip) {
+        trace_result_.early_termination_reason = "Memory access not allowed";
+        return HarnessTracer::kInjectSigusr1;
+      }
+    }
   } else {
     VLOG_INFO(1, HexStr(addr), ": <undecodable>");
     prev_instruction_decoding_failed_ = true;
