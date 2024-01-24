@@ -108,6 +108,10 @@ inline bool operator==(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
   return 0 == memcmp(&x, &y, sizeof(x));
 }
 
+// The bits of pstate that are saved and restored.
+// Currently this is only NZCV.
+constexpr uint64_t kPStateMask = 0b1111'0000'0000'0000'0000'0000'0000'0000;
+
 // ========================================================================= //
 
 template <typename Arch>

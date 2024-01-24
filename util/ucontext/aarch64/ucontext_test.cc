@@ -44,8 +44,7 @@ constexpr uint64_t Z = 1ULL << 30;  // Zero
 constexpr uint64_t C = 1ULL << 29;  // Carry
 constexpr uint64_t V = 1ULL << 28;  // Overflow
 constexpr uint64_t NZCV_MASK = N | Z | C | V;
-constexpr uint64_t PSTATE_MASK = NZCV_MASK;
-static_assert((NZCV_MASK & ~PSTATE_MASK) == 0, "PSTATE_MASK inconsistent");
+static_assert((NZCV_MASK & ~kPStateMask) == 0, "kPStateMask inconsistent");
 
 constexpr uint64_t FPSR_DZC = (1ULL << 1);  // Divide by zero occured.
 constexpr uint64_t FPSR_MASK = 0xf80000df;
@@ -177,7 +176,7 @@ TEST(UContextTest, Consistency) {
 
   // Check that pstate seems reasonable.
   EXPECT_EQ(uc1.gregs.pstate, uc2.gregs.pstate);
-  EXPECT_EQ(uc1.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc1.gregs.pstate & ~kPStateMask, 0);
 
   // Check that the TLS register seems reasonable.
   EXPECT_EQ(uc1.gregs.tpidr, uc2.gregs.tpidr);
@@ -233,7 +232,7 @@ TEST(UContextTest, FlagsOne) {
   UContext<Host> uc;
   NCZVSaveUContext(&uc, 1, 1);
   ZeroOutRegsPadding(&uc);
-  EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc.gregs.pstate & ~kPStateMask, 0);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, 0);
 }
 
@@ -241,7 +240,7 @@ TEST(UContextTest, FlagsNegative) {
   UContext<Host> uc;
   NCZVSaveUContext(&uc, ~0, 0);
   ZeroOutRegsPadding(&uc);
-  EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc.gregs.pstate & ~kPStateMask, 0);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, N);
 }
 
@@ -249,7 +248,7 @@ TEST(UContextTest, FlagsCancel) {
   UContext<Host> uc;
   NCZVSaveUContext(&uc, ~0, 1);
   ZeroOutRegsPadding(&uc);
-  EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc.gregs.pstate & ~kPStateMask, 0);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, Z | C);
 }
 
@@ -257,7 +256,7 @@ TEST(UContextTest, SignOverflow) {
   UContext<Host> uc;
   NCZVSaveUContext(&uc, 0x7fffffff, 1);
   ZeroOutRegsPadding(&uc);
-  EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc.gregs.pstate & ~kPStateMask, 0);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, N | V);
 }
 
@@ -265,7 +264,7 @@ TEST(UContextTest, Underflow) {
   UContext<Host> uc;
   NCZVSaveUContext(&uc, 0xc0000000, 0x80000000);
   ZeroOutRegsPadding(&uc);
-  EXPECT_EQ(uc.gregs.pstate & ~PSTATE_MASK, 0);
+  EXPECT_EQ(uc.gregs.pstate & ~kPStateMask, 0);
   EXPECT_EQ(uc.gregs.pstate & NZCV_MASK, C | V);
 }
 

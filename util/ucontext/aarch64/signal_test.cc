@@ -83,7 +83,7 @@ TEST(SignalTest, ConvertGRegs) {
   }
   EXPECT_EQ(gregs.sp, ctx.sp);
   EXPECT_EQ(gregs.pc, ctx.pc);
-  EXPECT_EQ(gregs.pstate, ctx.pstate);
+  EXPECT_EQ(gregs.pstate, ctx.pstate & kPStateMask);
 
   EXPECT_EQ(gregs.tpidr, eg.tpidr);
   EXPECT_EQ(gregs.tpidrro, eg.tpidrro);
@@ -137,7 +137,7 @@ TEST(SignalTest, HandlerWorksAsExpected) {
 
   // Make sure we can interpret a FP context provided by the system. This
   // involves chasing a few pointers and isn't completely trivial. Although we
-  // can't say much about the correctness of the values we recive, we can at
+  // can't say much about the correctness of the values we receive, we can at
   // least make sure we interpret an actual context without crashing or
   // detecting inconsistencies.
   FPRegSet<AArch64> fpregs;
@@ -195,6 +195,9 @@ TEST(SignalTest, UnmappedRead) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedRead));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 // Writes memory at the address `arg`.
@@ -238,6 +241,9 @@ TEST(SignalTest, UnmappedWrite) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnmappedWrite));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 TEST(SignalTest, UnmappedExecute) {
@@ -275,6 +281,9 @@ TEST(SignalTest, UnmappedExecute) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(kBadAddr));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 TEST(SignalTest, UnalignedExecute) {
@@ -309,6 +318,9 @@ TEST(SignalTest, UnalignedExecute) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(unaligned_func));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 TEST(SignalTest, Unexecutable) {
@@ -350,6 +362,9 @@ TEST(SignalTest, Unexecutable) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(unexecutable_func));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 // Intentionally misaligns the stack.
@@ -387,6 +402,9 @@ TEST(SignalTest, UnalignedStack) {
   // Stack alignment issues are detected on use.
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(UnalignedStack) + 4);
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 // Executes an illegal instruction.
@@ -420,6 +438,9 @@ TEST(SignalTest, IllegalInstruction) {
   // PC points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(IllegalInstruction));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 // Executes a privileged instruction.
@@ -453,6 +474,9 @@ TEST(SignalTest, PrivilegedInstruction) {
   // PC points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(PrivilegedInstruction));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 // Executes a debug breakpoint instruction.
@@ -486,6 +510,9 @@ TEST(SignalTest, DebugInstruction) {
   // PC points _at_ the debug instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
             reinterpret_cast<uint64_t>(DebugInstruction));
+
+  // Check no stray bits are set.
+  EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
 }
 
 TEST(SignalTest, ConvertFPRegs) {

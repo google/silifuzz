@@ -94,6 +94,7 @@
   // We should have not performed any flag setting operations so far, so NZCV
   // should still be its original value.
   // TODO: DAIF may also be available?
+  // (aarch64/signal.cc should be modified when adding DAIF support)
   mrs x0, nzcv
   stp x30, x0, [x24], #16
 
