@@ -29,7 +29,6 @@
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
 #include "./util/ucontext/signal.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace snapshot_types {
@@ -92,24 +91,13 @@ class Endpoint final {
   // TODO(ksteuck): [cleanup] Cleanup the usage of Endpoint::kSignal and others
   // so that we don't need to alias the enum values here.
   using Type = snapshot_types::EndpointType;
-  static constexpr auto kInstruction = EndpointType::kInstruction;
-  static constexpr auto kSignal = EndpointType::kSignal;
+  using enum snapshot_types::EndpointType;
 
   using SigNum = snapshot_types::SigNum;
-  static constexpr auto kSigSegv = SigNum::kSigSegv;
-  static constexpr auto kSigTrap = SigNum::kSigTrap;
-  static constexpr auto kSigFPE = SigNum::kSigFPE;
-  static constexpr auto kSigIll = SigNum::kSigIll;
-  static constexpr auto kSigBus = SigNum::kSigBus;
+  using enum snapshot_types::SigNum;
 
   using SigCause = snapshot_types::SigCause;
-  static constexpr auto kGenericSigCause = SigCause::kGenericSigCause;
-  static constexpr auto kSegvCantExec = SigCause::kSegvCantExec;
-  static constexpr auto kSegvCantWrite = SigCause::kSegvCantWrite;
-  static constexpr auto kSegvCantRead = SigCause::kSegvCantRead;
-  static constexpr auto kSegvOverflow = SigCause::kSegvOverflow;
-  static constexpr auto kSegvGeneralProtection =
-      SigCause::kSegvGeneralProtection;
+  using enum snapshot_types::SigCause;
 
   // Enpoint that is the first occurence of reaching the instruction_address.
   // I.e. type() == kInstruction.
@@ -223,7 +211,7 @@ struct PlaybackResult {
   // CPU used playing the snapshot overestimated by the unavoidable
   // overheads like RestoreUContext() that we can't directly exclude from
   // the measurements.
-  // Raw measuremet gets corrected by PlayOptions::cpu_usage_baseline
+  // Raw measurement gets corrected by PlayOptions::cpu_usage_baseline
   // given to Play().
   // Note that this can be negative if cpu_usage_baseline is inaccurate.
   absl::Duration cpu_usage;
