@@ -15,6 +15,7 @@
 #include "./snap/testing/snap_test_types.h"
 
 #include "absl/base/attributes.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
