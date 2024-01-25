@@ -64,6 +64,7 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
   trace_options.x86_filter_split_lock = options.x86_filter_split_lock;
   trace_options.x86_filter_vsyscall_region_access =
       options.x86_filter_vsyscall_region_access;
+  trace_options.filter_memory_access = options.filter_memory_access;
   return maker.CheckTrace(recorded_snapshot, trace_options);
 }
 

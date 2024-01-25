@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "absl/strings/string_view.h"
+#include "./common/snapshot.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 
 namespace silifuzz {
@@ -52,6 +53,10 @@ struct SimpleFixToolOptions {
   // If true, tracer injects a signal when an instruction accesses memory in
   // vsyscall memory region of Linux. This has no effect on non-x86 platforms.
   bool x86_filter_vsyscall_region_access = true;
+
+  // If true, tracer injects a signal when an instruction accesses memory. This
+  // has no effect on non-x86 platforms.
+  bool filter_memory_access = false;
 };
 
 // Converts raw instructions blobs in `inputs` into snapshots of the
@@ -71,7 +76,7 @@ namespace fix_tool_internal {
 // Read unique blobs from files in `inputs`. Returns a vector of blobs. This
 // reads as many blobs as possible.  It there is an error while reading a blob
 // file, the rest of the file is ignored and reading continues. Updates
-// statstics in `counters`.
+// statistics in `counters`.
 std::vector<std::string> ReadUniqueCentipedeBlobs(
     const std::vector<std::string>& inputs, SimpleFixToolCounters* counters);
 
@@ -83,7 +88,7 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
     const SimpleFixToolOptions& options, const std::vector<std::string>& blobs,
     SimpleFixToolCounters* counters);
 
-// Parititions and moves `snapshots` into `num_groups` groups,
+// Partitions and moves `snapshots` into `num_groups` groups,
 // each of which contains snapshots with no memory mapping conflicts.
 // The partition process is controlled by `options`.
 // Returns a vector of groups (vector<Snapshot>). Snapshots that
