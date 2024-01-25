@@ -163,6 +163,7 @@ cc_test(
     deps = [
         ":reserved_memory_mappings",
         ":runner_base_address",
+        "@silifuzz//common:mapped_memory_map",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -179,6 +180,7 @@ cc_library(
         ":repeating_byte_runs",
         ":reserved_memory_mappings",
         "@silifuzz//common:mapped_memory_map",
+        "@silifuzz//common:memory_perms",
         "@silifuzz//common:memory_state",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
@@ -206,6 +208,7 @@ cc_test(
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//snap/testing:snap_test_types",
+        "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",

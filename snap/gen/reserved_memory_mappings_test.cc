@@ -21,6 +21,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "./common/mapped_memory_map.h"
 #include "./snap/gen/runner_base_address.h"
 
 namespace silifuzz {

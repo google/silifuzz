@@ -22,6 +22,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
 #include "./common/memory_state.h"
 #include "./common/snapshot.h"
 #include "./snap/exit_sequence.h"

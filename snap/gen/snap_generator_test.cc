@@ -29,6 +29,7 @@
 #include "./snap/exit_sequence.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./snap/testing/snap_test_types.h"
+#include "./util/arch.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 

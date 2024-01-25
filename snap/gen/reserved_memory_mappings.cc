@@ -16,6 +16,7 @@
 
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
+#include "./common/snapshot.h"
 #include "./snap/exit_sequence.h"
 #include "./snap/gen/runner_base_address.h"
 
