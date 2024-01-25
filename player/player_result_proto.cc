@@ -22,8 +22,11 @@
 #include "absl/time/time.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_proto.h"
+#include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/checks.h"
 #include "./util/cpu_id.h"
+#include "./util/misc_util.h"
 #include "./util/proto_util.h"
 #include "./util/time_proto_util.h"
 
