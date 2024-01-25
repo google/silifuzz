@@ -20,11 +20,13 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/macros.h"
+#include "absl/log/check.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
+#include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 

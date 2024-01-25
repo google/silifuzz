@@ -21,7 +21,6 @@
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 #include "third_party/unicorn/unicorn.h"
 
 namespace silifuzz {

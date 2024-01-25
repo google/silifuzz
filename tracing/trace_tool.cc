@@ -37,7 +37,7 @@
 #include "./util/line_printer.h"
 #include "./util/logging_util.h"
 #include "./util/tool_util.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 DEFINE_ENUM_FLAG(ArchitectureId);

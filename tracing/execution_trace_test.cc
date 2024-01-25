@@ -23,10 +23,12 @@
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
 #include "./instruction/capstone_disassembler.h"
+#include "./instruction/disassembler.h"
 #include "./instruction/xed_disassembler.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 

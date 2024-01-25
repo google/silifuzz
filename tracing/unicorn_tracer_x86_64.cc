@@ -18,6 +18,7 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./tracing/unicorn_tracer.h"

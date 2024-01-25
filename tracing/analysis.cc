@@ -18,11 +18,11 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/status/status.h"
 #include "./tracing/execution_trace.h"
 #include "./tracing/unicorn_tracer.h"
-#include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
