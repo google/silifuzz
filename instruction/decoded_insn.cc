@@ -26,7 +26,6 @@
 #include <string>
 
 #include "absl/base/call_once.h"
-#include "absl/base/macros.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"

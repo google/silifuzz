@@ -20,7 +20,6 @@
 #include <string>
 
 #include "absl/strings/ascii.h"
-#include "absl/strings/str_cat.h"
 #include "./instruction/disassembler.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
