@@ -34,13 +34,15 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "external/com_google_fuzztest/centipede/blob_file.h"
+#include "./common/snapshot.h"
+#include "./snap/snap.h"
 #include "./snap/snap_relocator.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 using centipede::DefaultBlobFileWriterFactory;
 using testing::SizeIs;

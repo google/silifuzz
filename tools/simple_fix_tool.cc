@@ -49,7 +49,10 @@
 #include "./tool_libs/fix_tool_common.h"
 #include "./tool_libs/simple_fix_tool_counters.h"
 #include "./tool_libs/snap_group.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/mmapped_memory_ptr.h"
+#include "./util/platform.h"
 #include "./util/span_util.h"
 
 namespace silifuzz {

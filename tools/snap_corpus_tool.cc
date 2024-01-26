@@ -50,6 +50,7 @@
 #include "./snap/snap.h"
 #include "./snap/snap_corpus_util.h"
 #include "./snap/snap_util.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/line_printer.h"
