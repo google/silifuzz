@@ -19,7 +19,6 @@
 #include <cstring>
 
 #include "./util/arch.h"
-#include "./util/checks.h"
 #include "./util/mem_util.h"
 #include "./util/ucontext/ucontext_types.h"
 
