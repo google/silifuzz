@@ -87,10 +87,7 @@ cc_test(
     srcs = ["unicorn_x86_64_test.cc"],
     deps = [
         ":unicorn_x86_64_lib",
-        "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/random",
         "@com_google_googletest//:gtest_main",
-        "@unicorn//:unicorn_x86",
     ],
 )
 
