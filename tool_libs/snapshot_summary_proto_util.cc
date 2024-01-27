@@ -15,6 +15,7 @@
 #include "./tool_libs/snapshot_summary_proto_util.h"
 
 #include "absl/status/statusor.h"
+#include "./common/memory_mapping.h"
 #include "./common/snapshot_proto.h"
 #include "./proto/snapshot.pb.h"
 #include "./tool_libs/snap_group.h"
