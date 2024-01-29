@@ -122,7 +122,7 @@ class DisassemblingSnapTracer {
     // Address of the previous instruction or 0 when none.
     Snapshot::Address prev_instruction_addr_;
 
-    // Set to indicate that a preceeding insn failed to decode.
+    // Set to indicate that a preceding insn failed to decode.
     bool prev_instruction_decoding_failed_;
 
     // Trace result.
