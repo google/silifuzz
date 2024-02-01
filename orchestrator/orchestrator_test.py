@@ -218,6 +218,15 @@ class OrchestratorTest(absltest.TestCase):
         ['snap_fail'], extra_args=['--enable_v1_compat_logging']
     )
     self.assertEqual(returncode, 1)
+    latest_entry = self._parse_v1_log(err_log)
+    self.assertGreater(
+        int(latest_entry['issues_detected']),
+        100,
+        msg=(
+            'Expected at least a 100 failures to be detected within the'
+            ' duration of the test'
+        ),
+    )
     self.assertStrSeqContainsAll(
         err_log,
         [
@@ -227,6 +236,34 @@ class OrchestratorTest(absltest.TestCase):
         ],
     )
 
+  # Returns the latest v1-style log entry as a dictionary
+  def _parse_v1_log(self, lines):
+    logs = [
+        line.split(':')[1]
+        for line in lines
+        if line.startswith('Silifuzz Checker Result:')
+    ]
+    if not logs:
+      return {}
+    r = {}
+    for kv in logs[-1].strip('{}').split(','):
+      (k, v) = kv.split('=')
+      r[k.strip()] = v.strip()
+    return r
+
+  def test_failfast(self):
+    (err_log, returncode) = self.run_orchestrator(
+        ['snap_fail'],
+        extra_args=['--enable_v1_compat_logging', '--fail_after_n_errors=2'],
+    )
+    self.assertEqual(returncode, 1)
+    latest_entry = self._parse_v1_log(err_log)
+    # The orchestrator does not fail immediately and can keep running for a
+    # while after the first failure. The test allows up to 4 for the fail-fast
+    # logic to kick in.
+    self.assertLessEqual(int(latest_entry['issues_detected']), 4)
+    self.assertGreaterEqual(int(latest_entry['issues_detected']), 2)
+
   def test_v1_logging(self):
     (err_log, _) = self.run_orchestrator(
         ['long_loop'],
@@ -234,25 +271,10 @@ class OrchestratorTest(absltest.TestCase):
         extra_args=['--enable_v1_compat_logging'],
     )
 
-    # Returns the latest v1-style log entry as a dictionary
-    def _parse_v1_log(lines):
-      logs = [
-          line.split(':')[1]
-          for line in lines
-          if line.startswith('Silifuzz Checker Result:')
-      ]
-      if not logs:
-        return {}
-      r = {}
-      for kv in logs[-1].strip('{}').split(','):
-        (k, v) = kv.split('=')
-        r[k.strip()] = v.strip()
-      return r
-
     def _parse_secs(s):
       return int(s.rstrip('s'))
 
-    latest_entry = _parse_v1_log(err_log)
+    latest_entry = self._parse_v1_log(err_log)
     self.assertGreater(int(latest_entry['num_cores']), 0)
     self.assertEqual(int(latest_entry['issues_detected']), 0)
     self.assertGreater(_parse_secs(latest_entry['elapsed_time']), 0)

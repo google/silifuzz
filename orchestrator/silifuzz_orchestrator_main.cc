@@ -49,6 +49,7 @@
 #include <filesystem>  // NOLINT
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <string>
 #include <thread>  // NOLINT
 #include <utility>
@@ -58,13 +59,14 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/functional/bind_front.h"
-#include "absl/log/flags.h"
+#include "absl/log/flags.h"  // IWYU pragma: keep
 #include "absl/log/initialize.h"
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/numbers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -119,6 +121,11 @@ ABSL_FLAG(
     "usage of itself + all the runner processes by loading just a random "
     "fraction of the shards. A special value `auto` can be used to "
     "automatically determine the amount of free memory from /proc/meminfo");
+// TODO(b/233457080): [bug] Investigate the cause of EXECUTION_RUNAWAY errors.
+ABSL_FLAG(bool, report_runaways_as_errors, false,
+          "Whether runaway snapshot should be reported as errors");
+ABSL_FLAG(int, fail_after_n_errors, std::numeric_limits<int>::max(),
+          "Fail soon after detecting this many errors.");
 
 namespace silifuzz {
 
@@ -251,8 +258,11 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
     }
   }
 
-  ResultCollector result_collector(absl::GetFlag(FLAGS_binary_log_fd),
-                                   start_time);
+  ResultCollector result_collector(
+      absl::GetFlag(FLAGS_binary_log_fd), start_time,
+      {.report_runaways_as_errors =
+           absl::GetFlag(FLAGS_report_runaways_as_errors),
+       .fail_after_n_errors = absl::GetFlag(FLAGS_fail_after_n_errors)});
   ExecutionContext *ctx = OrchestratorInit(
       deadline, num_threads,
       absl::bind_front(&ResultCollector::operator(), &result_collector));

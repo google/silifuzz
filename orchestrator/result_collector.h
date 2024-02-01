@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -47,10 +48,19 @@ struct Summary {
 // This class is thread-compatible.
 class ResultCollector {
  public:
+  struct Options {
+    // Whether runaway snapshot should be reported as errors
+    bool report_runaways_as_errors = false;
+
+    // Fail after seeing this many errors.
+    int fail_after_n_errors = std::numeric_limits<int>::max();
+  };
+
   // If `binary_log_fd_channel` >= 0, will also log each result to the said
   // file descriptor via BinaryLogProducer API. The instance of this class
   // will also take ownership of the FD and close it upon destruction.
-  ResultCollector(int binary_log_channel_fd, absl::Time start_time);
+  ResultCollector(int binary_log_channel_fd, absl::Time start_time,
+                  const Options &options);
 
   // Processes a single execution result. Returns true if the orchestrator
   // should stop.
@@ -72,6 +82,7 @@ class ResultCollector {
   absl::Duration log_interval_ = absl::Seconds(1);
   Summary summary_ = {};
   absl::Time start_time_;
+  Options options_;
   std::string session_id_;
   uint64_t max_rss_kb_ = 0;
 };

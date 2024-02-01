@@ -24,7 +24,6 @@
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
@@ -32,7 +31,7 @@ namespace {
 using snapshot_types::PlaybackOutcome;
 
 TEST(ResultCollector, Simple) {
-  ResultCollector collector(-1, absl::Now());
+  ResultCollector collector(-1, absl::Now(), {});
   collector(RunnerDriver::RunResult::Successful());
   ASSERT_EQ(collector.summary().play_count, 1);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 0);
@@ -47,7 +46,7 @@ TEST(ResultCollector, BinaryLogging) {
   int pipefd[2] = {-1, -1};
   ASSERT_EQ(pipe(pipefd), 0);
   {
-    ResultCollector collector(pipefd[1], absl::Now());
+    ResultCollector collector(pipefd[1], absl::Now(), {});
     collector(RunnerDriver::RunResult::Successful());
     RunnerDriver::PlayerResult result = {
         .outcome = PlaybackOutcome::kExecutionMisbehave};

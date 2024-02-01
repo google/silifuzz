@@ -48,9 +48,6 @@
 #include "./util/itoa.h"
 
 ABSL_FLAG(bool, enable_v1_compat_logging, false, "Enable V1-style logging");
-// TODO(b/233457080): [bug] Investigate the cause of EXECUTION_RUNAWAY errors.
-ABSL_FLAG(bool, report_runaways_as_errors, false,
-          "Whether runaway snapshot should be reported as errors");
 
 namespace silifuzz {
 namespace {
@@ -171,8 +168,10 @@ void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
 }  // namespace
 
 ResultCollector::ResultCollector(int binary_log_channel_fd,
-                                 absl::Time start_time)
-    : binary_log_producer_(nullptr), start_time_(start_time) {
+                                 absl::Time start_time, const Options &options)
+    : binary_log_producer_(nullptr),
+      start_time_(start_time),
+      options_(options) {
   binary_log_producer_ =
       binary_log_channel_fd >= 0
           ? std::make_unique<BinaryLogProducer>(binary_log_channel_fd)
@@ -183,16 +182,14 @@ ResultCollector::ResultCollector(int binary_log_channel_fd,
 
 // Processes a single execution result.
 bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
-  static bool report_runaways_as_errors =
-      absl::GetFlag(FLAGS_report_runaways_as_errors);
-
   ++summary_.play_count;
   max_rss_kb_ = std::max(max_rss_kb_, MaxRunnerRssSizeBytes(getpid()) / 1024);
+  bool should_stop = false;
   if (!result.success()) {
     if (result.player_result().outcome ==
         snapshot_types::PlaybackOutcome::kExecutionRunaway) {
       summary_.num_runaway_snapshots++;
-      if (!report_runaways_as_errors) return false;
+      if (!options_.report_runaways_as_errors) return false;
     }
     ++summary_.num_failed_snapshots;
     LogV1SingleSnapFailure(result);
@@ -207,9 +204,10 @@ bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
     } else {
       LOG_ERROR(entry_or.status().message());
     }
+    should_stop = (--options_.fail_after_n_errors <= 0);
   }
   LogSummary();
-  return false;
+  return should_stop;
 }
 
 void ResultCollector::LogSummary(bool always) {
