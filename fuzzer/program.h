@@ -78,6 +78,7 @@ constexpr const size_t kInsnBufferSize = 16;
 
 // Instruction data is a container with inline storage.
 // The intent is to reduce allocator thrash and make cloning a program faster.
+template <typename Arch>
 class InstructionData {
  public:
   InstructionData() { Clear(); }
@@ -113,9 +114,10 @@ class InstructionData {
   size_t num_bytes_;
 };
 
+template <typename Arch>
 struct Instruction {
   // The encoded bytes of the instruction.
-  InstructionData encoded;
+  InstructionData<Arch> encoded;
 
   // Info about the direct branch contained in this instruction, if it exists.
   InstructionDisplacementInfo direct_branch;
@@ -130,6 +132,7 @@ struct Instruction {
 // A program is a linear sequence of instructions that may execute in a very
 // non-linear way.
 // This structure is designed to be copied.
+template <typename Arch>
 class Program {
  public:
   Program();
@@ -159,12 +162,12 @@ class Program {
   // Note that GetInstruction returns a const reference. This is so the state of
   // Program cannot be modified without going through a method that maintains
   // internal invariants like SetInstruction.
-  const Instruction& GetInstruction(size_t index) const {
+  const Instruction<Arch>& GetInstruction(size_t index) const {
     return instructions_[index];
   }
 
   // Overwrite the instruction at `index` with `insn`.
-  void SetInstruction(size_t index, const Instruction& insn);
+  void SetInstruction(size_t index, const Instruction<Arch>& insn);
 
   size_t NumInstructions() const { return instructions_.size(); }
 
@@ -193,7 +196,7 @@ class Program {
   // single-instruction loops to remain undisturbed. A mutator will want to
   // randomize the kind of insert it performs.
   void InsertInstruction(size_t boundary, bool steal_displacements,
-                         const Instruction& insn);
+                         const Instruction<Arch>& insn);
 
   // Remove a specific instruction.
   void RemoveInstruction(size_t index);
@@ -246,13 +249,13 @@ class Program {
   // Generally the byte displacements should match the encoded instruction, so
   // is syncing changes the values the instruction should be immediately
   // re-encoded.
-  bool SyncByteDisplacements(Instruction& insn);
-  bool SyncByteDisplacement(const Instruction& insn,
+  bool SyncByteDisplacements(Instruction<Arch>& insn);
+  bool SyncByteDisplacement(const Instruction<Arch>& insn,
                             InstructionDisplacementInfo& info);
 
   // The instructions in the program.
   // They are assumed to be packed end-to-end and do not overlap.
-  std::vector<Instruction> instructions_;
+  std::vector<Instruction<Arch>> instructions_;
 
   // The total size of the program.
   uint64_t byte_len_;
@@ -269,8 +272,9 @@ class Program {
 // point to a random, valid instruction boundary within the program.
 // Does not re-encode the instruction, only randomizes what the displacements
 // _should_ be. The encoding will be fixed up later, if needed.
+template <typename Arch>
 void RandomizeInstructionDisplacementBoundaries(MutatorRng& rng,
-                                                Instruction& insn,
+                                                Instruction<Arch>& insn,
                                                 size_t num_boundaries);
 
 // Similar to above, but for a single displacement.

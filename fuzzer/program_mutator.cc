@@ -22,12 +22,14 @@
 
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_mutation_ops.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
 namespace {
 
-bool TrySingleMutation(MutatorRng& rng, Program& program) {
+template <typename Arch>
+bool TrySingleMutation(MutatorRng& rng, Program<Arch>& program) {
   // TODO(ncbray): swap instructions.
   // TODO(ncbray): copy instruction from other program.
   // TODO(ncbray): copy instruction from dictionary.
@@ -62,7 +64,8 @@ bool TrySingleMutation(MutatorRng& rng, Program& program) {
   }
 }
 
-void ApplySingleMutation(MutatorRng& rng, Program& program) {
+template <typename Arch>
+void ApplySingleMutation(MutatorRng& rng, Program<Arch>& program) {
   // Mutation operations may fail, retry a few times until we succeed.
   for (size_t i = 0; i < 64; i++) {
     if (TrySingleMutation(rng, program)) {
@@ -74,13 +77,15 @@ void ApplySingleMutation(MutatorRng& rng, Program& program) {
 
 // Centipede expects that mutators will never produce outputs that are zero
 // bytes in length. Get out of this situation by adding random instructions.
-void AddInstructionIfZeroLength(MutatorRng& rng, Program& program) {
+template <typename Arch>
+void AddInstructionIfZeroLength(MutatorRng& rng, Program<Arch>& program) {
   while (program.ByteLen() == 0) {
     InsertRandomInstruction(rng, program);
   }
 }
 
-void FinalizeProgram(MutatorRng& rng, Program& program, size_t max_len) {
+template <typename Arch>
+void FinalizeProgram(MutatorRng& rng, Program<Arch>& program, size_t max_len) {
   // Note that LimitProgramLength may reduce the program size back to zero.
   // We consider obeying max_len more important than outputting non-trivial
   // inputs.
@@ -102,10 +107,11 @@ void FinalizeProgram(MutatorRng& rng, Program& program, size_t max_len) {
 
 }  // namespace
 
-void ProgramMutator::GenerateSingleOutput(const Program& input,
-                                          std::vector<uint8_t>& output) {
+template <typename Arch>
+void ProgramMutator<Arch>::GenerateSingleOutput(const Program<Arch>& input,
+                                                std::vector<uint8_t>& output) {
   // Copy
-  Program program = input;
+  Program<Arch> program = input;
 
   // Mutate
   size_t num_mutations = std::uniform_int_distribution<size_t>{1, 3}(rng_);
@@ -118,16 +124,17 @@ void ProgramMutator::GenerateSingleOutput(const Program& input,
   program.ToBytes(output);
 }
 
-void ProgramMutator::Mutate(
+template <typename Arch>
+void ProgramMutator<Arch>::Mutate(
     const std::vector<const std::vector<uint8_t>*>& inputs, size_t num_mutants,
     std::vector<std::vector<uint8_t>>& mutants) {
   // Extract the programs from the inputs.
   // Copying a program should be cheaper that re-parsing each instruction for
   // each mutant.
-  std::vector<Program> programs;
+  std::vector<Program<Arch>> programs;
   programs.reserve(inputs.size());
   for (const std::vector<uint8_t>* input : inputs) {
-    programs.push_back(Program(*input));
+    programs.push_back(Program<Arch>(*input));
   }
 
   // Generate the requested mutants.
@@ -136,5 +143,8 @@ void ProgramMutator::Mutate(
     GenerateSingleOutput(programs[base], mutants[i]);
   }
 }
+
+template class ProgramMutator<X86_64>;
+template class ProgramMutator<AArch64>;
 
 }  // namespace silifuzz

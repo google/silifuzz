@@ -22,10 +22,8 @@
 
 namespace silifuzz {
 
-// These are the functions we will need to provide alternate implementations for
-// when we support an ISA other than x86_64.
-
 // Initialize the disassembler if needed, etc.
+template <typename Arch>
 void ArchSpecificInit();
 
 // Initialize `instruction` by decoding the data in `bytes`.
@@ -36,8 +34,9 @@ void ArchSpecificInit();
 // instruction.encoded.size() will be zero if the instruction did not decode.
 // instruction.encoded.size() will be the size of the decoded instruction if it
 // decodes, even if Silifuzz rejects the instruction (for example: syscall).
+template <typename Arch>
 bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
-                          Instruction& instruction,
+                          Instruction<Arch>& instruction,
                           bool must_decode_everything = false);
 
 // Attempt to reencode the instruction bytes with the byte displacements implied
@@ -45,7 +44,8 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
 // This will not always succeed because some instructions do not allocate enough
 // bits to encode every displacement. For example, some x86_64 branches can only
 // encode signed, 8-bit displacements.
-bool TryToReencodeInstructionDisplacements(Instruction& insn);
+template <typename Arch>
+bool TryToReencodeInstructionDisplacements(Instruction<Arch>& insn);
 
 }  // namespace silifuzz
 

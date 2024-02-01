@@ -20,6 +20,7 @@ cc_library(
     name = "program_mutator",
     srcs = [
         "program.cc",
+        "program_aarch64.cc",
         "program_mutation_ops.cc",
         "program_mutator.cc",
         "program_x86_64.cc",
@@ -31,8 +32,11 @@ cc_library(
         "program_mutator.h",
     ],
     deps = [
+        "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:arch",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:string_view",
         "@libxed//:xed",
     ],
 )
@@ -43,6 +47,7 @@ cc_test(
     srcs = ["program_mutator_test.cc"],
     deps = [
         ":program_mutator",
+        "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -52,6 +57,7 @@ cc_test(
     srcs = ["program_mutator_fuzz_test.cc"],
     deps = [
         ":program_mutator",
+        "@silifuzz//util:arch",
         "@com_google_fuzztest//fuzztest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -64,6 +70,10 @@ cc_binary(
     ],
     deps = [
         ":program_mutator",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:enum_flag_types",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",
         "@com_google_fuzztest//centipede:centipede_callbacks",
         "@com_google_fuzztest//centipede:centipede_default_callbacks",

@@ -22,22 +22,27 @@ namespace silifuzz {
 // Insert a randomly generated instruction at a random boundary in the program.
 // Returns `true` if successful, returns `false` if the the random number
 // generator was deeply unlucky.
-bool InsertRandomInstruction(MutatorRng& rng, Program& program);
+template <typename Arch>
+bool InsertRandomInstruction(MutatorRng& rng, Program<Arch>& program);
 
 // Randomly modify a random instruction in the program.
 // Returns `true` if successful, returns `false` if the the random number
 // generator was unlucky, although some instructions may be more difficult to
 // successfully mutate than others.
-bool MutateRandomInstruction(MutatorRng& rng, Program& program);
+template <typename Arch>
+bool MutateRandomInstruction(MutatorRng& rng, Program<Arch>& program);
 
 // Remove a random instruction from the program.
 // Returns `true` if successful, returns `false` if the program contains no
 // instructions.
-bool RemoveRandomInstruction(MutatorRng& rng, Program& program);
+template <typename Arch>
+bool RemoveRandomInstruction(MutatorRng& rng, Program<Arch>& program);
 
 // Remove instructions until `program.NumBytes()` <= `max_len`.
 // Returns `true` if the program was modified.
-bool LimitProgramLength(MutatorRng& rng, Program& program, size_t max_len);
+template <typename Arch>
+bool LimitProgramLength(MutatorRng& rng, Program<Arch>& program,
+                        size_t max_len);
 
 // Exported for testing
 void FlipBit(uint8_t* buffer, size_t bit);

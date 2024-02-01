@@ -23,6 +23,7 @@
 #include "fuzztest/fuzztest.h"
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_mutation_ops.h"
+#include "./util/arch.h"
 
 using ::fuzztest::Arbitrary;
 
@@ -37,9 +38,10 @@ void DumpData(const uint8_t *data, size_t size) {
   printf("\n");
 }
 
-void DumpProgram(const Program &program) {
+template <typename Arch>
+void DumpProgram(const Program<Arch> &program) {
   for (size_t i = 0; i < program.NumInstructions(); ++i) {
-    const Instruction &insn = program.GetInstruction(i);
+    const Instruction<Arch> &insn = program.GetInstruction(i);
     printf("%03zu %04lx", i, insn.offset);
     DumpData(insn.encoded.data(), insn.encoded.size());
   }
@@ -47,12 +49,13 @@ void DumpProgram(const Program &program) {
 
 constexpr const bool kPrintData = false;
 
+template <typename Arch>
 void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
 
   // Decode the random data.
   if (kPrintData) printf("from\n");
-  Program program1(data, false);
+  Program<Arch> program1(data, false);
   if (kPrintData) DumpProgram(program1);
 
   // Re-encode the instructions with fixed-up displacements.
@@ -71,7 +74,7 @@ void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
 
   // Re-parse the serialized program - it should parse perfectly.
   if (kPrintData) printf("from\n");
-  Program program2(first.data(), first.size(), true);
+  Program<Arch> program2(first.data(), first.size(), true);
   if (kPrintData) DumpProgram(program2);
 
   // This should be a no-op.
@@ -87,10 +90,21 @@ void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
   ASSERT_EQ(first, second);
 }
 
+// Needed to work around FUZZ_TEST macro limitations.
+void RoundtripTest_X86_64(uint64_t seed, const std::vector<uint8_t> &data) {
+  RoundtripTest<X86_64>(seed, data);
+}
+
+// Needed to work around FUZZ_TEST macro limitations.
+void RoundtripTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
+  RoundtripTest<AArch64>(seed, data);
+}
+
+template <typename Arch>
 void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
 
-  Program program(data, false);
+  Program<Arch> program(data, false);
 
   // Do a mixture of mutation operations so that we have a decently-sized
   // program.
@@ -113,7 +127,7 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
   std::vector<uint8_t> first;
   program.ToBytes(first);
 
-  Program reparse(first, true);
+  Program<Arch> reparse(first, true);
   EXPECT_EQ(program.NumInstructions(), reparse.NumInstructions());
 
   // Nothing to fixup.
@@ -125,10 +139,21 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
   EXPECT_EQ(first, second);
 }
 
+// Needed to work around FUZZ_TEST macro limitations.
+void MutationTest_X86_64(uint64_t seed, const std::vector<uint8_t> &data) {
+  MutationTest<X86_64>(seed, data);
+}
+
+// Needed to work around FUZZ_TEST macro limitations.
+void MutationTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
+  MutationTest<AArch64>(seed, data);
+}
+
+template <typename Arch>
 void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
 
-  Program program(data, false);
+  Program<Arch> program(data, false);
 
   // Generate a random program.
   for (size_t i = 0; i < 1000; ++i) {
@@ -160,13 +185,32 @@ void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   EXPECT_GT(limited.size() + 15, max_len);
 }
 
-FUZZ_TEST(FuzzProgramMutator, RoundtripTest)
+// Needed to work around FUZZ_TEST macro limitations.
+void MaxLenTest_X86_64(uint64_t seed, const std::vector<uint8_t> &data) {
+  MaxLenTest<X86_64>(seed, data);
+}
+
+// Needed to work around FUZZ_TEST macro limitations.
+void MaxLenTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
+  MaxLenTest<AArch64>(seed, data);
+}
+
+FUZZ_TEST(FuzzProgramMutator, RoundtripTest_X86_64)
     .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
 
-FUZZ_TEST(FuzzProgramMutator, MutationTest)
+FUZZ_TEST(FuzzProgramMutator, RoundtripTest_AArch64)
     .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
 
-FUZZ_TEST(FuzzProgramMutator, MaxLenTest)
+FUZZ_TEST(FuzzProgramMutator, MutationTest_X86_64)
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
+
+FUZZ_TEST(FuzzProgramMutator, MutationTest_AArch64)
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
+
+FUZZ_TEST(FuzzProgramMutator, MaxLenTest_X86_64)
+    .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
+
+FUZZ_TEST(FuzzProgramMutator, MaxLenTest_AArch64)
     .WithDomains(Arbitrary<uint64_t>(), Arbitrary<std::vector<uint8_t>>());
 
 }  // namespace

@@ -23,18 +23,27 @@
 
 #include "absl/log/check.h"
 #include "./fuzzer/program_arch.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
-void InstructionData::Copy(const uint8_t* bytes, size_t num_bytes) {
+template <typename Arch>
+void InstructionData<Arch>::Copy(const uint8_t* bytes, size_t num_bytes) {
   CHECK_LE(num_bytes, sizeof(bytes_));
   memcpy(bytes_, bytes, num_bytes);
   num_bytes_ = num_bytes;
 }
 
-void Program::CheckConsistency() const {
+template class InstructionData<X86_64>;
+template class InstructionData<AArch64>;
+
+template class Instruction<X86_64>;
+template class Instruction<AArch64>;
+
+template <typename Arch>
+void Program<Arch>::CheckConsistency() const {
   size_t actual_len = 0;
-  for (const Instruction& insn : instructions_) {
+  for (const Instruction<Arch>& insn : instructions_) {
     if (insn.direct_branch.valid()) {
       CHECK_NE(insn.direct_branch.encoded_byte_displacement,
                kInvalidByteDisplacement);
@@ -53,16 +62,18 @@ void Program::CheckConsistency() const {
   CHECK_EQ(byte_len_, actual_len);
 }
 
-void Program::FixupInvariants() {
+template <typename Arch>
+void Program<Arch>::FixupInvariants() {
   uint64_t offset = 0;
-  for (Instruction& insn : instructions_) {
+  for (Instruction<Arch>& insn : instructions_) {
     insn.offset = offset;
     offset += insn.encoded.size();
   }
   byte_len_ = offset;
 }
 
-size_t Program::FindClosestInstructionBoundary(int64_t program_offset) {
+template <typename Arch>
+size_t Program<Arch>::FindClosestInstructionBoundary(int64_t program_offset) {
   size_t closest_boundary = kInvalidInstructionBoundary;
   int64_t smallest_diff = std::numeric_limits<int64_t>::max();
   // TODO(ncbray): binary search
@@ -77,20 +88,23 @@ size_t Program::FindClosestInstructionBoundary(int64_t program_offset) {
   return closest_boundary;
 }
 
-int64_t Program::InstructionBoundaryToProgramByteOffset(size_t boundary) const {
+template <typename Arch>
+int64_t Program<Arch>::InstructionBoundaryToProgramByteOffset(
+    size_t boundary) const {
   CHECK_LT(boundary, NumInstructionBoundaries());
 
   if (boundary < NumInstructions()) {
     return instructions_[boundary].offset;
   } else {
     // It's the end of the program.
-    const Instruction& insn = instructions_.back();
+    const Instruction<Arch>& insn = instructions_.back();
     return insn.offset + insn.encoded.size();
   }
 }
 
-void Program::ResolveDisplacements(bool strict) {
-  for (Instruction& insn : instructions_) {
+template <typename Arch>
+void Program<Arch>::ResolveDisplacements(bool strict) {
+  for (Instruction<Arch>& insn : instructions_) {
     if (insn.direct_branch.valid() && insn.direct_branch.instruction_boundary ==
                                           kInvalidInstructionBoundary) {
       int64_t program_offset =
@@ -123,8 +137,9 @@ void RandomizeInstructionDisplacementBoundary(MutatorRng& rng,
   }
 }
 
+template <typename Arch>
 void RandomizeInstructionDisplacementBoundaries(MutatorRng& rng,
-                                                Instruction& insn,
+                                                Instruction<Arch>& insn,
                                                 size_t num_boundaries) {
   if (insn.direct_branch.valid()) {
     RandomizeInstructionDisplacementBoundary(rng, insn.direct_branch,
@@ -132,8 +147,14 @@ void RandomizeInstructionDisplacementBoundaries(MutatorRng& rng,
   }
 }
 
-bool Program::SyncByteDisplacement(const Instruction& insn,
-                                   InstructionDisplacementInfo& info) {
+template void RandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<X86_64>& insn, size_t num_boundaries);
+template void RandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<AArch64>& insn, size_t num_boundaries);
+
+template <typename Arch>
+bool Program<Arch>::SyncByteDisplacement(const Instruction<Arch>& insn,
+                                         InstructionDisplacementInfo& info) {
   if (!info.valid()) {
     // Nothing to sync.
     return false;
@@ -150,11 +171,13 @@ bool Program::SyncByteDisplacement(const Instruction& insn,
   return true;
 }
 
-bool Program::SyncByteDisplacements(Instruction& insn) {
+template <typename Arch>
+bool Program<Arch>::SyncByteDisplacements(Instruction<Arch>& insn) {
   return SyncByteDisplacement(insn, insn.direct_branch);
 }
 
-bool Program::FixupEncodedDisplacements(MutatorRng& rng) {
+template <typename Arch>
+bool Program<Arch>::FixupEncodedDisplacements(MutatorRng& rng) {
   // Making sure the offsets are accurate before rewriting the branches.
   // When we rewrite the branches we also recalculate the offsets, but if we
   // make sure the offsets are up-to-date before we do the rewrite this saves
@@ -175,7 +198,7 @@ bool Program::FixupEncodedDisplacements(MutatorRng& rng) {
     CHECK_LE(iteration, NumInstructions());
     uint64_t offset = 0;
     stable = true;
-    for (Instruction& insn : instructions_) {
+    for (Instruction<Arch>& insn : instructions_) {
       // If an instruction offset has changed, we aren't stable.
       stable &= insn.offset == offset;
       insn.offset = offset;
@@ -204,17 +227,19 @@ bool Program::FixupEncodedDisplacements(MutatorRng& rng) {
   return modified;
 }
 
-Program::Program() : byte_len_(0), encodings_may_be_invalid(false) {
-  ArchSpecificInit();
+template <typename Arch>
+Program<Arch>::Program() : byte_len_(0), encodings_may_be_invalid(false) {
+  ArchSpecificInit<Arch>();
 }
 
-Program::Program(const uint8_t* bytes, size_t len, bool strict)
+template <typename Arch>
+Program<Arch>::Program(const uint8_t* bytes, size_t len, bool strict)
     : byte_len_(0), encodings_may_be_invalid(true) {
-  ArchSpecificInit();
+  ArchSpecificInit<Arch>();
 
   size_t offset = 0;
   while (offset < len) {
-    Instruction instruction;
+    Instruction<Arch> instruction;
     if (InstructionFromBytes(&bytes[offset], len - offset, instruction)) {
       // Add the instruction.
       instruction.offset = offset;
@@ -244,7 +269,9 @@ Program::Program(const uint8_t* bytes, size_t len, bool strict)
   FixupInvariants();
 }
 
-void Program::SetInstruction(size_t index, const Instruction& insn) {
+template <typename Arch>
+void Program<Arch>::SetInstruction(size_t index,
+                                   const Instruction<Arch>& insn) {
   CHECK_LT(index, NumInstructions());
   // Keep the size in sync.
   byte_len_ -= instructions_[index].encoded.size();
@@ -259,13 +286,14 @@ void Program::SetInstruction(size_t index, const Instruction& insn) {
   encodings_may_be_invalid = true;
 }
 
-void Program::AdjustInstructionIndexes(size_t boundary, int64_t amount) {
+template <typename Arch>
+void Program<Arch>::AdjustInstructionIndexes(size_t boundary, int64_t amount) {
   // When we do a stealing insert at the end of the program, we don't want
   // any of the instruction indexes to change. To support this we accept a
   // boundary that is slightly out of range. This means none of the indexes will
   // match and therefore nothing will change.
   CHECK_LE(boundary, NumInstructionBoundaries());
-  for (Instruction& insn : instructions_) {
+  for (Instruction<Arch>& insn : instructions_) {
     if (insn.direct_branch.valid()) {
       if (insn.direct_branch.instruction_boundary >= boundary) {
         insn.direct_branch.instruction_boundary += amount;
@@ -274,8 +302,9 @@ void Program::AdjustInstructionIndexes(size_t boundary, int64_t amount) {
   }
 }
 
-void Program::InsertInstruction(size_t boundary, bool steal_displacements,
-                                const Instruction& insn) {
+template <typename Arch>
+void Program<Arch>::InsertInstruction(size_t boundary, bool steal_displacements,
+                                      const Instruction<Arch>& insn) {
   CHECK_LT(boundary, NumInstructionBoundaries());
 
   // If we're stealing displacements, we want displacements targeting the
@@ -301,7 +330,8 @@ void Program::InsertInstruction(size_t boundary, bool steal_displacements,
   FixupInvariants();
 }
 
-void Program::RemoveInstruction(size_t index) {
+template <typename Arch>
+void Program<Arch>::RemoveInstruction(size_t index) {
   CHECK_LT(index, NumInstructions());
 
   // Fix up the instruction indexes.
@@ -320,14 +350,18 @@ void Program::RemoveInstruction(size_t index) {
   FixupInvariants();
 }
 
-void Program::ToBytes(std::vector<uint8_t>& output) const {
+template <typename Arch>
+void Program<Arch>::ToBytes(std::vector<uint8_t>& output) const {
   CHECK(!encodings_may_be_invalid);
   output.clear();
   output.reserve(byte_len_);
-  for (const Instruction& insn : instructions_) {
+  for (const Instruction<Arch>& insn : instructions_) {
     CHECK_EQ(insn.offset, output.size());
     output.insert(output.end(), insn.encoded.begin(), insn.encoded.end());
   }
 }
+
+template class Program<X86_64>;
+template class Program<AArch64>;
 
 }  // namespace silifuzz

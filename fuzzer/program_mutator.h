@@ -24,6 +24,7 @@
 
 namespace silifuzz {
 
+template <typename Arch>
 class ProgramMutator {
  public:
   ProgramMutator(uint64_t seed,
@@ -34,7 +35,8 @@ class ProgramMutator {
               size_t num_mutants, std::vector<std::vector<uint8_t>> &mutants);
 
  private:
-  void GenerateSingleOutput(const Program &input, std::vector<uint8_t> &output);
+  void GenerateSingleOutput(const Program<Arch> &input,
+                            std::vector<uint8_t> &output);
 
   MutatorRng rng_;
   size_t max_len_;

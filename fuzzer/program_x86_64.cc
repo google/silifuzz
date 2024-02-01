@@ -17,7 +17,9 @@
 
 #include "absl/log/check.h"
 #include "./fuzzer/program.h"
+#include "./fuzzer/program_arch.h"  // IWYU pragma: keep
 #include "./instruction/xed_util.h"
+#include "./util/arch.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -49,7 +51,7 @@ InstructionDisplacementInfo GetDirectBranchInfo(
   return info;
 }
 
-void ReencodeInternal(const xed_state_t& dstate, Instruction& insn) {
+void ReencodeInternal(const xed_state_t& dstate, Instruction<X86_64>& insn) {
   xed_decoded_inst_t xedd;
 
   xed_decoded_inst_zero_set_mode(&xedd, &dstate);
@@ -95,10 +97,14 @@ void ReencodeInternal(const xed_state_t& dstate, Instruction& insn) {
 
 }  // namespace
 
-void ArchSpecificInit() { InitXedIfNeeded(); }
+template <>
+void ArchSpecificInit<X86_64>() {
+  InitXedIfNeeded();
+}
 
+template <>
 bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
-                          Instruction& instruction,
+                          Instruction<X86_64>& instruction,
                           bool must_decode_everything) {
   // On decode failure, we want the length to be zero.
   instruction.encoded.Clear();
@@ -130,7 +136,8 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
   return true;
 }
 
-bool TryToReencodeInstructionDisplacements(Instruction& insn) {
+template <>
+bool TryToReencodeInstructionDisplacements(Instruction<X86_64>& insn) {
   CHECK(insn.direct_branch.valid());
 
   xed_state_t dstate;

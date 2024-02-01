@@ -23,6 +23,7 @@
 #include "absl/log/check.h"
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_arch.h"
+#include "./util/arch.h"  // IWYU pragma: keep
 
 namespace silifuzz {
 
@@ -85,15 +86,17 @@ void CopyOrRandomizeInstructionDisplacementBoundary(
 // 3) If the new instruction has a displacement but the old instruction does
 // not, then randomize the displacement. Newly discovered displacements should
 // be both random and valid.
+template <typename Arch>
 void CopyOrRandomizeInstructionDisplacementBoundaries(
-    MutatorRng& rng, const Instruction& original, Instruction& mutated,
-    size_t num_boundaries) {
+    MutatorRng& rng, const Instruction<Arch>& original,
+    Instruction<Arch>& mutated, size_t num_boundaries) {
   CopyOrRandomizeInstructionDisplacementBoundary(
       rng, original.direct_branch, mutated.direct_branch, num_boundaries);
 }
 
-bool MutateInstruction(MutatorRng& rng, const Instruction& original,
-                       Instruction& mutated) {
+template <typename Arch>
+bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
+                       Instruction<Arch>& mutated) {
   uint8_t bytes[kInsnBufferSize];
   size_t num_old_bytes = original.encoded.size();
 
@@ -132,7 +135,9 @@ bool MutateInstruction(MutatorRng& rng, const Instruction& original,
 
 }  // namespace
 
-bool GenerateRandomInstruction(MutatorRng& rng, Instruction& instruction) {
+template <typename Arch>
+bool GenerateRandomInstruction(MutatorRng& rng,
+                               Instruction<Arch>& instruction) {
   uint8_t bytes[kInsnBufferSize];
   // It may take us a few tries to find a random set of bytes that decompile.
   // In theory this could be an infinite loop, but it's implemented as a finite
@@ -144,8 +149,9 @@ bool GenerateRandomInstruction(MutatorRng& rng, Instruction& instruction) {
   return false;
 }
 
-bool InsertRandomInstruction(MutatorRng& rng, Program& program) {
-  Instruction insn;
+template <typename Arch>
+bool InsertRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
+  Instruction<Arch> insn;
   bool success = GenerateRandomInstruction(rng, insn);
   if (!success) return false;
 
@@ -160,6 +166,11 @@ bool InsertRandomInstruction(MutatorRng& rng, Program& program) {
   return true;
 }
 
+template bool InsertRandomInstruction(MutatorRng& rng,
+                                      Program<X86_64>& program);
+template bool InsertRandomInstruction(MutatorRng& rng,
+                                      Program<AArch64>& program);
+
 void FlipBit(uint8_t* buffer, size_t bit) {
   buffer[bit >> 3] ^= 1 << (bit & 0b111);
 }
@@ -168,15 +179,16 @@ void FlipRandomBit(MutatorRng& rng, uint8_t* buffer, size_t buffer_size) {
   FlipBit(buffer, RandomIndex(rng, buffer_size * 8));
 }
 
-bool MutateRandomInstruction(MutatorRng& rng, Program& program) {
+template <typename Arch>
+bool MutateRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
   // Is there anything to mutate?
   if (program.NumInstructions() == 0) return false;
 
   // Select a random instruction.
   size_t target = program.RandomInstructionIndex(rng);
-  const Instruction& original = program.GetInstruction(target);
+  const Instruction<Arch>& original = program.GetInstruction(target);
 
-  Instruction mutated{};
+  Instruction<Arch> mutated{};
   if (MutateInstruction(rng, original, mutated)) {
     CopyOrRandomizeInstructionDisplacementBoundaries(
         rng, original, mutated, program.NumInstructionBoundaries());
@@ -186,7 +198,13 @@ bool MutateRandomInstruction(MutatorRng& rng, Program& program) {
   return false;
 }
 
-bool RemoveRandomInstruction(MutatorRng& rng, Program& program) {
+template bool MutateRandomInstruction(MutatorRng& rng,
+                                      Program<X86_64>& program);
+template bool MutateRandomInstruction(MutatorRng& rng,
+                                      Program<AArch64>& program);
+
+template <typename Arch>
+bool RemoveRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
   // Is there anything to remove?
   if (program.NumInstructions() == 0) return false;
 
@@ -195,8 +213,15 @@ bool RemoveRandomInstruction(MutatorRng& rng, Program& program) {
   return true;
 }
 
+template bool RemoveRandomInstruction(MutatorRng& rng,
+                                      Program<X86_64>& program);
+template bool RemoveRandomInstruction(MutatorRng& rng,
+                                      Program<AArch64>& program);
+
 // Throw away instruction until we're under the length limit.
-bool LimitProgramLength(MutatorRng& rng, Program& program, size_t max_len) {
+template <typename Arch>
+bool LimitProgramLength(MutatorRng& rng, Program<Arch>& program,
+                        size_t max_len) {
   bool modified = false;
   while (program.ByteLen() > max_len) {
     CHECK_GT(program.NumInstructions(), 0);
@@ -205,5 +230,10 @@ bool LimitProgramLength(MutatorRng& rng, Program& program, size_t max_len) {
   }
   return modified;
 }
+
+template bool LimitProgramLength(MutatorRng& rng, Program<X86_64>& program,
+                                 size_t max_len);
+template bool LimitProgramLength(MutatorRng& rng, Program<AArch64>& program,
+                                 size_t max_len);
 
 }  // namespace silifuzz

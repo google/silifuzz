@@ -23,10 +23,18 @@
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_arch.h"
 #include "./fuzzer/program_mutation_ops.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
 namespace {
+
+constexpr uint32_t kAArch64NOP = 0xd503201f;
+
+std::vector<uint8_t> FromInts(std::vector<uint32_t>&& data) {
+  return std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&*data.begin()),
+                              reinterpret_cast<uint8_t*>(&*data.end()));
+}
 
 TEST(MutatorUtil, RandomIndex) {
   MutatorRng rng(0);
@@ -47,7 +55,7 @@ TEST(MutatorUtil, RandomIndex) {
 TEST(MutatorUtil, RandomInstructionIndex) {
   // 3 NOPs
   std::vector<uint8_t> bytes = {0x90, 0x90, 0x90};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   MutatorRng rng(0);
 
@@ -67,7 +75,7 @@ TEST(MutatorUtil, RandomInstructionIndex) {
 TEST(MutatorUtil, RandomInstructionBoundary) {
   // 3 NOPs
   std::vector<uint8_t> bytes = {0x90, 0x90, 0x90};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   MutatorRng rng(0);
 
@@ -87,7 +95,7 @@ TEST(MutatorUtil, RandomInstructionBoundary) {
 TEST(MutatorUtil, RandomInstructionBoundaryEmpty) {
   // Empty program
   std::vector<uint8_t> bytes = {};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   MutatorRng rng(0);
 
@@ -152,7 +160,7 @@ TEST(InstructionFromBytes_X86_64, Copy) {
   memset(buffer, 0xff, sizeof(buffer));
   buffer[sizeof(buffer) - 1] = 0xa5;
 
-  InstructionData data;
+  InstructionData<X86_64> data;
   data.Copy(buffer, sizeof(buffer));
   ASSERT_EQ(data.size(), kInsnBufferSize);
   EXPECT_EQ(data.data()[data.size() - 1], 0xa5);
@@ -162,13 +170,13 @@ TEST(InstructionFromBytes_X86_64, CopyDeathTest) {
   uint8_t buffer[kInsnBufferSize + 1];
   memset(buffer, 0xff, sizeof(buffer));
 
-  InstructionData data;
+  InstructionData<X86_64> data;
   ASSERT_DEATH({ data.Copy(buffer, sizeof(buffer)); }, "");
 }
 
 TEST(InstructionFromBytes_X86_64, Junk) {
   std::vector<uint8_t> bytes = {0xff, 0xff};
-  Instruction instruction;
+  Instruction<X86_64> instruction;
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   // Did not decode.
   EXPECT_EQ(instruction.encoded.size(), 0);
@@ -176,22 +184,37 @@ TEST(InstructionFromBytes_X86_64, Junk) {
 
 TEST(InstructionFromBytes_X86_64, NOP) {
   std::vector<uint8_t> bytes = {0x90};
-  Instruction instruction;
+  Instruction<X86_64> instruction;
   EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   EXPECT_EQ(instruction.encoded.size(), 1);
 }
 
+TEST(InstructionFromBytes_AArch64, NOP) {
+  std::vector<uint8_t> bytes = FromInts({kAArch64NOP});
+  Instruction<AArch64> instruction;
+  EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+}
+
 TEST(InstructionFromBytes_X86_64, RDTSC) {
   std::vector<uint8_t> bytes = {0x0f, 0x31};
-  Instruction instruction;
+  Instruction<X86_64> instruction;
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   // Even when the instruction was rejected, we see its size.
   EXPECT_EQ(instruction.encoded.size(), 2);
 }
 
+TEST(InstructionFromBytes_AArch64, UDF) {
+  std::vector<uint8_t> bytes = FromInts({0x0});
+  Instruction<AArch64> instruction;
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  // Even when the instruction was rejected, we see its size.
+  EXPECT_EQ(instruction.encoded.size(), 4);
+}
+
 TEST(InstructionFromBytes_X86_64, NonCanonicalJNS) {
   std::vector<uint8_t> bytes = {0x41, 0x79, 0xfc};
-  Instruction instruction;
+  Instruction<X86_64> instruction;
   EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   EXPECT_EQ(instruction.encoded.size(), 3);
   EXPECT_TRUE(instruction.direct_branch.valid());
@@ -216,7 +239,8 @@ TEST(InstructionFromBytes_X86_64, NonCanonicalJNS) {
   EXPECT_EQ(instruction.encoded.data()[1], 0xfe);
 }
 
-std::vector<uint8_t> ToBytes(Program& program) {
+template <typename Arch>
+std::vector<uint8_t> ToBytes(Program<Arch>& program) {
   MutatorRng rng;
   program.FixupEncodedDisplacements(rng);
 
@@ -227,7 +251,15 @@ std::vector<uint8_t> ToBytes(Program& program) {
 
 TEST(Program_X86_64, Empty) {
   std::vector<uint8_t> bytes = {};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  ASSERT_EQ(p.NumInstructions(), 0);
+
+  EXPECT_EQ(ToBytes(p), bytes);
+}
+
+TEST(Program_AArch64, Empty) {
+  std::vector<uint8_t> bytes = {};
+  Program<AArch64> p(bytes.data(), bytes.size(), true);
   ASSERT_EQ(p.NumInstructions(), 0);
 
   EXPECT_EQ(ToBytes(p), bytes);
@@ -235,13 +267,29 @@ TEST(Program_X86_64, Empty) {
 
 TEST(Program_X86_64, NOP) {
   std::vector<uint8_t> bytes = {0x90};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 1);
     EXPECT_EQ(insn.encoded.data()[0], 0x90);
+    EXPECT_FALSE(insn.direct_branch.valid());
+  }
+
+  EXPECT_EQ(ToBytes(p), bytes);
+}
+
+TEST(Program_AArch64, NOP) {
+  std::vector<uint8_t> bytes = FromInts({kAArch64NOP});
+  Program<AArch64> p(bytes.data(), bytes.size(), true);
+  ASSERT_EQ(p.NumInstructions(), 1);
+
+  {
+    const Instruction<AArch64>& insn = p.GetInstruction(0);
+    EXPECT_EQ(insn.encoded.size(), 4);
+    EXPECT_EQ(*reinterpret_cast<const uint32_t*>(insn.encoded.data()),
+              kAArch64NOP);
     EXPECT_FALSE(insn.direct_branch.valid());
   }
 
@@ -250,7 +298,7 @@ TEST(Program_X86_64, NOP) {
 
 TEST(Program_X86_64, JunkIgnored) {
   std::vector<uint8_t> bytes = {0x90, 0xff, 0x90};
-  Program p(bytes.data(), bytes.size(), false);
+  Program<X86_64> p(bytes.data(), bytes.size(), false);
   ASSERT_EQ(p.NumInstructions(), 2);
 
   std::vector<uint8_t> expected = {0x90, 0x90};
@@ -259,16 +307,16 @@ TEST(Program_X86_64, JunkIgnored) {
 
 TEST(Program_X86_64, StrictDeathTest) {
   std::vector<uint8_t> bytes = {0x90, 0xff, 0x90};
-  ASSERT_DEATH({ Program p(bytes.data(), bytes.size(), true); }, "");
+  ASSERT_DEATH({ Program<X86_64> p(bytes.data(), bytes.size(), true); }, "");
 }
 
 TEST(Program_X86_64, NOP_RET) {
   std::vector<uint8_t> bytes = {0x90, 0xc3};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
   ASSERT_EQ(p.NumInstructions(), 2);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 1);
     EXPECT_EQ(insn.encoded.data()[0], 0x90);
     EXPECT_FALSE(insn.direct_branch.valid());
@@ -277,7 +325,7 @@ TEST(Program_X86_64, NOP_RET) {
   }
 
   {
-    const Instruction& insn = p.GetInstruction(1);
+    const Instruction<X86_64>& insn = p.GetInstruction(1);
     EXPECT_EQ(insn.encoded.size(), 1);
     EXPECT_EQ(insn.encoded.data()[0], 0xc3);
     EXPECT_FALSE(insn.direct_branch.valid());
@@ -290,18 +338,36 @@ TEST(Program_X86_64, NOP_RET) {
 
 TEST(Program_X86_64, InsertEmpty) {
   std::vector<uint8_t> bytes = {};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction insn{};
+  Instruction<X86_64> insn{};
   insn.encoded.Copy(nop.data(), nop.size());
 
   for (bool steal : {false, true}) {
-    Program mut = p;
+    Program<X86_64> mut = p;
     mut.InsertInstruction(0, steal, insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), std::vector<uint8_t>({0x90})) << steal;
+    mut.CheckConsistency();
+  }
+}
+
+TEST(Program_AArch64, InsertEmpty) {
+  std::vector<uint8_t> bytes = {};
+  Program<AArch64> p(bytes.data(), bytes.size(), true);
+
+  // Create NOP instruction.
+  std::vector<uint8_t> nop = FromInts({kAArch64NOP});
+  Instruction<AArch64> insn{};
+  insn.encoded.Copy(nop.data(), nop.size());
+
+  for (bool steal : {false, true}) {
+    Program<AArch64> mut = p;
+    mut.InsertInstruction(0, steal, insn);
+    mut.CheckConsistency();
+    EXPECT_EQ(ToBytes(mut), FromInts({kAArch64NOP})) << steal;
     mut.CheckConsistency();
   }
 }
@@ -312,15 +378,15 @@ TEST(Program_X86_64, InsertEmpty) {
 TEST(Program_X86_64, InsertAroundBranchToEnd) {
   // JBE to the end of the program.
   std::vector<uint8_t> bytes = {0x76, 0x00};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction insn{};
+  Instruction<X86_64> insn{};
   insn.encoded.Copy(nop.data(), nop.size());
 
   {
-    Program mut = p;
+    Program<X86_64> mut = p;
     // Non-stealing insert.
     mut.InsertInstruction(1, false, insn);
     mut.CheckConsistency();
@@ -329,7 +395,7 @@ TEST(Program_X86_64, InsertAroundBranchToEnd) {
   }
 
   {
-    Program mut = p;
+    Program<X86_64> mut = p;
     // Stealing insert.
     mut.InsertInstruction(1, true, insn);
     mut.CheckConsistency();
@@ -341,13 +407,13 @@ TEST(Program_X86_64, InsertAroundBranchToEnd) {
 TEST(Program_X86_64, InsertNearBranch) {
   // JBE that jumps to itself, followed by JA that jumps to itself
   std::vector<uint8_t> bytes = {0x76, 0xfe, 0x77, 0xfe};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Check bytes are interpreted as expected.
   constexpr size_t kNumInstructions = 2;
   ASSERT_EQ(p.NumInstructions(), kNumInstructions);
   for (size_t i = 0; i < kNumInstructions; ++i) {
-    const Instruction& insn = p.GetInstruction(i);
+    const Instruction<X86_64>& insn = p.GetInstruction(i);
     EXPECT_EQ(insn.encoded.size(), 2);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.encoded_byte_displacement, 0);
@@ -360,7 +426,7 @@ TEST(Program_X86_64, InsertNearBranch) {
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction insn{};
+  Instruction<X86_64> insn{};
   insn.encoded.Copy(nop.data(), nop.size());
 
   struct InsertTest {
@@ -377,7 +443,7 @@ TEST(Program_X86_64, InsertNearBranch) {
   };
 
   for (const InsertTest& test : tests) {
-    Program mut = p;
+    Program<X86_64> mut = p;
     mut.InsertInstruction(test.index, test.steal, insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), test.result) << test.index << " " << test.steal;
@@ -391,13 +457,13 @@ TEST(Program_X86_64, RemoveNearBranch) {
   // JBE jumps to beginning.
   // JA jumps to JBE.
   std::vector<uint8_t> bytes = {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Check bytes are interpreted as expected.
   constexpr size_t kNumInstructions = 3;
   ASSERT_EQ(p.NumInstructions(), kNumInstructions);
   for (size_t i = 0; i < kNumInstructions; ++i) {
-    const Instruction& insn = p.GetInstruction(i);
+    const Instruction<X86_64>& insn = p.GetInstruction(i);
     EXPECT_EQ(insn.encoded.size(), 2);
     EXPECT_TRUE(insn.direct_branch.valid());
   }
@@ -416,7 +482,7 @@ TEST(Program_X86_64, RemoveNearBranch) {
   };
 
   for (const RemoveTest& test : tests) {
-    Program mut = p;
+    Program<X86_64> mut = p;
     mut.RemoveInstruction(test.index);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), test.result) << test.index;
@@ -427,12 +493,12 @@ TEST(Program_X86_64, RemoveNearBranch) {
 TEST(Program_X86_64, OutOfRangeBranch) {
   // JNE to the end of the program.
   std::vector<uint8_t> bytes = {0x75, 0x00};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 2);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.instruction_boundary, 1);
@@ -442,7 +508,7 @@ TEST(Program_X86_64, OutOfRangeBranch) {
   // vpaddd ymm14, ymm6, ymm7
   std::vector<uint8_t> filler_bytes = {0xc5, 0x4d, 0xfe, 0xf7};
 
-  Instruction filler{};
+  Instruction<X86_64> filler{};
   ASSERT_TRUE(InstructionFromBytes(filler_bytes.data(), filler_bytes.size(),
                                    filler, true));
 
@@ -462,7 +528,7 @@ TEST(Program_X86_64, OutOfRangeBranch) {
   // The instruction index was out of range, so it should have be randomized to
   // an in-range value.
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
 
     EXPECT_NE(insn.direct_branch.instruction_boundary, p.NumInstructions());
     // A larger negative displacement would land before the program.
@@ -477,11 +543,11 @@ TEST(Program_X86_64, UnmodifiedNonCanonicalJNS) {
   // It decodes, but if it's rewritten the prefix disappears.
   //  1000000:    41 79 fd     rex.B jns 0x1000000
   std::vector<uint8_t> bytes = {0x41, 0x79, 0xfd};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 3);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.encoded_byte_displacement, 0);
@@ -497,11 +563,11 @@ TEST(Program_X86_64, ModifiedNonCanonicalJNS) {
   // The displacement is slightly off to force re-encoding and therefore force
   // canonicalization.
   std::vector<uint8_t> bytes = {0x41, 0x79, 0xfc};
-  Program p(bytes.data(), bytes.size(), false);
+  Program<X86_64> p(bytes.data(), bytes.size(), false);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 3);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.encoded_byte_displacement, -1);
@@ -526,11 +592,11 @@ TEST(Program_X86_64, ModifiedNonCanonicalJNSCrosslink) {
   // NOP followed by a non-canonical JNS that jumps to the beginning of the
   // program.
   std::vector<uint8_t> bytes = {0x41, 0x79, 0x04, 0x90, 0x41, 0x79, 0xf9};
-  Program p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), true);
   ASSERT_EQ(p.NumInstructions(), 3);
 
   {
-    const Instruction& insn = p.GetInstruction(0);
+    const Instruction<X86_64>& insn = p.GetInstruction(0);
     EXPECT_EQ(insn.encoded.size(), 3);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.encoded_byte_displacement, 7);
@@ -538,13 +604,13 @@ TEST(Program_X86_64, ModifiedNonCanonicalJNSCrosslink) {
   }
 
   {
-    const Instruction& insn = p.GetInstruction(1);
+    const Instruction<X86_64>& insn = p.GetInstruction(1);
     EXPECT_EQ(insn.encoded.size(), 1);
     EXPECT_FALSE(insn.direct_branch.valid());
   }
 
   {
-    const Instruction& insn = p.GetInstruction(2);
+    const Instruction<X86_64>& insn = p.GetInstruction(2);
     EXPECT_EQ(insn.encoded.size(), 3);
     EXPECT_TRUE(insn.direct_branch.valid());
     EXPECT_EQ(insn.direct_branch.encoded_byte_displacement, -4);

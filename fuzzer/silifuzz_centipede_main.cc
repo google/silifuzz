@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/flags/flag.h"
+#include "absl/log/log.h"
 #include "external/com_google_fuzztest/centipede/centipede_callbacks.h"
 #include "external/com_google_fuzztest/centipede/centipede_default_callbacks.h"
 #include "external/com_google_fuzztest/centipede/centipede_interface.h"
@@ -26,6 +28,11 @@
 #include "external/com_google_fuzztest/centipede/mutation_input.h"
 #include "external/com_google_fuzztest/centipede/util.h"
 #include "./fuzzer/program_mutator.h"
+#include "./util/arch.h"
+#include "./util/enum_flag_types.h"
+
+ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
+          "Architecture for instruction-aware fuzzing.");
 
 namespace silifuzz {
 
@@ -35,10 +42,18 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
  public:
   SilifuzzCentipedeCallbacks(const centipede::Environment &env)
       : CentipedeDefaultCallbacks(env),
-        program_mutator_(centipede::GetRandomSeed(env.seed), env.max_len) {}
+        arch_(absl::GetFlag(FLAGS_arch)),
+        x86_64_mutator_(centipede::GetRandomSeed(env.seed), env.max_len),
+        aarch64_mutator_(centipede::GetRandomSeed(env.seed), env.max_len) {}
 
   void Mutate(const std::vector<centipede::MutationInputRef> &inputs,
               size_t num_mutants, std::vector<centipede::ByteArray> &mutants) {
+    // Fall back to the byte mutator if the architecture was not specified.
+    if (arch_ == ArchitectureId::kUndefined)
+      centipede::CentipedeDefaultCallbacks::Mutate(inputs, num_mutants,
+                                                   mutants);
+
+    // Init
     mutants.resize(num_mutants);
     if (num_mutants == 0) return;
 
@@ -51,13 +66,22 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
     }
 
     // Mutate
-    program_mutator_.Mutate(tmp, num_mutants, mutants);
-
-    // TODO(ncbray): fall back to default implementation based on config
+    switch (arch_) {
+      case ArchitectureId::kX86_64:
+        x86_64_mutator_.Mutate(tmp, num_mutants, mutants);
+        break;
+      case ArchitectureId::kAArch64:
+        aarch64_mutator_.Mutate(tmp, num_mutants, mutants);
+        break;
+      default:
+        LOG(FATAL) << "Unknown architecture: " << (int)arch_;
+    }
   }
 
  private:
-  ProgramMutator program_mutator_;
+  ArchitectureId arch_;
+  ProgramMutator<X86_64> x86_64_mutator_;
+  ProgramMutator<AArch64> aarch64_mutator_;
 };
 
 }  // namespace silifuzz
