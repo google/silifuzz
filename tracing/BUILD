@@ -190,7 +190,7 @@ cc_binary(
         "@silifuzz//util:arch",
         "@silifuzz//util:bitops",
         "@silifuzz//util:checks",
-        "@silifuzz//util:enum_flag",
+        "@silifuzz//util:enum_flag_types",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",

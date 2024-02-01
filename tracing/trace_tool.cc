@@ -33,15 +33,11 @@
 #include "./util/arch.h"
 #include "./util/bitops.h"
 #include "./util/checks.h"
-#include "./util/enum_flag.h"
+#include "./util/enum_flag_types.h"
 #include "./util/line_printer.h"
 #include "./util/logging_util.h"
 #include "./util/tool_util.h"
 #include "./util/ucontext/ucontext_types.h"
-
-namespace silifuzz {
-DEFINE_ENUM_FLAG(ArchitectureId);
-}
 
 ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
           "Target architecture for raw snippets");

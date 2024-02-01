@@ -48,6 +48,7 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/enum_flag.h"
+#include "./util/enum_flag_types.h"
 #include "./util/file_util.h"
 #include "./util/itoa.h"
 #include "./util/line_printer.h"

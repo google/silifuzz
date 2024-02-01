@@ -52,6 +52,7 @@
 #include "./snap/snap_util.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/enum_flag_types.h"
 #include "./util/itoa.h"
 #include "./util/line_printer.h"
 #include "./util/mmapped_memory_ptr.h"

@@ -18,7 +18,6 @@
 #include <cstdint>
 
 #include "./util/arch.h"
-#include "./util/enum_flag.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
 
@@ -50,8 +49,6 @@ enum class PlatformId {
   kAny = 20,          // any platform for platform selectors
   kNonExistent = 21,  // for tests only
 };
-
-DECLARE_ENUM_FLAG(PlatformId);
 
 // Max valid value of PlatformId, min being kUndefined.
 constexpr PlatformId kMaxPlatformId = PlatformId::kNonExistent;

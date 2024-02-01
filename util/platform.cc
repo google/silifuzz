@@ -34,8 +34,6 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
 };
 
-DEFINE_ENUM_FLAG(PlatformId);
-
 // An arbitrary name, only used internally.
 ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
     "UNDEF",

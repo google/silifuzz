@@ -354,6 +354,17 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "enum_flag_types",
+    srcs = ["enum_flag_types.cc"],
+    hdrs = ["enum_flag_types.h"],
+    deps = [
+        ":arch",
+        ":enum_flag",
+        ":platform",
+    ],
+)
+
 cc_library_plus_nolibc(
     name = "flag_matcher",
     srcs = ["flag_matcher.cc"],
