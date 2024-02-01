@@ -105,9 +105,13 @@
 // aarch64.
 // TODO: fix this upstream.
 #if defined(__aarch64__)
-LSS_INLINE int LSS_NAME(sigaction)(int signum,
-                                   const struct kernel_sigaction* act,
-                                   struct kernel_sigaction* oldact) {
+// Temporarily rename sys_sigaction to sys_sigaction_arm to avoid build breakage
+// on aarch64 while updating linux-syscall-support.h caused by duplicate
+// definitions of sys_sigaction(). This wrapper will be eliminated once the
+// update completes.
+LSS_INLINE int LSS_NAME(sigaction_arm)(int signum,
+                                       const struct kernel_sigaction* act,
+                                       struct kernel_sigaction* oldact) {
   // Note that this implementation does not call sigreturn if the handler
   // returns normally, which would likely result in the stack pointer
   // being corrupted. Fortunately our signal handler never returns normally, so
@@ -249,10 +253,19 @@ void InstallSigHandler() {
       continue;
     }
     struct kernel_sigaction save_action;
+#ifdef __aarch64__
+    // Temporary use our own sigaction wrapper on arm. This will be eliminated
+    // once linux-syscall-support.h is updated.
+    if (sys_sigaction_arm(signal, &action, &save_action) != 0) {
+      LOG_FATAL("sigaction() failed for ", IntStr(signal), ": ",
+                ErrnoStr(errno));
+    }
+#else   // __aarch64__
     if (sys_sigaction(signal, &action, &save_action) != 0) {
       LOG_FATAL("sigaction() failed for ", IntStr(signal), ": ",
                 ErrnoStr(errno));
     }
+#endif  // __aarch64__
     // Sanity-check that we don't install the same handler twice.
     CHECK_NE(save_action.sa_sigaction_, SigAction);
   }
