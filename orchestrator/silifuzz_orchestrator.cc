@@ -32,7 +32,6 @@
 #include "./orchestrator/corpus_util.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/checks.h"
-#include "./util/path_util.h"
 
 namespace silifuzz {
 
@@ -117,7 +116,9 @@ void ExecutionContext::ProcessResultQueue() {
 void ExecutionContext::ProcessResultQueueImpl(
     const std::vector<RunnerDriver::RunResult> &results) {
   for (const auto &result : results) {
-    result_cb_(result);
+    if (result_cb_(result)) {
+      Stop();
+    }
   }
 }
 

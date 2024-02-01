@@ -57,7 +57,6 @@ cc_library(
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//runner/driver:runner_options",
         "@silifuzz//util:checks",
-        "@silifuzz//util:path_util",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:log_severity",
         "@com_google_absl//absl/log:check",

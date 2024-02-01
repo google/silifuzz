@@ -52,8 +52,9 @@ class ResultCollector {
   // will also take ownership of the FD and close it upon destruction.
   ResultCollector(int binary_log_channel_fd, absl::Time start_time);
 
-  // Processes a single execution result.
-  void operator()(const RunnerDriver::RunResult &result);
+  // Processes a single execution result. Returns true if the orchestrator
+  // should stop.
+  bool operator()(const RunnerDriver::RunResult &result);
   // Current execution summary.
   const Summary &summary() const { return summary_; }
 

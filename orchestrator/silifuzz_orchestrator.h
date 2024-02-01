@@ -43,7 +43,7 @@ struct RunnerThreadArgs {
   // All available corpora.
   const InMemoryCorpora *corpora = nullptr;
 
-  // Additional paramaters passed to each runner binary.
+  // Additional parameters passed to each runner binary.
   RunnerOptions runner_options = RunnerOptions::Default();
 };
 
@@ -58,7 +58,9 @@ class ExecutionContext {
  public:
   // Callback that is invoked for every RunResult produced by any of the worker
   // threads.
-  using ResultCallback = std::function<void(const RunnerDriver::RunResult &)>;
+  // The return value of the callback indicates whether the event loop should
+  // stop.
+  using ResultCallback = std::function<bool(const RunnerDriver::RunResult &)>;
 
   // Constructs an ExecutionContext with the given deadline. Once the deadline
   // is reached ShouldStop() will return true.

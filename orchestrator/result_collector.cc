@@ -182,7 +182,7 @@ ResultCollector::ResultCollector(int binary_log_channel_fd,
 }
 
 // Processes a single execution result.
-void ResultCollector::operator()(const RunnerDriver::RunResult &result) {
+bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
   static bool report_runaways_as_errors =
       absl::GetFlag(FLAGS_report_runaways_as_errors);
 
@@ -192,7 +192,7 @@ void ResultCollector::operator()(const RunnerDriver::RunResult &result) {
     if (result.player_result().outcome ==
         snapshot_types::PlaybackOutcome::kExecutionRunaway) {
       summary_.num_runaway_snapshots++;
-      if (!report_runaways_as_errors) return;
+      if (!report_runaways_as_errors) return false;
     }
     ++summary_.num_failed_snapshots;
     LogV1SingleSnapFailure(result);
@@ -209,6 +209,7 @@ void ResultCollector::operator()(const RunnerDriver::RunResult &result) {
     }
   }
   LogSummary();
+  return false;
 }
 
 void ResultCollector::LogSummary(bool always) {

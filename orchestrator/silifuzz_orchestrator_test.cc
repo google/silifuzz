@@ -34,6 +34,7 @@ TEST(ExecutionContext, Simple) {
   ExecutionContext ctx(absl::InfiniteFuture(), 1,
                        [&results_processed](const RunnerDriver::RunResult& r) {
                          results_processed++;
+                         return false;
                        });
   ASSERT_TRUE(ctx.OfferRunResult(RunnerDriver::RunResult::Successful()));
   ASSERT_FALSE(ctx.ShouldStop());
@@ -44,13 +45,22 @@ TEST(ExecutionContext, Simple) {
 
 TEST(ExecutionContext, Expired) {
   ExecutionContext ctx(absl::InfinitePast(), 1,
-                       [](const RunnerDriver::RunResult& r) {});
+                       [](const RunnerDriver::RunResult& r) { return false; });
+  ASSERT_TRUE(ctx.ShouldStop());
+}
+
+TEST(ExecutionContext, StopFast) {
+  ExecutionContext ctx(absl::InfiniteFuture(), 1,
+                       [](const RunnerDriver::RunResult& r) { return true; });
+  ASSERT_FALSE(ctx.ShouldStop());
+  ASSERT_TRUE(ctx.OfferRunResult(RunnerDriver::RunResult::Successful()));
+  ctx.ProcessResultQueue();
   ASSERT_TRUE(ctx.ShouldStop());
 }
 
 TEST(ExecutionContext, QueueSizeLimit) {
   ExecutionContext ctx(absl::InfiniteFuture(), 1,
-                       [](const RunnerDriver::RunResult& r) {});
+                       [](const RunnerDriver::RunResult& r) { return false; });
   ASSERT_TRUE(ctx.OfferRunResult(RunnerDriver::RunResult::Successful()));
   ASSERT_FALSE(ctx.OfferRunResult(RunnerDriver::RunResult::Successful()));
   ctx.ProcessResultQueue();
@@ -62,6 +72,7 @@ TEST(ExecutionContext, Multithreaded) {
   ExecutionContext ctx(absl::InfiniteFuture(), 5,
                        [&results_processed](const RunnerDriver::RunResult& r) {
                          results_processed++;
+                         return false;
                        });
   std::thread worker([&ctx, &posted]() {
     while (!ctx.ShouldStop()) {
