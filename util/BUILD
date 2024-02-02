@@ -101,6 +101,11 @@ cc_library(
     hdrs = ["bitops.h"],
 )
 
+cc_library(
+    name = "bit_matcher",
+    hdrs = ["bit_matcher.h"],
+)
+
 cc_test(
     name = "bitops_test",
     size = "small",

@@ -34,6 +34,7 @@ cc_library(
     hdrs = ["static_insn_filter.h"],
     deps = [
         "@silifuzz//util:arch",
+        "@silifuzz//util:bit_matcher",
         "@com_google_absl//absl/strings",
     ],
 )

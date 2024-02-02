@@ -19,6 +19,7 @@
 
 #include "absl/strings/string_view.h"
 #include "./util/arch.h"
+#include "./util/bit_matcher.h"
 
 namespace silifuzz {
 
@@ -36,26 +37,11 @@ namespace {
 // instruction encoding:  https://developer.arm.com/documentation/ddi0487/latest
 // Start here: C4.1 A64 instruction set encoding
 
-struct InstructionBits {
-  uint32_t mask;
-  uint32_t bits;
-
-  constexpr bool matches(uint32_t insn) const { return (insn & mask) == bits; }
-};
-
-struct RequiredInstructionBits {
-  InstructionBits pattern;
-  InstructionBits expect;
-  constexpr bool violates_requirements(uint32_t insn) const {
-    return pattern.matches(insn) && !expect.matches(insn);
-  }
-};
-
 // In general, we need to ban PAC until we can control the PAC keys for the
 // runner and set them to known constants. Otherwise the PAC instructions
 // are effectively non-deterministic.
 
-constexpr InstructionBits kBannedInstructions[] = {
+constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
     //
     // The following instructions are things that can pass through the fuzzing
     // and making processes, and then cause a problem in the runner. If they are
@@ -208,7 +194,7 @@ constexpr InstructionBits kBannedInstructions[] = {
 
 // These rules cover fine-grained encoding issues that could be corrected in
 // the mutator, if desired.
-constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
+constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
     {
         // See: C4.1.65 Branches, Exception Generating and System
         // instructions
@@ -388,7 +374,7 @@ constexpr RequiredInstructionBits kRequiredInstructionBits[] = {
 
 // C4.1 A64 instruction set encoding
 // op1 = 0010 is SVE encodings
-constexpr InstructionBits kSVEInstruction = {
+constexpr BitMatcher<uint32_t> kSVEInstruction = {
     .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
     .bits = 0b0000'0100'0000'0000'0000'0000'0000'0000,
 };
@@ -399,14 +385,14 @@ constexpr InstructionBits kSVEInstruction = {
 // a write.  Bit 20 is technically redundant with the high bit of op0. It needs
 // to be 1 for the instruction to be a system register move, but all system
 // registers are specified with the high bit of op0 as 1.
-constexpr InstructionBits kSysregInstruction = {
+constexpr BitMatcher<uint32_t> kSysregInstruction = {
     .mask = 0b1111'1111'1101'0000'0000'0000'0000'0000,
     .bits = 0b1101'0101'0001'0000'0000'0000'0000'0000,
 };
 
 // C4.1 A64 instruction set encoding
 // op1 = x1x0 is a Load/Store instruction.
-constexpr InstructionBits kLoadStoreInstruction = {
+constexpr BitMatcher<uint32_t> kLoadStoreInstruction = {
     .mask = 0b0000'1010'0000'0000'0000'0000'0000'0000,
     .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
 };
@@ -416,13 +402,13 @@ constexpr InstructionBits kLoadStoreInstruction = {
 //  1010010 C4.1.78 SVE Memory - Contiguous Load
 //  1100010 C4.1.79 SVE Memory - 64-bit Gather
 //  1110010 C4.1.80-C4.1.85 Other SVE Memory operations
-constexpr InstructionBits kSVEMemoryOperationInstruction = {
+constexpr BitMatcher<uint32_t> kSVEMemoryOperationInstruction = {
     .mask = 0b1001'1110'0000'0000'0000'0000'0000'0000,
     .bits = 0b1000'0100'0000'0000'0000'0000'0000'0000,
 };
 
 // C4.1.29 SME Memory operations.
-constexpr InstructionBits kSMEMemoryOperationInstruction = {
+constexpr BitMatcher<uint32_t> kSMEMemoryOperationInstruction = {
     .mask = 0b1111'1110'0000'0000'0000'0000'0000'0000,
     .bits = 0b1110'0000'0000'0000'0000'0000'0000'0000,
 };
@@ -452,7 +438,7 @@ const uint32_t kSysregMask = sysreg(0b11, 0b111, 0b1111, 0b1111, 0b111);
 // explicitly specified. This may change as the spec evolves. There are still
 // registers inside this space we should not access, but there is nothing
 // outside the space we should access.
-constexpr InstructionBits kUserspaceSysreg = {
+constexpr BitMatcher<uint32_t> kUserspaceSysreg = {
     .mask = sysreg(0b11, 0b111, 0, 0, 0),
     .bits = sysreg(0b11, 0b011, 0, 0, 0),
 };
@@ -473,7 +459,7 @@ constexpr uint32_t kBannedSysregs[] = {
 
 constexpr bool InstructionIsOK(uint32_t insn,
                                const InstructionFilterConfig<AArch64>& config) {
-  for (const InstructionBits& bits : kBannedInstructions) {
+  for (const BitMatcher<uint32_t>& bits : kBannedInstructions) {
     if (bits.matches(insn)) {
       return false;
     }
@@ -484,7 +470,7 @@ constexpr bool InstructionIsOK(uint32_t insn,
   if (!config.sve_instructions_allowed && kSVEInstruction.matches(insn)) {
     return false;
   }
-  for (const RequiredInstructionBits& bits : kRequiredInstructionBits) {
+  for (const RequiredBits<uint32_t>& bits : kRequiredInstructionBits) {
     if (bits.violates_requirements(insn)) {
       return false;
     }
