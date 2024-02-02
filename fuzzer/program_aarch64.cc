@@ -18,6 +18,7 @@
 #include "absl/strings/string_view.h"
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_arch.h"  // IWYU pragma: keep
+#include "./instruction/capstone_disassembler.h"
 #include "./instruction/static_insn_filter.h"
 #include "./util/arch.h"
 
@@ -37,12 +38,15 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
     return false;
   }
 
-  // TODO(ncbray): actually disassemble the instruction.
-
   // The instruction data.
   // If the instruction decodes, we want the length to be correct even if a
   // later filter rejects it. This lets higher-level code skip the bytes.
   instruction.encoded.Copy(bytes, 4);
+
+  // TODO(ncbray): create at a higher level and pass down to avoid thrashing
+  // the memory allocator.
+  CapstoneDisassembler<AArch64> disassembler;
+  if (!disassembler.Disassemble(0x0, bytes, num_bytes)) return false;
 
   // TODO(ncbray): derive displacement info.
   instruction.direct_branch = {};

@@ -32,6 +32,7 @@ cc_library(
         "program_mutator.h",
     ],
     deps = [
+        "@silifuzz//instruction:capstone_disassembler",
         "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:arch",

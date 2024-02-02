@@ -31,6 +31,9 @@ namespace {
 
 constexpr uint32_t kAArch64NOP = 0xd503201f;
 
+// This instruction is currently unallocated, but that may change some day.
+constexpr uint32_t kAArch64Junk = 0xffffffff;
+
 std::vector<uint8_t> FromInts(std::vector<uint32_t>&& data) {
   return std::vector<uint8_t>(reinterpret_cast<uint8_t*>(&*data.begin()),
                               reinterpret_cast<uint8_t*>(&*data.end()));
@@ -179,7 +182,21 @@ TEST(InstructionFromBytes_X86_64, Junk) {
   Instruction<X86_64> instruction;
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   // Did not decode.
-  EXPECT_EQ(instruction.encoded.size(), 0);
+  EXPECT_EQ(instruction.encoded.size(), 0) << "Did not decode";
+}
+
+TEST(InstructionFromBytes_AArch64, TooShort) {
+  std::vector<uint8_t> bytes = {0xff, 0xff, 0xff};
+  Instruction<AArch64> instruction;
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  EXPECT_EQ(instruction.encoded.size(), 0) << "Did not decode";
+}
+
+TEST(InstructionFromBytes_AArch64, Junk) {
+  std::vector<uint8_t> bytes = FromInts({kAArch64Junk});
+  Instruction<AArch64> instruction;
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  EXPECT_EQ(instruction.encoded.size(), 4);
 }
 
 TEST(InstructionFromBytes_X86_64, NOP) {
@@ -305,9 +322,25 @@ TEST(Program_X86_64, JunkIgnored) {
   EXPECT_EQ(ToBytes(p), expected);
 }
 
+TEST(Program_AArch64, JunkIgnored) {
+  std::vector<uint8_t> bytes =
+      FromInts({kAArch64NOP, kAArch64Junk, kAArch64NOP});
+  Program<AArch64> p(bytes.data(), bytes.size(), false);
+  ASSERT_EQ(p.NumInstructions(), 2);
+
+  std::vector<uint8_t> expected = FromInts({kAArch64NOP, kAArch64NOP});
+  EXPECT_EQ(ToBytes(p), expected);
+}
+
 TEST(Program_X86_64, StrictDeathTest) {
   std::vector<uint8_t> bytes = {0x90, 0xff, 0x90};
   ASSERT_DEATH({ Program<X86_64> p(bytes.data(), bytes.size(), true); }, "");
+}
+
+TEST(Program_AArch64, StrictDeathTest) {
+  std::vector<uint8_t> bytes =
+      FromInts({kAArch64NOP, kAArch64Junk, kAArch64NOP});
+  ASSERT_DEATH({ Program<AArch64> p(bytes.data(), bytes.size(), true); }, "");
 }
 
 TEST(Program_X86_64, NOP_RET) {
