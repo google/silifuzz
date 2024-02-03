@@ -251,9 +251,9 @@ Program<Arch>::Program(const uint8_t* bytes, size_t len, bool strict)
       size_t insn_len = instruction.encoded.size();
       if (insn_len == 0) {
         // Since the instruction did not decode we don't know how many bytes to
-        // consume. Consume one byte - hopefully the decoding will reconverge
-        // at some point.
-        insn_len = 1;
+        // consume. Consume the smallest possible instruction - hopefully the
+        // decoding will reconverge at some point.
+        insn_len = kInstructionInfo<Arch>.min_size;
       }
       offset += insn_len;
     }

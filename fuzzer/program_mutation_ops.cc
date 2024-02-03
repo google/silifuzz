@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <numeric>
 #include <random>
 
 #include "absl/log/check.h"
@@ -29,7 +30,21 @@ namespace silifuzz {
 
 namespace {
 
-template <int N>
+// Copied from bitops.h because there's no good place to put it, yet.
+template <size_t N>
+static constexpr auto BestIntType() {
+  if constexpr (N % sizeof(uint64_t) == 0) {
+    return uint64_t{};
+  } else if constexpr (N % sizeof(uint32_t) == 0) {
+    return uint32_t{};
+  } else if constexpr (N % sizeof(uint16_t) == 0) {
+    return uint16_t{};
+  } else {
+    return uint8_t{};
+  }
+}
+
+template <size_t N>
 void RandomizeBuffer(MutatorRng& rng, uint8_t (&buffer)[N]) {
   using ResultType = MutatorRng::result_type;
 
@@ -38,12 +53,18 @@ void RandomizeBuffer(MutatorRng& rng, uint8_t (&buffer)[N]) {
   static_assert(MutatorRng::max() == std::numeric_limits<ResultType>::max(),
                 "RNG is expected to produce the full range of values.");
 
-  static_assert(sizeof(buffer) % sizeof(ResultType) == 0,
-                "Byte buffer should be a multiple of the RNG width.");
+  // Determine the largest integral type that is a multiple of the buffer size
+  // as well as the RNG result size.
+  using Granularity = decltype(BestIntType<std::gcd(N, sizeof(ResultType))>());
 
-  ResultType* word_view = reinterpret_cast<ResultType*>(buffer);
-  for (size_t i = 0; i < sizeof(buffer) / sizeof(ResultType); ++i) {
-    *word_view++ = rng();
+  static_assert(sizeof(buffer) % sizeof(Granularity) == 0,
+                "Byte buffer should be a multiple of granularity.");
+  static_assert(sizeof(ResultType) % sizeof(Granularity) == 0,
+                "ResultType should be a multiple of granularity.");
+
+  Granularity* word_view = reinterpret_cast<Granularity*>(buffer);
+  for (size_t i = 0; i < sizeof(buffer) / sizeof(Granularity); ++i) {
+    *word_view++ = (Granularity)rng();
   }
 }
 
@@ -97,7 +118,7 @@ void CopyOrRandomizeInstructionDisplacementBoundaries(
 template <typename Arch>
 bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
                        Instruction<Arch>& mutated) {
-  uint8_t bytes[kInsnBufferSize];
+  InstructionByteBuffer<Arch> bytes;
   size_t num_old_bytes = original.encoded.size();
 
   // Individual mutations may not be successful. In some parts of the encoding
@@ -107,11 +128,14 @@ bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
   // In theory this could be an infinite loop, but it's implemented as a finite
   // loop to limit the worst case behavior.
   for (size_t i = 0; i < 64; ++i) {
-    // Randomize the buffer - a mutation could cause the instruction to become
-    // larger so we need to randomize the bytes after the instruction.
-    // It's simpler/faster to randomize the whole buffer since we generate
-    // random bytes in parallel.
-    RandomizeBuffer(rng, bytes);
+    if constexpr (kInstructionInfo<Arch>.max_size !=
+                  kInstructionInfo<Arch>.min_size) {
+      // Randomize the buffer - a mutation could cause the instruction to become
+      // larger so we need to randomize the bytes after the instruction.
+      // It's simpler/faster to randomize the whole buffer since we generate
+      // random bytes in parallel.
+      RandomizeBuffer(rng, bytes);
+    }
 
     // Copy in the original bytes.
     memcpy(bytes, original.encoded.data(), num_old_bytes);
@@ -138,7 +162,7 @@ bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
 template <typename Arch>
 bool GenerateRandomInstruction(MutatorRng& rng,
                                Instruction<Arch>& instruction) {
-  uint8_t bytes[kInsnBufferSize];
+  InstructionByteBuffer<Arch> bytes;
   // It may take us a few tries to find a random set of bytes that decompile.
   // In theory this could be an infinite loop, but it's implemented as a finite
   // loop to limit the worst case behavior.

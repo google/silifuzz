@@ -79,7 +79,7 @@ void ReencodeInternal(const xed_state_t& dstate, Instruction<X86_64>& insn) {
                                            displacement_width);
 
   // Encode.
-  uint8_t ibuf[kInsnBufferSize];
+  InstructionByteBuffer<X86_64> ibuf;
   unsigned int actual_len = 0;
   xed_error_enum_t res = xed_encode(&xedd, ibuf, sizeof(ibuf), &actual_len);
 

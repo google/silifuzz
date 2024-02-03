@@ -21,6 +21,8 @@
 #include <random>
 #include <vector>
 
+#include "./util/arch.h"
+
 namespace silifuzz {
 
 // An alias for the Rng we're using.
@@ -73,8 +75,33 @@ struct InstructionDisplacementInfo {
   }
 };
 
-// This could be 15, but round up to 16 to make it a nice power of 2.
-constexpr const size_t kInsnBufferSize = 16;
+struct ArchInstructionInfo {
+  size_t min_size;
+  size_t max_size;
+  // Round the max_size up to a multiple of 4 or 8.
+  // This makes it faster to initialize the buffer.
+  size_t buffer_size;
+};
+
+template <typename Arch>
+static constexpr ArchInstructionInfo kInstructionInfo = {};
+
+template <>
+static constexpr ArchInstructionInfo kInstructionInfo<X86_64> = {
+    .min_size = 1,
+    .max_size = 15,
+    .buffer_size = 16,
+};
+
+template <>
+static constexpr ArchInstructionInfo kInstructionInfo<AArch64> = {
+    .min_size = 4,
+    .max_size = 4,
+    .buffer_size = 4,
+};
+
+template <typename Arch>
+using InstructionByteBuffer = uint8_t[kInstructionInfo<Arch>.buffer_size];
 
 // Instruction data is a container with inline storage.
 // The intent is to reduce allocator thrash and make cloning a program faster.
@@ -110,8 +137,8 @@ class InstructionData {
   const uint8_t* end() const { return bytes_ + num_bytes_; }
 
  private:
-  uint8_t bytes_[kInsnBufferSize];
-  size_t num_bytes_;
+  InstructionByteBuffer<Arch> bytes_;
+  uint8_t num_bytes_;
 };
 
 template <typename Arch>

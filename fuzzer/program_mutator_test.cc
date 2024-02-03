@@ -159,21 +159,40 @@ TEST(MutatorUtil, FlipRandomBit) {
 }
 
 TEST(InstructionFromBytes_X86_64, Copy) {
-  uint8_t buffer[kInsnBufferSize];
+  uint8_t buffer[kInstructionInfo<X86_64>.buffer_size];
   memset(buffer, 0xff, sizeof(buffer));
   buffer[sizeof(buffer) - 1] = 0xa5;
 
   InstructionData<X86_64> data;
   data.Copy(buffer, sizeof(buffer));
-  ASSERT_EQ(data.size(), kInsnBufferSize);
+  ASSERT_EQ(data.size(), sizeof(buffer));
+  EXPECT_EQ(data.data()[data.size() - 1], 0xa5);
+}
+
+TEST(InstructionFromBytes_AArch64, Copy) {
+  uint8_t buffer[kInstructionInfo<AArch64>.buffer_size];
+  memset(buffer, 0xff, sizeof(buffer));
+  buffer[sizeof(buffer) - 1] = 0xa5;
+
+  InstructionData<AArch64> data;
+  data.Copy(buffer, sizeof(buffer));
+  ASSERT_EQ(data.size(), sizeof(buffer));
   EXPECT_EQ(data.data()[data.size() - 1], 0xa5);
 }
 
 TEST(InstructionFromBytes_X86_64, CopyDeathTest) {
-  uint8_t buffer[kInsnBufferSize + 1];
+  uint8_t buffer[kInstructionInfo<X86_64>.buffer_size + 1];
   memset(buffer, 0xff, sizeof(buffer));
 
   InstructionData<X86_64> data;
+  ASSERT_DEATH({ data.Copy(buffer, sizeof(buffer)); }, "");
+}
+
+TEST(InstructionFromBytes_AArch64, CopyDeathTest) {
+  uint8_t buffer[kInstructionInfo<AArch64>.buffer_size + 1];
+  memset(buffer, 0xff, sizeof(buffer));
+
+  InstructionData<AArch64> data;
   ASSERT_DEATH({ data.Copy(buffer, sizeof(buffer)); }, "");
 }
 
