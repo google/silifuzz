@@ -99,14 +99,14 @@ rules_proto_toolchains()
 # Minor third_party dependencies
 ###############################################################################
 
-lss_ver = "32a80cda3c885e0db9bcd4c67d1c4b479057d943"
+lss_ver = "93e5acf3ef8793cad821c6af42612685e17392d8"
 
 new_git_repository(
     name = "lss",
     build_file = "@silifuzz//:third_party/BUILD.lss",
     commit = lss_ver,
     remote = "https://chromium.googlesource.com/linux-syscall-support",
-    shallow_since = "1657142711 +0000",
+    shallow_since = "1705605906 +0000",
 )
 
 new_git_repository(
