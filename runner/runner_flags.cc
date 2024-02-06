@@ -40,6 +40,7 @@ size_t FLAGS_schedule_size = RunnerMainOptions::kDefaultScheduleSize;
 bool FLAGS_sequential_mode = false;
 bool FLAGS_skip_end_state_check = false;
 bool FLAGS_strict = false;
+uint64_t FLAGS_max_pages_to_add = 0;
 
 // Print all flags and exit.
 void ShowUsage(const char* program_name) {
@@ -65,6 +66,9 @@ void ShowUsage(const char* program_name) {
   LOG_INFO(
       "  --strict\tPerform additional integrity checking. May slow down "
       "execution.");
+  LOG_INFO(
+      "  --max_pages_to_add [value]\tMaximum number of r/w pages added in snap "
+      "making.");
   LOG_INFO("  --help\tPrint usage information.");
 }
 
@@ -149,6 +153,14 @@ int ParseRunnerFlags(int argc, char* argv[]) {
       FLAGS_skip_end_state_check = true;
     } else if (matcher.Match("strict", CommandLineFlagMatcher::kNoArgument)) {
       FLAGS_strict = true;
+    } else if (matcher.Match("max_pages_to_add",
+                             CommandLineFlagMatcher::kRequiredArgument)) {
+      uint64_t max_pages_to_add;
+      if (!DecToU64(matcher.optarg(), &max_pages_to_add)) {
+        LOG_ERROR("Invalid max_pages_to_add ", matcher.optarg());
+        return -1;
+      }
+      FLAGS_max_pages_to_add = max_pages_to_add;
     } else {
       // Exit loop if argument is not recognized.
       break;

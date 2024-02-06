@@ -128,6 +128,7 @@ int Main(int argc, char* argv[]) {
   options.batch_size = FLAGS_batch_size;
   options.schedule_size = FLAGS_schedule_size;
   options.sequential_mode = FLAGS_sequential_mode;
+  options.max_pages_to_add = FLAGS_make ? FLAGS_max_pages_to_add : 0;
 
   // These cannot be set together.
   if (FLAGS_make && FLAGS_sequential_mode) {

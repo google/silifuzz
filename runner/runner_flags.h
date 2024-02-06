@@ -72,6 +72,10 @@ extern bool FLAGS_skip_end_state_check;
 // If true, perform additional integrity checking. May slow down execution.
 extern bool FLAGS_strict;
 
+// Maximum number of pages to be added during snap making. This option is used
+// only in snap making mode.
+extern uint64_t FLAGS_max_pages_to_add;
+
 // Parses command line flags of runner and sets flags accordingly. 'argv[]' is
 // an array of 'argc' command line argument passed to main(). Parsing starts
 // at 'argv[1]' and stops at the first non-flag argument or end of 'argv[]'.

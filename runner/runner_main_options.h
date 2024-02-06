@@ -110,6 +110,10 @@ struct RunnerMainOptions {
 
   // If true, perform additional integrity checking. May slow down execution.
   bool strict;
+
+  // The maximum number of pages to add during making. This is ignored if
+  // runner is not in make mode.
+  int max_pages_to_add = 0;
 };
 
 }  // namespace silifuzz
