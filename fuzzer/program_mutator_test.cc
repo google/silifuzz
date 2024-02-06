@@ -31,6 +31,24 @@ namespace {
 
 constexpr uint32_t kAArch64NOP = 0xd503201f;
 
+// b <this instruction>
+constexpr uint32_t kAArch64BSelf = 0x14000000;
+
+// b.nv <next instruction>
+constexpr uint32_t kAArch64BNvNext = 0x5400002f;
+
+// b.nv <instruction after next>
+constexpr uint32_t kAArch64BNvSkipNext = 0x5400004f;
+
+// b.nv <prev instruction>
+constexpr uint32_t kAArch64BNvPrev = 0x54ffffef;
+
+// tbz w0, #0, <this instruction>
+constexpr uint32_t kAArch64TbzSelf = 0x36000000;
+
+// tbz w0, #0, <next instruction>
+constexpr uint32_t kAArch64TbzNext = 0x36000020;
+
 // This instruction is currently unallocated, but that may change some day.
 constexpr uint32_t kAArch64Junk = 0xffffffff;
 
@@ -275,6 +293,176 @@ TEST(InstructionFromBytes_X86_64, NonCanonicalJNS) {
   EXPECT_EQ(instruction.encoded.data()[1], 0xfe);
 }
 
+// We need to test AArch64 branch decoding a bit more extensively because we
+// implemented the displacement extraction logic.
+void CheckAArch64Branch(uint32_t insn, int64_t displacement) {
+  std::vector<uint8_t> bytes = FromInts({insn});
+  Instruction<AArch64> instruction;
+  ASSERT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction))
+      << insn;
+  EXPECT_EQ(instruction.encoded.size(), 4);
+  EXPECT_EQ(instruction.direct_branch.valid(), true);
+  EXPECT_EQ(instruction.direct_branch.encoded_byte_displacement, displacement);
+}
+
+void CheckAArch64ReencodeOK(const Instruction<AArch64>& instruction,
+                            int64_t displacement) {
+  // Check if the instruction can be re-encoded.
+  Instruction<AArch64> temp = instruction;
+  temp.direct_branch.encoded_byte_displacement = displacement;
+  ASSERT_TRUE(TryToReencodeInstructionDisplacements(temp)) << displacement;
+
+  // Re-decode the instruction to verify re-encoding didn't somehow mangle it.
+  Instruction<AArch64> verify;
+  ASSERT_TRUE(
+      InstructionFromBytes(temp.encoded.data(), temp.encoded.size(), verify))
+      << displacement;
+  EXPECT_EQ(verify.direct_branch.encoded_byte_displacement, displacement);
+}
+
+void CheckAArch64ReencodeFail(const Instruction<AArch64>& instruction,
+                              int64_t displacement) {
+  // Check if the instruction can be re-encoded.
+  Instruction<AArch64> temp = instruction;
+  temp.direct_branch.encoded_byte_displacement = displacement;
+  ASSERT_FALSE(TryToReencodeInstructionDisplacements(temp)) << displacement;
+}
+
+void CheckAArch64DisplacementBounds(uint32_t insn, int64_t displacement_min,
+                                    int64_t displacement_max) {
+  std::vector<uint8_t> bytes = FromInts({insn});
+  Instruction<AArch64> instruction;
+  ASSERT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction))
+      << insn;
+
+  // Reencoding the same value should be a no-op.
+  CheckAArch64ReencodeOK(instruction,
+                         instruction.direct_branch.encoded_byte_displacement);
+
+  //
+  // Around zero
+  //
+
+  CheckAArch64ReencodeOK(instruction, -4);
+  CheckAArch64ReencodeFail(instruction, -3);
+  CheckAArch64ReencodeFail(instruction, -2);
+  CheckAArch64ReencodeFail(instruction, -1);
+  CheckAArch64ReencodeOK(instruction, 0);
+  CheckAArch64ReencodeFail(instruction, 1);
+  CheckAArch64ReencodeFail(instruction, 2);
+  CheckAArch64ReencodeFail(instruction, 3);
+  CheckAArch64ReencodeOK(instruction, 4);
+
+  //
+  // Lower bound
+  //
+
+  // One instruction above the min
+  CheckAArch64ReencodeOK(instruction, displacement_min + 4);
+
+  // Unaligned displacements above the min
+  CheckAArch64ReencodeFail(instruction, displacement_min + 3);
+  CheckAArch64ReencodeFail(instruction, displacement_min + 2);
+  CheckAArch64ReencodeFail(instruction, displacement_min + 1);
+
+  // The min
+  CheckAArch64ReencodeOK(instruction, displacement_min);
+
+  // One instruction below the min
+  CheckAArch64ReencodeFail(instruction, displacement_min - 4);
+
+  //
+  // Upper bound
+  //
+
+  // One instruction below the max
+  CheckAArch64ReencodeOK(instruction, displacement_max - 4);
+
+  // Unaligned displacements below the max
+  CheckAArch64ReencodeFail(instruction, displacement_max - 3);
+  CheckAArch64ReencodeFail(instruction, displacement_max - 2);
+  CheckAArch64ReencodeFail(instruction, displacement_max - 1);
+
+  // The max
+  CheckAArch64ReencodeOK(instruction, displacement_max);
+
+  // One instruction above the max
+  CheckAArch64ReencodeFail(instruction, displacement_max + 4);
+}
+
+TEST(InstructionFromBytes_AArch64, B) {
+  CheckAArch64Branch(kAArch64BSelf, 0);
+
+  CheckAArch64DisplacementBounds(kAArch64BSelf, -128 * 1024 * 1024,
+                                 128 * 1024 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, BL) {
+  // bl <next instruction>
+  constexpr uint32_t kAArch64BlNext = 0x94000001;
+  CheckAArch64Branch(kAArch64BlNext, 4);
+
+  CheckAArch64DisplacementBounds(kAArch64BlNext, -128 * 1024 * 1024,
+                                 128 * 1024 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, B_COND) {
+  CheckAArch64Branch(kAArch64BNvNext, 4);
+  CheckAArch64Branch(kAArch64BNvSkipNext, 8);
+  CheckAArch64Branch(kAArch64BNvPrev, -4);
+
+  CheckAArch64DisplacementBounds(kAArch64BNvNext, -1 * 1024 * 1024,
+                                 1 * 1024 * 1024 - 4);
+}
+
+// Some versions of Capstone reject bc.cond instructions
+// TODO(ncbray): re-enable once the disassembler works correctly.
+TEST(InstructionFromBytes_AArch64, DISABLED_BC_COND) {
+  // bc.eq <forward 4 instructions>
+  constexpr uint32_t kAArch64BcEqForwards = 0x54000090;
+
+  CheckAArch64Branch(kAArch64BcEqForwards, 16);
+
+  CheckAArch64DisplacementBounds(kAArch64BcEqForwards, -1 * 1024 * 1024,
+                                 1 * 1024 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, CBZ) {
+  constexpr uint32_t kAArch64CbzBigForward = 0xb5204f00;
+  // cbnz x0, <forward 264672 bytes>
+  CheckAArch64Branch(kAArch64CbzBigForward, 264672);
+
+  CheckAArch64DisplacementBounds(kAArch64CbzBigForward, -1 * 1024 * 1024,
+                                 1 * 1024 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, CBNZ) {
+  // cbnz w21, <next instruction>
+  constexpr uint32_t kAArch64CbnzNext = 0x35000035;
+  CheckAArch64Branch(kAArch64CbnzNext, 4);
+
+  CheckAArch64DisplacementBounds(kAArch64CbnzNext, -1 * 1024 * 1024,
+                                 1 * 1024 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, TBZ) {
+  CheckAArch64Branch(kAArch64TbzSelf, 0);
+  CheckAArch64Branch(kAArch64TbzNext, 4);
+  // tbnz w11, #6, <back 100 bytes>
+  CheckAArch64Branch(0x3737fceb, -100);
+
+  CheckAArch64DisplacementBounds(kAArch64TbzSelf, -32 * 1024, 32 * 1024 - 4);
+}
+
+TEST(InstructionFromBytes_AArch64, TNBZ) {
+  // tbnz x16, #54, <back 136 instructions>
+  constexpr uint32_t kAArch64TbnzBackward = 0xb7b7ef10;
+  CheckAArch64Branch(kAArch64TbnzBackward, -544);
+
+  CheckAArch64DisplacementBounds(kAArch64TbnzBackward, -32 * 1024,
+                                 32 * 1024 - 4);
+}
+
 template <typename Arch>
 std::vector<uint8_t> ToBytes(Program<Arch>& program) {
   MutatorRng rng;
@@ -390,16 +578,16 @@ TEST(Program_X86_64, NOP_RET) {
 
 TEST(Program_X86_64, InsertEmpty) {
   std::vector<uint8_t> bytes = {};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  const Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction<X86_64> insn{};
-  insn.encoded.Copy(nop.data(), nop.size());
+  Instruction<X86_64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
 
   for (bool steal : {false, true}) {
     Program<X86_64> mut = p;
-    mut.InsertInstruction(0, steal, insn);
+    mut.InsertInstruction(0, steal, nop_insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), std::vector<uint8_t>({0x90})) << steal;
     mut.CheckConsistency();
@@ -408,16 +596,16 @@ TEST(Program_X86_64, InsertEmpty) {
 
 TEST(Program_AArch64, InsertEmpty) {
   std::vector<uint8_t> bytes = {};
-  Program<AArch64> p(bytes.data(), bytes.size(), true);
+  const Program<AArch64> p(bytes.data(), bytes.size(), true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = FromInts({kAArch64NOP});
-  Instruction<AArch64> insn{};
-  insn.encoded.Copy(nop.data(), nop.size());
+  Instruction<AArch64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
 
   for (bool steal : {false, true}) {
     Program<AArch64> mut = p;
-    mut.InsertInstruction(0, steal, insn);
+    mut.InsertInstruction(0, steal, nop_insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), FromInts({kAArch64NOP})) << steal;
     mut.CheckConsistency();
@@ -430,17 +618,17 @@ TEST(Program_AArch64, InsertEmpty) {
 TEST(Program_X86_64, InsertAroundBranchToEnd) {
   // JBE to the end of the program.
   std::vector<uint8_t> bytes = {0x76, 0x00};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  const Program<X86_64> p(bytes.data(), bytes.size(), true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction<X86_64> insn{};
-  insn.encoded.Copy(nop.data(), nop.size());
+  Instruction<X86_64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
 
   {
     Program<X86_64> mut = p;
     // Non-stealing insert.
-    mut.InsertInstruction(1, false, insn);
+    mut.InsertInstruction(1, false, nop_insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), std::vector<uint8_t>({0x76, 0x01, 0x90}));
     mut.CheckConsistency();
@@ -449,9 +637,38 @@ TEST(Program_X86_64, InsertAroundBranchToEnd) {
   {
     Program<X86_64> mut = p;
     // Stealing insert.
-    mut.InsertInstruction(1, true, insn);
+    mut.InsertInstruction(1, true, nop_insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), std::vector<uint8_t>({0x76, 0x00, 0x90}));
+    mut.CheckConsistency();
+  }
+}
+
+TEST(Program_AArch64, InsertAroundBranchToEnd) {
+  // B.NV to the end of the program.
+  std::vector<uint8_t> bytes = FromInts({kAArch64BNvNext});
+  const Program<AArch64> p(bytes.data(), bytes.size(), true);
+
+  // Create NOP instruction.
+  std::vector<uint8_t> nop = FromInts({kAArch64NOP});
+  Instruction<AArch64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
+
+  {
+    Program<AArch64> mut = p;
+    // Non-stealing insert.
+    mut.InsertInstruction(1, false, nop_insn);
+    mut.CheckConsistency();
+    EXPECT_EQ(ToBytes(mut), FromInts({kAArch64BNvSkipNext, kAArch64NOP}));
+    mut.CheckConsistency();
+  }
+
+  {
+    Program<AArch64> mut = p;
+    // Stealing insert.
+    mut.InsertInstruction(1, true, nop_insn);
+    mut.CheckConsistency();
+    EXPECT_EQ(ToBytes(mut), FromInts({kAArch64BNvNext, kAArch64NOP}));
     mut.CheckConsistency();
   }
 }
@@ -478,8 +695,8 @@ TEST(Program_X86_64, InsertNearBranch) {
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
-  Instruction<X86_64> insn{};
-  insn.encoded.Copy(nop.data(), nop.size());
+  Instruction<X86_64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
 
   struct InsertTest {
     size_t index;
@@ -496,7 +713,7 @@ TEST(Program_X86_64, InsertNearBranch) {
 
   for (const InsertTest& test : tests) {
     Program<X86_64> mut = p;
-    mut.InsertInstruction(test.index, test.steal, insn);
+    mut.InsertInstruction(test.index, test.steal, nop_insn);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), test.result) << test.index << " " << test.steal;
     mut.CheckConsistency();

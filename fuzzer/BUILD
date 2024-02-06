@@ -36,6 +36,7 @@ cc_library(
         "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:arch",
+        "@silifuzz//util:bit_matcher",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
         "@libxed//:xed",
