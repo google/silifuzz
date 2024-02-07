@@ -152,6 +152,9 @@ cc_library_plus_nolibc(
     hdrs = [
         "runner_util.h",
     ],
+    as_is_deps = [
+        "@com_google_absl//absl/base:core_headers",
+    ],
     # This can only be built as a static library as it would
     # crash the dynamic linker due to invalid fs_base on x86.
     linkstatic = 1,
@@ -159,6 +162,7 @@ cc_library_plus_nolibc(
         ":endspot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//snap",
+        "@silifuzz//util:arch",
         "@silifuzz//util:byte_io",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",

@@ -93,7 +93,8 @@ void InitTestEnv() {
   kSnapRunnerTestCorpus = LoadCorpus(corpus_file, true, nullptr);
   InitSnapExit(&SnapExitImpl);
   MapCorpus(*kSnapRunnerTestCorpus, -1, nullptr);
-  EnterSeccompStrictMode();
+  SeccompOptions seccomp_options;
+  EnterSeccompFilterMode(seccomp_options);
 }
 
 }  // namespace

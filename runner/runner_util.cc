@@ -29,6 +29,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "absl/base/macros.h"
+#include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
@@ -109,7 +112,7 @@ void LogToStdout(const char* data) { Write(STDOUT_FILENO, data, strlen(data)); }
       BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, AUDIT_ARCH_CURRENT, 1, 0),       \
       BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_KILL)
 
-void EnterSeccompStrictMode(bool allow_kill_syscall) {
+void EnterSeccompFilterMode(const SeccompOptions& options) {
   CHECK_EQ(close(STDIN_FILENO), 0);
   if (prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0) {
     LOG_FATAL("prctl(PR_SET_NO_NEW_PRIVS) failed: ", ErrnoStr(errno));
@@ -124,39 +127,77 @@ void EnterSeccompStrictMode(bool allow_kill_syscall) {
   //  if (k != __NR_write) goto 2
   //  return SECCOMP_ALLOW
   // 2:
-  //  <check exit_group>
-  // 3:
-  //  <check kill>
+  //  .. more syscalls depending on options.
+  //
   // return SECCOMP_KILL
-  if (allow_kill_syscall) {
-    struct sock_filter kWriteExitKillFilter[] = {
-        VALIDATE_ARCH(),
-        ALLOW_SYSCALL(write),
-        ALLOW_SYSCALL(exit_group),
-        ALLOW_SYSCALL(kill),
-        BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_KILL),
-    };
-    struct sock_fprog filterprog = {
-        .len = sizeof(kWriteExitKillFilter) / sizeof(kWriteExitKillFilter[0]),
-        .filter = kWriteExitKillFilter};
-    if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (uintptr_t)&filterprog, 0,
-              0) < 0) {
-      LOG_FATAL("prctl(SECCOMP_MODE_FILTER): ", ErrnoStr(errno));
+
+  // Arch validation and mandatory socket filters.
+  constexpr sock_filter kSockFiltersPrefix[] = {
+      VALIDATE_ARCH(),
+  };
+
+  // Mandatory syscalls.
+  constexpr sock_filter kAllowWrite[] = {
+      ALLOW_SYSCALL(write),
+  };
+  constexpr sock_filter kAllowExitGroup[] = {
+      ALLOW_SYSCALL(exit_group),
+  };
+
+  // Optional syscalls.
+  constexpr sock_filter kAllowKill[]{
+      ALLOW_SYSCALL(kill),
+  };
+  constexpr sock_filter kAllowMmap[] = {
+      ALLOW_SYSCALL(mmap),
+  };
+  constexpr sock_filter kAllowRtSigreturn[] = {
+      ALLOW_SYSCALL(rt_sigreturn),
+  };
+
+  // Last filter to catch all unallowed syscalls.
+  constexpr sock_filter kSockFiltersSuffix[]{
+      BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_KILL),
+  };
+
+  constexpr size_t kMaxSockFilters =
+      ABSL_ARRAYSIZE(kSockFiltersPrefix) + ABSL_ARRAYSIZE(kAllowWrite) +
+      ABSL_ARRAYSIZE(kAllowExitGroup) + ABSL_ARRAYSIZE(kAllowKill) +
+      ABSL_ARRAYSIZE(kAllowMmap) + ABSL_ARRAYSIZE(kAllowRtSigreturn) +
+      ABSL_ARRAYSIZE(kSockFiltersSuffix);
+
+  sock_filter filters[kMaxSockFilters];
+  uint16_t num_filters = 0;
+  auto append_filters = [&filters, &num_filters](auto&& f) {
+    const size_t n = ABSL_ARRAYSIZE(f);
+    CHECK_LE(num_filters + n, kMaxSockFilters);
+    for (size_t i = 0; i < n; ++i, ++num_filters) {
+      filters[num_filters] = f[i];
     }
-  } else {
-    struct sock_filter kWriteExitFilter[] = {
-        VALIDATE_ARCH(),
-        ALLOW_SYSCALL(write),
-        ALLOW_SYSCALL(exit_group),
-        BPF_STMT(BPF_RET + BPF_K, SECCOMP_RET_KILL),
-    };
-    struct sock_fprog filterprog = {
-        .len = sizeof(kWriteExitFilter) / sizeof(kWriteExitFilter[0]),
-        .filter = kWriteExitFilter};
-    if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (uintptr_t)&filterprog, 0,
-              0) < 0) {
-      LOG_FATAL("prctl(SECCOMP_MODE_FILTER): ", ErrnoStr(errno));
-    }
+  };
+
+  append_filters(kSockFiltersPrefix);
+  if (options.allow_write) {
+    append_filters(kAllowWrite);
+  }
+  if (options.allow_exit_group) {
+    append_filters(kAllowExitGroup);
+  }
+  if (options.allow_kill) {
+    append_filters(kAllowKill);
+  }
+  if (options.allow_mmap) {
+    append_filters(kAllowMmap);
+  }
+  if (options.allow_rt_sigreturn) {
+    append_filters(kAllowRtSigreturn);
+  }
+  append_filters(kSockFiltersSuffix);
+
+  struct sock_fprog filterprog = {.len = num_filters, .filter = filters};
+  if (prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (uintptr_t)&filterprog, 0, 0) <
+      0) {
+    LOG_FATAL("prctl(SECCOMP_MODE_FILTER): ", ErrnoStr(errno));
   }
 }
 

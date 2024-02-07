@@ -46,12 +46,25 @@ std::optional<snapshot_types::Endpoint> EndSpotToEndpoint(
 // Writes a null-terminated string to the standard output.
 void LogToStdout(const char* data);
 
+// Struct for specifying what syscalls are allowed in SECCOMP filter mode.
+struct SeccompOptions {
+  // Mandatory syscalls required by the runner in any mode.
+  // These are allowed by default.
+  bool allow_write = true;
+  bool allow_exit_group = true;
+
+  // Optional syscalls. These are allowed depending on how the runner is used.
+  bool allow_kill = false;
+  bool allow_mmap = false;
+  bool allow_rt_sigreturn = false;
+};
+
 // Closes unused FDs and enters a seccomp sandbox. The sandbox allows only
 // exit_group(2), write(2) by default. This sandbox configuration is similar to
 // seccomp-strict but still allows rdtsc and send SIGSYS when a blocked
-// syscall is invoked.
-// When `allow_kill_syscall` is set also allows kill(2).
-void EnterSeccompStrictMode(bool allow_kill_syscall = false);
+// syscall is invoked. 'options' specifies the syscalls allowed in SECCOMP
+// filter mode.
+void EnterSeccompFilterMode(const SeccompOptions& options);
 
 }  // namespace silifuzz
 

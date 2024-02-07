@@ -96,6 +96,13 @@
 //    SIGSYS: a snap tried to make a syscall not allowed by seccomp(2) config.
 //            Cannot be intercepted and always results in termination.
 //
+// When the runner is used in snap making, it handles the following signals:
+//    SIGSEGV: If the fault is due to a missing page and the number of added
+//             pages for snap making is below a preset limit, a new R/W data
+//             page will be mapped to the page-aligned fault address and
+//             execution resumes from the signal. Otherwise, the process will
+//             terminate.
+//
 // In a typical setup this process will be limited by setrlimit(RLIMIT_CPU) and
 // a much larger setitimer(ITIMER_REAL). The first SIGXCPU/SIGALRM will
 // initiate a graceful process shutdown. Reaching hard cap on RLIMIT_CPU will
@@ -108,7 +115,57 @@ namespace {
 using snapshot_types::Endpoint;
 using snapshot_types::EndpointType;
 
+// Number of data pages mapped by SIGSEGV handler during snap making.
+// This is incremented every time a new data page is discovered during making.
+size_t num_added_pages = 0;
+
+// Maximum number of data pages mapped by SIGSEGV handler during snap making.
+// This should only be non-zero when the runner is in make mode.
+size_t max_pages_to_add = 0;
+
+// Static limit of number of page addresses below.
+constexpr size_t kMaxAddedPageAddresses = 20;
+
+uint64_t added_page_addresses[kMaxAddedPageAddresses];
+
 constexpr int kInitialMappingProtection = PROT_READ | PROT_WRITE;
+
+// Attempts to recover from a SEGV fault due to missing mapping.
+// Returns true iff the fault is recoverable by adding a new mapping.
+bool TryToRecoverFromSignal(int signal, const siginfo_t* siginfo) {
+  if (signal != SIGSEGV && siginfo->si_code != SEGV_MAPERR) return false;
+
+  // Check to see if we have reached the max number of mapped data pages.
+  size_t real_max_pages_to_add =
+      std::min(max_pages_to_add, kMaxAddedPageAddresses);
+  if (num_added_pages >= real_max_pages_to_add) {
+    return false;
+  }
+
+  // Map a new r/w data page containing the fault address.
+  uint64_t page_size = getpagesize();
+  uint64_t fault_address = reinterpret_cast<uint64_t>(siginfo->si_addr);
+  uint64_t fault_page_address = RoundDownToPageAlignment(fault_address);
+
+  // Paranoia check to see if this page has been added before.
+  for (size_t i = 0; i < num_added_pages; ++i) {
+    CHECK_NE(added_page_addresses[i], fault_page_address);
+  }
+
+  // This will mmap() any faulting addresses. We rely on high level code to
+  // filter out bad mappings created by the runner during making.
+  void* new_page =
+      sys_mmap(AsPtr(fault_page_address), page_size, PROT_READ | PROT_WRITE,
+               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+  if (new_page == MAP_FAILED) {
+    return false;
+  }
+
+  added_page_addresses[num_added_pages] = AsInt(new_page);
+  num_added_pages++;
+
+  return true;
+}
 
 // The signal handler for the duration of the corpus execution.
 // NOTE: even though this handler is installed for SIGSYS it will be
@@ -119,6 +176,15 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
     _exit(2);
   }
   if (IsInsideSnap()) {
+    // If the signal is due to an unmapped page and we are allowed to map
+    // pages, try resuming from the signal. This happens during snap making.
+    // We only want to recover for SEGV_MAPERR since it is the only case that
+    // we can fix by mapping a missing page. Other cases of SIGSEGV involve
+    // permission errors related an existing page.
+    if (TryToRecoverFromSignal(signal, siginfo)) {
+      return;
+    }
+
     // The signal arrived while executing a snapshot -- blame it on the
     // snapshot itself.
     RunnerReentryFromSignal(*static_cast<const ucontext_t*>(uc), *siginfo);
@@ -192,6 +258,17 @@ bool CanDirectMap(const SnapMemoryMapping& memory_mapping) {
   }
   // The underlying data pointer must be page aligned.
   return IsPageAligned(memory_bytes.data.byte_values.elements);
+}
+
+SeccompOptions SeccompOptionsFromRunnerMainOptions(
+    const RunnerMainOptions& options) {
+  SeccompOptions seccomp_options;
+  seccomp_options.allow_kill = options.enable_tracer;
+  if (options.max_pages_to_add > 0) {
+    seccomp_options.allow_mmap = true;
+    seccomp_options.allow_rt_sigreturn = true;
+  }
+  return seccomp_options;
 }
 
 }  // namespace
@@ -591,6 +668,14 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
       }
     }
     LogSnapMemoryBytes(snap, actual_end_state);
+    // Append additional pages mapped during making.
+    for (int i = 0; i < num_added_pages; ++i) {
+      auto memory_bytes_m = actual_end_state->Message("memory_bytes");
+      const char* start_address =
+          reinterpret_cast<const char*>(AsPtr(added_page_addresses[i]));
+      memory_bytes_m->Hex("start_address", AsInt(start_address));
+      memory_bytes_m->Bytes("byte_values", start_address, kPageSize);
+    }
   }
   LogToStdout(snapshot_execution_result.c_str());
 }
@@ -660,7 +745,8 @@ void RunSnap(const Snap<Host>& snap, const RunnerMainOptions& options,
 int MakerMain(const RunnerMainOptions& options) {
   const SnapCorpus<Host>* corpus = CommonMain(options);
 
-  EnterSeccompStrictMode(options.enable_tracer);
+  max_pages_to_add = options.max_pages_to_add;
+  EnterSeccompFilterMode(SeccompOptionsFromRunnerMainOptions(options));
 
   const Snap<Host>& snap = *corpus->snaps.at(0);
   RunSnapResult run_result;
@@ -679,7 +765,7 @@ int RunnerMain(const RunnerMainOptions& options) {
   const SnapCorpus<Host>* corpus = CommonMain(options);
   CHECK_GT(corpus->snaps.size, 0);
 
-  EnterSeccompStrictMode(options.enable_tracer);
+  EnterSeccompFilterMode(SeccompOptionsFromRunnerMainOptions(options));
 
   std::mt19937_64 gen(options.seed);  // 64-bit Mersenne Twister engine
   VLOG_INFO(1, "Seed = ", IntStr(options.seed));
@@ -735,7 +821,7 @@ int RunnerMainSequential(const RunnerMainOptions& options) {
   CHECK(options.sequential_mode);
   const SnapCorpus<Host>* corpus = CommonMain(options);
 
-  EnterSeccompStrictMode(options.enable_tracer);
+  EnterSeccompFilterMode(SeccompOptionsFromRunnerMainOptions(options));
   VLOG_INFO(1, "Running in sequential mode");
 
   for (size_t i = 0; i < corpus->snaps.size; ++i) {
