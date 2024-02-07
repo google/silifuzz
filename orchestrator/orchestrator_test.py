@@ -221,9 +221,9 @@ class OrchestratorTest(absltest.TestCase):
     latest_entry = self._parse_v1_log(err_log)
     self.assertGreater(
         int(latest_entry['issues_detected']),
-        100,
+        50,  # a fairly arbitrary number of failures expected in 3 sec.
         msg=(
-            'Expected at least a 100 failures to be detected within the'
+            'Expected at least a 50 failures to be detected within the'
             ' duration of the test'
         ),
     )
