@@ -28,12 +28,12 @@
 #include <string>
 #include <vector>
 
-#include "google/protobuf/text_format.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "google/protobuf/text_format.h"
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
 #include "./player/player_result_proto.h"

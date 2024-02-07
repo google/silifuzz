@@ -15,8 +15,8 @@
 #include <string>
 
 #include "google/protobuf/duration.pb.h"
-#include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
+#include "google/protobuf/text_format.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/text_proto_printer.h"

@@ -55,7 +55,6 @@
 #include <utility>
 #include <vector>
 
-#include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/functional/bind_front.h"
@@ -70,6 +69,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "google/protobuf/text_format.h"
 #include "./orchestrator/corpus_util.h"
 #include "./orchestrator/orchestrator_util.h"
 #include "./orchestrator/result_collector.h"

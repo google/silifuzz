@@ -14,9 +14,9 @@
 
 #include <string>
 
-#include "google/protobuf/text_format.h"
 #include "fuzztest/fuzztest.h"
 #include "absl/strings/string_view.h"
+#include "google/protobuf/text_format.h"
 #include "./proto/player_result.pb.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/checks.h"

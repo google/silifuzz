@@ -17,9 +17,9 @@
 
 // This library defines a few simple utils for protos.
 
-#include "google/protobuf/message_lite.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "google/protobuf/message_lite.h"
 
 // Quick proto-parsing helper to complain about semantically-required optionals.
 #define PROTO_MUST_HAVE_FIELD(proto, field_name)        \
