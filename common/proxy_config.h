@@ -21,6 +21,7 @@
 
 #include <cstdint>
 
+#include "./instruction/static_insn_filter.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
@@ -60,6 +61,8 @@ struct FuzzingConfig<X86_64> {
 
   // Constraints for start_address and num_bytes are same as data1.
   MemoryRange data2_range;
+
+  InstructionFilterConfig<X86_64> instruction_filter = {};
 };
 
 template <>
@@ -98,8 +101,8 @@ struct FuzzingConfig<AArch64> {
 
   MemoryRange data1_range;
   MemoryRange data2_range;
-  bool sve_instructions_allowed;
-  bool load_store_instructions_allowed;
+
+  InstructionFilterConfig<AArch64> instruction_filter = {};
 };
 
 template <>
@@ -125,8 +128,6 @@ static constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
             .start_address = 0x1007'0000'0000,
             .num_bytes = 0x40'0000,  // 4 MB
         },
-    .sve_instructions_allowed = false,
-    .load_store_instructions_allowed = true,
 };
 
 // This config is used to accommodate proxies with limited physical memory.
@@ -154,8 +155,6 @@ static constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
                 .start_address = 0x1007'0000'0000,
                 .num_bytes = 0x4000,  // 16 KB
             },
-        .sve_instructions_allowed = false,
-        .load_store_instructions_allowed = true,
 };
 
 }  // namespace silifuzz

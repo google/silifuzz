@@ -103,13 +103,12 @@ TEST(StaticInsnFilter, STXP) {
 }
 
 TEST(StaticInsnFilter, SVE) {
-  InstructionFilterConfig<AArch64> banned =
-      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
-  banned.sve_instructions_allowed = false;
-  InstructionFilterConfig<AArch64> allowed =
-      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
-  allowed.sve_instructions_allowed = true;
-
+  InstructionFilterConfig<AArch64> banned = {
+      .sve_instructions_allowed = false,
+  };
+  InstructionFilterConfig<AArch64> allowed = {
+      .sve_instructions_allowed = true,
+  };
   // sqdecb    x11, vl8, mul #16
   EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x043ff90b}, banned);
   EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x043ff90b}, allowed);
@@ -207,13 +206,13 @@ TEST(StaticInsnFilter, DataPAC) {
 }
 
 TEST(StaticInsnFilter, LoadStoreBanned) {
-  InstructionFilterConfig<AArch64> banned =
-      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
-  banned.load_store_instructions_allowed = false;
-  banned.sve_instructions_allowed = true;
-  InstructionFilterConfig<AArch64> with_sve =
-      DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64>;
-  with_sve.sve_instructions_allowed = true;
+  InstructionFilterConfig<AArch64> banned = {
+      .sve_instructions_allowed = true,
+      .load_store_instructions_allowed = false,
+  };
+  InstructionFilterConfig<AArch64> with_sve{
+      .sve_instructions_allowed = true,
+  };
   std::vector<uint32_t> load_store_instructions = {
       0x0c0064df,  // st1 {v31.4h, v0.4h, v1.4h}, [x6]
       0xc8a0fcd8,  // stlxr w10, x24, [x6]

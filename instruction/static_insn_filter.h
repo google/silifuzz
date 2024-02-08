@@ -23,28 +23,13 @@ namespace silifuzz {
 template <typename Arch>
 struct InstructionFilterConfig;
 
-template <typename Arch>
-static constexpr InstructionFilterConfig<Arch>
-    DEFAULT_INSTRUCTION_FILTER_CONFIG;
-
 template <>
 struct InstructionFilterConfig<X86_64> {};
 
 template <>
-static constexpr InstructionFilterConfig<X86_64>
-    DEFAULT_INSTRUCTION_FILTER_CONFIG<X86_64> = {};
-
-template <>
 struct InstructionFilterConfig<AArch64> {
-  bool sve_instructions_allowed;
-  bool load_store_instructions_allowed;
-};
-
-template <>
-static constexpr InstructionFilterConfig<AArch64>
-    DEFAULT_INSTRUCTION_FILTER_CONFIG<AArch64> = {
-        .sve_instructions_allowed = false,
-        .load_store_instructions_allowed = true,
+  bool sve_instructions_allowed = false;
+  bool load_store_instructions_allowed = true;
 };
 
 // Accept or reject this instruction sequence using simple static analysis.
@@ -58,8 +43,7 @@ static constexpr InstructionFilterConfig<AArch64>
 // always return true.
 template <typename Arch>
 bool StaticInstructionFilter(absl::string_view code,
-                             const InstructionFilterConfig<Arch>& config =
-                                 DEFAULT_INSTRUCTION_FILTER_CONFIG<Arch>);
+                             const InstructionFilterConfig<Arch>& config = {});
 
 }  // namespace silifuzz
 

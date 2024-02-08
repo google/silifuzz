@@ -378,6 +378,7 @@ cc_test(
     deps = [
         ":raw_insns_util",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
@@ -431,6 +432,7 @@ cc_library(
     name = "proxy_config",
     hdrs = ["proxy_config.h"],
     deps = [
+        "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//util:arch",
     ],
 )

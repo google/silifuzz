@@ -23,6 +23,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/arch.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
@@ -100,8 +101,8 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Filter) {
   std::string load_sve_insn({0x0, 0xa0, 0xe0, 0xa5});
 
   auto config = DEFAULT_FUZZING_CONFIG<AArch64>;
-  config.sve_instructions_allowed = false;
-  config.load_store_instructions_allowed = false;
+  config.instruction_filter.sve_instructions_allowed = false;
+  config.instruction_filter.load_store_instructions_allowed = false;
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(sve_insn, config),
               StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_insn, config),
@@ -109,19 +110,19 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Filter) {
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_sve_insn, config),
               StatusIs(absl::StatusCode::kInvalidArgument));
 
-  config.load_store_instructions_allowed = true;
+  config.instruction_filter.load_store_instructions_allowed = true;
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(sve_insn, config),
               StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_OK(InstructionsToSnapshot<AArch64>(load_insn, config));
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_sve_insn, config),
               StatusIs(absl::StatusCode::kInvalidArgument));
 
-  config.sve_instructions_allowed = true;
+  config.instruction_filter.sve_instructions_allowed = true;
   EXPECT_OK(InstructionsToSnapshot<AArch64>(sve_insn, config));
   EXPECT_OK(InstructionsToSnapshot<AArch64>(load_insn, config));
   EXPECT_OK(InstructionsToSnapshot<AArch64>(load_sve_insn, config));
 
-  config.load_store_instructions_allowed = false;
+  config.instruction_filter.load_store_instructions_allowed = false;
   EXPECT_OK(InstructionsToSnapshot<AArch64>(sve_insn, config));
   EXPECT_THAT(InstructionsToSnapshot<AArch64>(load_insn, config),
               StatusIs(absl::StatusCode::kInvalidArgument));
