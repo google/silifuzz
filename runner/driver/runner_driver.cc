@@ -40,8 +40,11 @@
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_options.h"
 #include "./snap/gen/relocatable_snap_generator.h"
+#include "./util/arch.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"
+#include "./util/cpu_id.h"
+#include "./util/itoa.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/subprocess.h"
 
@@ -54,9 +57,10 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::PlayOne(
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::MakeOne(
-    absl::string_view snap_id) const {
+    absl::string_view snap_id, size_t max_pages_to_add) const {
   CHECK(!snap_id.empty());
-  return RunImpl(RunnerOptions::MakeOptions(snap_id), snap_id);
+  return RunImpl(RunnerOptions::MakeOptions(snap_id, max_pages_to_add),
+                 snap_id);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::TraceOne(

@@ -138,7 +138,12 @@ class RunnerDriver {
   absl::StatusOr<RunResult> PlayOne(absl::string_view snap_id) const;
 
   // Runs `snap_id` in make mode (see comments in runner.cc).
-  absl::StatusOr<RunResult> MakeOne(absl::string_view snap_id) const;
+  // During making, up to 'max_pages_to_add' pages are added to the snapshot.
+  // Making fails if more pages are required. If 'max_pages_to_add' is 0,
+  // the runner does not add any new page and the caller of the runner driver
+  // need to add necessary pages in the making process.
+  absl::StatusOr<RunResult> MakeOne(absl::string_view snap_id,
+                                    size_t max_pages_to_add = 0) const;
 
   // Traces `snap_id` in single-step mode and invokes the provided callback for
   // every instruction of the snapshot. This runs the snapshot `num_iterations`

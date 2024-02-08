@@ -71,6 +71,50 @@ TEST(RunnerDriver, BasicMake) {
   ASSERT_EQ(make_result_or->snapshot_id(), EnumStr(TestSnapshot::kSigSegvRead));
 }
 
+TEST(RunnerDriver, MaxPageToAddOption) {
+  RunnerDriver driver = HelperDriver();
+  auto make_result_or =
+      driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
+                     /*max_pages_to_add=*/0);
+  ASSERT_OK(make_result_or);
+  ASSERT_FALSE(make_result_or->success());
+  ASSERT_EQ(make_result_or->player_result().outcome,
+            PlaybackOutcome::kExecutionMisbehave);
+  ASSERT_EQ(make_result_or->snapshot_id(),
+            EnumStr(TestSnapshot::kSigSegvReadFixable));
+
+  // Make again with runner adding pages automatically.
+  make_result_or = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
+                                  /*max_pages_to_add=*/1);
+  ASSERT_OK(make_result_or);
+  ASSERT_FALSE(make_result_or->success());
+  // The snapshot should complete with a register mismatch instead of
+  // a SEGV fault.
+  ASSERT_EQ(make_result_or->player_result().outcome,
+            PlaybackOutcome::kRegisterStateMismatch);
+  ASSERT_EQ(make_result_or->snapshot_id(),
+            EnumStr(TestSnapshot::kSigSegvReadFixable));
+
+  ASSERT_TRUE(make_result_or->player_result().actual_end_state.has_value());
+  Snapshot::EndState end_state =
+      make_result_or->player_result().actual_end_state.value();
+
+  // We should find memory bytes not in the original memory mapping.
+  Snapshot snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvReadFixable);
+  bool found_new_memory_bytes = false;
+  for (const auto& memory_bytes : end_state.memory_bytes()) {
+    if (!snapshot.mapped_memory_map().Contains(memory_bytes.start_address(),
+                                               memory_bytes.limit_address())) {
+      // We expect only [0x10000, 0x11000) to be added.
+      EXPECT_EQ(memory_bytes.start_address(), 0x10000);
+      EXPECT_EQ(memory_bytes.limit_address(), 0x11000);
+      found_new_memory_bytes = true;
+    }
+  }
+  EXPECT_TRUE(found_new_memory_bytes);
+}
+
 TEST(RunnerDriver, BasicTrace) {
   RunnerDriver driver = HelperDriver();
   Snapshot endAsExpectedSnap =
