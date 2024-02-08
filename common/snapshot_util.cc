@@ -19,6 +19,9 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
+#include "./common/snapshot.h"
 #include "./util/checks.h"
 #include "./util/ucontext/serialize.h"
 
@@ -119,6 +122,47 @@ BorrowedMemoryBytesList ToBorrowedMemoryBytesList(
     output.push_back(&bytes);
   }
   return output;
+}
+
+absl::StatusOr<Snapshot::ByteData> GetInstructionBytesFromSnapshot(
+    const Snapshot& snapshot) {
+  // The initial RIP / PC should point to first instruction
+  Snapshot::Address begin_code = snapshot.ExtractRip(snapshot.registers());
+
+  // The end point should point to the beginning of the exit sequence.
+  // This is also the end of the instructions that are unique to this Snapshot.
+  // Trimming the exit sequence means that we should be able to re-make these
+  // instructions and get the same snapshot.
+  const Snapshot::EndStateList& end_states = snapshot.expected_end_states();
+  if (end_states.empty()) {
+    return absl::InternalError("Expected at least 1 end state");
+  }
+  Snapshot::Address end_code = end_states[0].endpoint().instruction_address();
+  CHECK_LE(begin_code, end_code);
+  for (const Snapshot::EndState& es : end_states) {
+    Snapshot::Address other_end_code = es.endpoint().instruction_address();
+    if (end_code != other_end_code) {
+      return absl::InternalError(
+          absl::StrCat("Endpoint position is inconsistent between endstates: ",
+                       HexStr(end_code), " vs. ", HexStr(other_end_code)));
+    }
+  }
+
+  // Normalizing the memory bytes should ensure all the instructions are inside
+  // a single MemoryBytes object.
+  Snapshot::MemoryBytesList mb = snapshot.memory_bytes();
+  Snapshot::NormalizeMemoryBytes(snapshot.mapped_memory_map(), &mb);
+
+  // Search for the instructions.
+  for (const Snapshot::MemoryBytes& bytes : mb) {
+    if (begin_code >= bytes.start_address() &&
+        end_code <= bytes.limit_address()) {
+      return bytes.byte_values().substr(begin_code - bytes.start_address(),
+                                        end_code - begin_code);
+    }
+  }
+
+  return absl::InternalError("Could not find instructions in the memory bytes");
 }
 
 }  // namespace silifuzz

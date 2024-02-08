@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -64,6 +65,15 @@ BorrowedMappingBytesList SplitBytesByMapping(
 // return value is live.
 BorrowedMemoryBytesList ToBorrowedMemoryBytesList(
     const Snapshot::MemoryBytesList& memory_byte_list);
+
+// Gets the executable bytes between the entry point and the end point, or error
+// if there is an issue - for example the Snapshot contains multiple end points
+// with inconsistent addresses. This function assumes the executable bytes are
+// contiguous and bytes after the end point are not executed (other than the
+// exit sequence). This is usually a good assumption, in practice, but the
+// Snapshot format does not guarantee it.
+absl::StatusOr<Snapshot::ByteData> GetInstructionBytesFromSnapshot(
+    const Snapshot& snapshot);
 
 }  // namespace silifuzz
 

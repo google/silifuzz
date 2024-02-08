@@ -146,12 +146,14 @@ cc_test(
     deps = [
         ":memory_perms",
         ":snapshot",
+        ":snapshot_test_enum",
         ":snapshot_test_util",
         ":snapshot_util",
         "@silifuzz//util:platform",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -209,6 +211,8 @@ cc_library(
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
     ],
 )
 

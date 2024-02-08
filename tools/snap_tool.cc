@@ -38,6 +38,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_file_util.h"
 #include "./common/snapshot_printer.h"
+#include "./common/snapshot_util.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
@@ -190,48 +191,12 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
 }
 
 absl::Status GetInstructions(const Snapshot& snapshot, int out_fd) {
-  // The initial RIP / PC should point to first instruction
-  uint64_t begin_code = snapshot.ExtractRip(snapshot.registers());
-
-  // The end point should point to the beginning of the exit sequence.
-  // This is also the end of the instructions that are unique to this Snapshot.
-  // Trimming the exit sequence means that we should be able to re-make these
-  // instructions and get the same snapshot.
-  const Snapshot::EndStateList& end_states = snapshot.expected_end_states();
-  if (end_states.empty()) {
-    return absl::InternalError("Expected at least 1 end state");
+  ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
+                             GetInstructionBytesFromSnapshot(snapshot));
+  if (!WriteToFileDescriptor(out_fd, instructions)) {
+    return absl::InternalError("WriteToFileDescriptor failed");
   }
-  uint64_t end_code = end_states[0].endpoint().instruction_address();
-  CHECK_LE(begin_code, end_code);
-  for (const Snapshot::EndState& es : end_states) {
-    uint64_t other_end_code = es.endpoint().instruction_address();
-    if (end_code != other_end_code) {
-      return absl::InternalError(
-          absl::StrCat("Endpoint position is inconsistent between endstates: ",
-                       HexStr(end_code), " vs. ", HexStr(other_end_code)));
-    }
-  }
-
-  // Normalizing the memory bytes should ensure all the instructions are inside
-  // a single MemoryBytes object.
-  Snapshot::MemoryBytesList memory_bytes = snapshot.memory_bytes();
-  Snapshot::NormalizeMemoryBytes(snapshot.mapped_memory_map(), &memory_bytes);
-
-  // Search for the instructions.
-  for (const Snapshot::MemoryBytes& bytes : memory_bytes) {
-    if (begin_code >= bytes.start_address() &&
-        end_code <= bytes.limit_address()) {
-      uint64_t begin_index = begin_code - bytes.start_address();
-      absl::string_view view(bytes.byte_values().data() + begin_index,
-                             end_code - begin_code);
-      if (!WriteToFileDescriptor(out_fd, view)) {
-        return absl::InternalError("WriteToFileDescriptor failed");
-      }
-      return absl::OkStatus();
-    }
-  }
-
-  return absl::InternalError("Could not find instructions in the memory bytes");
+  return absl::OkStatus();
 }
 
 // Actual implementation is platforms-specific. See x86_64/snap_tool_trace.cc

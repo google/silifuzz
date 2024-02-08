@@ -34,6 +34,7 @@ cc_binary(
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_file_util",
         "@silifuzz//common:snapshot_printer",
+        "@silifuzz//common:snapshot_util",
         "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner/driver:runner_driver",

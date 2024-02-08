@@ -14,9 +14,8 @@
 
 #include "./common/snapshot.h"
 
-#include <stddef.h>
-
 #include <algorithm>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>

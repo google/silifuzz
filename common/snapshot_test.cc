@@ -21,7 +21,9 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "./common/memory_perms.h"
+#include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_test_util.h"
 #include "./common/snapshot_util.h"
 #include "./util/platform.h"
@@ -141,6 +143,23 @@ TYPED_TEST(SnapshotTest, UndefinedPlatformAllowed) {
   Snapshot::EndState es = s.expected_end_states()[0];
   es.add_platform(PlatformId::kUndefined);
   EXPECT_TRUE(es.has_platform(PlatformId::kUndefined));
+}
+
+TYPED_TEST(SnapshotTest, GetInstructionBytesEmpty) {
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEmpty);
+  absl::StatusOr<Snapshot::ByteData> bytes = GetInstructionBytesFromSnapshot(s);
+  ASSERT_OK(bytes);
+  ASSERT_EQ(bytes->size(), 0);
+}
+
+TYPED_TEST(SnapshotTest, GetInstructionBytesNOP) {
+  Snapshot s = CreateTestSnapshot<TypeParam>(TestSnapshot::kEndsAsExpected);
+  absl::StatusOr<Snapshot::ByteData> bytes = GetInstructionBytesFromSnapshot(s);
+  ASSERT_OK(bytes);
+
+  // This should be NOP, and the size is arch dependent.
+  ASSERT_GE(bytes->size(), 1);
+  ASSERT_LE(bytes->size(), 4);
 }
 
 TYPED_TEST(SnapshotTest, NormalizeMemoryMappings) {

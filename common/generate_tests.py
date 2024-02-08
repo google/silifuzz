@@ -491,6 +491,8 @@ movq (%rax), %rbx
 
 
 def build_test_snapshots_aarch64(b):
+  b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
+
   b.snapshot(
       name="EndsAsExpected",
       arch=AARCH64,
