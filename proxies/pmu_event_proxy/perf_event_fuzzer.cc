@@ -37,15 +37,13 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "./common/harness_tracer.h"
-#include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./proxies/pmu_event_proxy/counter_read_trigger.h"
 #include "./proxies/pmu_event_proxy/perf_event_buffer.h"
 #include "./proxies/pmu_event_proxy/perf_event_records.h"
 #include "./proxies/pmu_event_proxy/pmu_events.h"
 #include "./runner/driver/runner_driver.h"
-#include "./runner/runner_provider.h"
-#include "./runner/snap_maker.h"
+#include "./runner/make_snapshot.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "external/libpfm4/include/perfmon/pfmlib.h"
@@ -409,19 +407,13 @@ PerfEventFuzzer::FuzzOneInput(const uint8_t* data, size_t size,
       absl::StrCat(counter_read_trigger.code,
                    absl::string_view(reinterpret_cast<const char*>(data), size),
                    counter_read_trigger.code);
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
-                             InstructionsToSnapshot<Host>(wrapped_input));
-  snapshot.set_id(InstructionsToSnapshotId(wrapped_input));
 
-  // Make snapshot to fill in end state and memory bytes. Also verify that
-  // this is a good snapshot that runs to completion without problems.
-  const std::string runner_path = RunnerLocation();
-  SnapMaker snap_maker({.runner_path = runner_path});
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, snap_maker.Make(snapshot));
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snap,
-                             snap_maker.RecordEndState(made_snapshot));
-  RETURN_IF_NOT_OK(snap_maker.CheckTrace(recorded_snap).status());
-  RETURN_IF_NOT_OK(snap_maker.VerifyPlaysDeterministically(recorded_snap));
+  // Make snapshot from instruction data and record the end state and memory
+  // bytes. Also verify that this is a good snapshot that runs to completion
+  // without problems.
+  MakingConfig config = MakingConfig::Quick();
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot,
+                             MakeRawInstructions(wrapped_input, config));
 
   CallbackState callback_state;
   callback_state.measurements_per_event = num_iterations;
@@ -433,7 +425,7 @@ PerfEventFuzzer::FuzzOneInput(const uint8_t* data, size_t size,
   // after the triggering instruction.
   callback_state.breakpoint_data_addr =
       counter_read_trigger.breakpoint_data_address;
-  uint64_t start_address = recorded_snap.ExtractRip(recorded_snap.registers());
+  uint64_t start_address = made_snapshot.ExtractRip(made_snapshot.registers());
   callback_state.breakpoint_code_addr_1 =
       start_address + counter_read_trigger.breakpoint_code_offset;
   callback_state.breakpoint_code_addr_2 =
@@ -445,7 +437,7 @@ PerfEventFuzzer::FuzzOneInput(const uint8_t* data, size_t size,
   // re-used multiple times.
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver runner_driver,
-      RunnerDriverFromSnapshot(recorded_snap, runner_path));
+      RunnerDriverFromSnapshot(made_snapshot, config.runner_path));
 
   for (const EventList& event_group : scheduled_events_) {
     callback_state.work_queue.push(event_group);
@@ -461,10 +453,10 @@ PerfEventFuzzer::FuzzOneInput(const uint8_t* data, size_t size,
 
   // Drain work queue with 'num_iterations' of tracing. Return a combined
   // status of TraceOne() and callback state.
-  auto drain_work_queue = [&runner_driver, &recorded_snap,
+  auto drain_work_queue = [&runner_driver, &made_snapshot,
                            &callback_state](size_t num_iterations) {
     absl::StatusOr<RunnerDriver::RunResult> run_result = runner_driver.TraceOne(
-        recorded_snap.id(),
+        made_snapshot.id(),
         [&callback_state](pid_t pid, const user_regs_struct& regs,
                           HarnessTracer::CallbackReason reason) {
           return callback_state.HarnessTracerCallback(pid, regs, reason);

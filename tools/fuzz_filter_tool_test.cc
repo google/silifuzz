@@ -46,11 +46,9 @@ std::string FromInts(std::vector<uint32_t>&& data) {
                      reinterpret_cast<char*>(&*data.end()));
 }
 
-#define EXPECT_FILTER_ACCEPT(insn) \
-  EXPECT_TRUE(FilterToolMain("Test", insn).ok())
+#define EXPECT_FILTER_ACCEPT(insn) EXPECT_TRUE(FilterToolMain(insn).ok())
 
-#define EXPECT_FILTER_REJECT(insn) \
-  EXPECT_FALSE(FilterToolMain("Test", insn).ok())
+#define EXPECT_FILTER_REJECT(insn) EXPECT_FALSE(FilterToolMain(insn).ok())
 
 TEST(FuzzFilterTool, Nop) {
   EXPECT_FILTER_ACCEPT(GetTestSnippet<Host>(TestSnapshot::kEndsAsExpected));

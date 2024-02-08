@@ -17,44 +17,14 @@
 #include <string>
 
 #include "absl/status/status.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "./common/raw_insns_util.h"
-#include "./common/snapshot.h"
-#include "./common/snapshot_enums.h"
-#include "./runner/runner_provider.h"
-#include "./runner/snap_maker.h"
-#include "./util/arch.h"
-#include "./util/checks.h"
-#include "./util/itoa.h"
+#include "./runner/make_snapshot.h"
 
 namespace silifuzz {
 
-absl::Status FilterToolMain(absl::string_view id,
-                            absl::string_view raw_insns_bytes) {
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot input_snapshot,
-                             InstructionsToSnapshot<Host>(raw_insns_bytes));
-  input_snapshot.set_id(std::string(id));
-  SnapMaker::Options opts;
-  opts.runner_path = RunnerLocation();
-  opts.num_verify_attempts = 1;
-  SnapMaker maker(opts);
-
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot,
-                             maker.Make(input_snapshot));
-
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snapshot,
-                             maker.RecordEndState(made_snapshot));
-
-  DCHECK_EQ(recorded_snapshot.expected_end_states().size(), 1);
-  const Snapshot::Endpoint& ep =
-      recorded_snapshot.expected_end_states()[0].endpoint();
-  if (ep.type() != snapshot_types::Endpoint::kInstruction) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
-  }
-  RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
-  return maker.CheckTrace(recorded_snapshot).status();
+// Kept as a separate function so that we can test this exact config.
+absl::Status FilterToolMain(absl::string_view raw_insns_bytes) {
+  return MakeRawInstructions(raw_insns_bytes, MakingConfig::Quick()).status();
 }
 
 }  // namespace silifuzz

@@ -35,14 +35,12 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/memory_state.h"
-#include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
-#include "./common/snapshot_enums.h"
 #include "./common/snapshot_file_util.h"
 #include "./common/snapshot_printer.h"
 #include "./runner/driver/runner_driver.h"
+#include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
-#include "./runner/snap_maker.h"
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/gen/snap_generator.h"
 #include "./util/arch.h"
@@ -136,55 +134,13 @@ void OutputSnapshotOrDie(Snapshot&& snapshot, absl::string_view filename,
   }
 }
 
-// Implements `make` command, also used for loading raw instructions.
-absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot) {
-  SnapMaker::Options opts;
-  opts.runner_path = RunnerLocation();
-  opts.num_verify_attempts = 1;
-  SnapMaker maker(opts);
-
-  absl::StatusOr<Snapshot> made_snapshot_or = maker.Make(snapshot);
-  if (!made_snapshot_or.ok()) {
-    return absl::InternalError(absl::StrCat(
-        "Could not make snapshot: ", made_snapshot_or.status().ToString()));
-  }
-  Snapshot made_snapshot = std::move(made_snapshot_or).value();
-
-  absl::StatusOr<Snapshot> recorded_snapshot_or =
-      maker.RecordEndState(made_snapshot);
-  if (!recorded_snapshot_or.ok()) {
-    return absl::InternalError(
-        absl::StrCat("Could not record snapshot: ",
-                     recorded_snapshot_or.status().ToString()));
-  }
-  Snapshot recorded_snapshot = std::move(recorded_snapshot_or).value();
-
-  DCHECK_EQ(recorded_snapshot.expected_end_states().size(), 1);
-  const auto& ep = recorded_snapshot.expected_end_states()[0].endpoint();
-  if (ep.type() != snapshot_types::Endpoint::kInstruction) {
-    return absl::InternalError(absl::StrCat(
-        "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
-  }
-  RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
-  return maker.CheckTrace(recorded_snapshot);
-}
-
 // Turn a file containing raw instruction bytes into a Snapshot.
 absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
     absl::string_view filename) {
   // Load the instructions.
   ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                              GetFileContents(filename));
-
-  // Create the initial snapshot.
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
-                             InstructionsToSnapshot<Host>(instructions));
-  snapshot.set_id(InstructionsToSnapshotId(instructions));
-
-  // Make, or else it will be missing the exit sequence, etc.
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, MakeSnapshot(snapshot));
-
-  return made_snapshot;
+  return MakeRawInstructions(instructions, MakingConfig::Default());
 }
 
 absl::StatusOr<Snapshot> LoadSnapshot(absl::string_view filename, bool raw) {
@@ -463,7 +419,8 @@ bool SnapToolMain(std::vector<char*>& args) {
   } else if (command == "make") {
     if (ExtraArgs(args)) return false;
 
-    absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot);
+    absl::StatusOr<Snapshot> recorded_snapshot =
+        MakeSnapshot(snapshot, MakingConfig::Default());
     if (!recorded_snapshot.ok()) {
       line_printer.Line(recorded_snapshot.status().ToString());
       return false;

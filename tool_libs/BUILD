@@ -56,11 +56,10 @@ cc_library(
     hdrs = ["fix_tool_common.h"],
     deps = [
         "@silifuzz//common:snapshot",
-        "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_util",
         "@silifuzz//player:trace_options",
+        "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
-        "@silifuzz//runner:snap_maker",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:hostname",

@@ -29,8 +29,7 @@
 
 namespace silifuzz {
 
-absl::Status FilterToolMain(absl::string_view id,
-                            absl::string_view raw_insns_bytes);
+absl::Status FilterToolMain(absl::string_view raw_insns_bytes);
 }
 
 #endif  // THIRD_PARTY_SILIFUZZ_TOOLS_FUZZ_FILTER_TOOL_H_

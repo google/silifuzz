@@ -25,7 +25,6 @@
 #include "absl/status/statusor.h"
 #include "./tools/fuzz_filter_tool.h"
 #include "./util/checks.h"
-#include "./util/path_util.h"
 #include "./util/tool_util.h"
 
 int main(int argc, char** argv) {
@@ -40,8 +39,7 @@ int main(int argc, char** argv) {
     LOG_ERROR(bytes.status().message());
     return 1;
   }
-  absl::Status s =
-      silifuzz::FilterToolMain(silifuzz::Basename(non_flag_args[1]), *bytes);
+  absl::Status s = silifuzz::FilterToolMain(*bytes);
   if (!s.ok()) LOG_ERROR(s.message());
   return silifuzz::ToExitCode(s.ok());
 }

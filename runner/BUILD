@@ -403,6 +403,27 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "make_snapshot",
+    srcs = ["make_snapshot.cc"],
+    hdrs = ["make_snapshot.h"],
+    deps = [
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_enums",
+        "@silifuzz//player:trace_options",
+        "@silifuzz//runner:runner_provider",
+        "@silifuzz//runner:snap_maker",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
 # Build main() for the runner as a library so that we
 # can link it into different versions of the runner.
 cc_library_nolibc(

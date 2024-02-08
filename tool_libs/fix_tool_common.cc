@@ -23,11 +23,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/snapshot.h"
-#include "./common/snapshot_enums.h"
 #include "./common/snapshot_util.h"
 #include "./player/trace_options.h"
+#include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
-#include "./runner/snap_maker.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/hostname.h"
@@ -45,27 +44,14 @@ namespace {
 // Returns the remade snapshot or an error status.
 absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
                                          const FixupSnapshotOptions& options) {
-  SnapMaker::Options snap_maker_options{
-      .runner_path = RunnerLocation(),
-  };
-  SnapMaker maker = SnapMaker(snap_maker_options);
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot, maker.Make(snapshot));
-  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot recorded_snapshot,
-                             maker.RecordEndState(made_snapshot));
-
-  const Snapshot::Endpoint& ep =
-      recorded_snapshot.expected_end_states()[0].endpoint();
-  if (ep.type() != snapshot_types::Endpoint::kInstruction) {
-    return absl::InternalError(absl::StrCat(
-        "Cannot fix ", EnumStr(ep.sig_cause()), "/", EnumStr(ep.sig_num())));
-  }
-  RETURN_IF_NOT_OK(maker.VerifyPlaysDeterministically(recorded_snapshot));
-  TraceOptions trace_options = TraceOptions::Default();
-  trace_options.x86_filter_split_lock = options.x86_filter_split_lock;
-  trace_options.x86_filter_vsyscall_region_access =
+  MakingConfig config = MakingConfig::Default();
+  config.runner_path = RunnerLocation();
+  config.trace.x86_filter_split_lock = options.x86_filter_split_lock;
+  config.trace.x86_filter_vsyscall_region_access =
       options.x86_filter_vsyscall_region_access;
-  trace_options.filter_memory_access = options.filter_memory_access;
-  return maker.CheckTrace(recorded_snapshot, trace_options);
+  config.trace.filter_memory_access = options.filter_memory_access;
+
+  return MakeSnapshot(snapshot, config);
 }
 
 }  // namespace
