@@ -28,6 +28,10 @@ cc_binary(
         "@silifuzz//build_defs/platform:aarch64": ["aarch64/snap_tool_trace.cc"],
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/snap_tool_trace.cc"],
     }),
+    # Link statically to eliminate shared libraries deps and make this binary
+    # easier to deploy in an environment lacking libc.
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         "@silifuzz//common:memory_state",
         "@silifuzz//common:snapshot",
@@ -123,6 +127,10 @@ cc_test(
 cc_binary(
     name = "snap_corpus_tool",
     srcs = ["snap_corpus_tool.cc"],
+    # Link statically to eliminate shared libraries deps and make this binary
+    # easier to deploy in an environment lacking libc.
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_file_util",
