@@ -25,6 +25,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
 #include "third_party/cityhash/city.h"
+#include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -33,6 +34,7 @@
 #include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
+#include "./util/page_util.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -66,126 +68,66 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
                            granularity);
 }
 
-}  // namespace
+template <typename Arch>
+uint64_t StackSize(const FuzzingConfig<Arch>& config);
 
 template <>
-absl::StatusOr<Snapshot> InstructionsToSnapshot<X86_64>(
-    absl::string_view code, const FuzzingConfig<X86_64>& config) {
-  if (!StaticInstructionFilter<X86_64>(code)) {
-    return absl::InvalidArgumentError(
-        "code snippet contains problematic instructions.");
-  }
-
-  Snapshot snapshot(Snapshot::Architecture::kX86_64);
-  const uint64_t page_size = snapshot.page_size();
-
-  // All must be page-aligned.
-  CHECK_EQ(config.data1_range.start_address % page_size, 0);
-  CHECK_EQ(config.data1_range.num_bytes % page_size, 0);
-  CHECK_EQ(config.data2_range.start_address % page_size, 0);
-  CHECK_EQ(config.data2_range.num_bytes % page_size, 0);
-
-  // Leave this many bytes at the end of the code page for the exit sequence.
-  constexpr auto kPaddingSizeBytes = 32;
-  if (code.size() > snapshot.page_size() - kPaddingSizeBytes) {
-    return absl::InvalidArgumentError(
-        "code snippet + the exit sequence must fit into a single page.");
-  }
-
-  const uint64_t code_start_addr =
-      InstructionsToCodeAddress(code, config.code_range.start_address,
-                                config.code_range.num_bytes, page_size);
-
-  if (code_start_addr == kSnapExitAddress) {
-    return absl::InvalidArgumentError(
-        "derived code address collides with exit sequence address.");
-  }
-
-  auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
-      code_start_addr, page_size, MemoryPerms::XR());
-  snapshot.add_memory_mapping(code_page_mapping);
-  std::string code_with_traps = std::string(code);
-  // Fill the codepage with traps. This is to help the generated snapshot exit
-  // ASAP in case if we happen to "fixup" an invalid instruction to a valid one
-  // by adding an endpoint trap.
-  PadToSizeWithTraps<X86_64>(code_with_traps, page_size);
-  snapshot.add_memory_bytes(
-      Snapshot::MemoryBytes(code_start_addr, code_with_traps));
-
-  MemoryMapping data_page_mapping = Snapshot::MemoryMapping::MakeSized(
-      config.data1_range.start_address, page_size, MemoryPerms::RW());
-  snapshot.add_memory_mapping(data_page_mapping);
-
-  UContext<X86_64> current = {};
-
-  // These are the values of %cs and %ss kernel sets for userspace programs.
-  // RestoreUContext does not modify the two but the runner still verifies
-  // the values didn't change during snapshot execution.
-  current.gregs.cs = 0x33;
-  current.gregs.ss = 0x2b;
-
-  // Raise IF (0x200) and the reserved 0x2 which is always on according to
-  // https://en.wikipedia.org/wiki/FLAGS_register
-  // The IF is only accessible to the kernel, assume it's always set in
-  // user mode.
-  current.gregs.eflags = 0x202;
-
-  // RSP points to the bottom of the writable page.
-  current.gregs.rsp = data_page_mapping.limit_address();
-  current.gregs.rip = code_page_mapping.start_address();
-
-  memset(&current.fpregs, 0, sizeof(current.fpregs));
-  // Initialize FCW and MXCSR to sensible defaults that mask as many exceptions
-  // as possible with the idea to allow generated snapshots execute more code.
-  current.fpregs.mxcsr = 0x1f80;
-  current.fpregs.mxcsr_mask = 0xffff;
-  current.fpregs.fcw = 0x37f;
-  // Non-zero initialization of at least 1 XMM register inhibits init state
-  // optimization on Arcadia. This is a workaround for erratum 1386 "XSAVES
-  // Instruction May Fail to Save XMM Registers to the Provided State Save
-  // Area". See https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf
-  current.fpregs.xmm[0] = 0xcafebabe;
-
-  snapshot.set_registers(ConvertRegsToSnapshot(current.gregs, current.fpregs));
-
-  snapshot.add_expected_end_state(Snapshot::EndState(
-      Snapshot::Endpoint(code_page_mapping.start_address() + code.length())));
-  return snapshot;
+uint64_t StackSize(const FuzzingConfig<X86_64>& config) {
+  // x86_64 assumes the stack is the first page of data1.
+  return kPageSize;
 }
 
 template <>
-absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
-    absl::string_view code, const FuzzingConfig<AArch64>& config) {
-  if (code.size() % 4 != 0) {
-    return absl::InvalidArgumentError(
-        "code snippet size must be a multiple of 4 to contain complete aarch64 "
-        "instructions.");
-  }
+uint64_t StackSize(const FuzzingConfig<AArch64>& config) {
+  return config.stack_range.num_bytes;
+}
 
-  if (!StaticInstructionFilter<AArch64>(code, config.instruction_filter)) {
+// TODO(ncbray): share a definition of this value with exit_sequence.h
+// Currently there is a layering issue where common/ should not depend on snap/.
+template <typename Arch>
+constexpr uint64_t ExitSequenceSize();
+
+template <>
+constexpr uint64_t ExitSequenceSize<X86_64>() {
+  // TODO(ncbray): the actual value is 14, but historically we've been using 32.
+  // Fixing this value will require adding a specific test, so deferring it
+  // instead of fixing it during an unrelated refactoring.
+  return 32;
+}
+
+template <>
+constexpr uint64_t ExitSequenceSize<AArch64>() {
+  return 12;
+}
+
+}  // namespace
+
+template <typename Arch>
+absl::StatusOr<Snapshot> InstructionsToSnapshot(
+    absl::string_view code, const UContext<Arch>& uctx,
+    const FuzzingConfig<Arch>& config) {
+  if (!StaticInstructionFilter<Arch>(code, config.instruction_filter)) {
     return absl::InvalidArgumentError(
         "code snippet contains problematic instructions.");
   }
 
-  Snapshot snapshot(Snapshot::Architecture::kAArch64);
-  const auto page_size = snapshot.page_size();
-
-  // Leave this many bytes at the end of the code page for the exit sequence.
-  // TODO(ncbray): share a definition of this value with exit_sequence.h
-  constexpr size_t kPaddingSizeBytes = 12;
-  if (code.size() > snapshot.page_size() - kPaddingSizeBytes) {
+  if (code.size() > kPageSize - ExitSequenceSize<Arch>()) {
     return absl::InvalidArgumentError(
         "code snippet + the exit sequence must fit into a single page.");
   }
 
-  const uint64_t code_start_addr =
-      InstructionsToCodeAddress(code, config.code_range.start_address,
-                                config.code_range.num_bytes, page_size);
-
+  const uint64_t code_start_addr = uctx.gregs.GetInstructionPointer();
+  const uint64_t code_end_addr = code_start_addr + code.size();
+  if (!IsPageAligned(code_start_addr)) {
+    return absl::InvalidArgumentError(
+        "initial instruction point is not page aligned.");
+  }
   if (code_start_addr == kSnapExitAddress) {
     return absl::InvalidArgumentError(
         "derived code address collides with exit sequence address.");
   }
+
+  Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Arch>());
 
   // Create mapping for the code.
   // Historically, we tried to make executable pages execute-only in an attempt
@@ -198,26 +140,107 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
   // https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=24cecc37746393432d994c0dbc251fb9ac7c5d72
   // https://blog.siguza.net/PAN/
   // So we can't actually use execute-only pages.
-  auto code_page_mapping = Snapshot::MemoryMapping::MakeSized(
-      code_start_addr, page_size, MemoryPerms::XR());
+  RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(code_start_addr, kPageSize));
+  MemoryMapping code_page_mapping = Snapshot::MemoryMapping::MakeSized(
+      code_start_addr, kPageSize, MemoryPerms::XR());
   snapshot.add_memory_mapping(code_page_mapping);
 
-  // Add code to the snapshot.
+  // Add the code bytes.
   std::string code_with_traps = std::string(code);
-  PadToSizeWithTraps<AArch64>(code_with_traps, page_size);
+  // Fill the codepage with traps. This is to help the generated snapshot exit
+  // ASAP in case if we happen to "fixup" an invalid instruction to a valid one
+  // by adding an endpoint trap.
+  PadToSizeWithTraps<Arch>(code_with_traps, kPageSize);
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(code_start_addr, code_with_traps));
 
-  // Create mapping for the stack.
-  MemoryMapping stack_mapping = Snapshot::MemoryMapping::MakeSized(
-      config.stack_range.start_address, config.stack_range.num_bytes,
-      MemoryPerms::RW());
-  snapshot.add_memory_mapping(stack_mapping);
+  // Add the stack below the stack pointer.
+  uint64_t stack_pointer = uctx.gregs.GetStackPointer();
+  if (!IsPageAligned(stack_pointer)) {
+    return absl::InvalidArgumentError("stack pointer is not page aligned.");
+  }
+  uint64_t stack_size = StackSize(config);
+  uint64_t stack_start = stack_pointer - stack_size;
+  RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(stack_start, stack_size));
+  MemoryMapping data_page_mapping = Snapshot::MemoryMapping::MakeSized(
+      stack_start, stack_size, MemoryPerms::RW());
+  snapshot.add_memory_mapping(data_page_mapping);
 
   // Note: data page mappings are not added to the snapshot here. We are
   // currently relying on the SnapMaker discovering the minimum set of pages
   // that are actually used.
   // TODO(ncbray): specify the data pages here and ignore them later?
+
+  // Add the registers.
+  snapshot.set_registers(ConvertRegsToSnapshot(uctx.gregs, uctx.fpregs));
+
+  // Add the end state.
+  snapshot.add_expected_end_state(
+      Snapshot::EndState(Snapshot::Endpoint(code_end_addr)));
+
+  return snapshot;
+}
+
+// Instantiate
+template absl::StatusOr<Snapshot> InstructionsToSnapshot(
+    absl::string_view code, const UContext<X86_64>& uctx,
+    const FuzzingConfig<X86_64>& config);
+template absl::StatusOr<Snapshot> InstructionsToSnapshot(
+    absl::string_view code, const UContext<AArch64>& uctx,
+    const FuzzingConfig<AArch64>& config);
+
+template <>
+UContext<X86_64> GenerateUContextForInstructions(
+    absl::string_view code, const FuzzingConfig<X86_64>& config) {
+  // All must be page-aligned.
+  CHECK_EQ(config.data1_range.start_address % kPageSize, 0);
+  CHECK_EQ(config.data1_range.num_bytes % kPageSize, 0);
+  CHECK_EQ(config.data2_range.start_address % kPageSize, 0);
+  CHECK_EQ(config.data2_range.num_bytes % kPageSize, 0);
+
+  const uint64_t code_start_addr =
+      InstructionsToCodeAddress(code, config.code_range.start_address,
+                                config.code_range.num_bytes, kPageSize);
+
+  UContext<X86_64> uctx = {};
+
+  // These are the values of %cs and %ss kernel sets for userspace programs.
+  // RestoreUContext does not modify the two but the runner still verifies
+  // the values didn't change during snapshot execution.
+  uctx.gregs.cs = 0x33;
+  uctx.gregs.ss = 0x2b;
+
+  // Raise IF (0x200) and the reserved 0x2 which is always on according to
+  // https://en.wikipedia.org/wiki/FLAGS_register
+  // The IF is only accessible to the kernel, assume it's always set in
+  // user mode.
+  uctx.gregs.eflags = 0x202;
+
+  // RSP points to the bottom of the writable page.
+  uctx.gregs.rsp = config.data1_range.start_address + kPageSize;
+  uctx.gregs.rip = code_start_addr;
+
+  memset(&uctx.fpregs, 0, sizeof(uctx.fpregs));
+  // Initialize FCW and MXCSR to sensible defaults that mask as many exceptions
+  // as possible with the idea to allow generated snapshots execute more code.
+  uctx.fpregs.mxcsr = 0x1f80;
+  uctx.fpregs.mxcsr_mask = 0xffff;
+  uctx.fpregs.fcw = 0x37f;
+  // Non-zero initialization of at least 1 XMM register inhibits init state
+  // optimization on Arcadia. This is a workaround for erratum 1386 "XSAVES
+  // Instruction May Fail to Save XMM Registers to the Provided State Save
+  // Area". See https://www.amd.com/system/files/TechDocs/56683-PUB-1.07.pdf
+  uctx.fpregs.xmm[0] = 0xcafebabe;
+
+  return uctx;
+}
+
+template <>
+UContext<AArch64> GenerateUContextForInstructions(
+    absl::string_view code, const FuzzingConfig<AArch64>& config) {
+  const uint64_t code_start_addr =
+      InstructionsToCodeAddress(code, config.code_range.start_address,
+                                config.code_range.num_bytes, kPageSize);
 
   // Setup register state
   UContext<AArch64> uctx = {};
@@ -236,13 +259,7 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot<AArch64>(
 
   // Note: FPCR of zero means round towards nearest and no exceptions enabled.
 
-  snapshot.set_registers(ConvertRegsToSnapshot(uctx.gregs, uctx.fpregs));
-
-  // Code should execute off the end of the instruction sequence.
-  snapshot.add_expected_end_state(
-      Snapshot::EndState(Snapshot::Endpoint(code_start_addr + code.length())));
-
-  return snapshot;
+  return uctx;
 }
 
 std::string InstructionsToSnapshotId(absl::string_view code) {

@@ -22,10 +22,15 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "./common/memory_perms.h"
+#include "./common/proxy_config.h"
+#include "./common/snapshot.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
+#include "./util/page_util.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
@@ -45,6 +50,49 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64) {
   uint64_t rip = snapshot->ExtractRip(snapshot->registers());
   EXPECT_GE(rip, config.code_range.start_address);
   EXPECT_LT(rip, config.code_range.start_address + config.code_range.num_bytes);
+
+  uint64_t rsp = snapshot->ExtractRsp(snapshot->registers());
+  EXPECT_EQ(rsp, config.data1_range.start_address + kPageSize);
+}
+
+TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64Edited) {
+  auto config = DEFAULT_FUZZING_CONFIG<X86_64>;
+  // nop
+  std::string instruction({0x90});
+  UContext<X86_64> ucontext =
+      GenerateUContextForInstructions(instruction, config);
+
+  // Force the executable page to be at the start of the code range.
+  uint64_t expected_entry_point = config.code_range.start_address;
+  ucontext.gregs.SetInstructionPointer(expected_entry_point);
+
+  // Shift the stack upwards
+  uint64_t stack_start = config.data1_range.start_address + kPageSize * 4;
+  // Stack pointer at the top of the page.
+  uint64_t expected_stack_pointer = stack_start + kPageSize;
+  ucontext.gregs.SetStackPointer(expected_stack_pointer);
+
+  absl::StatusOr<Snapshot> snapshot =
+      InstructionsToSnapshot<X86_64>(instruction, ucontext, config);
+  ASSERT_OK(snapshot);
+  // code page + stack page
+  EXPECT_EQ(snapshot->num_pages(), 2);
+  // must be executable
+  EXPECT_OK(snapshot->IsComplete(Snapshot::kUndefinedEndState));
+
+  // Verify registers
+  EXPECT_EQ(expected_entry_point, snapshot->ExtractRip(snapshot->registers()));
+  EXPECT_EQ(expected_stack_pointer,
+            snapshot->ExtractRsp(snapshot->registers()));
+
+  // Verify mappings
+  for (const auto& mapping : snapshot->memory_mappings()) {
+    if (mapping.perms().Has(MemoryPerms::X())) {
+      EXPECT_EQ(expected_entry_point, mapping.start_address());
+    } else {
+      EXPECT_EQ(stack_start, mapping.start_address());
+    }
+  }
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
@@ -77,6 +125,50 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64) {
   uint64_t pc = snapshot->ExtractRip(snapshot->registers());
   EXPECT_GE(pc, config.code_range.start_address);
   EXPECT_LT(pc, config.code_range.start_address + config.code_range.num_bytes);
+
+  uint64_t sp = snapshot->ExtractRsp(snapshot->registers());
+  EXPECT_EQ(sp,
+            config.stack_range.start_address + config.stack_range.num_bytes);
+}
+
+TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64Edited) {
+  auto config = DEFAULT_FUZZING_CONFIG<AArch64>;
+  // nop
+  std::string instruction({0x1f, 0x20, 0x03, 0xd5});
+  UContext<AArch64> ucontext =
+      GenerateUContextForInstructions(instruction, config);
+
+  // Force the executable page to be at the start of the code range.
+  uint64_t expected_entry_point = config.code_range.start_address;
+  ucontext.gregs.SetInstructionPointer(expected_entry_point);
+
+  // Shift the stack upwards
+  uint64_t stack_start = config.stack_range.start_address + kPageSize * 2;
+  // Stack pointer at the top of the page.
+  uint64_t expected_stack_pointer = stack_start + kPageSize;
+  ucontext.gregs.SetStackPointer(expected_stack_pointer);
+
+  absl::StatusOr<Snapshot> snapshot =
+      InstructionsToSnapshot<AArch64>(instruction, ucontext, config);
+  ASSERT_OK(snapshot);
+  // code page + stack page
+  EXPECT_EQ(snapshot->num_pages(), 2);
+  // must be executable
+  EXPECT_OK(snapshot->IsComplete(Snapshot::kUndefinedEndState));
+
+  // Verify registers
+  EXPECT_EQ(expected_entry_point, snapshot->ExtractRip(snapshot->registers()));
+  EXPECT_EQ(expected_stack_pointer,
+            snapshot->ExtractRsp(snapshot->registers()));
+
+  // Verify mappings
+  for (const auto& mapping : snapshot->memory_mappings()) {
+    if (mapping.perms().Has(MemoryPerms::X())) {
+      EXPECT_EQ(expected_entry_point, mapping.start_address());
+    } else {
+      EXPECT_EQ(stack_start, mapping.start_address());
+    }
+  }
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshot_AArch64_Stable) {

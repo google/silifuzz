@@ -15,13 +15,13 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_RAW_INSNS_UTIL_H_
 
-#include <cstdint>
 #include <string>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -41,6 +41,23 @@ std::string InstructionsToSnapshotId(absl::string_view code);
 template <typename Arch>
 absl::StatusOr<Snapshot> InstructionsToSnapshot(
     absl::string_view code,
+    const FuzzingConfig<Arch>& config = DEFAULT_FUZZING_CONFIG<Arch>) {
+  return InstructionsToSnapshot(
+      code, GenerateUContextForInstructions(code, config), config);
+}
+
+// Generate the UContext that is implicitly created by InstructionsToSnapshot.
+template <typename Arch>
+UContext<Arch> GenerateUContextForInstructions(
+    absl::string_view code,
+    const FuzzingConfig<Arch>& config = DEFAULT_FUZZING_CONFIG<Arch>);
+
+// Take a caller-specified UContext rather than generating it.
+// The location of the code and the stack will be inferred from the UContext
+// rather than using the FuzzingConfig.
+template <typename Arch>
+absl::StatusOr<Snapshot> InstructionsToSnapshot(
+    absl::string_view code, const UContext<Arch>& uctx,
     const FuzzingConfig<Arch>& config = DEFAULT_FUZZING_CONFIG<Arch>);
 
 }  // namespace silifuzz
