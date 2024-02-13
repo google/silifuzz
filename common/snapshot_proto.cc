@@ -117,6 +117,8 @@ static_assert(ToInt(PlatformId::kIntelCoffeelake) ==
               ToInt(proto::PlatformId::INTEL_COFFEELAKE));
 static_assert(ToInt(PlatformId::kIntelAlderlake) ==
               ToInt(proto::PlatformId::INTEL_ALDERLAKE));
+static_assert(ToInt(PlatformId::kIntelRaptorLake) ==
+              ToInt(proto::PlatformId::INTEL_RAPTORLAKE));
 static_assert(ToInt(PlatformId::kArmNeoverseN1) ==
               ToInt(proto::PlatformId::ARM_NEOVERSE_N1));
 static_assert(ToInt(PlatformId::kAmpereOne) ==

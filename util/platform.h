@@ -43,6 +43,7 @@ enum class PlatformId {
   kAmpereOne = 14,
   kIntelEmeraldRapids = 15,
   kAmdRyzenV3000 = 17,
+  kIntelRaptorLake = 18,
 
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.

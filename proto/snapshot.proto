@@ -135,8 +135,8 @@ enum PlatformId {
   AMPERE_ONE = 14;
   INTEL_EMERALDRAPIDS = 15;
   AMD_RYZEN_V3000 = 17;
+  INTEL_RAPTORLAKE = 18;
   reserved 16;
-  reserved 18;
   reserved 19;
 }
 

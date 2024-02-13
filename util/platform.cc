@@ -77,6 +77,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kIntelAlderlake:
     case PlatformId::kIntelEmeraldRapids:
     case PlatformId::kAmdRyzenV3000:
+    case PlatformId::kIntelRaptorLake:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
     case PlatformId::kAmpereOne:
