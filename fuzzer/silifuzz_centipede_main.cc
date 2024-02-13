@@ -87,9 +87,9 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
 }  // namespace silifuzz
 
 int main(int argc, char **argv) {
-  const auto leftover_argv = centipede::config::InitCentipede(argc, argv);
+  const auto runtime_state = centipede::config::InitCentipede(argc, argv);
   centipede::Environment env =
-      centipede::CreateEnvironmentFromFlags(leftover_argv);
+      centipede::CreateEnvironmentFromFlags(runtime_state->leftover_argv());
   centipede::DefaultCallbacksFactory<silifuzz::SilifuzzCentipedeCallbacks>
       callbacks;
   return CentipedeMain(env, callbacks);
