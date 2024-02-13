@@ -84,6 +84,7 @@ PlatformId IntelPlatformId() {
         {154, PlatformId::kIntelAlderlake},
         {158, PlatformId::kIntelCoffeelake},  // Also Kabylake
         {183, PlatformId::kIntelRaptorLake},
+        {186, PlatformId::kIntelRaptorLake},
         {207, PlatformId::kIntelEmeraldRapids},
     };
 

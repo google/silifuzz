@@ -134,10 +134,8 @@ enum PlatformId {
   ARM_NEOVERSE_N1 = 13;
   AMPERE_ONE = 14;
   INTEL_EMERALDRAPIDS = 15;
-  AMD_RYZEN_V3000 = 17;
-  INTEL_RAPTORLAKE = 18;
-  reserved 16;
-  reserved 19;
+  AMD_RYZEN_V3000 = 16;
+  INTEL_RAPTORLAKE = 17;
 }
 
 // Describes a specific endstate of executing a snapshot.

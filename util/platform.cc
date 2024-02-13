@@ -26,12 +26,26 @@ namespace silifuzz {
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
                                                     1] = {
-    "UNDEFINED-PLATFORM", "intel-skylake", "intel-haswell", "intel-broadwell",
-    "intel-ivybridge", "intel-cascadelake", "amd-rome", "intel-icelake",
-    "amd-milan", "intel-sapphirerapids", "amd-genoa", "intel-coffeelake",
-    "intel-alderlake", "arm-neoverse-n1", "ampere-one", "intel-emeraldrapids",
+    "UNDEFINED-PLATFORM",
+    "intel-skylake",
+    "intel-haswell",
+    "intel-broadwell",
+    "intel-ivybridge",
+    "intel-cascadelake",
+    "amd-rome",
+    "intel-icelake",
+    "amd-milan",
+    "intel-sapphirerapids",
+    "amd-genoa",
+    "intel-coffeelake",
+    "intel-alderlake",
+    "arm-neoverse-n1",
+    "ampere-one",
+    "intel-emeraldrapids",
     "amd-ryzen-v3000",
-    "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
+    "intel-raptorlake",
+    "ANY-PLATFORM",
+    "NON-EXISTENT-PLATFORM",
 };
 
 // An arbitrary name, only used internally.
@@ -53,6 +67,7 @@ ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
     "ampone",
     "emerrpds",
     "ryzenv3000",
+    "raptorlk",
     "ANY",
     "NEXST",
 };
