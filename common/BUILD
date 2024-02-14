@@ -103,6 +103,7 @@ cc_library_plus_nolibc(
     hdrs = ["snapshot_enums.h"],
     as_is_deps = [
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:checks",

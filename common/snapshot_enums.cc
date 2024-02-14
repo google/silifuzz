@@ -14,9 +14,9 @@
 
 #include "./common/snapshot_enums.h"
 
+#include "absl/base/attributes.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/logging_util.h"
 
 namespace silifuzz {
 namespace snapshot_types {
@@ -98,7 +98,7 @@ ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::MakerStopReason>[7] = {
     "Endpoint",
     "AllPageLimit",
     "TimeBudget",
-    "HargSigSegv",
+    "HardSigSegv",
     "GeneralProtectionSigSegv",
     "SigTrap",
     "Signal",
