@@ -75,6 +75,7 @@ ABSL_FLAG(bool, raw, false,
           "Whether the input is a raw sequence of instructions rather than a "
           "Snapshot.");
 
+ABSL_FLAG(std::string, runner, "", "Path to the runner binary.");
 ABSL_FLAG(std::optional<std::string>, out, std::nullopt, "Output file path.");
 
 // Flags that control `print` command (including in --dry_run mode):
@@ -100,6 +101,11 @@ ABSL_FLAG(silifuzz::PlatformId, target_platform,
 // ========================================================================= //
 
 namespace silifuzz {
+
+std::string RunnerLocationForSnapTool() {
+  std::string runner = absl::GetFlag(FLAGS_runner);
+  return runner.empty() ? RunnerLocation() : runner;
+}
 
 // Implements the `print` command.
 void PrintSnapshot(const Snapshot& snapshot, LinePrinter* line_printer) {
@@ -141,7 +147,9 @@ absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
   // Load the instructions.
   ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                              GetFileContents(filename));
-  return MakeRawInstructions(instructions, MakingConfig::Default());
+  MakingConfig config = MakingConfig::Default();
+  config.runner_path = RunnerLocationForSnapTool();
+  return MakeRawInstructions(instructions, config);
 }
 
 absl::StatusOr<Snapshot> LoadSnapshot(absl::string_view filename, bool raw) {
@@ -356,7 +364,7 @@ bool SnapToolMain(std::vector<char*>& args) {
     if (ExtraArgs(args)) return false;
 
     absl::StatusOr<RunnerDriver> runner_or =
-        RunnerDriverFromSnapshot(snapshot, RunnerLocation());
+        RunnerDriverFromSnapshot(snapshot, RunnerLocationForSnapTool());
 
     if (!runner_or.ok()) {
       line_printer.Line("Could not play snapshot: ",
@@ -384,8 +392,9 @@ bool SnapToolMain(std::vector<char*>& args) {
   } else if (command == "make") {
     if (ExtraArgs(args)) return false;
 
-    absl::StatusOr<Snapshot> recorded_snapshot =
-        MakeSnapshot(snapshot, MakingConfig::Default());
+    MakingConfig config = MakingConfig::Default();
+    config.runner_path = RunnerLocationForSnapTool();
+    absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot, config);
     if (!recorded_snapshot.ok()) {
       line_printer.Line(recorded_snapshot.status().ToString());
       return false;
