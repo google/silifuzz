@@ -62,15 +62,3 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
-
-cc_library(
-    name = "vsyscall",
-    testonly = 1,
-    srcs = ["vsyscall.cc"],
-    hdrs = ["vsyscall.h"],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-    ],
-)

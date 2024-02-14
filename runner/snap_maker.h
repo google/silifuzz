@@ -20,6 +20,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
 
 namespace silifuzz {
@@ -111,12 +112,19 @@ class SnapMaker {
       const TraceOptions& trace_options = TraceOptions::Default()) const;
 
  private:
-  // Adds writable memory pages from `end_state` to `snapshot`. This only
-  // adds pages that are not already included in `snapshot`. Pages are always
-  // added with RW but not X permissions and must be in an allowable memory
-  // range.
-  absl::Status AddWritableMemoryForEndState(
-      Snapshot* snapshot, const Snapshot::EndState& end_state);
+  // Makes snapshot in a loop until hitting some stopping condition.
+  // The reason for stopping is reported in `stop_reason`.
+  //
+  // RETURNS: The endpoint that the snapshot reached or error if the snapshot
+  // cannot be made (e.g. makes a syscall)
+  // The returned Endpoint can be used to construct an undefined EndState and
+  // then passed to RecordEndState() to capture the full expected end state.
+  absl::StatusOr<snapshot_types::Endpoint> MakeLoop(
+      Snapshot* snapshot, snapshot_types::MakerStopReason* stop_reason);
+
+  // Adds a new writable memory page containing `addr` to the snapshot.
+  absl::Status AddWritableMemoryForAddress(Snapshot* snapshot,
+                                           snapshot_types::Address addr);
 
   // C-tor args.
   Options opts_;

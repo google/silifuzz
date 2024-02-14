@@ -95,8 +95,12 @@ ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::SigCause>[7] = {
 
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::MakerStopReason>[7] = {
-    "Endpoint",    "CannotAddMemory",          "TimeBudget",
-    "HargSigSegv", "GeneralProtectionSigSegv", "SigTrap",
+    "Endpoint",
+    "AllPageLimit",
+    "TimeBudget",
+    "HargSigSegv",
+    "GeneralProtectionSigSegv",
+    "SigTrap",
     "Signal",
 };
 

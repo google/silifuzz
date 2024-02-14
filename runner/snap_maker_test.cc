@@ -14,8 +14,6 @@
 
 #include "./runner/snap_maker.h"
 
-#include <string>
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
@@ -26,10 +24,8 @@
 #include "./runner/snap_maker_test_util.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./util/arch.h"
-#include "./util/checks.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
-#include "./util/testing/vsyscall.h"
 
 namespace silifuzz {
 namespace {
@@ -37,6 +33,7 @@ using silifuzz::DefaultSnapMakerOptionsForTest;
 using silifuzz::FixSnapshotInTest;
 using silifuzz::testing::IsOk;
 using silifuzz::testing::StatusIs;
+using ::testing::AnyOf;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
@@ -113,7 +110,7 @@ TEST(SnapMaker, VSyscallRegionAccess) {
 #endif
   // Unfortunately this test depends on whether vsyscall is configured in
   // the Linux kernel. If it is configured, fixing will succeed.  Otherwise it
-  // will fail when the runner tries to map a new page in the vsyscall region.
+  // will fail due to snapshot overlapping with a reserved memory mapping.
   const auto vsyscallRegionAccessSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kVSyscallRegionAccess);
   SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
@@ -121,31 +118,30 @@ TEST(SnapMaker, VSyscallRegionAccess) {
   trace_options.x86_filter_vsyscall_region_access = false;
   auto result_or =
       FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options);
-  const std::string kSegvErrorMsg =
-      "CannotAddMemory isn't Snap-compatible. Endpoint = "
-      "{SIG_SEGV/SEGV_CANT_READ}";
-  ASSERT_OK_AND_ASSIGN(const bool vsyscall_region_readable,
-                       VSyscallRegionReadable());
-  if (vsyscall_region_readable) {
-    EXPECT_THAT(result_or, IsOk());
-  } else {
-    EXPECT_THAT(result_or,
-                StatusIs(absl::StatusCode::kInternal, kSegvErrorMsg));
-  }
+  EXPECT_THAT(
+      result_or,
+      AnyOf(IsOk(),
+            StatusIs(absl::StatusCode::kInvalidArgument,
+                     "memory mappings overlap reserved memory mappings")));
 
   trace_options.x86_filter_vsyscall_region_access = true;
   result_or =
       FixSnapshotInTest(vsyscallRegionAccessSnap, options, trace_options);
 
-  // If vsyscall is configured, we will get an error from the tracer, otherwise
-  // we will get an error from the runner.
-  if (vsyscall_region_readable) {
-    EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
-                                    HasSubstr("May access vsyscall region")));
-  } else {
-    EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
-                                    HasSubstr(kSegvErrorMsg)));
-  }
+  // Depending on whether vsyscall is configured in the kernel, we will get
+  // different results. If vsyscall is configured in the kernel vsyscall region
+  // access is detected during tracing. On a machine running a kernel without
+  // vsyscall configured, the vsyscall region is unmapped. When the test is
+  // being made, the vsyscall page will be added to the data memory of the
+  // snapshot. This will later cause the snapshot to be rejected due to snapshot
+  // overlapping with a reserved mapping and it happens before snapshot tracing.
+  EXPECT_THAT(
+      result_or,
+      AnyOf(StatusIs(absl::StatusCode::kInternal,
+                     HasSubstr("May access vsyscall region")),
+            StatusIs(absl::StatusCode::kInvalidArgument,
+                     HasSubstr(
+                         "memory mappings overlap reserved memory mappings"))));
 }
 
 TEST(SnapMaker, MemoryAccess) {

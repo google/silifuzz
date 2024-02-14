@@ -16,6 +16,7 @@
 
 #include <sys/user.h>
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
@@ -26,17 +27,14 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
-#include "./common/memory_bytes_set.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
 #include "./player/trace_options.h"
 #include "./runner/driver/runner_driver.h"
-#include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/gen/snap_generator.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 #include "./util/line_printer.h"
 #include "./util/page_util.h"
 #include "./util/platform.h"
@@ -79,73 +77,8 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
   copy.add_expected_end_state(undef_end_state);
 
   MakerStopReason stop_reason;
-  SnapifyOptions snapify_opts =
-      SnapifyOptions::V2InputMakeOpts(copy.architecture_id());
-
-  ASSIGN_OR_RETURN_IF_NOT_OK(copy, Snapify(copy, snapify_opts));
-  ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver runner_driver,
-                             RunnerDriverFromSnapshot(copy, opts_.runner_path));
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      RunnerDriver::RunResult make_result,
-      runner_driver.MakeOne(copy.id(), opts_.max_pages_to_add));
-  if (make_result.success()) {
-    // In practice this can happen if the snapshot hits just the right
-    // sequence of instructions to call _exit(0) either by jumping into
-    // a library function or directly invoking the corresponding syscall.
-    return absl::InternalError(
-        absl::StrCat("Unlikely: snapshot ", copy.id(),
-                     " had an undefined end state yet ran successfully"));
-  }
-  const Snapshot::Endpoint& actual_endpoint =
-      make_result.player_result().actual_end_state->endpoint();
-  switch (make_result.player_result().outcome) {
-    case PlaybackOutcome::kAsExpected:
-      return absl::InternalError(
-          absl::StrCat("Impossible: snapshot ", copy.id(),
-                       " did not run successfully but ended as expected"));
-    case PlaybackOutcome::kMemoryMismatch:
-    case PlaybackOutcome::kRegisterStateMismatch:
-      VLOG_INFO(1, "Reached a fixable outcome at ",
-                HexStr(actual_endpoint.instruction_address()));
-      stop_reason = MakerStopReason::kEndpoint;
-      break;
-    case PlaybackOutcome::kExecutionMisbehave: {
-      // Default stop reason unless overridden below.
-      stop_reason = MakerStopReason::kSignal;
-      if (actual_endpoint.sig_num() == SigNum::kSigTrap) {
-        VLOG_INFO(1, "Stopping due to SigTrap");
-        stop_reason = MakerStopReason::kSigTrap;
-      } else if (actual_endpoint.sig_num() == SigNum::kSigSegv) {
-        switch (actual_endpoint.sig_cause()) {
-          case SigCause::kSegvCantRead:
-          case SigCause::kSegvCantWrite:
-            // The runner attempts to fix up missing pages but adding them to
-            // the snapshot. We reach here if the runner failed to add new
-            // memory to fix up a R/W SEGV fault.
-            stop_reason = MakerStopReason::kCannotAddMemory;
-            break;
-          case SigCause::kSegvGeneralProtection:
-            stop_reason = MakerStopReason::kGeneralProtectionSigSegv;
-            break;
-          case SigCause::kSegvCantExec:
-          case SigCause::kSegvOverflow:
-          case SigCause::kGenericSigCause:
-            stop_reason = MakerStopReason::kHardSigSegv;
-            break;
-        }
-      }
-      break;
-    }
-    case PlaybackOutcome::kExecutionRunaway:
-      stop_reason = MakerStopReason::kTimeBudget;
-      break;
-    case PlaybackOutcome::kEndpointMismatch:
-    case PlaybackOutcome::kPlatformMismatch:
-      return absl::InternalError(
-          absl::StrCat("Unsupported outcome ",
-                       EnumStr(make_result.player_result().outcome)));
-  }
-
+  ASSIGN_OR_RETURN_IF_NOT_OK(Endpoint actual_endpoint,
+                             MakeLoop(&copy, &stop_reason));
   if (stop_reason != MakerStopReason::kEndpoint) {
     std::string msg =
         absl::StrCat(EnumStr(stop_reason), " isn't Snap-compatible.");
@@ -155,9 +88,6 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
     }
     return absl::InternalError(msg);
   }
-  RETURN_IF_NOT_OK(AddWritableMemoryForEndState(
-      &copy, make_result.player_result().actual_end_state.value()));
-
   Snapshot::EndState repaired_end_state = Snapshot::EndState(actual_endpoint);
 
   copy.set_expected_end_states({});
@@ -174,9 +104,8 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      RunnerDriver::RunResult record_result,
-      recorder.MakeOne(snapified.id(), /* max_pages_to_add=*/0));
+  ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult record_result,
+                             recorder.MakeOne(snapified.id()));
   if (record_result.success()) {
     RETURN_IF_NOT_OK(snapified.IsComplete());
     return snapified;
@@ -259,65 +188,108 @@ absl::Status SnapMaker::VerifyPlaysDeterministically(
   return absl::OkStatus();
 }
 
-absl::Status SnapMaker::AddWritableMemoryForEndState(
-    Snapshot* snapshot, const Snapshot::EndState& end_state) {
-  // Compute the memory mapping added in the making process by subtracting
-  // existing memory mappings from the snapshot from all the memory bytes
-  // in the end state.
-  MemoryBytesSet memory_bytes_set;
-  for (const auto& memory_bytes : end_state.memory_bytes()) {
-    memory_bytes_set.Add(memory_bytes.start_address(),
-                         memory_bytes.limit_address());
-  }
+absl::Status SnapMaker::AddWritableMemoryForAddress(
+    Snapshot* snapshot, snapshot_types::Address addr) {
+  const uint64_t kPageSizeBytes = snapshot->page_size();
 
-  for (const auto& mapping : snapshot->memory_mappings()) {
-    memory_bytes_set.Remove(mapping.start_address(), mapping.limit_address());
-  }
+  // Starting address of the page containing `addr`.
+  snapshot_types::Address page_address =
+      RoundDownToPageAlignment(addr, kPageSizeBytes);
 
-  // Helper to add a new zero-initialized data memory mapping to snapshot.
-  auto add_mapping = [](Snapshot* snapshot,
-                        const Snapshot::Address& start_address,
-                        const Snapshot::Address& limit_address) {
-    // Add a new memory RW mapping at [start_address, limit_address) for
-    // the new memory bytes.
-    VLOG_INFO(1, "Adding data mapping for [", HexStr(start_address), ", ",
-              HexStr(limit_address), ")");
+  RETURN_IF_NOT_OK(
+      Snapshot::MemoryMapping::CanMakeSized(page_address, kPageSizeBytes));
+  auto m = Snapshot::MemoryMapping::MakeSized(page_address, kPageSizeBytes,
+                                              MemoryPerms::RW());
+  RETURN_IF_NOT_OK(snapshot->can_add_memory_mapping(m));
+  // NOTE: just because the mapping can be added to the snapshot does not
+  // mean it can actually be mapped when run (e.g. 0x0 address).
+  snapshot->add_memory_mapping(m);
+  Snapshot::MemoryBytes mb(page_address, std::string(kPageSizeBytes, '\0'));
+  RETURN_IF_NOT_OK(snapshot->can_add_memory_bytes(mb));
+  snapshot->add_memory_bytes(std::move(mb));
+  return absl::OkStatus();
+}
 
-    if (!IsPageAligned(start_address) || !IsPageAligned(limit_address)) {
-      return absl::InternalError(absl::StrCat(
-          "New memory bytes not page-aligned: [", absl::Hex(start_address),
-          ", ", absl::Hex(limit_address), ")"));
+absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
+                                             MakerStopReason* stop_reason) {
+  VLOG_INFO(1, "MakeLoop()");
+  int pages_added = 0;
+
+  SnapifyOptions snapify_opts =
+      SnapifyOptions::V2InputMakeOpts(snapshot->architecture_id());
+
+  while (true) {
+    ASSIGN_OR_RETURN_IF_NOT_OK(*snapshot, Snapify(*snapshot, snapify_opts));
+    ASSIGN_OR_RETURN_IF_NOT_OK(
+        RunnerDriver runner_driver,
+        RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));
+    ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult make_result,
+                               runner_driver.MakeOne(snapshot->id()));
+    if (make_result.success()) {
+      // In practice this can happen if the snapshot hits just the right
+      // sequence of instructions to call _exit(0) either by jumping into
+      // a library function or directly invoking the corresponding syscall.
+      return absl::InternalError(
+          absl::StrCat("Unlikely: snapshot ", snapshot->id(),
+                       " had an undefined end state yet ran successfully"));
     }
-
-    // Check that new mapping does not conflict with reserved memory
-    // mappings.
-    if (ReservedMemoryMappings().Overlaps(start_address, limit_address)) {
-      return absl::InternalError(absl::StrCat(
-          "New memory mapping overlaps with reserved memory mappings: [",
-          absl::Hex(start_address), ", ", absl::Hex(limit_address), ")"));
+    const Snapshot::Endpoint& ep =
+        make_result.player_result().actual_end_state->endpoint();
+    switch (make_result.player_result().outcome) {
+      case PlaybackOutcome::kAsExpected:
+        return absl::InternalError(
+            absl::StrCat("Impossible: snapshot ", snapshot->id(),
+                         " did not run successfully but ended as expected"));
+      case PlaybackOutcome::kMemoryMismatch:
+      case PlaybackOutcome::kRegisterStateMismatch:
+        VLOG_INFO(1, "Reached a fixable outcome at ",
+                  HexStr(ep.instruction_address()));
+        *stop_reason = MakerStopReason::kEndpoint;
+        return ep;
+      case PlaybackOutcome::kExecutionMisbehave: {
+        if (ep.sig_num() == SigNum::kSigTrap) {
+          VLOG_INFO(1, "Stopping due to SigTrap");
+          *stop_reason = MakerStopReason::kSigTrap;
+          return ep;
+        }
+        if (ep.sig_num() == SigNum::kSigSegv) {
+          switch (ep.sig_cause()) {
+            case SigCause::kSegvCantRead:
+            case SigCause::kSegvCantWrite: {
+              if (pages_added >= opts_.max_pages_to_add) {
+                *stop_reason = MakerStopReason::kAllPageLimit;
+                return ep;
+              }
+              VLOG_INFO(1, "Adding a page for ", HexStr(ep.sig_address()));
+              RETURN_IF_NOT_OK(
+                  AddWritableMemoryForAddress(snapshot, ep.sig_address()));
+              pages_added++;
+              continue;
+            }
+            case SigCause::kSegvGeneralProtection:
+              *stop_reason = MakerStopReason::kGeneralProtectionSigSegv;
+              return ep;
+            case SigCause::kSegvCantExec:
+            case SigCause::kSegvOverflow:
+            case SigCause::kGenericSigCause:
+              *stop_reason = MakerStopReason::kHardSigSegv;
+              return ep;
+          }
+        } else {
+          *stop_reason = MakerStopReason::kSignal;
+          return ep;
+        }
+      }
+      case PlaybackOutcome::kExecutionRunaway:
+        *stop_reason = MakerStopReason::kTimeBudget;
+        return ep;
+      case PlaybackOutcome::kEndpointMismatch:
+      case PlaybackOutcome::kPlatformMismatch:
+        return absl::InternalError(
+            absl::StrCat("Unsupported outcome ",
+                         EnumStr(make_result.player_result().outcome)));
     }
-
-    RETURN_IF_NOT_OK(
-        Snapshot::MemoryMapping::CanMakeRanged(start_address, limit_address));
-    auto m = Snapshot::MemoryMapping::MakeRanged(start_address, limit_address,
-                                                 MemoryPerms::RW());
-    RETURN_IF_NOT_OK(snapshot->can_add_memory_mapping(m));
-
-    snapshot->add_memory_mapping(m);
-    Snapshot::MemoryBytes zero_memory_bytes(
-        start_address, std::string(limit_address - start_address, '\0'));
-    RETURN_IF_NOT_OK(snapshot->can_add_memory_bytes(zero_memory_bytes));
-    snapshot->add_memory_bytes(std::move(zero_memory_bytes));
-    return absl::OkStatus();
-  };
-
-  absl::Status status;
-  memory_bytes_set.Iterate([snapshot, &status, &add_mapping](
-                               const Snapshot::Address& start_address,
-                               const Snapshot::Address& limit_address) {
-    status.Update(add_mapping(snapshot, start_address, limit_address));
-  });
-  return status;
+  }
 }
 
 }  // namespace silifuzz
