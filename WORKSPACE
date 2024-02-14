@@ -198,7 +198,7 @@ FUZZTEST_COMMIT = "cd852157d0effbd727ef228912d6c72b5376aef4"
 
 http_archive(
     name = "com_google_fuzztest",
-    integrity = "sha256-a+nYhfSkrvuFIKhstxXvT64T1tGXiemm0pJe5YWIO84="
+    integrity = "sha256-a+nYhfSkrvuFIKhstxXvT64T1tGXiemm0pJe5YWIO84=",
     strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
     url = "https://github.com/google/fuzztest/archive/" + FUZZTEST_COMMIT + ".zip",
 )
