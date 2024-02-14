@@ -42,9 +42,10 @@ const RunnerOptions& RunnerOptions::Default() {
   return *options;
 }
 
-RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id) {
+RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id, int cpu) {
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu(cpu)
       .set_extra_argv({"--snap_id", std::string(snap_id),
                        // TODO(b/227770288): [bug] Play more than once to ensure
                        // determinism.
@@ -52,9 +53,10 @@ RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id) {
 }
 
 RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
-                                         size_t max_pages_to_add) {
+                                         size_t max_pages_to_add, int cpu) {
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu(cpu)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
                        "1", "--make", "--max_pages_to_add",
                        absl::StrCat(max_pages_to_add)})
@@ -64,9 +66,10 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
       .set_map_stderr_to_dev_null(!VLOG_IS_ON(3));
 }
 
-RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
+RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id, int cpu) {
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu(cpu)
       .set_extra_argv(
           {"--snap_id", std::string(snap_id), "--num_iterations", "3"})
       .set_disable_aslr(false)
@@ -76,9 +79,10 @@ RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id) {
 }
 
 RunnerOptions RunnerOptions::TraceOptions(absl::string_view snap_id,
-                                          size_t num_iterations) {
+                                          size_t num_iterations, int cpu) {
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapTraceCpuTimeBudget)
+      .set_cpu(cpu)
       .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
                        absl::StrCat(num_iterations), "--enable_tracer"});
 }

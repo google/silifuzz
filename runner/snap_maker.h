@@ -22,6 +22,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
+#include "./util/cpu_id.h"
 
 namespace silifuzz {
 
@@ -50,6 +51,9 @@ class SnapMaker {
     // more confidence that the snapshot is indeed deterministic. The default
     // value is somewhat arbitrary but it should normally be > 1.
     int num_verify_attempts = 5;
+
+    // See: make_snapshot.h
+    int cpu = kAnyCPUId;
 
     absl::Status Validate() const {
       if (runner_path.empty()) {

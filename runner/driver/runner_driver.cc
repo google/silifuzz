@@ -51,30 +51,30 @@
 namespace silifuzz {
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::PlayOne(
-    absl::string_view snap_id) const {
+    absl::string_view snap_id, int cpu) const {
   CHECK(!snap_id.empty());
-  return RunImpl(RunnerOptions::PlayOptions(snap_id), snap_id);
+  return RunImpl(RunnerOptions::PlayOptions(snap_id, cpu), snap_id);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::MakeOne(
-    absl::string_view snap_id, size_t max_pages_to_add) const {
+    absl::string_view snap_id, size_t max_pages_to_add, int cpu) const {
   CHECK(!snap_id.empty());
-  return RunImpl(RunnerOptions::MakeOptions(snap_id, max_pages_to_add),
+  return RunImpl(RunnerOptions::MakeOptions(snap_id, max_pages_to_add, cpu),
                  snap_id);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::TraceOne(
     absl::string_view snap_id, HarnessTracer::Callback cb,
-    size_t num_iterations) const {
+    size_t num_iterations, int cpu) const {
   CHECK(!snap_id.empty());
-  return RunImpl(RunnerOptions::TraceOptions(snap_id, num_iterations), snap_id,
-                 cb);
+  return RunImpl(RunnerOptions::TraceOptions(snap_id, num_iterations, cpu),
+                 snap_id, cb);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::VerifyOneRepeatedly(
-    absl::string_view snap_id, int num_attempts) const {
+    absl::string_view snap_id, int num_attempts, int cpu) const {
   CHECK(!snap_id.empty());
-  auto opts = RunnerOptions::VerifyOptions(snap_id);
+  auto opts = RunnerOptions::VerifyOptions(snap_id, cpu);
   for (int i = 0; i < num_attempts - 1; ++i) {
     RETURN_IF_NOT_OK(RunImpl(opts, snap_id).status());
   }

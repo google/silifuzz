@@ -23,6 +23,7 @@
 #include "./common/snapshot.h"
 #include "./player/trace_options.h"
 #include "./util/arch.h"
+#include "./util/cpu_id.h"
 
 namespace silifuzz {
 
@@ -38,6 +39,13 @@ struct MakingConfig {
   // more confidence that the snapshot is indeed deterministic. The default
   // value is somewhat arbitrary but it should normally be > 1.
   int num_verify_attempts = 5;
+
+  // Which CPU should be making process be performed on?
+  // Be default, the making process will run on any CPU that is available.
+  // Typically you do not need to override this parameter unless you are running
+  // on a machine with a known bad CPU and need to run the making process on a
+  // known good CPU.
+  int cpu = kAnyCPUId;
 
   TraceOptions trace;
 

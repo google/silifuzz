@@ -81,14 +81,18 @@ class RunnerOptions {
 
   // Returns a default instance of RunnerOptions suitable for Playing/Making/etc
   // for `snap_id`.
-  static RunnerOptions PlayOptions(absl::string_view snap_id);
+  static RunnerOptions PlayOptions(absl::string_view snap_id,
+                                   int cpu = kAnyCPUId);
   // If 'max_pages_to_add' is not 0, the runner adds up to that many pages
   // during making.
   static RunnerOptions MakeOptions(absl::string_view snap_id,
-                                   size_t max_pages_to_add = 0);
-  static RunnerOptions VerifyOptions(absl::string_view snap_id);
+                                   size_t max_pages_to_add = 0,
+                                   int cpu = kAnyCPUId);
+  static RunnerOptions VerifyOptions(absl::string_view snap_id,
+                                     int cpu = kAnyCPUId);
   static RunnerOptions TraceOptions(absl::string_view snap_id,
-                                    size_t num_iterations = 1);
+                                    size_t num_iterations = 1,
+                                    int cpu = kAnyCPUId);
 
  private:
   friend class RunnerDriver;

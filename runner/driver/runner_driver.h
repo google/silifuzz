@@ -135,7 +135,8 @@ class RunnerDriver {
 
   // Runs `snap_id` in play mode.
   // REQUIRES snap_id is not empty.
-  absl::StatusOr<RunResult> PlayOne(absl::string_view snap_id) const;
+  absl::StatusOr<RunResult> PlayOne(absl::string_view snap_id,
+                                    int cpu = kAnyCPUId) const;
 
   // Runs `snap_id` in make mode (see comments in runner.cc).
   // During making, up to 'max_pages_to_add' pages are added to the snapshot.
@@ -143,19 +144,22 @@ class RunnerDriver {
   // the runner does not add any new page and the caller of the runner driver
   // need to add necessary pages in the making process.
   absl::StatusOr<RunResult> MakeOne(absl::string_view snap_id,
-                                    size_t max_pages_to_add = 0) const;
+                                    size_t max_pages_to_add = 0,
+                                    int cpu = kAnyCPUId) const;
 
   // Traces `snap_id` in single-step mode and invokes the provided callback for
   // every instruction of the snapshot. This runs the snapshot `num_iterations`
   // times.
   absl::StatusOr<RunResult> TraceOne(absl::string_view snap_id,
                                      HarnessTracer::Callback cb,
-                                     size_t num_iterations = 1) const;
+                                     size_t num_iterations = 1,
+                                     int cpu = kAnyCPUId) const;
 
   // Ensures that `snap_id` replays deterministically.
   // REQUIRES snap_id is not empty.
   absl::StatusOr<RunResult> VerifyOneRepeatedly(absl::string_view snap_id,
-                                                int num_attempts) const;
+                                                int num_attempts,
+                                                int cpu = kAnyCPUId) const;
 
   // Runs the runner binary with the provided runner_options.
   //

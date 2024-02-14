@@ -50,6 +50,7 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot,
   opts.runner_path = making_config.runner_path;
   opts.max_pages_to_add = making_config.max_pages_to_add;
   opts.num_verify_attempts = making_config.num_verify_attempts;
+  opts.cpu = making_config.cpu;
   SnapMaker maker(opts);
 
   ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(Snapshot made_snapshot, maker.Make(snapshot),

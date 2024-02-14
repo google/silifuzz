@@ -105,7 +105,7 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
   ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult record_result,
-                             recorder.MakeOne(snapified.id()));
+                             recorder.MakeOne(snapified.id(), 0, opts_.cpu));
   if (record_result.success()) {
     RETURN_IF_NOT_OK(snapified.IsComplete());
     return snapified;
@@ -143,7 +143,8 @@ absl::StatusOr<Snapshot> SnapMaker::CheckTrace(
 
   DisassemblingSnapTracer tracer(snapshot, trace_options);
   absl::StatusOr<RunnerDriver::RunResult> trace_result_or = driver.TraceOne(
-      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
+      1, opts_.cpu);
   DisassemblingSnapTracer::TraceResult trace_result = tracer.trace_result();
 
   if (!trace_result_or.status().ok() || !trace_result_or->success()) {
@@ -175,7 +176,8 @@ absl::Status SnapMaker::VerifyPlaysDeterministically(
   // always placed at the fixed address (--image-base linker arg).
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver::RunResult verify_result,
-      driver.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts));
+      driver.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts,
+                                 opts_.cpu));
   if (!verify_result.success()) {
     if (VLOG_IS_ON(1)) {
       LinePrinter lp(LinePrinter::StdErrPrinter);
@@ -223,8 +225,9 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver runner_driver,
         RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));
-    ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult make_result,
-                               runner_driver.MakeOne(snapshot->id()));
+    ASSIGN_OR_RETURN_IF_NOT_OK(
+        RunnerDriver::RunResult make_result,
+        runner_driver.MakeOne(snapshot->id(), 0, opts_.cpu));
     if (make_result.success()) {
       // In practice this can happen if the snapshot hits just the right
       // sequence of instructions to call _exit(0) either by jumping into
