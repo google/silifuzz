@@ -67,6 +67,16 @@ TEST(SnapMaker, SigSegvRead) {
   ASSERT_THAT(result.negative_memory_mappings(), IsEmpty());
 }
 
+TEST(SnapMaker, SigSegvExec) {
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvExec);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  TraceOptions trace_options;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
+                                  HasSubstr("{SIG_SEGV/SEGV_CANT_EXEC}")));
+}
+
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
