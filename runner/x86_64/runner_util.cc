@@ -21,7 +21,7 @@
 #include "./runner/endspot.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/signal.h"
 #include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
@@ -29,6 +29,24 @@ namespace silifuzz {
 using snapshot_types::Endpoint;
 using snapshot_types::SigCause;
 using snapshot_types::SigNum;
+
+SigCause SigSegvCause(const SignalRegSet& sigregs) {
+  // Decode reg_err bits into the specific set of cases. See X86PFError
+  // comments for details.
+  constexpr uintptr_t mask = X86PFError::PF_WRITE_BIT |
+                             X86PFError::PF_USER_BIT | X86PFError::PF_INSTR_BIT;
+  const uintptr_t reg_err_bits = sigregs.err & mask;
+  switch (reg_err_bits) {
+    case X86PFError::PF_INSTR_BIT | X86PFError::PF_USER_BIT:
+      return Endpoint::kSegvCantExec;
+    case X86PFError::PF_WRITE_BIT | X86PFError::PF_USER_BIT:
+      return Endpoint::kSegvCantWrite;
+    case X86PFError::PF_USER_BIT:
+      return Endpoint::kSegvCantRead;
+    default:
+      return SigCause::kGenericSigCause;
+  }
+}
 
 std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
   auto pc = actual_endspot.gregs->GetInstructionPointer();
@@ -53,28 +71,13 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
       const uintptr_t trap_no = actual_endspot.sigregs.trapno;
       SigCause cause = SigCause::kGenericSigCause;
       if (trap_no == X86Exception::X86_TRAP_PF) {
-        // Decode reg_err bits into the specific set of cases. See X86PFError
-        // comments for details.
-        constexpr uintptr_t mask = X86PFError::PF_WRITE_BIT |
-                                   X86PFError::PF_USER_BIT |
-                                   X86PFError::PF_INSTR_BIT;
-        const uintptr_t reg_err_bits = actual_endspot.sigregs.err & mask;
-        switch (reg_err_bits) {
-          case X86PFError::PF_INSTR_BIT | X86PFError::PF_USER_BIT:
-            cause = Endpoint::kSegvCantExec;
-            break;
-          case X86PFError::PF_WRITE_BIT | X86PFError::PF_USER_BIT:
-            cause = Endpoint::kSegvCantWrite;
-            break;
-          case X86PFError::PF_USER_BIT:
-            cause = Endpoint::kSegvCantRead;
-            break;
-          default:
-            LOG_ERROR("Unhandled SIGSEGV (#PF); reg_err bits: ",
-                      HexStr(actual_endspot.sigregs.err),
-                      " actual_endspot.sig_address = ",
-                      HexStr(actual_endspot.sig_address));
-            return std::nullopt;
+        cause = SigSegvCause(actual_endspot.sigregs);
+        if (cause == SigCause::kGenericSigCause) {
+          LOG_ERROR("Unhandled SIGSEGV (#PF); reg_err bits: ",
+                    HexStr(actual_endspot.sigregs.err),
+                    " actual_endspot.sig_address = ",
+                    HexStr(actual_endspot.sig_address));
+          return std::nullopt;
         }
       } else if (trap_no == X86Exception::X86_TRAP_GP) {
         cause = Endpoint::kSegvGeneralProtection;

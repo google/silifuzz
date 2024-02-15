@@ -23,6 +23,7 @@
 #include "./runner/endspot.h"
 #include "./snap/snap.h"
 #include "./util/proc_maps_parser.h"
+#include "./util/ucontext/signal.h"
 
 namespace silifuzz {
 
@@ -65,6 +66,9 @@ struct SeccompOptions {
 // syscall is invoked. 'options' specifies the syscalls allowed in SECCOMP
 // filter mode.
 void EnterSeccompFilterMode(const SeccompOptions& options);
+
+// Determines SigCause value for a SIGSEGV fault with state in 'sigregs'.
+snapshot_types::SigCause SigSegvCause(const SignalRegSet& sigregs);
 
 }  // namespace silifuzz
 

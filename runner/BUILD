@@ -169,6 +169,7 @@ cc_library_plus_nolibc(
         "@silifuzz//util:proc_maps_parser",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:aarch64_esr",
+        "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:x86_traps",
     ],
 )
@@ -213,6 +214,7 @@ cc_library_nolibc(
         "@silifuzz//util:reg_groups",
         "@silifuzz//util:text_proto_printer",
         "@silifuzz//util/ucontext:serialize",
+        "@silifuzz//util/ucontext:signal",
     ],
 )
 
