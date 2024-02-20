@@ -136,7 +136,7 @@ constexpr int kInitialMappingProtection = PROT_READ | PROT_WRITE;
 // Returns true iff the fault is recoverable by adding a new mapping.
 bool TryToRecoverFromSignal(int signal, const siginfo_t& siginfo,
                             const ucontext_t& ucontext) {
-  if (signal != SIGSEGV && siginfo.si_code != SEGV_MAPERR) {
+  if (signal != SIGSEGV || siginfo.si_code != SEGV_MAPERR) {
     return false;
   }
 

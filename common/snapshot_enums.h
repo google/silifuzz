@@ -99,11 +99,11 @@ class Endpoint final {
   using SigCause = snapshot_types::SigCause;
   using enum snapshot_types::SigCause;
 
-  // Enpoint that is the first occurence of reaching the instruction_address.
+  // Enpoint that is the first occurrence of reaching the instruction_address.
   // I.e. type() == kInstruction.
   explicit Endpoint(Address instruction_address);
 
-  // Endpoint that is the first occurence of the given signal with the given
+  // Endpoint that is the first occurrence of the given signal with the given
   // sig_cause, sig_address, and sig_instruction_address values.
   // I.e. type() == kSignal.
   Endpoint(SigNum sig_num, SigCause sig_cause, Address sig_address,
@@ -230,8 +230,9 @@ enum class MakerStopReason {
   // Snapshot has reached an existing endpoint.
   kEndpoint = 0,
 
-  // Snapshot has reached the corresponding MakerOptions page limit.
-  kAllPageLimit,
+  // Snapshot cannot add new memory during because it has reached the
+  // corresponding MakerOptions page limit or has no permission to add memory.
+  kCannotAddMemory,
 
   // Snapshot has reached the specified PlayOptions::run_time_budget.
   kTimeBudget,

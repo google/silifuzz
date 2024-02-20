@@ -27,14 +27,18 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "./common/memory_bytes_set.h"
+#include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
 #include "./player/trace_options.h"
 #include "./runner/driver/runner_driver.h"
+#include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/gen/snap_generator.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/line_printer.h"
 #include "./util/page_util.h"
 #include "./util/platform.h"
@@ -202,13 +206,69 @@ absl::Status SnapMaker::AddWritableMemoryForAddress(
       Snapshot::MemoryMapping::CanMakeSized(page_address, kPageSizeBytes));
   auto m = Snapshot::MemoryMapping::MakeSized(page_address, kPageSizeBytes,
                                               MemoryPerms::RW());
-  RETURN_IF_NOT_OK(snapshot->can_add_memory_mapping(m));
-  // NOTE: just because the mapping can be added to the snapshot does not
-  // mean it can actually be mapped when run (e.g. 0x0 address).
-  snapshot->add_memory_mapping(m);
-  Snapshot::MemoryBytes mb(page_address, std::string(kPageSizeBytes, '\0'));
-  RETURN_IF_NOT_OK(snapshot->can_add_memory_bytes(mb));
-  snapshot->add_memory_bytes(std::move(mb));
+  return AddMemoryMappings(snapshot, {m});
+}
+
+absl::StatusOr<Snapshot::MemoryMappingList> SnapMaker::DataMappingDelta(
+    const Snapshot& snapshot, const Snapshot::EndState& end_state) {
+  // Compute the memory mapping added in the making process by subtracting
+  // existing memory mappings from the snapshot from all the memory bytes
+  // in the end state.
+  MemoryBytesSet memory_bytes_set;
+  for (const auto& memory_bytes : end_state.memory_bytes()) {
+    memory_bytes_set.Add(memory_bytes.start_address(),
+                         memory_bytes.limit_address());
+  }
+
+  for (const auto& mapping : snapshot.memory_mappings()) {
+    memory_bytes_set.Remove(mapping.start_address(), mapping.limit_address());
+  }
+
+  absl::Status status;
+  Snapshot::MemoryMappingList memory_mapping_list;
+  memory_bytes_set.Iterate([&memory_mapping_list, &status](
+                               const Snapshot::Address& start_address,
+                               const Snapshot::Address& limit_address) {
+    absl::Status can_make_ranged =
+        Snapshot::MemoryMapping::CanMakeRanged(start_address, limit_address);
+    if (can_make_ranged.ok()) {
+      memory_mapping_list.push_back(Snapshot::MemoryMapping::MakeRanged(
+          start_address, limit_address, MemoryPerms::RW()));
+    } else {
+      status.Update(can_make_ranged);
+    }
+  });
+  RETURN_IF_NOT_OK(status);
+  return memory_mapping_list;
+}
+
+absl::Status SnapMaker::AddMemoryMappings(
+    Snapshot* snapshot, const Snapshot::MemoryMappingList& mappings) {
+  for (const auto& mapping : mappings) {
+    // Add a new memory RW mapping at [start_address, limit_address) for
+    // the new memory bytes.
+    const Snapshot::Address start_address = mapping.start_address();
+    const Snapshot::Address limit_address = mapping.limit_address();
+    VLOG_INFO(1, "Adding data mapping for [", HexStr(start_address), ", ",
+              HexStr(limit_address), ")");
+
+    if (!IsPageAligned(start_address) || !IsPageAligned(limit_address)) {
+      return absl::InternalError("New memory bytes not page-aligned.");
+    }
+
+    // Check that new mapping does not conflict with reserved memory
+    // mappings.
+    if (ReservedMemoryMappings().Overlaps(start_address, limit_address)) {
+      return absl::InternalError(
+          "New memory mapping overlaps with reserved memory mappings");
+    }
+    RETURN_IF_NOT_OK(snapshot->can_add_memory_mapping(mapping));
+    snapshot->add_memory_mapping(mapping);
+    Snapshot::MemoryBytes zero_memory_bytes(
+        start_address, std::string(limit_address - start_address, '\0'));
+    RETURN_IF_NOT_OK(snapshot->can_add_memory_bytes(zero_memory_bytes));
+    snapshot->add_memory_bytes(std::move(zero_memory_bytes));
+  }
   return absl::OkStatus();
 }
 
@@ -225,9 +285,14 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver runner_driver,
         RunnerDriverFromSnapshot(*snapshot, opts_.runner_path));
+    // If snap maker runs in compatibility mode, do not ask runner to add
+    // mappings.
+    const int runner_max_pages_to_add =
+        opts_.compatibility_mode ? 0 : opts_.max_pages_to_add;
     ASSIGN_OR_RETURN_IF_NOT_OK(
         RunnerDriver::RunResult make_result,
-        runner_driver.MakeOne(snapshot->id(), 0, opts_.cpu));
+        runner_driver.MakeOne(snapshot->id(), runner_max_pages_to_add,
+                              opts_.cpu));
     if (make_result.success()) {
       // In practice this can happen if the snapshot hits just the right
       // sequence of instructions to call _exit(0) either by jumping into
@@ -235,6 +300,13 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
       return absl::InternalError(
           absl::StrCat("Unlikely: snapshot ", snapshot->id(),
                        " had an undefined end state yet ran successfully"));
+    }
+    if (!opts_.compatibility_mode) {
+      ASSIGN_OR_RETURN_IF_NOT_OK(
+          Snapshot::MemoryMappingList memory_mapping_list,
+          DataMappingDelta(*snapshot,
+                           *make_result.player_result().actual_end_state));
+      RETURN_IF_NOT_OK(AddMemoryMappings(snapshot, memory_mapping_list));
     }
     const Snapshot::Endpoint& ep =
         make_result.player_result().actual_end_state->endpoint();
@@ -259,11 +331,15 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
           switch (ep.sig_cause()) {
             case SigCause::kSegvCantRead:
             case SigCause::kSegvCantWrite: {
-              if (pages_added >= opts_.max_pages_to_add) {
-                *stop_reason = MakerStopReason::kAllPageLimit;
+              // Exit loop if not running in compatibility mode or page limit
+              // has been reached.
+              if (!opts_.compatibility_mode ||
+                  pages_added >= opts_.max_pages_to_add) {
+                *stop_reason = MakerStopReason::kCannotAddMemory;
                 return ep;
               }
               VLOG_INFO(1, "Adding a page for ", HexStr(ep.sig_address()));
+
               RETURN_IF_NOT_OK(
                   AddWritableMemoryForAddress(snapshot, ep.sig_address()));
               pages_added++;

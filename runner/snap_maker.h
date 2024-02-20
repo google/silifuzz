@@ -55,6 +55,14 @@ class SnapMaker {
     // See: make_snapshot.h
     int cpu = kAnyCPUId;
 
+    // If true, the snap maker does not rely on the runner to
+    // discover data mapping. There are still use cases for old runner
+    // binaries that does not support the --max_pages_to_add flag.
+    // TODO(dougkwan): Remove this once transition is complete.
+    // Note: there is no away to control this option in command line,
+    // using this required building from patched source code.
+    bool compatibility_mode = false;
+
     absl::Status Validate() const {
       if (runner_path.empty()) {
         return absl::InvalidArgumentError("runner_path must be non-empty");
@@ -126,9 +134,18 @@ class SnapMaker {
   absl::StatusOr<snapshot_types::Endpoint> MakeLoop(
       Snapshot* snapshot, snapshot_types::MakerStopReason* stop_reason);
 
-  // Adds a new writable memory page containing `addr` to the snapshot.
+  // Adds a new writable memory page containing `addr` to the snapshot
   absl::Status AddWritableMemoryForAddress(Snapshot* snapshot,
                                            snapshot_types::Address addr);
+
+  // Computes difference of data (r/w) memory mappings between the initial
+  // state of 'snapshot' and 'end_state'.
+  absl::StatusOr<Snapshot::MemoryMappingList> DataMappingDelta(
+      const Snapshot& snapshot, const Snapshot::EndState& end_state);
+
+  // Adds `mappings` to `snapshot`. Returns a status.
+  absl::Status AddMemoryMappings(Snapshot* snapshot,
+                                 const Snapshot::MemoryMappingList& mappings);
 
   // C-tor args.
   Options opts_;

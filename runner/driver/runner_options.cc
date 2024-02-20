@@ -54,12 +54,20 @@ RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id, int cpu) {
 
 RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
                                          size_t max_pages_to_add, int cpu) {
+  std::vector<std::string> extra_argv = {"--snap_id", std::string(snap_id),
+                                         "--num_iterations", "1", "--make"};
+
+  // For compatibility with old runner binaries, hide this option if
+  // max_pages_to_add is 0.
+  if (max_pages_to_add > 0) {
+    extra_argv.push_back("--max_pages_to_add");
+    extra_argv.push_back(absl::StrCat(max_pages_to_add));
+  }
+
   return RunnerOptions()
       .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
       .set_cpu(cpu)
-      .set_extra_argv({"--snap_id", std::string(snap_id), "--num_iterations",
-                       "1", "--make", "--max_pages_to_add",
-                       absl::StrCat(max_pages_to_add)})
+      .set_extra_argv(extra_argv)
       // Unless VLOG is on discard human-readable failure details
       // (register mismatch, etc) that the _runner_ process will print
       // to stderr. Failures are expected during making.
