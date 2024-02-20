@@ -35,6 +35,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/memory_state.h"
+#include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_file_util.h"
 #include "./common/snapshot_printer.h"
@@ -74,6 +75,12 @@ ABSL_FLAG(bool, normalize, true,
 ABSL_FLAG(bool, raw, false,
           "Whether the input is a raw sequence of instructions rather than a "
           "Snapshot.");
+ABSL_FLAG(std::optional<uint64_t>, code_address, std::nullopt,
+          "Address to place the code at when making the snapshot. By default "
+          "the code will remain at the address already in the Snapshot, or if "
+          "making a Snapshot from raw instructions the address will be derived "
+          "by hashing the code. --code_address will override the default and "
+          "the value should be page aligned.");
 
 ABSL_FLAG(std::string, runner, "", "Path to the runner binary.");
 ABSL_FLAG(std::optional<std::string>, out, std::nullopt, "Output file path.");
@@ -252,6 +259,25 @@ absl::StatusOr<Snapshot> SetInstructionPointerImpl(const Snapshot& snapshot,
   return copy;
 }
 
+// Recreate the Snapshot with the code located at the specified address.
+// Discards any existing end states.
+template <typename Arch>
+absl::StatusOr<Snapshot> RecreateSnapshotWithCodeAddress(
+    const Snapshot& snapshot, uint64_t code_address) {
+  std::string id = snapshot.id();
+  UContext<Arch> ucontext;
+  RETURN_IF_NOT_OK(ConvertRegsFromSnapshot(snapshot.registers(),
+                                           &ucontext.gregs, &ucontext.fpregs));
+  ASSIGN_OR_RETURN_IF_NOT_OK(std::string instruction_bytes,
+                             GetInstructionBytesFromSnapshot(snapshot));
+  ucontext.gregs.SetInstructionPointer(code_address);
+
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      Snapshot edited, InstructionsToSnapshot(instruction_bytes, ucontext));
+  edited.set_id(id);
+  return edited;
+}
+
 absl::StatusOr<int> OpenOutput() {
   std::optional<std::string> out = absl::GetFlag(FLAGS_out);
   if (out.has_value()) {
@@ -392,6 +418,17 @@ bool SnapToolMain(std::vector<char*>& args) {
   } else if (command == "make") {
     if (ExtraArgs(args)) return false;
 
+    std::optional<uint64_t> code_address = absl::GetFlag(FLAGS_code_address);
+    if (code_address.has_value()) {
+      absl::StatusOr<Snapshot> edited = ARCH_DISPATCH(
+          RecreateSnapshotWithCodeAddress, snapshot.architecture_id(), snapshot,
+          code_address.value());
+      if (!edited.ok()) {
+        line_printer.Line("set_code_address: ", edited.status().ToString());
+        return false;
+      }
+      snapshot = std::move(edited).value();
+    }
     MakingConfig config = MakingConfig::Default();
     config.runner_path = RunnerLocationForSnapTool();
     absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot, config);
