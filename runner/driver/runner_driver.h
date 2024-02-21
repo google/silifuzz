@@ -29,6 +29,7 @@
 #include "./common/snapshot_enums.h"
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
+#include "./util/cpu_id.h"
 
 namespace silifuzz {
 
