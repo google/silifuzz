@@ -18,6 +18,8 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "./common/memory_perms.h"
+#include "./common/snapshot_enums.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 

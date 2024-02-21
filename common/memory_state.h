@@ -24,10 +24,13 @@
 #include <vector>
 
 #include "./common/mapped_memory_map.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_types.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/misc_util.h"
 #include "./util/range_map.h"
 
 namespace silifuzz {

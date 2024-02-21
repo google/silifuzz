@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 namespace {

@@ -16,8 +16,6 @@
 
 #include <utility>
 
-#include "./util/itoa.h"
-
 namespace silifuzz {
 
 MemoryBytesSet::ByteSize MemoryBytesSet::byte_size() const {

@@ -23,7 +23,9 @@
 #include "absl/strings/str_cat.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 

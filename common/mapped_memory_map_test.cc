@@ -19,6 +19,8 @@
 
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
 
 namespace silifuzz {
 namespace {
