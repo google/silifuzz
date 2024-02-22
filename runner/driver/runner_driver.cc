@@ -233,11 +233,19 @@ absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
       GenerateRelocatableSnaps(Host::architecture_id, corpus);
   size_t buffer_size = MmappedMemorySize(buffer);
 
+  // memfd_create places limits on the length of the name.
+  // The Snapshot ID can be arbitrary. Truncate if needed.
+  std::string memfd_name(snapshot.id());
+  constexpr size_t kMaxNameLength = 249;
+  if (memfd_name.length() > kMaxNameLength) {
+    memfd_name.resize(kMaxNameLength);
+  }
+
   // Allocate an anonymous memfile, copy the relocatable buffer contents there,
   // then seal the file to prevent any future writes.
   // TODO(ksteuck): [impl] We can also augment GenerateRelocatableSnaps() API
   // to take a buffer parameter and avoid the extra copy.
-  int memfd = memfd_create(snapshot.id().c_str(),
+  int memfd = memfd_create(memfd_name.c_str(),
                            O_RDWR | MFD_ALLOW_SEALING | MFD_CLOEXEC);
   if (memfd == -1) {
     return absl::ErrnoToStatus(errno, "memfd_create");
