@@ -169,6 +169,7 @@ cc_library_plus_nolibc(
         "@silifuzz//util:proc_maps_parser",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:aarch64_esr",
+        "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:x86_traps",
     ],
 )
@@ -213,6 +214,7 @@ cc_library_nolibc(
         "@silifuzz//util:reg_groups",
         "@silifuzz//util:text_proto_printer",
         "@silifuzz//util/ucontext:serialize",
+        "@silifuzz//util/ucontext:signal",
     ],
 )
 
@@ -342,8 +344,8 @@ cc_library(
     srcs = ["snap_maker.cc"],
     hdrs = ["snap_maker.h"],
     deps = [
-        "@silifuzz//common:mapped_memory_map",
         "@silifuzz//common:memory_bytes_set",
+        "@silifuzz//common:memory_mapping",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
@@ -353,6 +355,7 @@ cc_library(
         "@silifuzz//snap/gen:reserved_memory_mappings",
         "@silifuzz//snap/gen:snap_generator",
         "@silifuzz//util:checks",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:page_util",
@@ -423,6 +426,7 @@ cc_library(
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util:itoa",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

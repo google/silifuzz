@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
+#include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_types.h"
 #include "./util/itoa.h"

@@ -22,13 +22,16 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_test_util.h"
 #include "./common/snapshot_util.h"
+#include "./util/arch.h"
 #include "./util/platform.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {

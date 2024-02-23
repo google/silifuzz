@@ -21,8 +21,14 @@
 #include <utility>
 
 #include "absl/base/attributes.h"
+#include "absl/base/log_severity.h"
 #include "absl/strings/str_cat.h"
+#include "./common/mapped_memory_map.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
+#include "./common/snapshot.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 

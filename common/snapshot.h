@@ -40,6 +40,8 @@
 #include "./common/memory_perms.h"
 #include "./common/snapshot_enums.h"
 #include "./util/arch.h"
+#include "./util/itoa.h"
+#include "./util/misc_util.h"
 #include "./util/platform.h"
 
 namespace silifuzz {

@@ -70,6 +70,16 @@ TEST(SnapMaker, SigSegvRead) {
   ASSERT_THAT(result.negative_memory_mappings(), IsEmpty());
 }
 
+TEST(SnapMaker, SigSegvExec) {
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvExec);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  TraceOptions trace_options;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(result_or, StatusIs(absl::StatusCode::kInternal,
+                                  HasSubstr("{SIG_SEGV/SEGV_CANT_EXEC}")));
+}
+
 TEST(SnapMaker, Idempotent) {
   auto memoryMismatchSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kMemoryMismatch);
@@ -166,5 +176,22 @@ TEST(SnapMaker, MemoryAccess) {
                                   HasSubstr("Memory access not allowed")));
 }
 
+TEST(SnapMaker, CompatMode) {
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigSegvReadFixable);
+  const auto snapshot2 = snapshot.Copy();
+
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  options.compatibility_mode = true;
+  TraceOptions trace_options;
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       FixSnapshotInTest(snapshot, options, trace_options));
+
+  options.compatibility_mode = false;
+  ASSERT_OK_AND_ASSIGN(auto result2,
+                       FixSnapshotInTest(snapshot2, options, trace_options));
+  EXPECT_EQ(result, result2);
+  EXPECT_EQ(snapshot.memory_mappings(), snapshot2.memory_mappings());
+}
 }  // namespace
 }  // namespace silifuzz

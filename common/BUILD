@@ -71,6 +71,8 @@ cc_test(
     srcs = ["mapped_memory_map_test.cc"],
     deps = [
         ":mapped_memory_map",
+        ":memory_mapping",
+        ":memory_perms",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
@@ -82,7 +84,6 @@ cc_library(
     hdrs = ["memory_bytes_set.h"],
     deps = [
         ":snapshot_enums",
-        "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",
     ],
 )
@@ -103,6 +104,7 @@ cc_library_plus_nolibc(
     hdrs = ["snapshot_enums.h"],
     as_is_deps = [
         "@com_google_absl//absl/time",
+        "@com_google_absl//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:checks",
@@ -144,14 +146,17 @@ cc_test(
     name = "snapshot_test",
     srcs = ["snapshot_test.cc"],
     deps = [
+        ":memory_mapping",
         ":memory_perms",
         ":snapshot",
         ":snapshot_test_enum",
         ":snapshot_test_util",
         ":snapshot_util",
+        "@silifuzz//util:arch",
         "@silifuzz//util:platform",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
@@ -190,13 +195,17 @@ cc_test(
     srcs = ["snapshot_proto_test.cc"],
     deps = [
         ":raw_insns_util",
+        ":snapshot",
         ":snapshot_proto",
         ":snapshot_test_enum",
         ":snapshot_test_util",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:arch",
+        "@silifuzz//util:platform",
         "@silifuzz//util:reg_checksum",
+        "@silifuzz//util:reg_group_set",
         "@silifuzz//util/testing:status_macros",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -208,6 +217,7 @@ cc_library(
     deps = [
         ":snapshot",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
@@ -223,6 +233,7 @@ cc_library(
     deps = [
         ":snapshot",
         ":snapshot_proto",
+        "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:proto_util",
         "@com_google_absl//absl/base:core_headers",
@@ -248,14 +259,14 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
+        "@silifuzz//util:misc_util",
+        "@silifuzz//util:platform",
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_checksum_util",
-        "@silifuzz//util:reg_group_set",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
     ],
 )
 
@@ -265,12 +276,16 @@ cc_library(
     hdrs = ["memory_state.h"],
     deps = [
         ":mapped_memory_map",
+        ":memory_mapping",
+        ":memory_perms",
         ":snapshot",
         ":snapshot_types",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@silifuzz//util:misc_util",
         "@silifuzz//util:range_map",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:log_severity",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -282,6 +297,7 @@ cc_test(
         ":memory_mapping",
         ":memory_perms",
         ":memory_state",
+        ":snapshot_types",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
     ],
@@ -450,6 +466,7 @@ cc_test(
     srcs = ["proxy_config_test.cc"],
     deps = [
         ":proxy_config",
+        "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
 )

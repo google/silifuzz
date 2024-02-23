@@ -19,6 +19,7 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ucontext/aarch64/esr.h"
+#include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
@@ -26,6 +27,21 @@ namespace silifuzz {
 using snapshot_types::Endpoint;
 using snapshot_types::SigCause;
 using snapshot_types::SigNum;
+
+SigCause SigSegvCause(const SignalRegSet& sigregs) {
+  ESR esr = {sigregs.esr};
+  if (esr.IsDataAbort()) {
+    DataAbortISS iss = esr.GetDataAbortISS();
+    if (iss.WriteNotRead()) {
+      return Endpoint::kSegvCantWrite;
+    } else {
+      return Endpoint::kSegvCantRead;
+    }
+  } else if (esr.IsInstructionAbort()) {
+    return Endpoint::kSegvCantExec;
+  }
+  return SigCause::kGenericSigCause;
+}
 
 std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
   auto pc = actual_endspot.gregs->GetInstructionPointer();
@@ -39,19 +55,7 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
       return Endpoint(SigNum::kSigTrap, actual_endspot.sig_address, pc);
     }
     case SIGSEGV: {
-      ESR esr = {actual_endspot.sigregs.esr};
-      SigCause cause = SigCause::kGenericSigCause;
-
-      if (esr.IsDataAbort()) {
-        DataAbortISS iss = esr.GetDataAbortISS();
-        if (iss.WriteNotRead()) {
-          cause = Endpoint::kSegvCantWrite;
-        } else {
-          cause = Endpoint::kSegvCantRead;
-        }
-      } else if (esr.IsInstructionAbort()) {
-        cause = Endpoint::kSegvCantExec;
-      }
+      SigCause cause = SigSegvCause(actual_endspot.sigregs);
       return Endpoint(Endpoint::kSigSegv, cause, actual_endspot.sig_address,
                       pc);
     }

@@ -19,6 +19,7 @@
 #include "benchmark/benchmark.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
+#include "./common/snapshot_types.h"
 
 namespace silifuzz {
 namespace {

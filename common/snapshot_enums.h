@@ -103,7 +103,7 @@ class Endpoint final {
   // I.e. type() == kInstruction.
   explicit Endpoint(Address instruction_address);
 
-  // Endpoint that is the first occurence of the given signal with the given
+  // Endpoint that is the first occurrence of the given signal with the given
   // sig_cause, sig_address, and sig_instruction_address values.
   // I.e. type() == kSignal.
   Endpoint(SigNum sig_num, SigCause sig_cause, Address sig_address,

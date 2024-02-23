@@ -20,7 +20,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
+#include "./util/cpu_id.h"
 
 namespace silifuzz {
 
@@ -49,6 +51,17 @@ class SnapMaker {
     // more confidence that the snapshot is indeed deterministic. The default
     // value is somewhat arbitrary but it should normally be > 1.
     int num_verify_attempts = 5;
+
+    // See: make_snapshot.h
+    int cpu = kAnyCPUId;
+
+    // If true, the snap maker does not rely on the runner to
+    // discover data mapping. There are still use cases for old runner
+    // binaries that does not support the --max_pages_to_add flag.
+    // TODO(dougkwan): Remove this once transition is complete.
+    // Note: there is no away to control this option in command line,
+    // using this required building from patched source code.
+    bool compatibility_mode = false;
 
     absl::Status Validate() const {
       if (runner_path.empty()) {
@@ -111,12 +124,28 @@ class SnapMaker {
       const TraceOptions& trace_options = TraceOptions::Default()) const;
 
  private:
-  // Adds writable memory pages from `end_state` to `snapshot`. This only
-  // adds pages that are not already included in `snapshot`. Pages are always
-  // added with RW but not X permissions and must be in an allowable memory
-  // range.
-  absl::Status AddWritableMemoryForEndState(
-      Snapshot* snapshot, const Snapshot::EndState& end_state);
+  // Makes snapshot in a loop until hitting some stopping condition.
+  // The reason for stopping is reported in `stop_reason`.
+  //
+  // RETURNS: The endpoint that the snapshot reached or error if the snapshot
+  // cannot be made (e.g. makes a syscall)
+  // The returned Endpoint can be used to construct an undefined EndState and
+  // then passed to RecordEndState() to capture the full expected end state.
+  absl::StatusOr<snapshot_types::Endpoint> MakeLoop(
+      Snapshot* snapshot, snapshot_types::MakerStopReason* stop_reason);
+
+  // Adds a new writable memory page containing `addr` to the snapshot
+  absl::Status AddWritableMemoryForAddress(Snapshot* snapshot,
+                                           snapshot_types::Address addr);
+
+  // Computes difference of data (r/w) memory mappings between the initial
+  // state of 'snapshot' and 'end_state'.
+  absl::StatusOr<Snapshot::MemoryMappingList> DataMappingDelta(
+      const Snapshot& snapshot, const Snapshot::EndState& end_state);
+
+  // Adds `mappings` to `snapshot`. Returns a status.
+  absl::Status AddMemoryMappings(Snapshot* snapshot,
+                                 const Snapshot::MemoryMappingList& mappings);
 
   // C-tor args.
   Options opts_;

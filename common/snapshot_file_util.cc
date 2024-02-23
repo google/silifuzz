@@ -19,7 +19,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_proto.h"
+#include "./proto/snapshot.pb.h"
 #include "./util/checks.h"
 #include "./util/proto_util.h"
 

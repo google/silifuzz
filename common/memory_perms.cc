@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "./util/checks.h"
+#include "./util/misc_util.h"
 
 namespace silifuzz {
 

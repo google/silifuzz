@@ -18,12 +18,16 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/statusor.h"
 #include "./common/raw_insns_util.h"
+#include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
 #include "./common/snapshot_test_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
+#include "./util/platform.h"
 #include "./util/reg_checksum.h"
+#include "./util/reg_group_set.h"
 #include "./util/testing/status_macros.h"
 
 namespace silifuzz {

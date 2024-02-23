@@ -385,7 +385,9 @@ mov 0(%rax), %rbx
       arch=X86_64,
       normal_end=False,
       src="""
-xor %rax, %rax
+// Jump to a data page to also test that
+// snap maker does not create the page.
+movq $0x20000, %rax
 jmp *%rax
 """,
   )
@@ -621,6 +623,18 @@ ldr x0, [x0]
       src="""
 mov x0, #0x10000
 ldr x0, [x0]
+""",
+  )
+
+  b.snapshot(
+      name="SigSegvExec",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+// Jump to a data page to also test that
+// snap maker does not create the page.
+mov x0, #0x700000000
+br x0
 """,
   )
 

@@ -34,6 +34,7 @@ cc_binary(
     linkstatic = 1,
     deps = [
         "@silifuzz//common:memory_state",
+        "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_file_util",

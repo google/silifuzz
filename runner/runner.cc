@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
+#include <sys/ucontext.h>
 #include <ucontext.h>
 #include <unistd.h>
 
@@ -52,6 +53,11 @@
 #include "./util/reg_groups.h"
 #include "./util/text_proto_printer.h"
 #include "./util/ucontext/serialize.h"
+#include "./util/ucontext/signal.h"
+
+#ifndef MAP_FIXED_NOREPLACE
+#define MAP_FIXED_NOREPLACE 0x100000
+#endif
 
 // Snap runner binary.
 //
@@ -132,8 +138,20 @@ constexpr int kInitialMappingProtection = PROT_READ | PROT_WRITE;
 
 // Attempts to recover from a SEGV fault due to missing mapping.
 // Returns true iff the fault is recoverable by adding a new mapping.
-bool TryToRecoverFromSignal(int signal, const siginfo_t* siginfo) {
-  if (signal != SIGSEGV && siginfo->si_code != SEGV_MAPERR) return false;
+bool TryToRecoverFromSignal(int signal, const siginfo_t& siginfo,
+                            const ucontext_t& ucontext) {
+  if (signal != SIGSEGV || siginfo.si_code != SEGV_MAPERR) {
+    return false;
+  }
+
+  // Only fix up this SEGV fault if not fixing it would cause a SigCause
+  // kSegvCantRead or kSegvCantWrite to be reported.
+  SignalRegSet sig_reg_set;
+  ConvertSignalRegsFromLibC(ucontext, &sig_reg_set);
+  const snapshot_types::SigCause cause = SigSegvCause(sig_reg_set);
+  if (cause != Endpoint::kSegvCantRead && cause != Endpoint::kSegvCantWrite) {
+    return false;
+  }
 
   // Check to see if we have reached the max number of mapped data pages.
   size_t real_max_pages_to_add =
@@ -143,25 +161,34 @@ bool TryToRecoverFromSignal(int signal, const siginfo_t* siginfo) {
   }
 
   // Map a new r/w data page containing the fault address.
-  uint64_t page_size = getpagesize();
-  uint64_t fault_address = reinterpret_cast<uint64_t>(siginfo->si_addr);
+  uint64_t fault_address = reinterpret_cast<uint64_t>(siginfo.si_addr);
   uint64_t fault_page_address = RoundDownToPageAlignment(fault_address);
+
+  // This will mmap() any faulting addresses. We rely on high level code to
+  // filter out bad mappings created by the runner during making.
+  // The assumption here is that we can continue execution by mmapping a
+  // missing data page whose address is in siginfo.si_addr. On the x86 with
+  // User Mode Instruction Prevention (UMIP) enabled, some instructions are
+  // emulated in software by the kernel. It is observed that the kernel does
+  // not report the second page of a page crossing fault for an emulated SGDT
+  // instruction. In that case, the code below will try to map the first page
+  // of the fault twice and not able to continue execution as the second page
+  // is never mapped. We use MAP_FIXED_NOREPLACE flag to prevent the runner from
+  // mmapping to an existing page. This flag is supported since kernel
+  // version 4.17.
+  void* new_page = sys_mmap(
+      AsPtr(fault_page_address), getpagesize(), PROT_READ | PROT_WRITE,
+      MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED | MAP_FIXED_NOREPLACE, -1, 0);
+  if (new_page == MAP_FAILED) {
+    return false;
+  }
+  CHECK_EQ(new_page, AsPtr(fault_page_address));
 
   // Paranoia check to see if this page has been added before.
   for (size_t i = 0; i < num_added_pages; ++i) {
     CHECK_NE(added_page_addresses[i], fault_page_address);
   }
-
-  // This will mmap() any faulting addresses. We rely on high level code to
-  // filter out bad mappings created by the runner during making.
-  void* new_page =
-      sys_mmap(AsPtr(fault_page_address), page_size, PROT_READ | PROT_WRITE,
-               MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
-  if (new_page == MAP_FAILED) {
-    return false;
-  }
-
-  added_page_addresses[num_added_pages] = AsInt(new_page);
+  added_page_addresses[num_added_pages] = fault_page_address;
   num_added_pages++;
 
   return true;
@@ -175,19 +202,20 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
   if (signal == SIGALRM) {
     _exit(2);
   }
+  const ucontext_t* ucontext = reinterpret_cast<const ucontext_t*>(uc);
   if (IsInsideSnap()) {
     // If the signal is due to an unmapped page and we are allowed to map
     // pages, try resuming from the signal. This happens during snap making.
     // We only want to recover for SEGV_MAPERR since it is the only case that
     // we can fix by mapping a missing page. Other cases of SIGSEGV involve
     // permission errors related an existing page.
-    if (TryToRecoverFromSignal(signal, siginfo)) {
+    if (TryToRecoverFromSignal(signal, *siginfo, *ucontext)) {
       return;
     }
 
     // The signal arrived while executing a snapshot -- blame it on the
     // snapshot itself.
-    RunnerReentryFromSignal(*static_cast<const ucontext_t*>(uc), *siginfo);
+    RunnerReentryFromSignal(*ucontext, *siginfo);
     __builtin_unreachable();
   }
   // A signal was not caused by any snapshot. If it is one of the
