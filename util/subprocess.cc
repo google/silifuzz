@@ -135,7 +135,7 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
   }
 }
 
-int Subprocess::Communicate(std::string* stdout_output) {
+ProcessInfo Subprocess::Communicate(std::string* stdout_output) {
   if (child_pid_ == -1 || child_stdout_ == -1) {
     LOG_FATAL("Must call Start() first.");
   }
@@ -159,8 +159,8 @@ int Subprocess::Communicate(std::string* stdout_output) {
   close(child_stdout_);
   child_stdout_ = -1;
 
-  int status = 0;
-  while (waitpid(child_pid_, &status, 0) == -1) {
+  ProcessInfo info = {};
+  while (wait4(child_pid_, &info.status, 0, &info.rusage) == -1) {
     if (errno == EINTR) {
       continue;
     }
@@ -168,12 +168,11 @@ int Subprocess::Communicate(std::string* stdout_output) {
       // Someone else snagged the status before we could
       break;
     } else {
-      LOG_FATAL("waitpid: ", strerror(errno));
+      LOG_FATAL("wait4: ", strerror(errno));
     }
   }
-
   child_pid_ = -1;
-  return status;
+  return info;
 }
 
 void Subprocess::GlobalInit() {

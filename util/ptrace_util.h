@@ -25,6 +25,7 @@
 #include <optional>
 
 #include "./util/checks.h"
+#include "./util/subprocess.h"
 
 namespace silifuzz {
 
@@ -32,13 +33,13 @@ namespace silifuzz {
 // (Some callers might not care about the latter.)
 // Returns true iff the wait was successful, false if waitpid raised ECHILD.
 // and check-fails otherwise.
-bool WaitpidOrDie(pid_t pid, int* status, int options);
+bool WaitpidOrDie(pid_t pid, ProcessInfo* info, int options);
 
 // Calls waitpid(2) expecting `pid` to stop, e.g. after receiving
 // PTRACE_INTERRUPT or raising SIGSTOP in PTRACE_SEIZE-ed state.
-// Returns true iff `pid` has indeed stopped and fills *status
-// with the waitpid(2) status if we could obtain one, and nullopt otherwise.
-bool WaitpidToStop(pid_t pid, std::optional<int>* status);
+// Returns true iff `pid` has indeed stopped and fills *info with the status and
+// rusage if we could obtain them, and nullopt otherwise.
+bool WaitpidToStop(pid_t pid, std::optional<ProcessInfo>* info);
 
 // ptrace(2) wrapper that check-fails if ptrace returns -1.
 // CAVEAT: cannot be used with commands that return a useful value

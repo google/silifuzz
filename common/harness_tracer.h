@@ -26,6 +26,7 @@
 #include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "./util/checks.h"
+#include "./util/subprocess.h"
 
 namespace silifuzz {
 
@@ -171,9 +172,9 @@ class HarnessTracer {
   // CAVEAT: The caller must first initiate the tracee shutdown but not make any
   // calls that would waitpid() on the tracee. For the harness binary this
   // typically means closing its STDIN.
-  // Returns the tracee exit status or nullopt if we missed it.
+  // Returns the tracee exit status and rusage, or nullopt if we missed it.
   // REQUIRES: is_attached()
-  std::optional<int> Join();
+  std::optional<ProcessInfo> Join();
 
   // Whether or not Attach() has been called.
   bool is_attached() const { return tracer_thread_ != nullptr; }
@@ -182,7 +183,7 @@ class HarnessTracer {
   // Runs the ptrace event loop. See class-level comment for details.
   // Returns the tracee exit status or nullopt if we missed it.
   // REQUIRES: is_attached().
-  std::optional<int> EventLoop() const;
+  std::optional<ProcessInfo> EventLoop() const;
 
   // Processes a given ptrace stop event identified by `status`.
   // `status` is the waitpid's wstatus of the tracee. `is_active` is the current
@@ -218,7 +219,7 @@ class HarnessTracer {
   absl::Mutex exit_status_mutex_;
 
   // Tracee exit status.
-  std::optional<int> exit_status_ ABSL_GUARDED_BY(exit_status_mutex_);
+  std::optional<ProcessInfo> exit_status_ ABSL_GUARDED_BY(exit_status_mutex_);
 };
 
 }  // namespace silifuzz

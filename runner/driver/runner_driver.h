@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_DRIVER_H_
 #define THIRD_PARTY_SILIFUZZ_RUNNER_DRIVER_RUNNER_DRIVER_H_
 
+#include <sys/resource.h>
+
 #include <cstddef>
 #include <functional>
 #include <memory>
@@ -30,6 +32,7 @@
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
+#include "./util/subprocess.h"
 
 namespace silifuzz {
 
@@ -59,13 +62,17 @@ class RunnerDriver {
     // Constructs a new RunResult from the given `player_result`. The success()
     // value is determined by player_result.outcome == kAsExpected.
     explicit RunResult(const PlayerResult& player_result,
+                       const struct rusage& rusage,
                        absl::string_view snapshot_id = "")
         : success_(player_result.outcome == PlaybackOutcome::kAsExpected),
           player_result_(player_result),
-          snapshot_id_(snapshot_id) {}
+          snapshot_id_(snapshot_id),
+          rusage_(rusage) {}
 
     // Construct a success()-ful RunResult with no attached player_result.
-    static RunResult Successful() { return RunResult(true); }
+    static RunResult Successful(const struct rusage& rusage) {
+      return RunResult(true, rusage);
+    }
 
     // Tests if the execution was successful.
     bool success() const { return success_; }
@@ -92,11 +99,14 @@ class RunnerDriver {
       return *player_result_;
     }
 
+    // Information about the resource usage of the run.
+    const struct rusage& rusage() const { return rusage_; }
+
    private:
     // Constructs a new RunResult with the given success status and no
     // associated `player_result`.
-    explicit RunResult(bool success)
-        : success_(success), player_result_(std::nullopt) {}
+    explicit RunResult(bool success, const struct rusage& rusage)
+        : success_(success), player_result_(std::nullopt), rusage_(rusage) {}
 
     // Was the execution successful.
     bool success_;
@@ -106,6 +116,8 @@ class RunnerDriver {
 
     // Snapshot id (if any).
     std::string snapshot_id_;
+
+    struct rusage rusage_;
   };
 
   // Creates a RunnerDriver for a binary with baked-in corpus.
@@ -206,7 +218,7 @@ class RunnerDriver {
       std::optional<HarnessTracer::Callback> trace_cb = std::nullopt) const;
 
   absl::StatusOr<RunResult> HandleRunnerOutput(
-      absl::string_view runner_stdout, int exit_status,
+      absl::string_view runner_stdout, const ProcessInfo& info,
       absl::string_view snapshot_id = "") const;
 
   // C-tor parameters.

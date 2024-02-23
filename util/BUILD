@@ -777,6 +777,7 @@ cc_library(
     deps = [
         ":checks",
         ":itoa",
+        ":subprocess",
     ],
 )
 

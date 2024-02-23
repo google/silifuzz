@@ -31,6 +31,7 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ptrace_util.h"
+#include "./util/subprocess.h"
 #include "./util/ucontext/x86_64/traps.h"
 
 namespace silifuzz {
@@ -59,7 +60,7 @@ HarnessTracer::HarnessTracer(pid_t pid, Mode mode, Callback callback)
       mode_(mode),
       callback_(std::move(callback)),
       tracer_thread_(),
-      exit_status_() {}
+      exit_status_{} {}
 
 void HarnessTracer::Step(int signal) const {
   PTraceOrDie(mode_ == kSingleStep ? PTRACE_SINGLESTEP : PTRACE_SYSCALL, pid_,
@@ -69,19 +70,19 @@ void HarnessTracer::Step(int signal) const {
 void HarnessTracer::Attach() {
   CHECK(tracer_thread_ == nullptr);
   tracer_thread_ = std::make_unique<std::thread>([this] {
-    std::optional<int> status = this->EventLoop();
+    std::optional<ProcessInfo> status = this->EventLoop();
     absl::MutexLock l(&exit_status_mutex_);
     exit_status_ = status;
   });
 }
 
-std::optional<int> HarnessTracer::Join() {
+std::optional<ProcessInfo> HarnessTracer::Join() {
   CHECK(tracer_thread_ != nullptr);
   CHECK(tracer_thread_->joinable());
   VLOG_INFO(2, "Join()-ing tracer on PID ", pid_);
   tracer_thread_->join();
   tracer_thread_ = nullptr;
-  std::optional<int> status;
+  std::optional<ProcessInfo> status;
   {
     absl::MutexLock l(&exit_status_mutex_);
     status.swap(exit_status_);
@@ -224,24 +225,24 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
   return true;
 }
 
-std::optional<int> HarnessTracer::EventLoop() const {
+std::optional<ProcessInfo> HarnessTracer::EventLoop() const {
   VLOG_INFO(1, "Attaching to ", pid_);
   // Use SEIZE instead of ATTACH since the latter sends an unwanted SIGSTOP.
   if (PTraceOrDieExitedOk(PTRACE_SEIZE, pid_, 0, 0)) {
     VLOG_INFO(1, "Attached to PID ", pid_);
   }  // else fallthrough to the following WaitpidToStop() to get the status
 
-  std::optional<int> status;
+  std::optional<ProcessInfo> info;
   bool is_active = false;
   bool has_set_opts = false;
-  while (WaitpidToStop(pid_, &status)) {
+  while (WaitpidToStop(pid_, &info)) {
     if (!has_set_opts) {
       PTraceOrDie(PTRACE_SETOPTIONS, pid_, 0, PTRACE_O_TRACESYSGOOD);
       has_set_opts = true;
     }
-    is_active = Trace(status.value(), is_active);
+    is_active = Trace(info->status, is_active);
   }
-  return status;
+  return info;
 }
 
 }  // namespace silifuzz

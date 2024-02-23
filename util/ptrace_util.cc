@@ -23,11 +23,12 @@
 
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/subprocess.h"
 
 namespace silifuzz {
 
-bool WaitpidOrDie(pid_t pid, int* status, int options) {
-  pid_t child_pid = waitpid(pid, status, options);
+bool WaitpidOrDie(pid_t pid, ProcessInfo* info, int options) {
+  pid_t child_pid = wait4(pid, &info->status, options, &info->rusage);
   if (child_pid < 0) {
     if (errno == ECHILD) {
       return false;
@@ -38,28 +39,28 @@ bool WaitpidOrDie(pid_t pid, int* status, int options) {
   return true;
 }
 
-bool WaitpidToStop(pid_t pid, std::optional<int>* status) {
-  int wstatus;
-  if (!WaitpidOrDie(pid, &wstatus, __WALL)) {
+bool WaitpidToStop(pid_t pid, std::optional<ProcessInfo>* info) {
+  ProcessInfo winfo = {};
+  if (!WaitpidOrDie(pid, &winfo, __WALL)) {
     // This can only happen if pid is for a process that our caller
     // is not managing, or if our caller might be doing waitpid() on pid
     // concurrently.
     VLOG_INFO(1, "PID ", pid, " has exited and something collected its status");
-    *status = std::nullopt;
+    *info = std::nullopt;
     return false;
   }
-  *status = wstatus;
-  if (WIFEXITED(wstatus) || WIFSIGNALED(wstatus)) {
-    if (WIFEXITED(wstatus)) {
-      VLOG_INFO(2, "PID ", pid, " quit, status = ", WEXITSTATUS(wstatus));
+  *info = winfo;
+  if (WIFEXITED(winfo.status) || WIFSIGNALED(winfo.status)) {
+    if (WIFEXITED(winfo.status)) {
+      VLOG_INFO(2, "PID ", pid, " quit, status = ", WEXITSTATUS(winfo.status));
     } else {
-      VLOG_INFO(2, "PID ", pid, " received signal ", WTERMSIG(wstatus));
+      VLOG_INFO(2, "PID ", pid, " received signal ", WTERMSIG(winfo.status));
     }
     return false;
   }
-  if (!WIFSTOPPED(wstatus)) {
+  if (!WIFSTOPPED(winfo.status)) {
     LOG_FATAL("PID ", pid,
-              " had unexpected status from waitpid: ", HexStr(wstatus));
+              " had unexpected status from waitpid: ", HexStr(winfo.status));
   }
   return true;
 }

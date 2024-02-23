@@ -55,6 +55,8 @@ TEST(RunnerDriver, BasicRun) {
   auto run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kEndsAsExpected));
   ASSERT_OK(run_result_or);
   ASSERT_TRUE(run_result_or->success());
+  // Check the rusage looks somewhat reasonable.
+  EXPECT_GE(run_result_or->rusage().ru_maxrss, 4);
 
   run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kSyscall));
   ASSERT_THAT(run_result_or,
@@ -137,6 +139,8 @@ TEST(RunnerDriver, BasicTrace) {
   ASSERT_OK(trace_result_or);
   ASSERT_TRUE(trace_result_or->success());
   ASSERT_TRUE(hit_initial_snap_rip);
+  // Check the rusage looks somewhat reasonable.
+  EXPECT_GE(trace_result_or->rusage().ru_maxrss, 4);
 }
 
 TEST(RunnerDriver, Cleanup) {

@@ -32,12 +32,12 @@ using snapshot_types::PlaybackOutcome;
 
 TEST(ResultCollector, Simple) {
   ResultCollector collector(-1, absl::Now(), {});
-  collector(RunnerDriver::RunResult::Successful());
+  collector(RunnerDriver::RunResult::Successful({}));
   ASSERT_EQ(collector.summary().play_count, 1);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 0);
   RunnerDriver::PlayerResult result = {
       .outcome = PlaybackOutcome::kExecutionMisbehave};
-  collector(RunnerDriver::RunResult(result, "snap_id"));
+  collector(RunnerDriver::RunResult(result, {}, "snap_id"));
   ASSERT_EQ(collector.summary().play_count, 2);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 1);
 }
@@ -47,10 +47,10 @@ TEST(ResultCollector, BinaryLogging) {
   ASSERT_EQ(pipe(pipefd), 0);
   {
     ResultCollector collector(pipefd[1], absl::Now(), {});
-    collector(RunnerDriver::RunResult::Successful());
+    collector(RunnerDriver::RunResult::Successful({}));
     RunnerDriver::PlayerResult result = {
         .outcome = PlaybackOutcome::kExecutionMisbehave};
-    collector(RunnerDriver::RunResult(result, "snap_id"));
+    collector(RunnerDriver::RunResult(result, {}, "snap_id"));
     // Let collector go out of scope which closes the write end of the pipe.
     // This way the Receive() below does not block if logging misbehaves.
   }

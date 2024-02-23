@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_SUBPROCESS_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_SUBPROCESS_H_
 
+#include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
@@ -25,6 +26,11 @@
 #include "absl/time/time.h"
 
 namespace silifuzz {
+
+struct ProcessInfo {
+  struct rusage rusage;
+  int status;
+};
 
 // Minimalistic utility class for launching sub-processes and collecting
 // stdout.
@@ -130,7 +136,7 @@ class Subprocess {
 
   // Consumes the stdout of the process and waits for it to exit.
   // Returns the process exit status.
-  int Communicate(std::string* stdout_output);
+  ProcessInfo Communicate(std::string* stdout_output);
 
   // Returns the child process PID or -1 when no process is running.
   pid_t pid() const { return child_pid_; }

@@ -36,11 +36,23 @@ namespace {
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
+// The goal of this check is to make sure _some_ sort of reasonable rusage
+// information is being returned, no matter how the process behaves.
+// This checks the plumbing is connected, essentially.
+void ProcessInfoLooksReasonable(const ProcessInfo& info) {
+  // The process should have used at least 4kB of memory.
+  EXPECT_GE(info.rusage.ru_maxrss, 4);
+
+  // It'a difficult to say what the other values should be.
+}
+
 TEST(Subprocess, Communicate) {
   Subprocess sp;
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stdout"}));
   std::string stdout;
-  EXPECT_EQ(sp.Communicate(&stdout), 0);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(info.status, 0);
+  ProcessInfoLooksReasonable(info);
   EXPECT_EQ(stdout, "stdout");
 }
 
@@ -48,15 +60,18 @@ TEST(Subprocess, StatusCode) {
   Subprocess sp;
   ASSERT_OK(sp.Start({"/bin/false"}));
   std::string stdout;
-  int status = sp.Communicate(&stdout);
-  EXPECT_EQ(WEXITSTATUS(status), 1);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(WEXITSTATUS(info.status), 1);
+  ProcessInfoLooksReasonable(info);
 }
 
 TEST(Subprocess, StderrDupParent) {
   Subprocess sp;
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}));
   std::string stdout;
-  EXPECT_EQ(sp.Communicate(&stdout), 0);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(info.status, 0);
+  ProcessInfoLooksReasonable(info);
   EXPECT_EQ(stdout, "");
 }
 
@@ -66,7 +81,9 @@ TEST(Subprocess, StderrMapToStdout) {
   Subprocess sp(opts);
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "echo -n stderr >&2"}));
   std::string stdout;
-  EXPECT_EQ(sp.Communicate(&stdout), 0);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(info.status, 0);
+  ProcessInfoLooksReasonable(info);
   EXPECT_EQ(stdout, "stderr");
 }
 
@@ -78,7 +95,9 @@ TEST(Subprocess, StderrMapToDevNull) {
   std::string stdout;
   // This only tests that setting the mapping does not crash and stdout is
   // empty. There is no easy way to verify that we wrote to /dev/null.
-  EXPECT_EQ(sp.Communicate(&stdout), 0);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(info.status, 0);
+  ProcessInfoLooksReasonable(info);
   EXPECT_THAT(stdout, IsEmpty());
 }
 
@@ -88,8 +107,10 @@ TEST(Subprocess, NoExecutable) {
   Subprocess sp(opts);
   ASSERT_OK(sp.Start({"/bin/foobarbaz"}));
   std::string stdout;
-  int status = sp.Communicate(&stdout);
-  EXPECT_EQ(WEXITSTATUS(status), 1);
+  ProcessInfo info = sp.Communicate(&stdout);
+  EXPECT_EQ(WEXITSTATUS(info.status), 1);
+  // Observed one case where maxrss was zero, so not checking rusage here.
+  // It's not always zero, either.
   EXPECT_THAT(stdout, HasSubstr("program not found or is not executable"));
 }
 
@@ -99,10 +120,10 @@ TEST(Subprocess, DisableAslr) {
   Subprocess sp(opts);
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}));
   std::string stdout1;
-  ASSERT_EQ(sp.Communicate(&stdout1), 0);
+  ASSERT_EQ(sp.Communicate(&stdout1).status, 0);
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "grep stack /proc/self/maps"}));
   std::string stdout2;
-  ASSERT_EQ(sp.Communicate(&stdout2), 0);
+  ASSERT_EQ(sp.Communicate(&stdout2).status, 0);
   ASSERT_EQ(stdout1, stdout2);
 }
 
@@ -120,8 +141,9 @@ TEST(Subprocess, ParentDeath) {
   });
   t.join();
   std::string stdout;
-  int status = sp.Communicate(&stdout);
-  ASSERT_EQ(WTERMSIG(status), SIGKILL);
+  ProcessInfo info = sp.Communicate(&stdout);
+  ASSERT_EQ(WTERMSIG(info.status), SIGKILL);
+  ProcessInfoLooksReasonable(info);
 }
 
 TEST(Subprocess, SetRLimit) {
@@ -132,8 +154,9 @@ TEST(Subprocess, SetRLimit) {
   Subprocess sp(opts);
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "while :; do :; done"}));
   std::string stdout;
-  int status = sp.Communicate(&stdout);
-  ASSERT_EQ(WTERMSIG(status), SIGXCPU);
+  ProcessInfo info = sp.Communicate(&stdout);
+  ASSERT_EQ(WTERMSIG(info.status), SIGXCPU);
+  ProcessInfoLooksReasonable(info);
 }
 
 TEST(Subprocess, SetITimer) {
@@ -144,8 +167,9 @@ TEST(Subprocess, SetITimer) {
   Subprocess sp(opts);
   ASSERT_OK(sp.Start({"/bin/sh", "-c", "while :; do :; done"}));
   std::string stdout;
-  int status = sp.Communicate(&stdout);
-  ASSERT_EQ(WTERMSIG(status), SIGALRM);
+  ProcessInfo info = sp.Communicate(&stdout);
+  ASSERT_EQ(WTERMSIG(info.status), SIGALRM);
+  ProcessInfoLooksReasonable(info);
 }
 
 }  // namespace

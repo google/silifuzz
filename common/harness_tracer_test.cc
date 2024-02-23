@@ -40,6 +40,16 @@ namespace {
 
 using ::testing::Optional;
 
+// The goal of this check is to make sure _some_ sort of reasonable rusage
+// information is being returned, no matter how the process behaves.
+// This checks the plumbing is connected, essentially.
+void ProcessInfoLooksReasonable(const ProcessInfo& info) {
+  // The process should have used at least 4kB of memory.
+  EXPECT_GE(info.rusage.ru_maxrss, 4);
+
+  // It'a difficult to say what the other values should be.
+}
+
 std::unique_ptr<Subprocess> StartHelperProcess(absl::string_view mode) {
   std::string helper =
       GetDataDependencyFilepath("common/harness_tracer_test_helper");
@@ -62,13 +72,14 @@ TEST(HarnessTracerTest, CrashAndExit) {
                            return HarnessTracer::kKeepTracing;
                          });
     tracer.Attach();
-    std::optional<int> status = tracer.Join();
-    ASSERT_TRUE(status.has_value());
+    std::optional<ProcessInfo> info = tracer.Join();
+    ASSERT_TRUE(info.has_value());
+    ProcessInfoLooksReasonable(*info);
     if (test_mode == "test-crash") {
-      EXPECT_TRUE(WIFSIGNALED(*status));
-      EXPECT_EQ(WTERMSIG(*status), SIGABRT);
+      EXPECT_TRUE(WIFSIGNALED(info->status));
+      EXPECT_EQ(WTERMSIG(info->status), SIGABRT);
     } else {
-      EXPECT_EQ(*status, 0);
+      EXPECT_EQ(info->status, 0);
     }
     std::string stdout_str;
     helper_process->Communicate(&stdout_str);
@@ -110,7 +121,12 @@ TEST(HarnessTracerTest, SingleStep) {
         return HarnessTracer::kKeepTracing;
       });
   tracer.Attach();
-  EXPECT_THAT(tracer.Join(), Optional(0));
+
+  std::optional<ProcessInfo> info = tracer.Join();
+  ASSERT_TRUE(info.has_value());
+  EXPECT_EQ(info->status, 0);
+  ProcessInfoLooksReasonable(*info);
+
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
   LOG_INFO("Helper stdout:\n", stdout_str);
@@ -136,7 +152,12 @@ TEST(HarnessTracerTest, Syscall) {
         return HarnessTracer::kKeepTracing;
       });
   tracer.Attach();
-  EXPECT_THAT(tracer.Join(), Optional(0));
+
+  std::optional<ProcessInfo> info = tracer.Join();
+  ASSERT_TRUE(info.has_value());
+  EXPECT_EQ(info->status, 0);
+  ProcessInfoLooksReasonable(*info);
+
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
   LOG_INFO("Helper stdout:\n", stdout_str);
@@ -158,15 +179,15 @@ TEST(HarnessTracerTest, Signal) {
                            return HarnessTracer::kKeepTracing;
                          });
     tracer.Attach();
-    std::optional<int> status = tracer.Join();
+    std::optional<ProcessInfo> info = tracer.Join();
 
-    ASSERT_TRUE(status.has_value());
-    ASSERT_TRUE(WIFEXITED(*status)) << "status = " << *status;
+    ASSERT_TRUE(info.has_value());
+    ASSERT_TRUE(WIFEXITED(info->status)) << "status = " << info->status;
     if (mode == HarnessTracer::kSyscall) {
-      EXPECT_EQ(WEXITSTATUS(*status), 12)
+      EXPECT_EQ(WEXITSTATUS(info->status), 12)
           << "SignalHelper() does 3 rounds of 4 types of causing SIGTRAP";
     } else {
-      EXPECT_EQ(WEXITSTATUS(*status), 11)
+      EXPECT_EQ(WEXITSTATUS(info->status), 11)
           << "SignalHelper() does 3 rounds of 4 types of causing SIGTRAP"
           << " except icebp is not properly handled by the tracer";
     }
@@ -197,10 +218,11 @@ TEST(HarnessTracerTest, SignalInjection) {
                          }
                        });
   tracer.Attach();
-  std::optional<int> status = tracer.Join();
-  ASSERT_TRUE(status.has_value());
-  ASSERT_TRUE(WIFEXITED(*status)) << "status = " << *status;
-  EXPECT_EQ(WEXITSTATUS(*status), 1);
+  std::optional<ProcessInfo> info = tracer.Join();
+  ASSERT_TRUE(info.has_value());
+  ProcessInfoLooksReasonable(*info);
+  ASSERT_TRUE(WIFEXITED(info->status)) << "status = " << info->status;
+  EXPECT_EQ(WEXITSTATUS(info->status), 1);
   std::string stdout_str;
   helper_process->Communicate(&stdout_str);
   LOG_INFO("Helper stdout:\n", stdout_str);

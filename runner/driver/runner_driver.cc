@@ -144,30 +144,30 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
   }
 
   std::string runner_stdout;
-  int exit_status = runner_proc.Communicate(&runner_stdout);
-  std::optional<int> tracee_exit_status;
+  ProcessInfo info = runner_proc.Communicate(&runner_stdout);
+  std::optional<ProcessInfo> tracee_info;
   if (tracer != nullptr) {
-    tracee_exit_status = tracer->Join();
+    tracee_info = tracer->Join();
     // Because there's a race between the tracer and the Subprocess we need to
     // grab the exit status from the whoever calls waitpid first.
-    if (tracee_exit_status.has_value()) {
-      exit_status = tracee_exit_status.value();
+    if (tracee_info.has_value()) {
+      info = tracee_info.value();
     }
   }
-  return HandleRunnerOutput(runner_stdout, exit_status, snap_id);
+  return HandleRunnerOutput(runner_stdout, info, snap_id);
 }
 
 absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
-    absl::string_view runner_stdout, int exit_status,
+    absl::string_view runner_stdout, const ProcessInfo& info,
     absl::string_view snapshot_id) const {
   VLOG_INFO(3, absl::StrCat("Snapshot [", snapshot_id,
-                            "] runner exit status = ", HexStr(exit_status)));
-  if (WIFSIGNALED(exit_status)) {
-    int sig_num = WTERMSIG(exit_status);
+                            "] runner exit status = ", HexStr(info.status)));
+  if (WIFSIGNALED(info.status)) {
+    int sig_num = WTERMSIG(info.status);
     if (sig_num == SIGINT) {
       // Assume this was sent from the controlling terminal and just pretend
       // everything is fine.
-      return RunResult::Successful();
+      return RunResult::Successful(info.rusage);
     }
     if (sig_num == SIGSYS) {
       // The process died with SIGSYS because an unexpected syscall was made.
@@ -176,11 +176,11 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     return absl::InternalError(
         absl::StrCat("Runner killed by signal ", sig_num));
   }
-  if (WIFEXITED(exit_status)) {
+  if (WIFEXITED(info.status)) {
     // Successful execution
-    ExitCode exit_code = static_cast<ExitCode>(WEXITSTATUS(exit_status));
+    ExitCode exit_code = static_cast<ExitCode>(WEXITSTATUS(info.status));
     if (exit_code == ExitCode::kSuccess) {
-      return RunResult::Successful();
+      return RunResult::Successful(info.rusage);
     }
     // Graceful shutdown due to timeout. Convert this to success with the
     // caveat that this can hide runners that are not making progress.
@@ -192,7 +192,7 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     // was made.
     if (exit_code == ExitCode::kTimeout && snapshot_id.empty()) {
       VLOG_INFO(1, "Runner process timed out");
-      return RunResult::Successful();
+      return RunResult::Successful(info.rusage);
     }
     google::protobuf::TextFormat::Parser parser;
     proto::SnapshotExecutionResult exec_result_proto;
@@ -201,14 +201,14 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
       return absl::InternalError(
           absl::StrCat("couldn't parse [", runner_stdout,
                        "] as proto::SnapshotExecutionResult. Exit status = ",
-                       HexStr(exit_status)));
+                       HexStr(info.status)));
     }
     if (!snapshot_id.empty() &&
         exec_result_proto.snapshot_id() != snapshot_id) {
       // This catches all runner crashes due to mmap errors etc.
       return absl::InternalError(absl::StrCat(
           "Runner misbehaved: got id [", exec_result_proto.snapshot_id(),
-          "] expected ", snapshot_id, ". Exit status = ", exit_status));
+          "] expected ", snapshot_id, ". Exit status = ", info.status));
     }
     absl::StatusOr<PlayerResult> player_result_or =
         PlayerResultProto::FromProto(exec_result_proto.player_result());
@@ -218,10 +218,11 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
       return absl::InternalError(
           absl::StrCat(exec_result_proto, " has no actual_end_state"));
     }
-    return RunResult(*player_result_or, exec_result_proto.snapshot_id());
+    return RunResult(*player_result_or, info.rusage,
+                     exec_result_proto.snapshot_id());
   }
   return absl::InternalError(
-      absl::StrCat("Unknown runner exit status ", exit_status));
+      absl::StrCat("Unknown runner exit status ", info.status));
 }
 
 absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
