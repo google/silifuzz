@@ -57,6 +57,38 @@ std::vector<uint8_t> FromInts(std::vector<uint32_t>&& data) {
                               reinterpret_cast<uint8_t*>(&*data.end()));
 }
 
+TEST(MutatorUtil, FixupLimit) {
+  // A limit of zero means nothing is fixed up, including a branch with zero
+  // displacement.
+  EXPECT_TRUE(DisplacementWithinFixupLimit(0, 10));
+  EXPECT_FALSE(DisplacementWithinFixupLimit(0, 0));
+
+  // Positive limit.
+  EXPECT_TRUE(DisplacementWithinFixupLimit(9, 10));
+  EXPECT_FALSE(DisplacementWithinFixupLimit(10, 10));
+
+  // Negative limit.
+  EXPECT_TRUE(DisplacementWithinFixupLimit(-9, 10));
+  EXPECT_FALSE(DisplacementWithinFixupLimit(-10, 10));
+
+  // Check the limit around INT64_MAX.
+  constexpr uint64_t kPosMaxLimit =
+      static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1;
+  EXPECT_TRUE(DisplacementWithinFixupLimit(std::numeric_limits<int64_t>::max(),
+                                           kPosMaxLimit));
+  EXPECT_FALSE(DisplacementWithinFixupLimit(std::numeric_limits<int64_t>::max(),
+                                            kPosMaxLimit - 1));
+
+  // Check the limit around INT64_MIN.
+  // The absolute value of INT64_MIN is one larger than INT64_MAX.
+  constexpr uint64_t kNegMaxLimit =
+      static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 2;
+  EXPECT_TRUE(DisplacementWithinFixupLimit(std::numeric_limits<int64_t>::min(),
+                                           kNegMaxLimit));
+  EXPECT_FALSE(DisplacementWithinFixupLimit(std::numeric_limits<int64_t>::min(),
+                                            kNegMaxLimit - 1));
+}
+
 TEST(MutatorUtil, RandomIndex) {
   MutatorRng rng(0);
 
@@ -76,7 +108,7 @@ TEST(MutatorUtil, RandomIndex) {
 TEST(MutatorUtil, RandomInstructionIndex) {
   // 3 NOPs
   std::vector<uint8_t> bytes = {0x90, 0x90, 0x90};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   MutatorRng rng(0);
 
@@ -96,7 +128,7 @@ TEST(MutatorUtil, RandomInstructionIndex) {
 TEST(MutatorUtil, RandomInstructionBoundary) {
   // 3 NOPs
   std::vector<uint8_t> bytes = {0x90, 0x90, 0x90};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   MutatorRng rng(0);
 
@@ -116,7 +148,7 @@ TEST(MutatorUtil, RandomInstructionBoundary) {
 TEST(MutatorUtil, RandomInstructionBoundaryEmpty) {
   // Empty program
   std::vector<uint8_t> bytes = {};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   MutatorRng rng(0);
 
@@ -232,7 +264,19 @@ TEST(InstructionFromBytes_AArch64, TooShort) {
 TEST(InstructionFromBytes_AArch64, Junk) {
   std::vector<uint8_t> bytes = FromInts({kAArch64Junk});
   Instruction<AArch64> instruction;
+
+  // Rejected.
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // Disabling the filter doesn't fix the problem.
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                    {.filter = false}));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // If we allow bad encodings, it's fine.
+  EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                   {.require_valid_encoding = false}));
   EXPECT_EQ(instruction.encoded.size(), 4);
 }
 
@@ -253,16 +297,66 @@ TEST(InstructionFromBytes_AArch64, NOP) {
 TEST(InstructionFromBytes_X86_64, RDTSC) {
   std::vector<uint8_t> bytes = {0x0f, 0x31};
   Instruction<X86_64> instruction;
+
+  // Rejected.
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   // Even when the instruction was rejected, we see its size.
+  EXPECT_EQ(instruction.encoded.size(), 2);
+
+  // Not an encoding issue.
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                    {.require_valid_encoding = false}));
+  EXPECT_EQ(instruction.encoded.size(), 2);
+
+  // If we disable the filter, it's fine.
+  EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                   {.filter = false}));
   EXPECT_EQ(instruction.encoded.size(), 2);
 }
 
 TEST(InstructionFromBytes_AArch64, UDF) {
   std::vector<uint8_t> bytes = FromInts({0x0});
   Instruction<AArch64> instruction;
+
+  // Rejected.
   EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
   // Even when the instruction was rejected, we see its size.
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // Not just an encoding issue.
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                    {.require_valid_encoding = false}));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // If we disable the filter, it's fine.
+  // Note: for some reason Capstone does not decode UDF. So this actually looks
+  // like an encoding issue to due a bug in the disassembler. It also hit the
+  // filter, however, so we need to disable both. Similar issues exist for SVC
+  // (syscall).
+  EXPECT_TRUE(
+      InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                           {.require_valid_encoding = false, .filter = false}));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+}
+
+TEST(InstructionFromBytes_AArch64, RNDR) {
+  // Read a random number.
+  // mrs     x0, rndr
+  std::vector<uint8_t> bytes = FromInts({0xd53b2400});
+  Instruction<AArch64> instruction;
+
+  // Rejected.
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // Not an encoding issue.
+  EXPECT_FALSE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                    {.require_valid_encoding = false}));
+  EXPECT_EQ(instruction.encoded.size(), 4);
+
+  // If we disable the filter, it's fine.
+  EXPECT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction,
+                                   {.filter = false}));
   EXPECT_EQ(instruction.encoded.size(), 4);
 }
 
@@ -332,8 +426,10 @@ void CheckAArch64DisplacementBounds(uint32_t insn, int64_t displacement_min,
                                     int64_t displacement_max) {
   std::vector<uint8_t> bytes = FromInts({insn});
   Instruction<AArch64> instruction;
+
   ASSERT_TRUE(InstructionFromBytes(bytes.data(), bytes.size(), instruction))
       << insn;
+  ASSERT_TRUE(instruction.direct_branch.valid());
 
   // Reencoding the same value should be a no-op.
   CheckAArch64ReencodeOK(instruction,
@@ -475,7 +571,7 @@ std::vector<uint8_t> ToBytes(Program<Arch>& program) {
 
 TEST(Program_X86_64, Empty) {
   std::vector<uint8_t> bytes = {};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 0);
 
   EXPECT_EQ(ToBytes(p), bytes);
@@ -483,7 +579,7 @@ TEST(Program_X86_64, Empty) {
 
 TEST(Program_AArch64, Empty) {
   std::vector<uint8_t> bytes = {};
-  Program<AArch64> p(bytes.data(), bytes.size(), true);
+  Program<AArch64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 0);
 
   EXPECT_EQ(ToBytes(p), bytes);
@@ -491,7 +587,7 @@ TEST(Program_AArch64, Empty) {
 
 TEST(Program_X86_64, NOP) {
   std::vector<uint8_t> bytes = {0x90};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
@@ -506,7 +602,7 @@ TEST(Program_X86_64, NOP) {
 
 TEST(Program_AArch64, NOP) {
   std::vector<uint8_t> bytes = FromInts({kAArch64NOP});
-  Program<AArch64> p(bytes.data(), bytes.size(), true);
+  Program<AArch64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
@@ -522,7 +618,7 @@ TEST(Program_AArch64, NOP) {
 
 TEST(Program_X86_64, JunkIgnored) {
   std::vector<uint8_t> bytes = {0x90, 0xff, 0x90};
-  Program<X86_64> p(bytes.data(), bytes.size(), false);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, false);
   ASSERT_EQ(p.NumInstructions(), 2);
 
   std::vector<uint8_t> expected = {0x90, 0x90};
@@ -532,7 +628,7 @@ TEST(Program_X86_64, JunkIgnored) {
 TEST(Program_AArch64, JunkIgnored) {
   std::vector<uint8_t> bytes =
       FromInts({kAArch64NOP, kAArch64Junk, kAArch64NOP});
-  Program<AArch64> p(bytes.data(), bytes.size(), false);
+  Program<AArch64> p(bytes.data(), bytes.size(), {}, false);
   ASSERT_EQ(p.NumInstructions(), 2);
 
   std::vector<uint8_t> expected = FromInts({kAArch64NOP, kAArch64NOP});
@@ -541,18 +637,20 @@ TEST(Program_AArch64, JunkIgnored) {
 
 TEST(Program_X86_64, StrictDeathTest) {
   std::vector<uint8_t> bytes = {0x90, 0xff, 0x90};
-  ASSERT_DEATH({ Program<X86_64> p(bytes.data(), bytes.size(), true); }, "");
+  ASSERT_DEATH(
+      { Program<X86_64> p(bytes.data(), bytes.size(), {}, true); }, "");
 }
 
 TEST(Program_AArch64, StrictDeathTest) {
   std::vector<uint8_t> bytes =
       FromInts({kAArch64NOP, kAArch64Junk, kAArch64NOP});
-  ASSERT_DEATH({ Program<AArch64> p(bytes.data(), bytes.size(), true); }, "");
+  ASSERT_DEATH(
+      { Program<AArch64> p(bytes.data(), bytes.size(), {}, true); }, "");
 }
 
 TEST(Program_X86_64, NOP_RET) {
   std::vector<uint8_t> bytes = {0x90, 0xc3};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 2);
 
   {
@@ -578,7 +676,7 @@ TEST(Program_X86_64, NOP_RET) {
 
 TEST(Program_X86_64, InsertEmpty) {
   std::vector<uint8_t> bytes = {};
-  const Program<X86_64> p(bytes.data(), bytes.size(), true);
+  const Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
@@ -596,7 +694,7 @@ TEST(Program_X86_64, InsertEmpty) {
 
 TEST(Program_AArch64, InsertEmpty) {
   std::vector<uint8_t> bytes = {};
-  const Program<AArch64> p(bytes.data(), bytes.size(), true);
+  const Program<AArch64> p(bytes.data(), bytes.size(), {}, true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = FromInts({kAArch64NOP});
@@ -618,7 +716,7 @@ TEST(Program_AArch64, InsertEmpty) {
 TEST(Program_X86_64, InsertAroundBranchToEnd) {
   // JBE to the end of the program.
   std::vector<uint8_t> bytes = {0x76, 0x00};
-  const Program<X86_64> p(bytes.data(), bytes.size(), true);
+  const Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = {0x90};
@@ -647,7 +745,7 @@ TEST(Program_X86_64, InsertAroundBranchToEnd) {
 TEST(Program_AArch64, InsertAroundBranchToEnd) {
   // B.NV to the end of the program.
   std::vector<uint8_t> bytes = FromInts({kAArch64BNvNext});
-  const Program<AArch64> p(bytes.data(), bytes.size(), true);
+  const Program<AArch64> p(bytes.data(), bytes.size(), {}, true);
 
   // Create NOP instruction.
   std::vector<uint8_t> nop = FromInts({kAArch64NOP});
@@ -676,7 +774,7 @@ TEST(Program_AArch64, InsertAroundBranchToEnd) {
 TEST(Program_X86_64, InsertNearBranch) {
   // JBE that jumps to itself, followed by JA that jumps to itself
   std::vector<uint8_t> bytes = {0x76, 0xfe, 0x77, 0xfe};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   // Check bytes are interpreted as expected.
   constexpr size_t kNumInstructions = 2;
@@ -726,7 +824,7 @@ TEST(Program_X86_64, RemoveNearBranch) {
   // JBE jumps to beginning.
   // JA jumps to JBE.
   std::vector<uint8_t> bytes = {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   // Check bytes are interpreted as expected.
   constexpr size_t kNumInstructions = 3;
@@ -762,7 +860,7 @@ TEST(Program_X86_64, RemoveNearBranch) {
 TEST(Program_X86_64, OutOfRangeBranch) {
   // JNE to the end of the program.
   std::vector<uint8_t> bytes = {0x75, 0x00};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
 
   ASSERT_EQ(p.NumInstructions(), 1);
 
@@ -779,7 +877,7 @@ TEST(Program_X86_64, OutOfRangeBranch) {
 
   Instruction<X86_64> filler{};
   ASSERT_TRUE(InstructionFromBytes(filler_bytes.data(), filler_bytes.size(),
-                                   filler, true));
+                                   filler, {}, true));
 
   // Add instructions to stretch the branch out.
   for (size_t i = 0; i < 250; i++) {
@@ -812,7 +910,7 @@ TEST(Program_X86_64, UnmodifiedNonCanonicalJNS) {
   // It decodes, but if it's rewritten the prefix disappears.
   //  1000000:    41 79 fd     rex.B jns 0x1000000
   std::vector<uint8_t> bytes = {0x41, 0x79, 0xfd};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
@@ -832,7 +930,7 @@ TEST(Program_X86_64, ModifiedNonCanonicalJNS) {
   // The displacement is slightly off to force re-encoding and therefore force
   // canonicalization.
   std::vector<uint8_t> bytes = {0x41, 0x79, 0xfc};
-  Program<X86_64> p(bytes.data(), bytes.size(), false);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, false);
   ASSERT_EQ(p.NumInstructions(), 1);
 
   {
@@ -861,7 +959,7 @@ TEST(Program_X86_64, ModifiedNonCanonicalJNSCrosslink) {
   // NOP followed by a non-canonical JNS that jumps to the beginning of the
   // program.
   std::vector<uint8_t> bytes = {0x41, 0x79, 0x04, 0x90, 0x41, 0x79, 0xf9};
-  Program<X86_64> p(bytes.data(), bytes.size(), true);
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
   ASSERT_EQ(p.NumInstructions(), 3);
 
   {

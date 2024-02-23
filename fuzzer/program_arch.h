@@ -37,6 +37,7 @@ void ArchSpecificInit();
 template <typename Arch>
 bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
                           Instruction<Arch>& instruction,
+                          const InstructionConfig& config = {},
                           bool must_decode_everything = false);
 
 // Attempt to reencode the instruction bytes with the byte displacements implied

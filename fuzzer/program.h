@@ -75,6 +75,42 @@ struct InstructionDisplacementInfo {
   }
 };
 
+struct InstructionConfig {
+  // We typically require that every instruction be recognized by the
+  // disassembler. Sometimes there are instructions that are not recognized by
+  // the disassembler but will execute on the hardware. Accept instructions that
+  // are not recognized by the disassembler, as long as we can still determine
+  // the length of the instruction. This flag may not do much on x86.
+  bool require_valid_encoding = true;
+
+  // We typically filter out instructions that we believe would be bad in a
+  // test. Non-deterministic instructions, privileged instructions, instructions
+  // that will always fault, etc. In some cases may need to accept an input that
+  // contains these kind of instructions, so allow the filter to be bypassed.
+  bool filter = true;
+
+  // If the absolute value of an instruction displacement is greater than or
+  // equal to this threshold, stop rewriting the instruction displacement to
+  // point within the program. Effectively pretend that an instruction with a
+  // large displacement has no displacement.
+  // We sometimes need to process instruction sequences that branch to wild
+  // addresses and fault to signal something went wrong. If we fixup these
+  // branches, we may no longer be able to notice when something went wrong.
+  // Note: displacements are usually signed. This value is unsigned so we can
+  // set a threshold that abs(displacement) will never cross.
+  uint64_t displacement_fixup_limit = std::numeric_limits<uint64_t>::max();
+};
+
+inline bool DisplacementWithinFixupLimit(int64_t displacement,
+                                         uint64_t displacement_fixup_limit) {
+  // Do some acrobatics so we can get the absolute value of all displacements,
+  // including INT64_MIN. std::abs(INT64_MIN) would invoke undefined behavior
+  // due to signed overflow. OTOH, negating an unsigned value is well defined.
+  uint64_t absolute = displacement >= 0 ? static_cast<uint64_t>(displacement)
+                                        : -static_cast<uint64_t>(displacement);
+  return absolute < displacement_fixup_limit;
+}
+
 struct ArchInstructionInfo {
   size_t min_size;
   size_t max_size;
@@ -173,10 +209,12 @@ class Program {
   // `strict` indicates we are certain these bytes correspond to a completely
   // valid program and should not require any fixup, and we should CHECK this is
   // the case.
-  Program(const uint8_t* bytes, size_t len, bool strict = false);
+  Program(const uint8_t* bytes, size_t len,
+          const InstructionConfig& config = {}, bool strict = false);
 
-  Program(const std::vector<uint8_t>& bytes, bool strict = false)
-      : Program(bytes.data(), bytes.size(), strict) {}
+  Program(const std::vector<uint8_t>& bytes,
+          const InstructionConfig& config = {}, bool strict = false)
+      : Program(bytes.data(), bytes.size(), config, strict) {}
 
   // Copyable.
   Program(const Program& other) = default;

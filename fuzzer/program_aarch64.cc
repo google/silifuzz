@@ -119,14 +119,22 @@ static_assert(RewriteBranchDisplacement(0x5400002f, 5, 19, -4) == 0x54ffffef,
 static_assert(RewriteBranchDisplacement(0x54ffffef, 5, 19, 4) == 0x5400002f,
               "Rewrite does not work as expected.");
 
-InstructionDisplacementInfo GetDirectBranchInfo(uint32_t insn) {
-  for (const BranchInstructionInfo& info : kBranchInstructionInfo) {
-    if (info.matcher.matches(insn)) {
-      return {.encoded_byte_displacement = ExtractBranchDisplacement(
-                  insn, info.displacement.lsb, info.displacement.width)};
+InstructionDisplacementInfo GetDirectBranchInfo(
+    uint32_t insn, int64_t displacement_fixup_limit) {
+  InstructionDisplacementInfo displacement_info = {};
+  for (const BranchInstructionInfo& branch_info : kBranchInstructionInfo) {
+    if (branch_info.matcher.matches(insn)) {
+      int32_t displacement = ExtractBranchDisplacement(
+          insn, branch_info.displacement.lsb, branch_info.displacement.width);
+      // Sometimes we want to avoid fixing up large branches.
+      if (DisplacementWithinFixupLimit(displacement,
+                                       displacement_fixup_limit)) {
+        displacement_info.encoded_byte_displacement = displacement;
+      }
+      break;
     }
   }
-  return {};
+  return displacement_info;
 }
 
 }  // namespace
@@ -137,6 +145,7 @@ void ArchSpecificInit<AArch64>() {}
 template <>
 bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
                           Instruction<AArch64>& instruction,
+                          const InstructionConfig& config,
                           bool must_decode_everything) {
   // On decode failure, we want the length to be zero.
   instruction.encoded.Clear();
@@ -152,20 +161,24 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
 
   // TODO(ncbray): create at a higher level and pass down to avoid thrashing
   // the memory allocator.
-  CapstoneDisassembler<AArch64> disassembler;
-  if (!disassembler.Disassemble(0x0, bytes, num_bytes)) return false;
-
+  if (config.require_valid_encoding) {
+    CapstoneDisassembler<AArch64> disassembler;
+    if (!disassembler.Disassemble(0x0, bytes, num_bytes)) return false;
+  }
   uint32_t insn_word = *reinterpret_cast<const uint32_t*>(bytes);
-  instruction.direct_branch = GetDirectBranchInfo(insn_word);
+  instruction.direct_branch =
+      GetDirectBranchInfo(insn_word, config.displacement_fixup_limit);
 
   // Did we expect to consume every byte?
   if (must_decode_everything && 4 != num_bytes) return false;
 
   // Does it look like an instruction we can use?
-  absl::string_view view(
-      reinterpret_cast<const char*>(instruction.encoded.begin()),
-      reinterpret_cast<const char*>(instruction.encoded.end()));
-  if (!StaticInstructionFilter<AArch64>(view)) return false;
+  if (config.filter) {
+    absl::string_view view(
+        reinterpret_cast<const char*>(instruction.encoded.begin()),
+        reinterpret_cast<const char*>(instruction.encoded.end()));
+    if (!StaticInstructionFilter<AArch64>(view)) return false;
+  }
 
   return true;
 }

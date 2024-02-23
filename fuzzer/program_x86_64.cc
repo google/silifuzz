@@ -39,13 +39,15 @@ bool AcceptInstruction(const xed_decoded_inst_t& xedd) {
 }
 
 InstructionDisplacementInfo GetDirectBranchInfo(
-    const xed_decoded_inst_t& xedd) {
+    const xed_decoded_inst_t& xedd, int64_t displacement_fixup_limit) {
   InstructionDisplacementInfo info{};
   if (xed_decoded_inst_get_branch_displacement_width(&xedd) > 0) {
     // Arch-specific displacements are relative to the end of the instruction.
-    info.encoded_byte_displacement =
-        xed_decoded_inst_get_branch_displacement(&xedd) +
-        xed_decoded_inst_get_length(&xedd);
+    int64_t displacement = xed_decoded_inst_get_branch_displacement(&xedd) +
+                           xed_decoded_inst_get_length(&xedd);
+    if (DisplacementWithinFixupLimit(displacement, displacement_fixup_limit)) {
+      info.encoded_byte_displacement = displacement;
+    }
     // The instruction index will be resolved later.
   }
   return info;
@@ -105,6 +107,7 @@ void ArchSpecificInit<X86_64>() {
 template <>
 bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
                           Instruction<X86_64>& instruction,
+                          const InstructionConfig& config,
                           bool must_decode_everything) {
   // On decode failure, we want the length to be zero.
   instruction.encoded.Clear();
@@ -116,6 +119,8 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
                             XED_ADDRESS_WIDTH_64b);
 
   // Did it decode?
+  // Note: if xed cannot decode the instruction, we don't know what length it
+  // is. There's no great way to support config.require_valid_encoding.
   if (xed_decode(&xedd, bytes, num_bytes) != XED_ERROR_NONE) return false;
   size_t decoded_length = xed_decoded_inst_get_length(&xedd);
 
@@ -125,13 +130,16 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
   // "forgiving" way - the RIP can be advanced by the correct amount even when
   // decoding instructions we can't handle.
   instruction.encoded.Copy(bytes, decoded_length);
-  instruction.direct_branch = GetDirectBranchInfo(xedd);
+  instruction.direct_branch =
+      GetDirectBranchInfo(xedd, config.displacement_fixup_limit);
 
   // Did we expect to consume every byte?
   if (must_decode_everything && decoded_length != num_bytes) return false;
 
   // Does it look like an instruction we can use?
-  if (!AcceptInstruction(xedd)) return false;
+  if (config.filter) {
+    if (!AcceptInstruction(xedd)) return false;
+  }
 
   return true;
 }

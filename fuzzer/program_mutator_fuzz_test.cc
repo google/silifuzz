@@ -52,10 +52,11 @@ constexpr const bool kPrintData = false;
 template <typename Arch>
 void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
+  InstructionConfig config = {};
 
   // Decode the random data.
   if (kPrintData) printf("from\n");
-  Program<Arch> program1(data, false);
+  Program<Arch> program1(data, config, false);
   if (kPrintData) DumpProgram(program1);
 
   // Re-encode the instructions with fixed-up displacements.
@@ -74,7 +75,7 @@ void RoundtripTest(uint64_t seed, const std::vector<uint8_t> &data) {
 
   // Re-parse the serialized program - it should parse perfectly.
   if (kPrintData) printf("from\n");
-  Program<Arch> program2(first.data(), first.size(), true);
+  Program<Arch> program2(first.data(), first.size(), config, true);
   if (kPrintData) DumpProgram(program2);
 
   // This should be a no-op.
@@ -103,8 +104,9 @@ void RoundtripTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
 template <typename Arch>
 void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
+  InstructionConfig config = {};
 
-  Program<Arch> program(data, false);
+  Program<Arch> program(data, config, false);
 
   // Do a mixture of mutation operations so that we have a decently-sized
   // program.
@@ -127,7 +129,7 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
   std::vector<uint8_t> first;
   program.ToBytes(first);
 
-  Program<Arch> reparse(first, true);
+  Program<Arch> reparse(first, config, true);
   EXPECT_EQ(program.NumInstructions(), reparse.NumInstructions());
 
   // Nothing to fixup.
@@ -152,8 +154,9 @@ void MutationTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
 template <typename Arch>
 void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   MutatorRng rng(seed);
+  InstructionConfig config = {};
 
-  Program<Arch> program(data, false);
+  Program<Arch> program(data, config, false);
 
   // Generate a random program.
   for (size_t i = 0; i < 1000; ++i) {

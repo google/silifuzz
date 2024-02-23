@@ -233,7 +233,8 @@ Program<Arch>::Program() : byte_len_(0), encodings_may_be_invalid(false) {
 }
 
 template <typename Arch>
-Program<Arch>::Program(const uint8_t* bytes, size_t len, bool strict)
+Program<Arch>::Program(const uint8_t* bytes, size_t len,
+                       const InstructionConfig& config, bool strict)
     : byte_len_(0), encodings_may_be_invalid(true) {
   ArchSpecificInit<Arch>();
 
