@@ -749,7 +749,6 @@ cc_library(
     deps = [
         ":arch",
         ":checks",
-        ":enum_flag",
         ":itoa",
         ":misc_util",
         ":tool_util",
@@ -765,6 +764,8 @@ cc_test(
     size = "small",
     srcs = ["platform_test.cc"],
     deps = [
+        ":arch",
+        ":itoa",
         ":platform",
         "@com_google_googletest//:gtest_main",
     ],

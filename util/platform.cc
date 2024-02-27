@@ -17,7 +17,6 @@
 #include "absl/base/attributes.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/enum_flag.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
 
@@ -30,7 +29,9 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "intel-ivybridge", "intel-cascadelake", "amd-rome", "intel-icelake",
     "amd-milan", "intel-sapphirerapids", "amd-genoa", "intel-coffeelake",
     "intel-alderlake", "arm-neoverse-n1", "ampere-one", "intel-emeraldrapids",
+    "reserved-16",
     "amd-ryzen-v3000",
+    "reserved-18", "reserved-19",
     "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
 };
 
@@ -52,7 +53,9 @@ ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
     "neovn1",
     "ampone",
     "emerrpds",
+    "reserved-16",
     "ryzenv3000",
+    "reserved-18", "reserved-19",
     "ANY",
     "NEXST",
 };

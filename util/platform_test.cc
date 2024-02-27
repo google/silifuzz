@@ -15,6 +15,8 @@
 #include "./util/platform.h"
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
+#include "./util/itoa.h"
 
 namespace silifuzz {
 
@@ -29,6 +31,11 @@ TEST(PlatformTest, CurrentPlatformId) {
       << " PlatformId enum accordingly";
 
   ASSERT_EQ(PlatformArchitecture(CurrentPlatformId()), Host::architecture_id);
+}
+
+TEST(PlatformTest, NoGaps) {
+  ASSERT_STREQ(ShortPlatformName(PlatformId::kNonExistent), "NEXST");
+  ASSERT_STREQ(EnumStr(PlatformId::kNonExistent), "NON-EXISTENT-PLATFORM");
 }
 
 }  // namespace
