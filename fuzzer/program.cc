@@ -241,7 +241,8 @@ Program<Arch>::Program(const uint8_t* bytes, size_t len,
   size_t offset = 0;
   while (offset < len) {
     Instruction<Arch> instruction;
-    if (InstructionFromBytes(&bytes[offset], len - offset, instruction)) {
+    if (InstructionFromBytes(&bytes[offset], len - offset, instruction,
+                             config)) {
       // Add the instruction.
       instruction.offset = offset;
       offset += instruction.encoded.size();

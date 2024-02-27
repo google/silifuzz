@@ -19,6 +19,28 @@
 
 namespace silifuzz {
 
+// Try to generate a random instruction from scratch.
+// Returns `true` is successful.
+template <typename Arch>
+bool GenerateRandomInstruction(MutatorRng& rng, Instruction<Arch>& instruction);
+
+// Mutate `original` and place the output in `mutated` using the default
+// single-instruction mutation policy.
+// Returns `true` is successful.
+template <typename Arch>
+bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
+                       Instruction<Arch>& mutated);
+
+// Assuming `original` is the original instruction and `mutated` is a modified
+// copy, copy the instruction displacement boundaries if the encoded
+// displacement is present in both `original` and `mutated` and did not change.
+// Otherwise, randomize the boundaries that are present in `mutated` but not
+// `original`, or were modified between the two versions.
+template <typename Arch>
+void CopyOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, const Instruction<Arch>& original,
+    Instruction<Arch>& mutated, size_t num_boundaries);
+
 // Insert a randomly generated instruction at a random boundary in the program.
 // Returns `true` if successful, returns `false` if the the random number
 // generator was deeply unlucky.

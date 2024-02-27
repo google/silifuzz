@@ -90,6 +90,8 @@ void CopyOrRandomizeInstructionDisplacementBoundary(
   }
 }
 
+}  // namespace
+
 // This function tries to determine which instruction each displacement of a
 // newly mutated instruction should point to.
 // 1) If the old instruction has the same kind of displacement (they are both
@@ -114,6 +116,13 @@ void CopyOrRandomizeInstructionDisplacementBoundaries(
   CopyOrRandomizeInstructionDisplacementBoundary(
       rng, original.direct_branch, mutated.direct_branch, num_boundaries);
 }
+
+template void CopyOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, const Instruction<X86_64>& original,
+    Instruction<X86_64>& mutated, size_t num_boundaries);
+template void CopyOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, const Instruction<AArch64>& original,
+    Instruction<AArch64>& mutated, size_t num_boundaries);
 
 template <typename Arch>
 bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
@@ -157,7 +166,12 @@ bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
   return false;
 }
 
-}  // namespace
+template bool MutateInstruction(MutatorRng& rng,
+                                const Instruction<X86_64>& original,
+                                Instruction<X86_64>& mutated);
+template bool MutateInstruction(MutatorRng& rng,
+                                const Instruction<AArch64>& original,
+                                Instruction<AArch64>& mutated);
 
 template <typename Arch>
 bool GenerateRandomInstruction(MutatorRng& rng,
@@ -172,6 +186,11 @@ bool GenerateRandomInstruction(MutatorRng& rng,
   }
   return false;
 }
+
+template bool GenerateRandomInstruction(MutatorRng& rng,
+                                        Instruction<X86_64>& instruction);
+template bool GenerateRandomInstruction(MutatorRng& rng,
+                                        Instruction<AArch64>& instruction);
 
 template <typename Arch>
 bool InsertRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
