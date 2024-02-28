@@ -87,7 +87,7 @@ static constexpr FuzzingConfig<X86_64> DEFAULT_FUZZING_CONFIG<X86_64> = {
 // Inheritance doesn't play well with designated initializers, so we're
 // manually duplicating parts of the config rather than inheriting from a base
 // config.
-// Even if the configs had identical fields, we'd probally want to keep the
+// Even if the configs had identical fields, we'd probably want to keep the
 // types separate so type checking could catch config confusion.
 template <>
 struct FuzzingConfig<AArch64> {
