@@ -491,6 +491,16 @@ movq (%rax), %rbx
 """,
   )
 
+  b.snapshot(
+      name="HasUnobservableNondeterministicInsn",
+      arch=X86_64,
+      src="""
+rdtsc
+xor %eax, %eax
+xor %edx, %edx
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
@@ -687,6 +697,18 @@ svc 0
 """,
   )
 
+  b.snapshot(
+      name="HasUnobservableNondeterministicInsn",
+      arch=AARCH64,
+      src="""
+// id_aa64mmfr0_el1 should be stable for a particular kernel configuration
+// (which is outside of our control). The instruction is banned by the static
+// filter and that's the main property this test is interested in.
+mrs x0, id_aa64mmfr0_el1
+mov x0, xzr
+""",
+  )
+
 
 def generate_source(b, out):
   out.write(f"""\
@@ -710,7 +732,6 @@ def generate_source(b, out):
 
 #include "third_party/silifuzz/common/snapshot_test_enum.h"
 #include "third_party/silifuzz/util/arch.h"
-#include "third_party/silifuzz/util/checks.h"
 
 namespace silifuzz {{
 namespace {{

@@ -49,6 +49,7 @@ ABSL_CONST_INIT const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kSetThreeRegisters",
     "kExitGroup",
     "kVsyscallRegionAccess",
+    "kHasNondeterministicInsn",
 };
 
 }  // namespace silifuzz
