@@ -19,6 +19,7 @@
 #include <ucontext.h>
 
 #include <cstdint>
+#include <cstring>
 
 #include "./runner/endspot.h"
 #include "./runner/runner_main_options.h"
@@ -105,8 +106,12 @@ extern "C" void SnapExitImpl();
 #if defined(__x86_64__)
 extern "C" void RunnerReentry(uint64_t arg1, uint64_t stack_pointer) {
   // Fix up registers not saved in snap_exit_context.
-  snap_exit_context.gregs.rip = FixUpReturnAddress<X86_64>(
-      *reinterpret_cast<const uint64_t*>(stack_pointer));
+  // Call memcpy() instead of dereferencing stack_pointer because we cannot
+  // guarantee that it is aligned.
+  uint64_t return_address;
+  memcpy(&return_address, reinterpret_cast<const void*>(stack_pointer),
+         sizeof(uint64_t));
+  snap_exit_context.gregs.rip = FixUpReturnAddress<X86_64>(return_address);
 
   // Pop return address to get stack_pointer (%rsp) value before snap exit
   // sequence.

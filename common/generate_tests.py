@@ -501,6 +501,14 @@ xor %edx, %edx
 """,
   )
 
+  b.snapshot(
+      name="UalignedExitingStackPointer",
+      arch=X86_64,
+      src="""
+subq $1, %rsp
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
@@ -706,6 +714,14 @@ svc 0
 // filter and that's the main property this test is interested in.
 mrs x0, id_aa64mmfr0_el1
 mov x0, xzr
+""",
+  )
+
+  b.snapshot(
+      name="UalignedExitingStackPointer",
+      arch=AARCH64,
+      src="""
+sub sp, sp, 1
 """,
   )
 

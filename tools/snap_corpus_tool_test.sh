@@ -27,7 +27,7 @@ readonly CORPUS="${TEST_SRCDIR}/silifuzz/snap/testing/test_corpus"
 function snap_corpus_tool_test() {
   # The exact number of Snaps in the corpus can change between arches, so be
   # forgiving on the exact number.
-  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q -e 'Total [1-2][0-9]$' \
+  "${TOOL}" list_snaps "${CORPUS}" 2>&1 | grep -q -e 'Total [1-3][0-9]$' \
     || die "snap_corpus_tool test failed"
 }
 

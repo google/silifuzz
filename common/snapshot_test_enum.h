@@ -114,6 +114,9 @@ enum class TestSnapshot {
   // is not observable so this will replay deterministically.
   kHasUnobservableNondeterministicInsn,
 
+  // Snapshot that exits with an unaligned stack pointer.
+  kUalignedExitingStackPointer,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };

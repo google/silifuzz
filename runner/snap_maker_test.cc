@@ -193,5 +193,18 @@ TEST(SnapMaker, CompatMode) {
   EXPECT_EQ(result, result2);
   EXPECT_EQ(snapshot.memory_mappings(), snapshot2.memory_mappings());
 }
+
+TEST(SnapMaker, UnalignedExitStackPointer) {
+#if !defined(__x86_64__)
+  GTEST_SKIP()
+      << "Unaligned exit stack pointer test implemented only on x86_64.";
+#endif
+  auto snapshot = MakeSnapRunnerTestSnapshot<Host>(
+      TestSnapshot::kUalignedExitingStackPointer);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  TraceOptions trace_options;
+  EXPECT_OK(FixSnapshotInTest(snapshot, options, trace_options));
+}
+
 }  // namespace
 }  // namespace silifuzz
