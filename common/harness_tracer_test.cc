@@ -38,8 +38,6 @@
 namespace silifuzz {
 namespace {
 
-using ::testing::Optional;
-
 // The goal of this check is to make sure _some_ sort of reasonable rusage
 // information is being returned, no matter how the process behaves.
 // This checks the plumbing is connected, essentially.
