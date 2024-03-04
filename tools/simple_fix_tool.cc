@@ -51,6 +51,7 @@
 #include "./tool_libs/snap_group.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/itoa.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/platform.h"
 #include "./util/span_util.h"
@@ -79,7 +80,7 @@ struct FixToolWorkerArgs {
 void FixToolWorker(FixToolWorkerArgs& args) {
   auto current_platform = CurrentPlatformId();
   CHECK(current_platform != PlatformId::kUndefined);
-  PlatformFixToolCounters platform_counters(ShortPlatformName(current_platform),
+  PlatformFixToolCounters platform_counters(EnumStr(current_platform),
                                             &args.counters);
   // To reduce contention of the global blob count, we batch the update.
   // We update the global count for at least this amount.

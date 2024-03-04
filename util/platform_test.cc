@@ -34,7 +34,6 @@ TEST(PlatformTest, CurrentPlatformId) {
 }
 
 TEST(PlatformTest, NoGaps) {
-  ASSERT_STREQ(ShortPlatformName(PlatformId::kNonExistent), "NEXST");
   ASSERT_STREQ(EnumStr(PlatformId::kNonExistent), "NON-EXISTENT-PLATFORM");
 }
 

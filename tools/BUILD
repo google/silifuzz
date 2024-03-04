@@ -183,6 +183,7 @@ cc_library(
         "@silifuzz//tool_libs:snap_group",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:platform",
         "@silifuzz//util:span_util",

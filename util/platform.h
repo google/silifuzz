@@ -57,9 +57,6 @@ constexpr PlatformId kMaxPlatformId = PlatformId::kNonExistent;
 template <>
 extern const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) + 1];
 
-// A short name for PlatformId that is unique and still human-readable.
-const char* ShortPlatformName(PlatformId platform);
-
 // Returns the PlatformId of where this code runs on or kUndefined if
 // we don't have a needed PlatformId value defined or it can't be determined.
 PlatformId CurrentPlatformId();

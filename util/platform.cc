@@ -35,35 +35,6 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
 };
 
-// An arbitrary name, only used internally.
-ABSL_CONST_INIT const char* kShortPlatformNames[ToInt(kMaxPlatformId) + 1] = {
-    "UNDEF",
-    "skylk",
-    "haswl",
-    "broadwl",
-    "ivybrdg",
-    "cascdlk",
-    "rome",
-    "icelk",
-    "milan",
-    "sapprpds",
-    "genoa",
-    "coffeelk",
-    "alderlk",
-    "neovn1",
-    "ampone",
-    "emerrpds",
-    "reserved-16",
-    "ryzenv3000",
-    "reserved-18", "reserved-19",
-    "ANY",
-    "NEXST",
-};
-
-const char* ShortPlatformName(PlatformId platform) {
-  return kShortPlatformNames[ToInt(platform)];
-}
-
 ArchitectureId PlatformArchitecture(PlatformId platform) {
   switch (platform) {
     case PlatformId::kIntelSkylake:
