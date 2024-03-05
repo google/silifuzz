@@ -60,6 +60,10 @@ TEST(StaticInsnFilter, SystemRegister) {
   // mrs    x24, nzcv
   EXPECT_AARCH64_FILTER_ACCEPT({0xd53b4218});
 
+  // Not supported, yet.
+  // mrs    x22, ssbs
+  EXPECT_AARCH64_FILTER_REJECT({0xd53b42d6});
+
   // Banned because some versions of QEMU fail to control access.
   // mrs    x28, cntp_tval_el0
   EXPECT_AARCH64_FILTER_REJECT({0xd53be21c});
@@ -76,6 +80,11 @@ TEST(StaticInsnFilter, SystemRegister) {
   EXPECT_AARCH64_FILTER_REJECT({0xd53b2400});
   // mrs     x0, rndrrs
   EXPECT_AARCH64_FILTER_REJECT({0xd53b2420});
+}
+
+TEST(StaticInsnFilter, DataCache) {
+  // dc    cvac, x0
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd50b7a20});
 }
 
 TEST(StaticInsnFilter, LDXRB) {

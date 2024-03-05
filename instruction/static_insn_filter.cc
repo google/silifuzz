@@ -433,28 +433,57 @@ constexpr uint32_t sysreg(uint32_t op0, uint32_t op1, uint32_t CRn,
 // written.
 const uint32_t kSysregMask = sysreg(0b11, 0b111, 0b1111, 0b1111, 0b111);
 
-// All of the registers that can be accessed in EL0 without trapping appear to
-// be op0=11 op1=011. This is an emperical observation, however, and not
-// explicitly specified. This may change as the spec evolves. There are still
-// registers inside this space we should not access, but there is nothing
-// outside the space we should access.
-constexpr BitMatcher<uint32_t> kUserspaceSysreg = {
-    .mask = sysreg(0b11, 0b111, 0, 0, 0),
-    .bits = sysreg(0b11, 0b011, 0, 0, 0),
-};
+// Sysregs that tests can safely use.
+// Most sysregs are either inaccessible at EL0 or non-deterministic in some way.
+// It's easier to allow specific registers than ban the problematic ones.
+constexpr uint32_t kAllowedSysregs[] = {
+    // DCZID_EL0 - Data Cache Zero ID register (ro)
+    // Note: we're banning this register, for the moment, because at minimum it
+    // will gratuitously expose a difference between CPU models without
+    // providing much diagnostic value (the read should produce a constant).
+    // Deeper investigation is needed to see if this can be affected by BIOS
+    // settings, etc.
+    // sysreg(0b11, 0b011, 0b0000, 0b0000, 0b111),
 
-// Specific banned sysregs that are not caught by more general filters.
-constexpr uint32_t kBannedSysregs[] = {
-    // RNDR - hardware random number
-    sysreg(0b11, 0b011, 0b0010, 0b0100, 0b000),
-    // RNDRSS - hardware random number
-    sysreg(0b11, 0b011, 0b0010, 0b0100, 0b001),
-    // CNTP_TVAL_EL0 - older versions of QEMU do not control access to this
-    // register so we need to explicitly ban it.
-    sysreg(0b11, 0b011, 0b1110, 0b0010, 0b000),
-    // CNTV_TVAL_EL0 - older versions of QEMU do not control access to this
-    // register so we need to explicitly ban it.
-    sysreg(0b11, 0b011, 0b1110, 0b0011, 0b000),
+    // NCZV - Condition Flags (rw)
+    sysreg(0b11, 0b011, 0b0100, 0b0010, 0b000),
+
+    // DAIF omitted because it is blocked by the kernel.
+
+    // SVCR - Streaming Vector Control Register (rw) (sme)
+    // TODO(ncbray): SME support in Save/RestoreUContext
+    // sysreg(0b11, 0b011, 0b0100, 0b0010, 0b010),
+    // DIT - Data Independent Timing (rw)
+    // TODO(ncbray): support in Save/RestoreUContext or randomize
+    // Note: not recognized by Clang, yet.
+    // sysreg(0b11, 0b011, 0b0100, 0b0010, 0b101),
+    // SSBS - Speculative Store Bypass Safe (rw)
+    // TODO(ncbray): support in Save/RestoreUContext or randomize
+    // sysreg(0b11, 0b011, 0b0100, 0b0010, 0b110),
+    // TCO - Tag Check Override (rw) (mte)
+    // TODO(ncbray): support in Save/RestoreUContext or randomized.
+    // Note: this is also entagled with a larger question of MTE support.
+    // Note: not recognized by Clang, yet.
+    // sysreg(0b11, 0b011, 0b0100, 0b0010, 0b111),
+    // FPCR - Floating Point Control Register (rw)
+    sysreg(0b11, 0b011, 0b0100, 0b0100, 0b000),
+    // FPSR - Floating Point Status Register (rw)
+    sysreg(0b11, 0b011, 0b0100, 0b0100, 0b001),
+
+    // DSPSR_EL0 / DLR_EL0 omitted because they are UNDEFINED unless halted.
+
+    // TPIDR_EL0 - EL0 Read/Write Software Thread ID Register (rw)
+    sysreg(0b11, 0b011, 0b1101, 0b0000, 0b010),
+    // TPIDRRO_EL0 - EL0 Read-Only Software Thread ID Register (ro)
+    sysreg(0b11, 0b011, 0b1101, 0b0000, 0b011),
+    // TPIDR2_EL0 - EL0 Read/Write Software Thread ID Register 2 (rw) (sme)
+    // TODO(ncbray): SME support in Save/RestoreUContext
+    // sysreg(0b11, 0b011, 0b1101, 0b0000, 0b101),
+
+    // SCXTNUM_EL0, EL0 Read/Write Software Context Number (rw)
+    // TODO(ncbray): support in Save/RestoreUContext
+    // Note: not recognized by Clang, yet.
+    // sysreg(0b11, 0b011, 0b1101, 0b0000, 0b111),
 };
 
 constexpr bool InstructionIsOK(uint32_t insn,
@@ -476,10 +505,10 @@ constexpr bool InstructionIsOK(uint32_t insn,
     }
   }
   if (kSysregInstruction.matches(insn)) {
-    if (!kUserspaceSysreg.matches(insn)) return false;
-    for (uint32_t sysreg : kBannedSysregs) {
-      if ((insn & kSysregMask) == sysreg) return false;
+    for (uint32_t sysreg : kAllowedSysregs) {
+      if ((insn & kSysregMask) == sysreg) return true;
     }
+    return false;
   }
   return true;
 }
