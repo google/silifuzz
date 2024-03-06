@@ -20,6 +20,9 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
+#include "./common/snapshot_enums.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
@@ -38,6 +41,25 @@ void CheckMemoryRanges(std::vector<MemoryRange>& ranges) {
   }
 }
 
+void CheckMemoryRange(const MemoryRange& range, const MemoryPerms& perms,
+                      MappedMemoryMap& mapped_memory_map) {
+  snapshot_types::Address limit_address = range.start_address + range.num_bytes;
+  EXPECT_TRUE(mapped_memory_map.Contains(range.start_address, limit_address));
+  MemoryPerms min_perms = mapped_memory_map.Perms(
+      range.start_address, limit_address, MemoryPerms::kAnd);
+  MemoryPerms max_perms = mapped_memory_map.Perms(
+      range.start_address, limit_address, MemoryPerms::kOr);
+  // The memory range should have exactly `perms`.
+  EXPECT_EQ(min_perms, perms);
+  EXPECT_EQ(max_perms, perms);
+}
+
+void RemoveMemoryRange(const MemoryRange& range,
+                       MappedMemoryMap& mapped_memory_map) {
+  snapshot_types::Address limit_address = range.start_address + range.num_bytes;
+  mapped_memory_map.Remove(range.start_address, limit_address);
+}
+
 TEST(ProxyConfig, NoOverlap_X86_64) {
   FuzzingConfig<X86_64> config = DEFAULT_FUZZING_CONFIG<X86_64>;
   std::vector<MemoryRange> ranges = {config.code_range, config.data1_range,
@@ -50,6 +72,43 @@ TEST(ProxyConfig, NoOverlap_AArch64) {
   std::vector<MemoryRange> ranges = {config.code_range, config.stack_range,
                                      config.data1_range, config.data2_range};
   CheckMemoryRanges(ranges);
+}
+
+TEST(ProxyConfig, FuzzConfigToMappedMemoryMap_X86_64) {
+  FuzzingConfig<X86_64> fuzz_config = DEFAULT_FUZZING_CONFIG<X86_64>;
+  MappedMemoryMap mapped_memory_map = FuzzConfigToMappedMemoryMap(fuzz_config);
+  CheckMemoryRange(fuzz_config.code_range, MemoryPerms::XR(),
+                   mapped_memory_map);
+  CheckMemoryRange(fuzz_config.data1_range, MemoryPerms::RW(),
+                   mapped_memory_map);
+  CheckMemoryRange(fuzz_config.data2_range, MemoryPerms::RW(),
+                   mapped_memory_map);
+
+  // Remove the above memory ranges. The map should be empty after that.
+  RemoveMemoryRange(fuzz_config.code_range, mapped_memory_map);
+  RemoveMemoryRange(fuzz_config.data1_range, mapped_memory_map);
+  RemoveMemoryRange(fuzz_config.data2_range, mapped_memory_map);
+  EXPECT_TRUE(mapped_memory_map.IsEmpty());
+}
+
+TEST(ProxyConfig, FuzzConfigToMappedMemoryMap_AArch64) {
+  FuzzingConfig<AArch64> fuzz_config = DEFAULT_FUZZING_CONFIG<AArch64>;
+  MappedMemoryMap mapped_memory_map = FuzzConfigToMappedMemoryMap(fuzz_config);
+  CheckMemoryRange(fuzz_config.code_range, MemoryPerms::XR(),
+                   mapped_memory_map);
+  CheckMemoryRange(fuzz_config.stack_range, MemoryPerms::RW(),
+                   mapped_memory_map);
+  CheckMemoryRange(fuzz_config.data1_range, MemoryPerms::RW(),
+                   mapped_memory_map);
+  CheckMemoryRange(fuzz_config.data2_range, MemoryPerms::RW(),
+                   mapped_memory_map);
+
+  // Remove the above memory ranges. The map should be empty after that.
+  RemoveMemoryRange(fuzz_config.code_range, mapped_memory_map);
+  RemoveMemoryRange(fuzz_config.stack_range, mapped_memory_map);
+  RemoveMemoryRange(fuzz_config.data1_range, mapped_memory_map);
+  RemoveMemoryRange(fuzz_config.data2_range, mapped_memory_map);
+  EXPECT_TRUE(mapped_memory_map.IsEmpty());
 }
 
 }  // namespace

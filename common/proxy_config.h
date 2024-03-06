@@ -21,6 +21,7 @@
 
 #include <cstdint>
 
+#include "./common/mapped_memory_map.h"
 #include "./instruction/static_insn_filter.h"
 #include "./util/arch.h"
 
@@ -156,6 +157,12 @@ static constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
                 .num_bytes = 0x4000,  // 16 KB
             },
 };
+
+// Helper functions to convert a FuzzConfig into a MappedMemoryMap.
+MappedMemoryMap FuzzConfigToMappedMemoryMap(
+    const FuzzingConfig<X86_64>& config);
+MappedMemoryMap FuzzConfigToMappedMemoryMap(
+    const FuzzingConfig<AArch64>& config);
 
 }  // namespace silifuzz
 

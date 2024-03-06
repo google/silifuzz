@@ -454,8 +454,11 @@ cc_test(
 
 cc_library(
     name = "proxy_config",
+    srcs = ["proxy_config.cc"],
     hdrs = ["proxy_config.h"],
     deps = [
+        ":mapped_memory_map",
+        ":memory_perms",
         "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//util:arch",
     ],
@@ -466,7 +469,10 @@ cc_test(
     size = "small",
     srcs = ["proxy_config_test.cc"],
     deps = [
+        ":mapped_memory_map",
+        ":memory_perms",
         ":proxy_config",
+        ":snapshot_enums",
         "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
