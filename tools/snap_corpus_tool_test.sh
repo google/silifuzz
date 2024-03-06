@@ -42,7 +42,7 @@ function extract_test() {
 
 function extract_code_address_test() {
   OUTPUT="$(mktemp)"
-  CODE_ADDRESS=0x12355000
+  CODE_ADDRESS=0x32355000
   "${TOOL}" extract_code_address "${CORPUS}" ${CODE_ADDRESS} \
     "${OUTPUT}" 2>&1 | grep -q 'Wrote snap to' \
     || die "extract_code_address test failed"

@@ -62,20 +62,34 @@ AARCH64 = Arch(
 )
 
 # Page number (i.e. address / page size) at the beginning of memory region
-# used by test snapshots.
-TEST_SNAPSHOTS_REGION_BASE = 0x12345
+# used by code in test snapshots. This falls into the code range of FuzzConfig
+# on both x86_64 and Aarch64.
+TEST_SNAPSHOTS_CODE_REGION_BASE = 0x32345
+
+# For data pages, x86_64 and AArch6 have non-overlapping ranges.
+TEST_SNAPSHOTS_DATA_REGION_BASE_X86_64 = 0x10
+TEST_SNAPSHOTS_DATA_REGION_BASE_AARCH64 = 0x700000
 
 # The spacing between each test snapshot. Each test snapshot will fit its code
-# and data in MAX_PAGES_PER_TEST page memory range.
-# In practice, each test snapshot uses 2 pages of memory so this means there
-# is some dead space between each test, but this isn't a problem.
+# and in MAX_PAGES_PER_TEST page memory range.
 MAX_PAGES_PER_TEST = 16
 
 PAGE_SIZE = 4096
 
 
 def test_snapshot_code_addr(index):
-  return (TEST_SNAPSHOTS_REGION_BASE + index * MAX_PAGES_PER_TEST) * PAGE_SIZE
+  return (
+      TEST_SNAPSHOTS_CODE_REGION_BASE + index * MAX_PAGES_PER_TEST
+  ) * PAGE_SIZE
+
+
+def test_snapshot_data_addr(arch, index):
+  if arch == X86_64:
+    base = TEST_SNAPSHOTS_DATA_REGION_BASE_X86_64
+  else:
+    assert arch == AARCH64
+    base = TEST_SNAPSHOTS_DATA_REGION_BASE_AARCH64
+  return (base + index * MAX_PAGES_PER_TEST) * PAGE_SIZE
 
 
 def src_to_instructions(src, arch, temp_dir, bin_filename):
@@ -161,6 +175,7 @@ class Builder:
       bin_filename = os.path.join(temp_dir, "example.bin")
 
       code_addr = test_snapshot_code_addr(arch.test_count)
+      data_addr = test_snapshot_data_addr(arch, arch.test_count)
 
       if src is not None:
         src_to_instructions(src, arch, temp_dir, bin_filename)
@@ -183,7 +198,7 @@ class Builder:
               normal_end=normal_end,
               code_addr=code_addr,
               code_num_bytes=PAGE_SIZE,
-              data_addr=code_addr + PAGE_SIZE,
+              data_addr=data_addr,
               data_num_bytes=PAGE_SIZE,
               instruction_bytes=instruction_bytes,
               disassembly=disassembly,
@@ -821,6 +836,7 @@ def main():
     build_test_snapshots_aarch64(b)
   else:
     code_addr = test_snapshot_code_addr(0)
+    data_addr = test_snapshot_data_addr(X86_64, 0)
     b.snapshots.append(
         TestSnapshot(
             name="Test",
@@ -828,7 +844,7 @@ def main():
             normal_end=True,
             code_addr=code_addr,
             code_num_bytes=PAGE_SIZE,
-            data_addr=code_addr + PAGE_SIZE,
+            data_addr=data_addr,
             data_num_bytes=PAGE_SIZE,
             instruction_bytes=bytes([1, 2, 3, 4]),
             disassembly="Mock disassembly",

@@ -71,7 +71,7 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 2);
   EXPECT_THAT(trace_result.disassembly,
-              ElementsAre(InsnAtAddr("nop", 0x12355000, 1),
+              ElementsAre(InsnAtAddr("nop", 0x32355000, 1),
                           Insn("call qword ptr [rip]")));
 }
 
@@ -199,9 +199,9 @@ TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
   EXPECT_THAT(
       trace_result.disassembly,
       ElementsAre(
-          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
-          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]"),
-          InsnAtAddr("nop", 0x12355000, 1), Insn("call qword ptr [rip]")));
+          InsnAtAddr("nop", 0x32355000, 1), Insn("call qword ptr [rip]"),
+          InsnAtAddr("nop", 0x32355000, 1), Insn("call qword ptr [rip]"),
+          InsnAtAddr("nop", 0x32355000, 1), Insn("call qword ptr [rip]")));
 }
 
 TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {

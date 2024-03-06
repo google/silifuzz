@@ -28,62 +28,62 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kEmpty,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12345000,
+        .code_addr = 0x32345000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12346000,
+        .data_addr = 0x10000,
         .data_num_bytes = 0x1000,
-        //     12345000:   <empty>
+        //     32345000:   <empty>
         .instruction_bytes = {},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kEndsAsExpected,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12355000,
+        .code_addr = 0x32355000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12356000,
+        .data_addr = 0x20000,
         .data_num_bytes = 0x1000,
-        //     12355000:   90                      nop
+        //     32355000:   90                      nop
         .instruction_bytes = {0x90},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kEndsUnexpectedly,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12365000,
+        .code_addr = 0x32365000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12366000,
+        .data_addr = 0x30000,
         .data_num_bytes = 0x1000,
-        //     12365000:   cc                      int3
+        //     32365000:   cc                      int3
         .instruction_bytes = {0xcc},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kRegsMismatch,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12375000,
+        .code_addr = 0x32375000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12376000,
+        .data_addr = 0x40000,
         .data_num_bytes = 0x1000,
-        //     12375000:   48 31 e0                xor    %rsp,%rax
+        //     32375000:   48 31 e0                xor    %rsp,%rax
         .instruction_bytes = {0x48, 0x31, 0xe0},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kMemoryMismatch,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12385000,
+        .code_addr = 0x32385000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12386000,
+        .data_addr = 0x50000,
         .data_num_bytes = 0x1000,
-        //     12385000:   9c                      pushf
-        //     12385001:   50                      push   %rax
-        //     12385002:   48 31 c0                xor    %rax,%rax
-        //     12385005:   48 f7 d0                not    %rax
-        //     12385008:   50                      push   %rax
-        //     12385009:   58                      pop    %rax
-        //     1238500a:   58                      pop    %rax
-        //     1238500b:   9d                      popf
+        //     32385000:   9c                      pushf
+        //     32385001:   50                      push   %rax
+        //     32385002:   48 31 c0                xor    %rax,%rax
+        //     32385005:   48 f7 d0                not    %rax
+        //     32385008:   50                      push   %rax
+        //     32385009:   58                      pop    %rax
+        //     3238500a:   58                      pop    %rax
+        //     3238500b:   9d                      popf
         .instruction_bytes = {0x9c, 0x50, 0x48, 0x31, 0xc0, 0x48, 0xf7, 0xd0,
                               0x50, 0x58, 0x58, 0x9d},
         .normal_end = true,
@@ -91,14 +91,14 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRegsAndMemoryMismatch,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12395000,
+        .code_addr = 0x32395000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12396000,
+        .data_addr = 0x60000,
         .data_num_bytes = 0x1000,
-        //     12395000:   48 31 e3                xor    %rsp,%rbx
-        //     12395003:   48 31 c0                xor    %rax,%rax
-        //     12395006:   48 f7 d0                not    %rax
-        //     12395009:   50                      push   %rax
+        //     32395000:   48 31 e3                xor    %rsp,%rbx
+        //     32395003:   48 31 c0                xor    %rax,%rax
+        //     32395006:   48 f7 d0                not    %rax
+        //     32395009:   50                      push   %rax
         .instruction_bytes = {0x48, 0x31, 0xe3, 0x48, 0x31, 0xc0, 0x48, 0xf7,
                               0xd0, 0x50},
         .normal_end = true,
@@ -106,17 +106,17 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRegsMismatchRandom,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123a5000,
+        .code_addr = 0x323a5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123a6000,
+        .data_addr = 0x70000,
         .data_num_bytes = 0x1000,
-        //     123a5000:   48 c7 c0 01 00 00 00    mov    $0x1,%rax
-        //     123a5007:   0f a2                   cpuid
-        //     123a5009:   81 e1 00 00 00 40       and    $0x40000000,%ecx
-        //     123a500f:   74 06                   je     0x123a5017
-        //     123a5011:   48 0f c7 f0             rdrand %rax
-        //     123a5015:   eb 02                   jmp    0x123a5019
-        //     123a5017:   0f 31                   rdtsc
+        //     323a5000:   48 c7 c0 01 00 00 00    mov    $0x1,%rax
+        //     323a5007:   0f a2                   cpuid
+        //     323a5009:   81 e1 00 00 00 40       and    $0x40000000,%ecx
+        //     323a500f:   74 06                   je     0x323a5017
+        //     323a5011:   48 0f c7 f0             rdrand %rax
+        //     323a5015:   eb 02                   jmp    0x323a5019
+        //     323a5017:   0f 31                   rdtsc
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0x1,  0x0, 0x0,  0x0,
                               0xf,  0xa2, 0x81, 0xe1, 0x0, 0x0,  0x0,
                               0x40, 0x74, 0x6,  0x48, 0xf, 0xc7, 0xf0,
@@ -126,19 +126,19 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kMemoryMismatchRandom,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123b5000,
+        .code_addr = 0x323b5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123b6000,
+        .data_addr = 0x80000,
         .data_num_bytes = 0x1000,
-        //     123b5000:   9c                      pushf
-        //     123b5001:   50                      push   %rax
-        //     123b5002:   52                      push   %rdx
-        //     123b5003:   0f 31                   rdtsc
-        //     123b5005:   50                      push   %rax
-        //     123b5006:   58                      pop    %rax
-        //     123b5007:   5a                      pop    %rdx
-        //     123b5008:   58                      pop    %rax
-        //     123b5009:   9d                      popf
+        //     323b5000:   9c                      pushf
+        //     323b5001:   50                      push   %rax
+        //     323b5002:   52                      push   %rdx
+        //     323b5003:   0f 31                   rdtsc
+        //     323b5005:   50                      push   %rax
+        //     323b5006:   58                      pop    %rax
+        //     323b5007:   5a                      pop    %rdx
+        //     323b5008:   58                      pop    %rax
+        //     323b5009:   9d                      popf
         .instruction_bytes = {0x9c, 0x50, 0x52, 0xf, 0x31, 0x50, 0x58, 0x5a,
                               0x58, 0x9d},
         .normal_end = true,
@@ -146,80 +146,80 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRegsAndMemoryMismatchRandom,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123c5000,
+        .code_addr = 0x323c5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123c6000,
+        .data_addr = 0x90000,
         .data_num_bytes = 0x1000,
-        //     123c5000:   0f 31                   rdtsc
-        //     123c5002:   50                      push   %rax
+        //     323c5000:   0f 31                   rdtsc
+        //     323c5002:   50                      push   %rax
         .instruction_bytes = {0xf, 0x31, 0x50},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kICEBP,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123d5000,
+        .code_addr = 0x323d5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123d6000,
+        .data_addr = 0xa0000,
         .data_num_bytes = 0x1000,
-        //     123d5000:   f1                      int1
+        //     323d5000:   f1                      int1
         .instruction_bytes = {0xf1},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kBreakpoint,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123e5000,
+        .code_addr = 0x323e5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123e6000,
+        .data_addr = 0xb0000,
         .data_num_bytes = 0x1000,
-        //     123e5000:   cc                      int3
+        //     323e5000:   cc                      int3
         .instruction_bytes = {0xcc},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kINT3_CD03,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x123f5000,
+        .code_addr = 0x323f5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123f6000,
+        .data_addr = 0xc0000,
         .data_num_bytes = 0x1000,
-        //     123f5000:   cd 03                   int    $0x3
+        //     323f5000:   cd 03                   int    $0x3
         .instruction_bytes = {0xcd, 0x3},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigIll,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12405000,
+        .code_addr = 0x32405000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12406000,
+        .data_addr = 0xd0000,
         .data_num_bytes = 0x1000,
-        //     12405000:   0f 0b                   ud2
+        //     32405000:   0f 0b                   ud2
         .instruction_bytes = {0xf, 0xb},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvWrite,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12415000,
+        .code_addr = 0x32415000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12416000,
+        .data_addr = 0xe0000,
         .data_num_bytes = 0x1000,
-        //     12415000:   48 31 c0                xor    %rax,%rax
-        //     12415003:   48 89 18                mov    %rbx,(%rax)
+        //     32415000:   48 31 c0                xor    %rax,%rax
+        //     32415003:   48 89 18                mov    %rbx,(%rax)
         .instruction_bytes = {0x48, 0x31, 0xc0, 0x48, 0x89, 0x18},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvWriteFixable,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12425000,
+        .code_addr = 0x32425000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12426000,
+        .data_addr = 0xf0000,
         .data_num_bytes = 0x1000,
-        //     12425000:   48 c7 c0 00 00 01 00    mov    $0x10000,%rax
-        //     12425007:   48 89 18                mov    %rbx,(%rax)
+        //     32425000:   48 c7 c0 00 00 01 00    mov    $0x10000,%rax
+        //     32425007:   48 89 18                mov    %rbx,(%rax)
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0x0, 0x0, 0x1, 0x0, 0x48, 0x89,
                               0x18},
         .normal_end = false,
@@ -227,24 +227,24 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kSigSegvRead,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12435000,
+        .code_addr = 0x32435000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12436000,
+        .data_addr = 0x100000,
         .data_num_bytes = 0x1000,
-        //     12435000:   48 31 c0                xor    %rax,%rax
-        //     12435003:   48 8b 18                mov    (%rax),%rbx
+        //     32435000:   48 31 c0                xor    %rax,%rax
+        //     32435003:   48 8b 18                mov    (%rax),%rbx
         .instruction_bytes = {0x48, 0x31, 0xc0, 0x48, 0x8b, 0x18},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvReadFixable,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12445000,
+        .code_addr = 0x32445000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12446000,
+        .data_addr = 0x110000,
         .data_num_bytes = 0x1000,
-        //     12445000:   48 c7 c0 00 00 01 00    mov    $0x10000,%rax
-        //     12445007:   48 8b 18                mov    (%rax),%rbx
+        //     32445000:   48 c7 c0 00 00 01 00    mov    $0x10000,%rax
+        //     32445007:   48 8b 18                mov    (%rax),%rbx
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0x0, 0x0, 0x1, 0x0, 0x48, 0x8b,
                               0x18},
         .normal_end = false,
@@ -252,27 +252,27 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kSigSegvExec,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12455000,
+        .code_addr = 0x32455000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12456000,
+        .data_addr = 0x120000,
         .data_num_bytes = 0x1000,
-        //     12455000:   48 c7 c0 00 00 02 00    mov    $0x20000,%rax
-        //     12455007:   ff e0                   jmp    *%rax
+        //     32455000:   48 c7 c0 00 00 02 00    mov    $0x20000,%rax
+        //     32455007:   ff e0                   jmp    *%rax
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0x0, 0x0, 0x2, 0x0, 0xff, 0xe0},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSyscall,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12465000,
+        .code_addr = 0x32465000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12466000,
+        .data_addr = 0x130000,
         .data_num_bytes = 0x1000,
-        //     12465000:   48 31 f6                xor    %rsi,%rsi
-        //     12465003:   48 31 ff                xor    %rdi,%rdi
-        //     12465006:   48 c7 c0 35 01 00 00    mov    $0x135,%rax
-        //     1246500d:   0f 05                   syscall
-        //     1246500f:   48 31 c0                xor    %rax,%rax
+        //     32465000:   48 31 f6                xor    %rsi,%rsi
+        //     32465003:   48 31 ff                xor    %rdi,%rdi
+        //     32465006:   48 c7 c0 35 01 00 00    mov    $0x135,%rax
+        //     3246500d:   0f 05                   syscall
+        //     3246500f:   48 31 c0                xor    %rax,%rax
         .instruction_bytes = {0x48, 0x31, 0xf6, 0x48, 0x31, 0xff, 0x48, 0xc7,
                               0xc0, 0x35, 0x1, 0x0, 0x0, 0xf, 0x5, 0x48, 0x31,
                               0xc0},
@@ -281,27 +281,27 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kGeneralProtectionFault,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12475000,
+        .code_addr = 0x32475000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12476000,
+        .data_addr = 0x140000,
         .data_num_bytes = 0x1000,
-        //     12475000:   0f ae 05 01 00 00 00    fxsave 0x1(%rip)        #
-        //     0x12475008
+        //     32475000:   0f ae 05 01 00 00 00    fxsave 0x1(%rip)        #
+        //     0x32475008
         .instruction_bytes = {0xf, 0xae, 0x5, 0x1, 0x0, 0x0, 0x0},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kChangesSegmentReg,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12485000,
+        .code_addr = 0x32485000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12486000,
+        .data_addr = 0x150000,
         .data_num_bytes = 0x1000,
-        //     12485000:   66 b8 03 00             mov    $0x3,%ax
-        //     12485004:   8e c0                   mov    %eax,%es
-        //     12485006:   8e d8                   mov    %eax,%ds
-        //     12485008:   8e e8                   mov    %eax,%gs
-        //     1248500a:   8e e0                   mov    %eax,%fs
+        //     32485000:   66 b8 03 00             mov    $0x3,%ax
+        //     32485004:   8e c0                   mov    %eax,%es
+        //     32485006:   8e d8                   mov    %eax,%ds
+        //     32485008:   8e e8                   mov    %eax,%gs
+        //     3248500a:   8e e0                   mov    %eax,%fs
         .instruction_bytes = {0x66, 0xb8, 0x3, 0x0, 0x8e, 0xc0, 0x8e, 0xd8,
                               0x8e, 0xe8, 0x8e, 0xe0},
         .normal_end = true,
@@ -309,36 +309,36 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kIn,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12495000,
+        .code_addr = 0x32495000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12496000,
+        .data_addr = 0x160000,
         .data_num_bytes = 0x1000,
-        //     12495000:   ed                      in     (%dx),%eax
+        //     32495000:   ed                      in     (%dx),%eax
         .instruction_bytes = {0xed},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kRunaway,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x124a5000,
+        .code_addr = 0x324a5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x124a6000,
+        .data_addr = 0x170000,
         .data_num_bytes = 0x1000,
-        //     124a5000:   eb fe                   jmp    0x124a5000
+        //     324a5000:   eb fe                   jmp    0x324a5000
         .instruction_bytes = {0xeb, 0xfe},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSplitLock,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x124b5000,
+        .code_addr = 0x324b5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x124b6000,
+        .data_addr = 0x180000,
         .data_num_bytes = 0x1000,
-        //     124b5000:   48 89 e0                mov    %rsp,%rax
-        //     124b5003:   48 ff c8                dec    %rax
-        //     124b5006:   30 c0                   xor    %al,%al
-        //     124b5008:   f0 ff 40 ff             lock incl -0x1(%rax)
+        //     324b5000:   48 89 e0                mov    %rsp,%rax
+        //     324b5003:   48 ff c8                dec    %rax
+        //     324b5006:   30 c0                   xor    %al,%al
+        //     324b5008:   f0 ff 40 ff             lock incl -0x1(%rax)
         .instruction_bytes = {0x48, 0x89, 0xe0, 0x48, 0xff, 0xc8, 0x30, 0xc0,
                               0xf0, 0xff, 0x40, 0xff},
         .normal_end = true,
@@ -346,13 +346,13 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kSetThreeRegisters,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x124c5000,
+        .code_addr = 0x324c5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x124c6000,
+        .data_addr = 0x190000,
         .data_num_bytes = 0x1000,
-        //     124c5000:   48 83 c2 02             add    $0x2,%rdx
-        //     124c5004:   48 83 c1 03             add    $0x3,%rcx
-        //     124c5008:   49 83 c0 04             add    $0x4,%r8
+        //     324c5000:   48 83 c2 02             add    $0x2,%rdx
+        //     324c5004:   48 83 c1 03             add    $0x3,%rcx
+        //     324c5008:   49 83 c0 04             add    $0x4,%r8
         .instruction_bytes = {0x48, 0x83, 0xc2, 0x2, 0x48, 0x83, 0xc1, 0x3,
                               0x49, 0x83, 0xc0, 0x4},
         .normal_end = true,
@@ -360,13 +360,13 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kExitGroup,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x124d5000,
+        .code_addr = 0x324d5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x124d6000,
+        .data_addr = 0x1a0000,
         .data_num_bytes = 0x1000,
-        //     124d5000:   48 c7 c0 e7 00 00 00    mov    $0xe7,%rax
-        //     124d5007:   48 31 ff                xor    %rdi,%rdi
-        //     124d500a:   0f 05                   syscall
+        //     324d5000:   48 c7 c0 e7 00 00 00    mov    $0xe7,%rax
+        //     324d5007:   48 31 ff                xor    %rdi,%rdi
+        //     324d500a:   0f 05                   syscall
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0xe7, 0x0, 0x0, 0x0, 0x48, 0x31,
                               0xff, 0xf, 0x5},
         .normal_end = true,
@@ -374,12 +374,12 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kVSyscallRegionAccess,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x124f5000,
+        .code_addr = 0x324f5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x124f6000,
+        .data_addr = 0x1c0000,
         .data_num_bytes = 0x1000,
-        //     124f5000:   48 c7 c0 00 00 60 ff    mov $0xffffffffff600000,%rax
-        //     124f5007:   48 8b 18                mov    (%rax),%rbx
+        //     324f5000:   48 c7 c0 00 00 60 ff    mov $0xffffffffff600000,%rax
+        //     324f5007:   48 8b 18                mov    (%rax),%rbx
         .instruction_bytes = {0x48, 0xc7, 0xc0, 0x0, 0x0, 0x60, 0xff, 0x48,
                               0x8b, 0x18},
         .normal_end = true,
@@ -387,82 +387,82 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kHasUnobservableNondeterministicInsn,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12505000,
+        .code_addr = 0x32505000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12506000,
+        .data_addr = 0x1d0000,
         .data_num_bytes = 0x1000,
-        //     12505000:   0f 31                   rdtsc
-        //     12505002:   31 c0                   xor    %eax,%eax
-        //     12505004:   31 d2                   xor    %edx,%edx
+        //     32505000:   0f 31                   rdtsc
+        //     32505002:   31 c0                   xor    %eax,%eax
+        //     32505004:   31 d2                   xor    %edx,%edx
         .instruction_bytes = {0xf, 0x31, 0x31, 0xc0, 0x31, 0xd2},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kUalignedExitingStackPointer,
         .arch = ArchitectureId::kX86_64,
-        .code_addr = 0x12515000,
+        .code_addr = 0x32515000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12516000,
+        .data_addr = 0x1e0000,
         .data_num_bytes = 0x1000,
-        //     12515000:   48 83 ec 01             sub    $0x1,%rsp
+        //     32515000:   48 83 ec 01             sub    $0x1,%rsp
         .instruction_bytes = {0x48, 0x83, 0xec, 0x1},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kEmpty,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12345000,
+        .code_addr = 0x32345000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12346000,
+        .data_addr = 0x700000000,
         .data_num_bytes = 0x1000,
-        //     12345000:   <empty>
+        //     32345000:   <empty>
         .instruction_bytes = {},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kEndsAsExpected,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12355000,
+        .code_addr = 0x32355000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12356000,
+        .data_addr = 0x700010000,
         .data_num_bytes = 0x1000,
-        //     12355000:   d503201f        nop
+        //     32355000:   d503201f        nop
         .instruction_bytes = {0x1f, 0x20, 0x3, 0xd5},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kEndsUnexpectedly,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12365000,
+        .code_addr = 0x32365000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12366000,
+        .data_addr = 0x700020000,
         .data_num_bytes = 0x1000,
-        //     12365000:   00000000        udf     #0
+        //     32365000:   00000000        udf     #0
         .instruction_bytes = {0x0, 0x0, 0x0, 0x0},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kRegsMismatch,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12375000,
+        .code_addr = 0x32375000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12376000,
+        .data_addr = 0x700030000,
         .data_num_bytes = 0x1000,
-        //     12375000:   aa2003e0        mvn     x0, x0
+        //     32375000:   aa2003e0        mvn     x0, x0
         .instruction_bytes = {0xe0, 0x3, 0x20, 0xaa},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kMemoryMismatch,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12385000,
+        .code_addr = 0x32385000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12386000,
+        .data_addr = 0x700040000,
         .data_num_bytes = 0x1000,
-        //     12385000:   f81f83e0        stur    x0, [sp, #-8]
-        //     12385004:   aa3f03e0        mvn     x0, xzr
-        //     12385008:   f81c03e0        stur    x0, [sp, #-64]
-        //     1238500c:   f85f83e0        ldur    x0, [sp, #-8]
+        //     32385000:   f81f83e0        stur    x0, [sp, #-8]
+        //     32385004:   aa3f03e0        mvn     x0, xzr
+        //     32385008:   f81c03e0        stur    x0, [sp, #-64]
+        //     3238500c:   f85f83e0        ldur    x0, [sp, #-8]
         .instruction_bytes = {0xe0, 0x83, 0x1f, 0xf8, 0xe0, 0x3, 0x3f, 0xaa,
                               0xe0, 0x3, 0x1c, 0xf8, 0xe0, 0x83, 0x5f, 0xf8},
         .normal_end = true,
@@ -470,25 +470,25 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRegsMismatchRandom,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12395000,
+        .code_addr = 0x32395000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12396000,
+        .data_addr = 0x700050000,
         .data_num_bytes = 0x1000,
-        //     12395000:   d53be041        mrs     x1, cntvct_el0
+        //     32395000:   d53be041        mrs     x1, cntvct_el0
         .instruction_bytes = {0x41, 0xe0, 0x3b, 0xd5},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kMemoryMismatchRandom,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123a5000,
+        .code_addr = 0x323a5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123a6000,
+        .data_addr = 0x700060000,
         .data_num_bytes = 0x1000,
-        //     123a5000:   f90003e1        str     x1, [sp]
-        //     123a5004:   d53be041        mrs     x1, cntvct_el0
-        //     123a5008:   f81c03e1        stur    x1, [sp, #-64]
-        //     123a500c:   f94003e1        ldr     x1, [sp]
+        //     323a5000:   f90003e1        str     x1, [sp]
+        //     323a5004:   d53be041        mrs     x1, cntvct_el0
+        //     323a5008:   f81c03e1        stur    x1, [sp, #-64]
+        //     323a500c:   f94003e1        ldr     x1, [sp]
         .instruction_bytes = {0xe1, 0x3, 0x0, 0xf9, 0x41, 0xe0, 0x3b, 0xd5,
                               0xe1, 0x3, 0x1c, 0xf8, 0xe1, 0x3, 0x40, 0xf9},
         .normal_end = true,
@@ -496,99 +496,99 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRegsAndMemoryMismatchRandom,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123b5000,
+        .code_addr = 0x323b5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123b6000,
+        .data_addr = 0x700070000,
         .data_num_bytes = 0x1000,
-        //     123b5000:   d53be041        mrs     x1, cntvct_el0
-        //     123b5004:   a9bf07e1        stp     x1, x1, [sp, #-16]!
+        //     323b5000:   d53be041        mrs     x1, cntvct_el0
+        //     323b5004:   a9bf07e1        stp     x1, x1, [sp, #-16]!
         .instruction_bytes = {0x41, 0xe0, 0x3b, 0xd5, 0xe1, 0x7, 0xbf, 0xa9},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kBreakpoint,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123c5000,
+        .code_addr = 0x323c5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123c6000,
+        .data_addr = 0x700080000,
         .data_num_bytes = 0x1000,
-        //     123c5000:   d4200000        brk     #0x0
+        //     323c5000:   d4200000        brk     #0x0
         .instruction_bytes = {0x0, 0x0, 0x20, 0xd4},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvWrite,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123d5000,
+        .code_addr = 0x323d5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123d6000,
+        .data_addr = 0x700090000,
         .data_num_bytes = 0x1000,
-        //     123d5000:   aa1f03e0        mov     x0, xzr
-        //     123d5004:   f9000001        str     x1, [x0]
+        //     323d5000:   aa1f03e0        mov     x0, xzr
+        //     323d5004:   f9000001        str     x1, [x0]
         .instruction_bytes = {0xe0, 0x3, 0x1f, 0xaa, 0x1, 0x0, 0x0, 0xf9},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvWriteFixable,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123e5000,
+        .code_addr = 0x323e5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123e6000,
+        .data_addr = 0x7000a0000,
         .data_num_bytes = 0x1000,
-        //     123e5000:   d2a00020        mov     x0, #0x10000
-        //     123e5004:   f9000001        str     x1, [x0]
+        //     323e5000:   d2a00020        mov     x0, #0x10000
+        //     323e5004:   f9000001        str     x1, [x0]
         .instruction_bytes = {0x20, 0x0, 0xa0, 0xd2, 0x1, 0x0, 0x0, 0xf9},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvRead,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x123f5000,
+        .code_addr = 0x323f5000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x123f6000,
+        .data_addr = 0x7000b0000,
         .data_num_bytes = 0x1000,
-        //     123f5000:   aa1f03e0        mov     x0, xzr
-        //     123f5004:   f9400000        ldr     x0, [x0]
+        //     323f5000:   aa1f03e0        mov     x0, xzr
+        //     323f5004:   f9400000        ldr     x0, [x0]
         .instruction_bytes = {0xe0, 0x3, 0x1f, 0xaa, 0x0, 0x0, 0x40, 0xf9},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvReadFixable,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12405000,
+        .code_addr = 0x32405000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12406000,
+        .data_addr = 0x7000c0000,
         .data_num_bytes = 0x1000,
-        //     12405000:   d2a00020        mov     x0, #0x10000
-        //     12405004:   f9400000        ldr     x0, [x0]
+        //     32405000:   d2a00020        mov     x0, #0x10000
+        //     32405004:   f9400000        ldr     x0, [x0]
         .instruction_bytes = {0x20, 0x0, 0xa0, 0xd2, 0x0, 0x0, 0x40, 0xf9},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSigSegvExec,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12415000,
+        .code_addr = 0x32415000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12416000,
+        .data_addr = 0x7000d0000,
         .data_num_bytes = 0x1000,
-        //     12415000:   d2c000e0        mov     x0, #0x700000000
-        //     12415004:   d61f0000        br      x0
+        //     32415000:   d2c000e0        mov     x0, #0x700000000
+        //     32415004:   d61f0000        br      x0
         .instruction_bytes = {0xe0, 0x0, 0xc0, 0xd2, 0x0, 0x0, 0x1f, 0xd6},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSyscall,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12425000,
+        .code_addr = 0x32425000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12426000,
+        .data_addr = 0x7000e0000,
         .data_num_bytes = 0x1000,
-        //     12425000:   aa1f03e0        mov     x0, xzr
-        //     12425004:   aa1f03e1        mov     x1, xzr
-        //     12425008:   aa1f03e2        mov     x2, xzr
-        //     1242500c:   d28026a8        mov     x8, #0x135
-        //     12425010:   d4000001        svc     #0x0
-        //     12425014:   aa1f03e0        mov     x0, xzr
+        //     32425000:   aa1f03e0        mov     x0, xzr
+        //     32425004:   aa1f03e1        mov     x1, xzr
+        //     32425008:   aa1f03e2        mov     x2, xzr
+        //     3242500c:   d28026a8        mov     x8, #0x135
+        //     32425010:   d4000001        svc     #0x0
+        //     32425014:   aa1f03e0        mov     x0, xzr
         .instruction_bytes = {0xe0, 0x3, 0x1f, 0xaa, 0xe1, 0x3,  0x1f, 0xaa,
                               0xe2, 0x3, 0x1f, 0xaa, 0xa8, 0x26, 0x80, 0xd2,
                               0x1,  0x0, 0x0,  0xd4, 0xe0, 0x3,  0x1f, 0xaa},
@@ -597,24 +597,24 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kRunaway,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12435000,
+        .code_addr = 0x32435000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12436000,
+        .data_addr = 0x7000f0000,
         .data_num_bytes = 0x1000,
-        //     12435000:   14000000        b       0x12435000
+        //     32435000:   14000000        b       0x32435000
         .instruction_bytes = {0x0, 0x0, 0x0, 0x14},
         .normal_end = false,
     },
     {
         .type = TestSnapshot::kSetThreeRegisters,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12445000,
+        .code_addr = 0x32445000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12446000,
+        .data_addr = 0x700100000,
         .data_num_bytes = 0x1000,
-        //     12445000:   91000842        add     x2, x2, #0x2
-        //     12445004:   91000c63        add     x3, x3, #0x3
-        //     12445008:   91001084        add     x4, x4, #0x4
+        //     32445000:   91000842        add     x2, x2, #0x2
+        //     32445004:   91000c63        add     x3, x3, #0x3
+        //     32445008:   91001084        add     x4, x4, #0x4
         .instruction_bytes = {0x42, 0x8, 0x0, 0x91, 0x63, 0xc, 0x0, 0x91, 0x84,
                               0x10, 0x0, 0x91},
         .normal_end = true,
@@ -622,13 +622,13 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kExitGroup,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12455000,
+        .code_addr = 0x32455000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12456000,
+        .data_addr = 0x700110000,
         .data_num_bytes = 0x1000,
-        //     12455000:   aa1f03e0        mov     x0, xzr
-        //     12455004:   d2800bc8        mov     x8, #0x5e
-        //     12455008:   d4000001        svc     #0x0
+        //     32455000:   aa1f03e0        mov     x0, xzr
+        //     32455004:   d2800bc8        mov     x8, #0x5e
+        //     32455008:   d4000001        svc     #0x0
         .instruction_bytes = {0xe0, 0x3, 0x1f, 0xaa, 0xc8, 0xb, 0x80, 0xd2, 0x1,
                               0x0, 0x0, 0xd4},
         .normal_end = true,
@@ -636,23 +636,23 @@ const TestSnapshotConfig configs[50] = {
     {
         .type = TestSnapshot::kHasUnobservableNondeterministicInsn,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12465000,
+        .code_addr = 0x32465000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12466000,
+        .data_addr = 0x700120000,
         .data_num_bytes = 0x1000,
-        //     12465000:   d5380700        mrs     x0, id_aa64mmfr0_el1
-        //     12465004:   aa1f03e0        mov     x0, xzr
+        //     32465000:   d5380700        mrs     x0, id_aa64mmfr0_el1
+        //     32465004:   aa1f03e0        mov     x0, xzr
         .instruction_bytes = {0x0, 0x7, 0x38, 0xd5, 0xe0, 0x3, 0x1f, 0xaa},
         .normal_end = true,
     },
     {
         .type = TestSnapshot::kUalignedExitingStackPointer,
         .arch = ArchitectureId::kAArch64,
-        .code_addr = 0x12475000,
+        .code_addr = 0x32475000,
         .code_num_bytes = 0x1000,
-        .data_addr = 0x12476000,
+        .data_addr = 0x700130000,
         .data_num_bytes = 0x1000,
-        //     12475000:   d10007ff        sub     sp, sp, #0x1
+        //     32475000:   d10007ff        sub     sp, sp, #0x1
         .instruction_bytes = {0xff, 0x7, 0x0, 0xd1},
         .normal_end = true,
     },
