@@ -259,6 +259,7 @@ cc_library_plus_nolibc(
     deps = [
         ":ucontext",
         ":ucontext_types",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
     ],

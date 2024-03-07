@@ -190,6 +190,7 @@ void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
                          snap_signal_context.extra_gregs, end_spot.gregs);
     ConvertFPRegsFromLibC(snap_signal_context.ucontext, end_spot.fpregs);
     end_spot.signum = snap_signal_context.sig_info.si_signo;
+    end_spot.sig_code = snap_signal_context.sig_info.si_code;
     end_spot.sig_address = AsInt(snap_signal_context.sig_info.si_addr);
     ConvertSignalRegsFromLibC(snap_signal_context.ucontext, &end_spot.sigregs);
     // TODO(dougkwan): See if we can compute a checksum after a signal. For now,

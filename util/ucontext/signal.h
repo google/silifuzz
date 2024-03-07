@@ -20,6 +20,7 @@
 #include <cstdint>
 
 #include "absl/base/attributes.h"
+#include "./util/arch.h"
 #include "./util/ucontext/ucontext_types.h"
 
 #ifdef __x86_64__

@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "./util/arch.h"
 #include "./util/reg_checksum.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -31,6 +32,9 @@ struct EndSpot {
 
   // The signal that was triggered. 0 if none.
   int signum;
+
+  // The value of siginfo_t::si_code.
+  int sig_code;
 
   // The siginfo_t::si_addr value if relevant for `signum`:
   // the address that causes the signal.

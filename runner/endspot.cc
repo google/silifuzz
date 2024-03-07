@@ -17,11 +17,13 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/logging_util.h"
+#include "./util/ucontext/signal.h"
 
 namespace silifuzz {
 
 void EndSpot::Log() const {
   LOG_INFO("Signal: ", IntStr(signum));
+  LOG_INFO("sig_code: ", IntStr(sig_code));
   LOG_INFO("sig_address: ", HexStr(sig_address));
   SignalRegSet base = {};
   LogSignalRegs(sigregs, &base);

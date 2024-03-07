@@ -56,6 +56,7 @@ cc_library_plus_nolibc(
     srcs = ["endspot.cc"],
     hdrs = ["endspot.h"],
     deps = [
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:logging_util",
