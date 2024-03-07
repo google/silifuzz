@@ -92,15 +92,12 @@ std::optional<Endpoint> EndSpotToEndpoint(const EndSpot& actual_endspot) {
                       pc);
     }
     case SIGFPE: {
-      CHECK_EQ(actual_endspot.sigregs.err, 0);
       return Endpoint(Endpoint::kSigFPE, actual_endspot.sig_address, pc);
     }
     case SIGILL: {
-      CHECK_EQ(actual_endspot.sigregs.err, 0);
       return Endpoint(Endpoint::kSigIll, actual_endspot.sig_address, pc);
     }
     case SIGBUS: {
-      CHECK_EQ(actual_endspot.sigregs.err, 0);
       return Endpoint(Endpoint::kSigBus, actual_endspot.sig_address, pc);
     }
     case SIGXCPU:
