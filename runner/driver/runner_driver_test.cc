@@ -25,6 +25,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/harness_tracer.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_test_enum.h"
@@ -108,9 +109,10 @@ TEST(RunnerDriver, MaxPageToAddOption) {
   for (const auto& memory_bytes : end_state.memory_bytes()) {
     if (!snapshot.mapped_memory_map().Contains(memory_bytes.start_address(),
                                                memory_bytes.limit_address())) {
-      // We expect only [0x10000, 0x11000) to be added.
-      EXPECT_EQ(memory_bytes.start_address(), 0x10000);
-      EXPECT_EQ(memory_bytes.limit_address(), 0x11000);
+      // We expect only one data page at start of data1 to be added.
+      EXPECT_EQ(memory_bytes.start_address(),
+                DEFAULT_FUZZING_CONFIG<Host>.data1_range.start_address);
+      EXPECT_EQ(memory_bytes.num_bytes(), snapshot.page_size());
       found_new_memory_bytes = true;
     }
   }

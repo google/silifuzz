@@ -117,6 +117,9 @@ enum class TestSnapshot {
   // Snapshot that exits with an unaligned stack pointer.
   kUalignedExitingStackPointer,
 
+  // Snapshot that does not conform to fuzzing config.
+  kFuzzingConfigNonconformance,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };

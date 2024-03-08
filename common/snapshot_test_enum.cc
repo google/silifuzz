@@ -51,6 +51,7 @@ ABSL_CONST_INIT const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kVsyscallRegionAccess",
     "kHasNondeterministicInsn",
     "kUalignedExitingStackPointer",
+    "kFuzzingConfigNonconformance",
 };
 
 }  // namespace silifuzz

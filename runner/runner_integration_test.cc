@@ -25,6 +25,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_test_config.h"
@@ -116,7 +117,9 @@ TEST(RunnerTest, SigSegvSnap) {
   // Check that the PC is close to the start of the code page.
   EXPECT_GT(ep.sig_instruction_address(), start_address);
   EXPECT_LT(ep.sig_instruction_address(), start_address + 15);
-  EXPECT_EQ(ep.sig_address(), 0x10000);
+  // kSigSevReadFixable test reads from start of data1 of proxy config.
+  EXPECT_EQ(ep.sig_address(),
+            DEFAULT_FUZZING_CONFIG<Host>.data1_range.start_address);
   EXPECT_EQ(ep.sig_num(), snapshot_types::SigNum::kSigSegv);
   EXPECT_EQ(ep.sig_cause(), snapshot_types::SigCause::kSegvCantRead);
 }

@@ -370,6 +370,7 @@ mov %rbx, 0(%rax)
       arch=X86_64,
       normal_end=False,
       src="""
+// Write to start of data1.
 movq $0x10000, %rax
 mov %rbx, 0(%rax)
 """,
@@ -390,6 +391,8 @@ mov 0(%rax), %rbx
       arch=X86_64,
       normal_end=False,
       src="""
+// Read from start of data1.
+// Some tests depend on the test snapshot reading this address.
 movq $0x10000, %rax
 mov 0(%rax), %rbx
 """,
@@ -524,6 +527,15 @@ subq $1, %rsp
 """,
   )
 
+  b.snapshot(
+      name="FuzzingConfigNonconformance",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+movq 0x28000000, %rax
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
@@ -634,7 +646,8 @@ str x1, [x0]
       arch=AARCH64,
       normal_end=False,
       src="""
-mov x0, #0x10000
+// Write to start of data1
+mov x0, #0x700000000
 str x1, [x0]
 """,
   )
@@ -654,7 +667,9 @@ ldr x0, [x0]
       arch=AARCH64,
       normal_end=False,
       src="""
-mov x0, #0x10000
+// Read from start of data1
+// Some tests depend on the test snapshot reading this address.
+mov x0, #0x700000000
 ldr x0, [x0]
 """,
   )
@@ -737,6 +752,15 @@ mov x0, xzr
       arch=AARCH64,
       src="""
 sub sp, sp, 1
+""",
+  )
+
+  b.snapshot(
+      name="FuzzingConfigNonconformance",
+      arch=AARCH64,
+      src="""
+mov x0, #0x800000000
+ldr x0, [x0]
 """,
   )
 

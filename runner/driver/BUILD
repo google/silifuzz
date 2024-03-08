@@ -67,6 +67,7 @@ cc_test(
     deps = [
         ":runner_driver",
         "@silifuzz//common:harness_tracer",
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_test_enum",

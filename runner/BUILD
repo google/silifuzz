@@ -270,6 +270,7 @@ cc_test(
     ],
     deps = [
         ":runner_provider",
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_test_enum",
