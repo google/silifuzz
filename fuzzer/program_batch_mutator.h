@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_MUTATOR_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_MUTATOR_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_BATCH_MUTATOR_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_BATCH_MUTATOR_H_
 
 #include <cstddef>
 #include <limits>
@@ -25,10 +25,10 @@
 namespace silifuzz {
 
 template <typename Arch>
-class ProgramMutator {
+class ProgramBatchMutator {
  public:
-  ProgramMutator(uint64_t seed,
-                 size_t max_len = std::numeric_limits<size_t>::max())
+  ProgramBatchMutator(uint64_t seed,
+                      size_t max_len = std::numeric_limits<size_t>::max())
       : rng_(seed), max_len_(max_len) {}
 
   void Mutate(const std::vector<const std::vector<uint8_t> *> &inputs,
@@ -44,4 +44,4 @@ class ProgramMutator {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_MUTATOR_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_BATCH_MUTATOR_H_

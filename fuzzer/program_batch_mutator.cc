@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/program_mutator.h"
+#include "./fuzzer/program_batch_mutator.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -108,8 +108,8 @@ void FinalizeProgram(MutatorRng& rng, Program<Arch>& program, size_t max_len) {
 }  // namespace
 
 template <typename Arch>
-void ProgramMutator<Arch>::GenerateSingleOutput(const Program<Arch>& input,
-                                                std::vector<uint8_t>& output) {
+void ProgramBatchMutator<Arch>::GenerateSingleOutput(
+    const Program<Arch>& input, std::vector<uint8_t>& output) {
   // Copy
   Program<Arch> program = input;
 
@@ -125,7 +125,7 @@ void ProgramMutator<Arch>::GenerateSingleOutput(const Program<Arch>& input,
 }
 
 template <typename Arch>
-void ProgramMutator<Arch>::Mutate(
+void ProgramBatchMutator<Arch>::Mutate(
     const std::vector<const std::vector<uint8_t>*>& inputs, size_t num_mutants,
     std::vector<std::vector<uint8_t>>& mutants) {
   // Extract the programs from the inputs.
@@ -144,7 +144,7 @@ void ProgramMutator<Arch>::Mutate(
   }
 }
 
-template class ProgramMutator<X86_64>;
-template class ProgramMutator<AArch64>;
+template class ProgramBatchMutator<X86_64>;
+template class ProgramBatchMutator<AArch64>;
 
 }  // namespace silifuzz

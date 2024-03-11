@@ -27,7 +27,7 @@
 #include "external/com_google_fuzztest/centipede/environment_flags.h"
 #include "external/com_google_fuzztest/centipede/mutation_input.h"
 #include "external/com_google_fuzztest/centipede/util.h"
-#include "./fuzzer/program_mutator.h"
+#include "./fuzzer/program_batch_mutator.h"
 #include "./util/arch.h"
 #include "./util/enum_flag_types.h"
 
@@ -80,8 +80,8 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
 
  private:
   ArchitectureId arch_;
-  ProgramMutator<X86_64> x86_64_mutator_;
-  ProgramMutator<AArch64> aarch64_mutator_;
+  ProgramBatchMutator<X86_64> x86_64_mutator_;
+  ProgramBatchMutator<AArch64> aarch64_mutator_;
 };
 
 }  // namespace silifuzz
