@@ -57,6 +57,9 @@ struct SimpleFixToolOptions {
   // If true, tracer injects a signal when an instruction accesses memory. This
   // has no effect on non-x86 platforms.
   bool filter_memory_access = false;
+
+  // If true, filter Snapshots that do not conform to fuzzing config.
+  bool enforce_fuzzing_config = true;
 };
 
 // Converts raw instructions blobs in `inputs` into snapshots of the

@@ -105,7 +105,12 @@ void FixToolWorker(FixToolWorkerArgs& args) {
       continue;
     }
     RewriteInitialState(snapshot.value(), &args.counters);
-    const FixupSnapshotOptions options;
+    FixupSnapshotOptions options;
+    options.x86_filter_split_lock = args.options->x86_filter_split_lock;
+    options.x86_filter_vsyscall_region_access =
+        args.options->x86_filter_vsyscall_region_access;
+    options.filter_memory_access = args.options->filter_memory_access;
+    options.enforce_fuzzing_config = args.options->enforce_fuzzing_config;
     auto remade_snapshot_or =
         FixupSnapshot(snapshot.value(), options, &platform_counters);
     if (!remade_snapshot_or.ok()) {

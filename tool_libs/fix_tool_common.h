@@ -117,6 +117,10 @@ struct FixupSnapshotOptions {
   // by FixupSnapshot. Note that the snap exit instruction is exempted. This
   // option is x86-only currently and has no effect on other platforms.
   bool filter_memory_access = false;
+
+  // If true, enforce fuzzing config. Snapshot with non-conforming memory
+  // mappings are filtered.
+  bool enforce_fuzzing_config = true;
 };
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.

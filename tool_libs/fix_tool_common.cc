@@ -50,6 +50,7 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
   config.trace.x86_filter_vsyscall_region_access =
       options.x86_filter_vsyscall_region_access;
   config.trace.filter_memory_access = options.filter_memory_access;
+  config.enforce_fuzzing_config = options.enforce_fuzzing_config;
 
   return MakeSnapshot(snapshot, config);
 }
