@@ -63,6 +63,10 @@ class SnapMaker {
     // using this required building from patched source code.
     bool compatibility_mode = false;
 
+    // If true, enforce proxy fuzzing config. Snapshots with nonconforming
+    // mappings are rejected.
+    bool enforce_fuzzing_config = true;
+
     absl::Status Validate() const {
       if (runner_path.empty()) {
         return absl::InvalidArgumentError("runner_path must be non-empty");

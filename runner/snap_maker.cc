@@ -27,9 +27,11 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
+#include "./common/mapped_memory_map.h"
 #include "./common/memory_bytes_set.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
@@ -37,6 +39,7 @@
 #include "./runner/driver/runner_driver.h"
 #include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/gen/snap_generator.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/line_printer.h"
@@ -93,6 +96,30 @@ absl::StatusOr<Snapshot> SnapMaker::Make(const Snapshot& snapshot) {
     return absl::InternalError(msg);
   }
   Snapshot::EndState repaired_end_state = Snapshot::EndState(actual_endpoint);
+
+  // Optionally check that snapshot conforms to proxy memory config.
+  if (opts_.enforce_fuzzing_config) {
+    MappedMemoryMap fuzz_config_map =
+        FuzzConfigToMappedMemoryMap(DEFAULT_FUZZING_CONFIG<Host>);
+    for (const auto& mapping : copy.memory_mappings()) {
+      constexpr absl::string_view kErrorMsg =
+          "Snapshot does not conform to fuzzing config";
+      // This mapping in snapshot must fall within allowed memory in
+      // fuzzing config.
+      if (!fuzz_config_map.Contains(mapping.start_address(),
+                                    mapping.limit_address())) {
+        return absl::InternalError(kErrorMsg);
+      }
+
+      // This mapping must have all of permission required by the overlapping
+      // part of the fuzzing config.
+      if (!mapping.perms().HasAllOf(fuzz_config_map.Perms(
+              mapping.start_address(), mapping.limit_address(),
+              MemoryPerms::kOr))) {
+        return absl::InternalError(kErrorMsg);
+      }
+    }
+  }
 
   copy.set_expected_end_states({});
   RETURN_IF_NOT_OK(copy.can_add_expected_end_state(repaired_end_state));

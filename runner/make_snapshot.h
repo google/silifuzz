@@ -47,6 +47,10 @@ struct MakingConfig {
   // known good CPU.
   int cpu = kAnyCPUId;
 
+  // If true, enforce fuzzing config. Snapshots with non-conforming
+  // mappings are rejected.
+  bool enforce_fuzzing_config = true;
+
   TraceOptions trace;
 
   // Config for when we are making a real Snapshot that we want to persist.

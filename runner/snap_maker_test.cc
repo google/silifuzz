@@ -206,5 +206,21 @@ TEST(SnapMaker, UnalignedExitStackPointer) {
   EXPECT_OK(FixSnapshotInTest(snapshot, options, trace_options));
 }
 
+TEST(SnapMaker, FuzzingConfigNonconformance) {
+  auto snapshot = MakeSnapRunnerTestSnapshot<Host>(
+      TestSnapshot::kFuzzingConfigNonconformance);
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  options.enforce_fuzzing_config = false;
+  TraceOptions trace_options;
+  EXPECT_OK(FixSnapshotInTest(snapshot, options, trace_options));
+
+  options.enforce_fuzzing_config = true;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(
+      result_or,
+      StatusIs(absl::StatusCode::kInternal,
+               HasSubstr("Snapshot does not conform to fuzzing config")));
+}
+
 }  // namespace
 }  // namespace silifuzz
