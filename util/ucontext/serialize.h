@@ -18,9 +18,8 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-#include <cstdint>
-
 #include "absl/base/attributes.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -61,7 +60,7 @@ constexpr size_t SerializedSizeMax<FPRegSet<AArch64>>() {
 }
 
 // Convert GRegsSet into bytes that can be stored in a snapshot proto.
-// The format is different for each architechture. The serialized bytes are
+// The format is different for each architecture. The serialized bytes are
 // intended to be opaque and processed only by serialization functions.
 template <typename Arch>
 ABSL_MUST_USE_RESULT ssize_t SerializeGRegs(const GRegSet<Arch>& gregs,
