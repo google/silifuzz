@@ -1,4 +1,4 @@
-/* Copyright 2008-2022 Google LLC
+/* Copyright 2008-2024 Google LLC
    Contributed by Paul Pluzhnikov <ppluzhnikov@google.com>
    Copyright (C) 2010 Konstantin Belousov <kib@freebsd.org>
 
@@ -31,6 +31,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
   .cfi_startproc
 
+  /* SaveUContext calls other functions. Establish a stack frame so that
+     callees see a correctly aligned stack pointer and stack unwinding works. */
+  pushq %rbp
+  movq %rsp, %rbp
+
   /* Save eflags. */
   pushfq
   popq UCONTEXT_GREGS_EFLAGS_OFFSET(%rdi)
@@ -40,11 +45,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   movq %r15, UCONTEXT_GREGS_R15_OFFSET(%rdi)
   mov %rdi, %r15
 
-  /* Callee saved: RBX, RBP, R12-R14  */
+  /* Callee saved registers %rbx, %r12-%14. */
   movq %r12, UCONTEXT_GREGS_R12_OFFSET(%r15)
   movq %r13, UCONTEXT_GREGS_R13_OFFSET(%r15)
   movq %r14, UCONTEXT_GREGS_R14_OFFSET(%r15)
-  movq %rbp, UCONTEXT_GREGS_RBP_OFFSET(%r15)
   movq %rbx, UCONTEXT_GREGS_RBX_OFFSET(%r15)
 
   /* Save argument registers. */
@@ -57,6 +61,15 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   movq %rdx, UCONTEXT_GREGS_RDX_OFFSET(%r15)
   movq %rax, UCONTEXT_GREGS_RAX_OFFSET(%r15)
   movq %rcx, UCONTEXT_GREGS_RCX_OFFSET(%r15)
+
+/* We want to save %rsp of the caller before the call instead of the current
+   value. We can derived it from the frame pointer. */
+  leaq 0x10(%rbp), %rax
+  movq %rax, UCONTEXT_GREGS_RSP_OFFSET(%r15)
+
+  /* Similarly, save %rbp of the caller. */
+  movq (%rbp), %rax
+  movq %rax, UCONTEXT_GREGS_RBP_OFFSET(%r15)
 
   /* Save segment registers. */
   movw %cs, UCONTEXT_GREGS_CS_OFFSET(%r15)
@@ -93,12 +106,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   fxsave64 (%r8) /* Value of r8 must be 16-aligned.
                     UContext type ensures that */
 
-  /* Save rsp. */
-  leaq 8(%rsp), %rax /* Exclude this call. */
-  movq %rax, UCONTEXT_GREGS_RSP_OFFSET(%r15)
-
-  /* Save rip. */
-  movq 0(%rsp), %rax
+  /* Save %rip. It is the PC value after call instruction in caller. */
+  movq 8(%rbp), %rax
   movq %rax, UCONTEXT_GREGS_RIP_OFFSET(%r15)
 
   /* Restore all argument registers.
@@ -123,5 +132,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   pushq UCONTEXT_GREGS_EFLAGS_OFFSET(%rdi)
   popfq
 
+  /* Instructions in the epilogue must not change %rflags. */
+  movq %rbp, %rsp
+  popq %rbp
   retq
   .cfi_endproc

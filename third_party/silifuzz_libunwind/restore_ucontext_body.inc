@@ -32,6 +32,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
   .cfi_startproc
 
+  /* RestoreUContext calls other functions. Establish a stack frame so that
+     callees see a correctly aligned stack pointer and stack unwinding works. */
+  pushq %rbp
+  movq %rsp, %rbp
+
   /* Save ucontext (%RDI) ptr in %R15 to allow later code use %RDI for
      syscalls without the need to push/pop every time. */
   mov %rdi, %r15
