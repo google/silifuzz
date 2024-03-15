@@ -15,12 +15,14 @@
 #include <cstddef>
 #include <iostream>
 
+#include "./util/arch.h"
 #include "./util/ucontext/ucontext_types.h"
 
 using UContext = silifuzz::UContext<silifuzz::X86_64>;
+using GRegSet = silifuzz::GRegSet<silifuzz::X86_64>;
 
 int main() {
-  std::cout << R"(// Copyright 2022 The SiliFuzz Authors.
+  std::cout << R"(// Copyright 2024 The SiliFuzz Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,58 +48,60 @@ int main() {
       << '\n';
   std::cout << "#define UCONTEXT_FPREGS_OFFSET 0x" << std::hex
             << offsetof(UContext, fpregs) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R8_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r8) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R9_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r9) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R10_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r10) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R11_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r11) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R12_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r12) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R13_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r13) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R14_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r14) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_R15_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.r15) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RAX_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rax) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RBX_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rbx) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RCX_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rcx) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RDX_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rdx) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RBP_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rbp) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RSP_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rsp) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RSI_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rsi) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RDI_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rdi) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_RIP_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.rip) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_EFLAGS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.eflags) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_FS_BASE_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.fs_base) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_GS_BASE_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.gs_base) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_CS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.cs) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_SS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.ss) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_FS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.fs) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_GS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.gs) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_ES_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.es) << '\n';
-  std::cout << "#define UCONTEXT_GREGS_DS_OFFSET 0x" << std::hex
-            << offsetof(UContext, gregs.ds) << '\n';
+  std::cout << "#define UCONTEXT_GREGS_OFFSET 0x" << std::hex
+            << offsetof(UContext, gregs) << '\n';
+  std::cout << "#define GREGS_R8_OFFSET 0x" << std::hex << offsetof(GRegSet, r8)
+            << '\n';
+  std::cout << "#define GREGS_R9_OFFSET 0x" << std::hex << offsetof(GRegSet, r9)
+            << '\n';
+  std::cout << "#define GREGS_R10_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r10) << '\n';
+  std::cout << "#define GREGS_R11_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r11) << '\n';
+  std::cout << "#define GREGS_R12_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r12) << '\n';
+  std::cout << "#define GREGS_R13_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r13) << '\n';
+  std::cout << "#define GREGS_R14_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r14) << '\n';
+  std::cout << "#define GREGS_R15_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, r15) << '\n';
+  std::cout << "#define GREGS_RAX_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rax) << '\n';
+  std::cout << "#define GREGS_RBX_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rbx) << '\n';
+  std::cout << "#define GREGS_RCX_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rcx) << '\n';
+  std::cout << "#define GREGS_RDX_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rdx) << '\n';
+  std::cout << "#define GREGS_RBP_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rbp) << '\n';
+  std::cout << "#define GREGS_RSP_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rsp) << '\n';
+  std::cout << "#define GREGS_RSI_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rsi) << '\n';
+  std::cout << "#define GREGS_RDI_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rdi) << '\n';
+  std::cout << "#define GREGS_RIP_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, rip) << '\n';
+  std::cout << "#define GREGS_EFLAGS_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, eflags) << '\n';
+  std::cout << "#define GREGS_FS_BASE_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, fs_base) << '\n';
+  std::cout << "#define GREGS_GS_BASE_OFFSET 0x" << std::hex
+            << offsetof(GRegSet, gs_base) << '\n';
+  std::cout << "#define GREGS_CS_OFFSET 0x" << std::hex << offsetof(GRegSet, cs)
+            << '\n';
+  std::cout << "#define GREGS_SS_OFFSET 0x" << std::hex << offsetof(GRegSet, ss)
+            << '\n';
+  std::cout << "#define GREGS_FS_OFFSET 0x" << std::hex << offsetof(GRegSet, fs)
+            << '\n';
+  std::cout << "#define GREGS_GS_OFFSET 0x" << std::hex << offsetof(GRegSet, gs)
+            << '\n';
+  std::cout << "#define GREGS_ES_OFFSET 0x" << std::hex << offsetof(GRegSet, es)
+            << '\n';
+  std::cout << "#define GREGS_DS_OFFSET 0x" << std::hex << offsetof(GRegSet, ds)
+            << '\n';
   std::cout << "#endif  // "
                "THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_X86_64_UCONTEXT_OFFSETS_H_"
             << '\n';

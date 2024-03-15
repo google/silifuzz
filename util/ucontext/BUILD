@@ -328,5 +328,8 @@ cc_test(
 cc_binary(
     name = "ucontext_offsets_gen",
     srcs = ["x86_64/ucontext_offsets_gen.cc"],
-    deps = [":ucontext_types"],
+    deps = [
+        ":ucontext_types",
+        "@silifuzz//util:arch",
+    ],
 )

@@ -86,35 +86,33 @@ TEST(UContextTypes, NoGaps) {
 // diagnostics if the constants do not match.
 TEST(UContextTest, Constants) {
   EXPECT_EQ(UCONTEXT_FPREGS_OFFSET, offsetof(UContext<X86_64>, fpregs));
-  EXPECT_EQ(UCONTEXT_GREGS_R8_OFFSET, offsetof(UContext<X86_64>, gregs.r8));
-  EXPECT_EQ(UCONTEXT_GREGS_R9_OFFSET, offsetof(UContext<X86_64>, gregs.r9));
-  EXPECT_EQ(UCONTEXT_GREGS_R10_OFFSET, offsetof(UContext<X86_64>, gregs.r10));
-  EXPECT_EQ(UCONTEXT_GREGS_R11_OFFSET, offsetof(UContext<X86_64>, gregs.r11));
-  EXPECT_EQ(UCONTEXT_GREGS_R12_OFFSET, offsetof(UContext<X86_64>, gregs.r12));
-  EXPECT_EQ(UCONTEXT_GREGS_R13_OFFSET, offsetof(UContext<X86_64>, gregs.r13));
-  EXPECT_EQ(UCONTEXT_GREGS_R14_OFFSET, offsetof(UContext<X86_64>, gregs.r14));
-  EXPECT_EQ(UCONTEXT_GREGS_R15_OFFSET, offsetof(UContext<X86_64>, gregs.r15));
-  EXPECT_EQ(UCONTEXT_GREGS_RDI_OFFSET, offsetof(UContext<X86_64>, gregs.rdi));
-  EXPECT_EQ(UCONTEXT_GREGS_RSI_OFFSET, offsetof(UContext<X86_64>, gregs.rsi));
-  EXPECT_EQ(UCONTEXT_GREGS_RBP_OFFSET, offsetof(UContext<X86_64>, gregs.rbp));
-  EXPECT_EQ(UCONTEXT_GREGS_RBX_OFFSET, offsetof(UContext<X86_64>, gregs.rbx));
-  EXPECT_EQ(UCONTEXT_GREGS_RDX_OFFSET, offsetof(UContext<X86_64>, gregs.rdx));
-  EXPECT_EQ(UCONTEXT_GREGS_RAX_OFFSET, offsetof(UContext<X86_64>, gregs.rax));
-  EXPECT_EQ(UCONTEXT_GREGS_RCX_OFFSET, offsetof(UContext<X86_64>, gregs.rcx));
-  EXPECT_EQ(UCONTEXT_GREGS_RSP_OFFSET, offsetof(UContext<X86_64>, gregs.rsp));
-  EXPECT_EQ(UCONTEXT_GREGS_RIP_OFFSET, offsetof(UContext<X86_64>, gregs.rip));
-  EXPECT_EQ(UCONTEXT_GREGS_EFLAGS_OFFSET,
-            offsetof(UContext<X86_64>, gregs.eflags));
-  EXPECT_EQ(UCONTEXT_GREGS_CS_OFFSET, offsetof(UContext<X86_64>, gregs.cs));
-  EXPECT_EQ(UCONTEXT_GREGS_GS_OFFSET, offsetof(UContext<X86_64>, gregs.gs));
-  EXPECT_EQ(UCONTEXT_GREGS_FS_OFFSET, offsetof(UContext<X86_64>, gregs.fs));
-  EXPECT_EQ(UCONTEXT_GREGS_SS_OFFSET, offsetof(UContext<X86_64>, gregs.ss));
-  EXPECT_EQ(UCONTEXT_GREGS_DS_OFFSET, offsetof(UContext<X86_64>, gregs.ds));
-  EXPECT_EQ(UCONTEXT_GREGS_ES_OFFSET, offsetof(UContext<X86_64>, gregs.es));
-  EXPECT_EQ(UCONTEXT_GREGS_FS_BASE_OFFSET,
-            offsetof(UContext<X86_64>, gregs.fs_base));
-  EXPECT_EQ(UCONTEXT_GREGS_GS_BASE_OFFSET,
-            offsetof(UContext<X86_64>, gregs.gs_base));
+  EXPECT_EQ(UCONTEXT_GREGS_OFFSET, offsetof(UContext<X86_64>, gregs));
+  EXPECT_EQ(GREGS_R8_OFFSET, offsetof(GRegSet<X86_64>, r8));
+  EXPECT_EQ(GREGS_R9_OFFSET, offsetof(GRegSet<X86_64>, r9));
+  EXPECT_EQ(GREGS_R10_OFFSET, offsetof(GRegSet<X86_64>, r10));
+  EXPECT_EQ(GREGS_R11_OFFSET, offsetof(GRegSet<X86_64>, r11));
+  EXPECT_EQ(GREGS_R12_OFFSET, offsetof(GRegSet<X86_64>, r12));
+  EXPECT_EQ(GREGS_R13_OFFSET, offsetof(GRegSet<X86_64>, r13));
+  EXPECT_EQ(GREGS_R14_OFFSET, offsetof(GRegSet<X86_64>, r14));
+  EXPECT_EQ(GREGS_R15_OFFSET, offsetof(GRegSet<X86_64>, r15));
+  EXPECT_EQ(GREGS_RDI_OFFSET, offsetof(GRegSet<X86_64>, rdi));
+  EXPECT_EQ(GREGS_RSI_OFFSET, offsetof(GRegSet<X86_64>, rsi));
+  EXPECT_EQ(GREGS_RBP_OFFSET, offsetof(GRegSet<X86_64>, rbp));
+  EXPECT_EQ(GREGS_RBX_OFFSET, offsetof(GRegSet<X86_64>, rbx));
+  EXPECT_EQ(GREGS_RDX_OFFSET, offsetof(GRegSet<X86_64>, rdx));
+  EXPECT_EQ(GREGS_RAX_OFFSET, offsetof(GRegSet<X86_64>, rax));
+  EXPECT_EQ(GREGS_RCX_OFFSET, offsetof(GRegSet<X86_64>, rcx));
+  EXPECT_EQ(GREGS_RSP_OFFSET, offsetof(GRegSet<X86_64>, rsp));
+  EXPECT_EQ(GREGS_RIP_OFFSET, offsetof(GRegSet<X86_64>, rip));
+  EXPECT_EQ(GREGS_EFLAGS_OFFSET, offsetof(GRegSet<X86_64>, eflags));
+  EXPECT_EQ(GREGS_CS_OFFSET, offsetof(GRegSet<X86_64>, cs));
+  EXPECT_EQ(GREGS_GS_OFFSET, offsetof(GRegSet<X86_64>, gs));
+  EXPECT_EQ(GREGS_FS_OFFSET, offsetof(GRegSet<X86_64>, fs));
+  EXPECT_EQ(GREGS_SS_OFFSET, offsetof(GRegSet<X86_64>, ss));
+  EXPECT_EQ(GREGS_DS_OFFSET, offsetof(GRegSet<X86_64>, ds));
+  EXPECT_EQ(GREGS_ES_OFFSET, offsetof(GRegSet<X86_64>, es));
+  EXPECT_EQ(GREGS_FS_BASE_OFFSET, offsetof(GRegSet<X86_64>, fs_base));
+  EXPECT_EQ(GREGS_GS_BASE_OFFSET, offsetof(GRegSet<X86_64>, gs_base));
 }
 
 // This tests that ZeroOutRegsPadding() and SaveUContext() together fill

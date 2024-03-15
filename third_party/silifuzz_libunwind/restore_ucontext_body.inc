@@ -37,9 +37,11 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   pushq %rbp
   movq %rsp, %rbp
 
-  /* Save ucontext (%RDI) ptr in %R15 to allow later code use %RDI for
-     syscalls without the need to push/pop every time. */
-  mov %rdi, %r15
+  /* Load GRegSet and FPRegSet pointers into callee save registers so that
+     they are preserved across calls and syscalls below. These will be restored
+     at the exit of this function */
+  leaq UCONTEXT_FPREGS_OFFSET(%rdi), %r14
+  leaq UCONTEXT_GREGS_OFFSET(%rdi), %r15
 
   /*
      if (HasAVX512Registers()) {
@@ -57,21 +59,20 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
   /* Restore fp state. */
   vzeroupper
-  leaq UCONTEXT_FPREGS_OFFSET(%r15), %r8
-  fxrstor64 (%r8) /* Value of r8 must be 16-aligned.
-                     UContext type ensures that. */
+  fxrstor64 (%r14) /* Value of r14 must be 16-aligned.
+                      UContext type ensures that. */
 
-  movw UCONTEXT_GREGS_ES_OFFSET(%r15), %es
-  movw UCONTEXT_GREGS_DS_OFFSET(%r15), %ds
-  movw UCONTEXT_GREGS_FS_OFFSET(%r15), %fs
-  movw UCONTEXT_GREGS_GS_OFFSET(%r15), %gs
+  movw GREGS_ES_OFFSET(%r15), %es
+  movw GREGS_DS_OFFSET(%r15), %ds
+  movw GREGS_FS_OFFSET(%r15), %fs
+  movw GREGS_GS_OFFSET(%r15), %gs
   /* We do not restore CS and SS - see comments for SaveUContext()
      and RestoreUContext() in ucontext.h. */
   /* Changing %ss is fraught with danger
      (https://www.felixcloutier.com/x86/mov#operation)
-  movw UCONTEXT_GREGS_SS_OFFSET(%r15), %ss */
+  movw GREGS_SS_OFFSET(%r15), %ss */
   /* %cs cannot be changed with a MOV (causes #UD) https://stackoverflow.com/questions/57314216
-  movw UCONTEXT_GREGS_SS_OFFSET(%r15), %cs */
+  movw GREGS_SS_OFFSET(%r15), %cs */
 
 /* Skip this if we are not allowed to make syscalls */
 #if !defined(UCONTEXT_NO_SYSCALLS)
@@ -83,42 +84,42 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
      later. */
   mov $__NR_arch_prctl, %rax
   mov $ARCH_SET_FS, %rdi
-  movq UCONTEXT_GREGS_FS_BASE_OFFSET(%r15), %rsi
+  movq GREGS_FS_BASE_OFFSET(%r15), %rsi
   syscall
   mov $__NR_arch_prctl, %rax
   mov $ARCH_SET_GS, %rdi
-  movq UCONTEXT_GREGS_GS_BASE_OFFSET(%r15), %rsi
+  movq GREGS_GS_BASE_OFFSET(%r15), %rsi
   syscall
 #endif /* UCONTEXT_NO_SYSCALLS */
 
   /* Restore bulk of the registers. */
-  movq UCONTEXT_GREGS_R8_OFFSET(%r15),%r8
-  movq UCONTEXT_GREGS_R9_OFFSET(%r15),%r9
-  movq UCONTEXT_GREGS_R10_OFFSET(%r15),%r10
-  movq UCONTEXT_GREGS_R11_OFFSET(%r15),%r11
-  movq UCONTEXT_GREGS_RBX_OFFSET(%r15),%rbx
-  movq UCONTEXT_GREGS_RBP_OFFSET(%r15),%rbp
-  movq UCONTEXT_GREGS_R12_OFFSET(%r15),%r12
-  movq UCONTEXT_GREGS_R13_OFFSET(%r15),%r13
-  movq UCONTEXT_GREGS_R14_OFFSET(%r15),%r14
-  movq UCONTEXT_GREGS_RSI_OFFSET(%r15),%rsi
-  movq UCONTEXT_GREGS_RDI_OFFSET(%r15),%rdi
-  movq UCONTEXT_GREGS_RDX_OFFSET(%r15),%rdx
-  movq UCONTEXT_GREGS_RAX_OFFSET(%r15),%rax
-  movq UCONTEXT_GREGS_RSP_OFFSET(%r15),%rsp
+  movq GREGS_R8_OFFSET(%r15),%r8
+  movq GREGS_R9_OFFSET(%r15),%r9
+  movq GREGS_R10_OFFSET(%r15),%r10
+  movq GREGS_R11_OFFSET(%r15),%r11
+  movq GREGS_RBX_OFFSET(%r15),%rbx
+  movq GREGS_RBP_OFFSET(%r15),%rbp
+  movq GREGS_R12_OFFSET(%r15),%r12
+  movq GREGS_R13_OFFSET(%r15),%r13
+  movq GREGS_R14_OFFSET(%r15),%r14
+  movq GREGS_RSI_OFFSET(%r15),%rsi
+  movq GREGS_RDI_OFFSET(%r15),%rdi
+  movq GREGS_RDX_OFFSET(%r15),%rdx
+  movq GREGS_RAX_OFFSET(%r15),%rax
+  movq GREGS_RSP_OFFSET(%r15),%rsp
 
   /* Push the return address on the restored stack for below retq to use. */
-  movq UCONTEXT_GREGS_RIP_OFFSET(%r15),%rcx
+  movq GREGS_RIP_OFFSET(%r15),%rcx
   pushq %rcx
 
   /* Restore rcx. */
-  movq UCONTEXT_GREGS_RCX_OFFSET(%r15),%rcx
+  movq GREGS_RCX_OFFSET(%r15),%rcx
 
   /* Push eflags on the restored stack for popfq below to use. */
-  pushq UCONTEXT_GREGS_EFLAGS_OFFSET(%r15)
+  pushq GREGS_EFLAGS_OFFSET(%r15)
 
   /* Restore r15. */
-  movq UCONTEXT_GREGS_R15_OFFSET(%r15),%r15
+  movq GREGS_R15_OFFSET(%r15),%r15
 
   /* Restore eflags. */
   popfq
