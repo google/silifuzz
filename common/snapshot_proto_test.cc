@@ -121,5 +121,26 @@ TEST(SnapshotProto, TraceMetadataRoundtrip) {
               UnorderedElementsAreArray(snapshot.trace_data()));
 }
 
+TEST(SnapshotProto, PlatformIdNoWraparound) {
+  Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
+  Snapshot::TraceData t(1, "nop");
+  // The value of kReserved33 is important, it must be > 32 to test for integer
+  // overflow.
+  constexpr PlatformId kTestPlatform = PlatformId::kReserved33;
+  t.add_platform(kTestPlatform);
+  snapshot.set_trace_data({t});
+  Snapshot::EndState endstate(
+      Snapshot::Endpoint(snapshot.ExtractRip(snapshot.registers())),
+      snapshot.registers());
+  endstate.set_platforms({kTestPlatform});
+  snapshot.add_expected_end_state(endstate);
+  proto::Snapshot proto;
+  SnapshotProto::ToProto(snapshot, &proto);
+  absl::StatusOr<Snapshot> got = SnapshotProto::FromProto(proto);
+  ASSERT_OK(got);
+  ASSERT_THAT(got->trace_data(),
+              UnorderedElementsAreArray(snapshot.trace_data()));
+}
+
 }  // namespace
 }  // namespace silifuzz
