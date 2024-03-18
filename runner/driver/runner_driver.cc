@@ -196,8 +196,7 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     }
     google::protobuf::TextFormat::Parser parser;
     proto::SnapshotExecutionResult exec_result_proto;
-    if (!parser.ParseFromString(std::string(runner_stdout),
-                                &exec_result_proto)) {
+    if (!parser.ParseFromString(runner_stdout, &exec_result_proto)) {
       return absl::InternalError(
           absl::StrCat("couldn't parse [", runner_stdout,
                        "] as proto::SnapshotExecutionResult. Exit status = ",
