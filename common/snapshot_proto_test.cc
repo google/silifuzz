@@ -14,6 +14,7 @@
 
 #include "./common/snapshot_proto.h"
 
+#include <cstdint>
 #include <string>
 
 #include "gmock/gmock.h"
@@ -32,6 +33,7 @@
 
 namespace silifuzz {
 namespace {
+using ::testing::UnorderedElementsAreArray;
 
 TEST(SnapshotProto, MetadataRoundtrip) {
   constexpr proto::SnapshotMetadata_Origin kOrigin =
@@ -116,7 +118,7 @@ TEST(SnapshotProto, TraceMetadataRoundtrip) {
   absl::StatusOr<Snapshot> got = SnapshotProto::FromProto(proto);
   ASSERT_OK(got);
   ASSERT_THAT(got->trace_data(),
-              ::testing::UnorderedElementsAreArray(snapshot.trace_data()));
+              UnorderedElementsAreArray(snapshot.trace_data()));
 }
 
 }  // namespace

@@ -135,9 +135,32 @@ enum PlatformId {
   AMPERE_ONE = 14;
   INTEL_EMERALDRAPIDS = 15;
   AMD_RYZEN_V3000 = 17;
-  reserved 16;
-  reserved 18;
-  reserved 19;
+  RESERVED_16 = 16;
+  RESERVED_18 = 18;
+  RESERVED_19 = 19;
+
+  RESERVED_20 = 20;
+  RESERVED_21 = 21;
+  RESERVED_22 = 22;
+  RESERVED_23 = 23;
+  RESERVED_24 = 24;
+  RESERVED_25 = 25;
+  RESERVED_26 = 26;
+  RESERVED_27 = 27;
+  RESERVED_28 = 28;
+  RESERVED_29 = 29;
+  RESERVED_30 = 30;
+  RESERVED_31 = 31;
+  RESERVED_32 = 32;
+  RESERVED_33 = 33;
+  RESERVED_34 = 34;
+  RESERVED_35 = 35;
+  RESERVED_36 = 36;
+  RESERVED_37 = 37;
+  RESERVED_38 = 38;
+  RESERVED_39 = 39;
+  RESERVED_40 = 40;
+  // Ids up to 40 are reserved for proprietary platforms.
 }
 
 // Describes a specific endstate of executing a snapshot.

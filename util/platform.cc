@@ -25,14 +25,19 @@ namespace silifuzz {
 template <>
 ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
                                                     1] = {
-    "UNDEFINED-PLATFORM", "intel-skylake", "intel-haswell", "intel-broadwell",
-    "intel-ivybridge", "intel-cascadelake", "amd-rome", "intel-icelake",
-    "amd-milan", "intel-sapphirerapids", "amd-genoa", "intel-coffeelake",
-    "intel-alderlake", "arm-neoverse-n1", "ampere-one", "intel-emeraldrapids",
+    "UNDEFINED-PLATFORM-ID", "intel-skylake", "intel-haswell",
+    "intel-broadwell", "intel-ivybridge", "intel-cascadelake", "amd-rome",
+    "intel-icelake", "amd-milan", "intel-sapphirerapids", "amd-genoa",
+    "intel-coffeelake", "intel-alderlake", "arm-neoverse-n1", "ampere-one",
+    "intel-emeraldrapids",
     "reserved-16",
     "amd-ryzen-v3000",
     "reserved-18", "reserved-19",
-    "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
+    "reserved-20", "reserved-21", "reserved-22", "reserved-23", "reserved-24",
+    "reserved-25", "reserved-26", "reserved-27", "reserved-28", "reserved-29",
+    "reserved-30", "reserved-31", "reserved-32", "reserved-33", "reserved-34",
+    "reserved-35", "reserved-36", "reserved-37", "reserved-38", "reserved-39",
+    "reserved-40", "ANY-PLATFORM", "NON-EXISTENT-PLATFORM",
 };
 
 ArchitectureId PlatformArchitecture(PlatformId platform) {
@@ -59,6 +64,9 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAny:
     case PlatformId::kNonExistent:
       LOG_FATAL("Tried to get architecture for meta-platform ID: ",
+                EnumStr(platform));
+    default:
+      LOG_FATAL("Tried to get architecture for reserved platform ID: ",
                 EnumStr(platform));
   }
 

@@ -14,13 +14,22 @@
 
 #include "./util/platform.h"
 
+#include <string>
+#include <type_traits>
+
 #include "gtest/gtest.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/str_replace.h"
+#include "google/protobuf/generated_enum_reflection.h"
+#include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
 
 namespace silifuzz {
 
 namespace {
+
+using google::protobuf::GetEnumDescriptor;
 
 // A quick test to catch when new platforms get added to prod.
 // If this test becomes flaky then a new entry should be added to the PlatformId
@@ -35,6 +44,20 @@ TEST(PlatformTest, CurrentPlatformId) {
 
 TEST(PlatformTest, NoGaps) {
   ASSERT_STREQ(EnumStr(PlatformId::kNonExistent), "NON-EXISTENT-PLATFORM");
+}
+
+TEST(PlatformTest, PlatformNameMatchesEnum) {
+  static_assert(std::is_enum<proto::PlatformId>::value,
+                "PlatformId is not an enum");
+  for (int i = 0; i < sizeof(proto::PlatformId) * 8; ++i) {
+    if (auto f = GetEnumDescriptor<proto::PlatformId>()->FindValueByNumber(i);
+        f != nullptr) {
+      std::string internal_name = absl::StrReplaceAll(
+          absl::AsciiStrToUpper(EnumStr(static_cast<PlatformId>(i))),
+          {{"-", "_"}});
+      EXPECT_EQ(internal_name, f->name());
+    }
+  }
 }
 
 }  // namespace

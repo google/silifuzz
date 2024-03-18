@@ -42,12 +42,37 @@ enum class PlatformId {
   kArmNeoverseN1 = 13,
   kAmpereOne = 14,
   kIntelEmeraldRapids = 15,
+  kReserved16 = 16,
   kAmdRyzenV3000 = 17,
+  kReserved18 = 18,
+  kReserved19 = 19,
+
+  kReserved20 = 20,
+  kReserved21 = 21,
+  kReserved22 = 22,
+  kReserved23 = 23,
+  kReserved24 = 24,
+  kReserved25 = 25,
+  kReserved26 = 26,
+  kReserved27 = 27,
+  kReserved28 = 28,
+  kReserved29 = 29,
+  kReserved30 = 30,
+  kReserved31 = 31,
+  kReserved32 = 32,
+  kReserved33 = 33,
+  kReserved34 = 34,
+  kReserved35 = 35,
+  kReserved36 = 36,
+  kReserved37 = 37,
+  kReserved38 = 38,
+  kReserved39 = 39,
+  kReserved40 = 40,
 
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 20,          // any platform for platform selectors
-  kNonExistent = 21,  // for tests only
+  kAny = 41,          // any platform for platform selectors
+  kNonExistent = 42,  // for tests only
 };
 
 // Max valid value of PlatformId, min being kUndefined.
