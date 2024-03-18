@@ -223,7 +223,7 @@ absl::StatusOr<Snapshot::EndState> SnapshotProto::FromProto(
     static_assert(ToInt(kMaxPlatformId) < 64);
     for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
          ++p) {
-      if (proto.platforms() & (1 << p)) {
+      if (proto.platforms() & (1ULL << p)) {
         end_state.add_platform(static_cast<PlatformId>(p));
       }
     }
@@ -252,7 +252,7 @@ absl::StatusOr<Snapshot::TraceData> SnapshotProto::FromProto(
     static_assert(ToInt(kMaxPlatformId) < 64);
     for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
          ++p) {
-      if (proto.platforms() & (1 << p)) {
+      if (proto.platforms() & (1ULL << p)) {
         t.add_platform(static_cast<PlatformId>(p));
       }
     }
@@ -386,7 +386,7 @@ void SnapshotProto::ToProto(const EndState& snap, proto::EndState* proto) {
     for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
          ++p) {
       if (snap.has_platform(static_cast<PlatformId>(p))) {
-        platforms |= (1 << p);
+        platforms |= (1ULL << p);
       }
     }
     proto->set_platforms(platforms);
@@ -418,7 +418,7 @@ void SnapshotProto::ToProto(const TraceData& metadata,
 
   uint64_t platforms = 0;
   for (PlatformId p : metadata.platforms()) {
-    platforms |= (1 << ToInt(p));
+    platforms |= (1ULL << ToInt(p));
   }
   proto->set_platforms(platforms);
 }
