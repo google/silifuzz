@@ -161,6 +161,8 @@ enum PlatformId {
   RESERVED_39 = 39;
   RESERVED_40 = 40;
   // Ids up to 40 are reserved for proprietary platforms.
+
+  INTEL_GRANITERAPIDS = 41;
 }
 
 // Describes a specific endstate of executing a snapshot.
