@@ -1,4 +1,4 @@
-/* Copyright 2007-2022 Google LLC
+/* Copyright 2007-2024 Google LLC
    Contributed by Arun Sharma <arun.sharma@google.com>
    Copyright (C) 2010 Konstantin Belousov <kib@freebsd.org>
 
@@ -23,15 +23,16 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 .text
 
-/* void RestoreUContext(const silifuzz::UContext* ucontext);
+/* void RestoreUContextView(
+	     const silifuzz::ConstUContextView<silifuzz::X86_64>& view);
    -- see ucontext.h */
-	.global RestoreUContext
-	.type RestoreUContext, @function
-RestoreUContext:
+	.global RestoreUContextView
+	.type RestoreUContextView, @function
+RestoreUContextView:
 
 #include "restore_ucontext_body.inc"
 
-	.size RestoreUContext, . - RestoreUContext
+	.size RestoreUContextView, . - RestoreUContextView
 
 	/* We do not need executable stack.  */
 	.section        .note.GNU-stack,"",@progbits

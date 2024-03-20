@@ -27,12 +27,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 #include <asm/unistd.h>  // for__NR_arch_prctl
 #include "./util/ucontext/x86_64/ucontext_offsets.h"
 
-/* Function body shared by RestoreUContext() and RestoreUContextNoSyscalls()
-   via file inclusion. */
+/* Function body shared by RestoreUContextView() and
+   RestoreUContextViewNoSyscalls() via file inclusion. */
 
   .cfi_startproc
 
-  /* RestoreUContext calls other functions. Establish a stack frame so that
+  /* This function calls other functions. Establish a stack frame so that
      callees see a correctly aligned stack pointer and stack unwinding works. */
   pushq %rbp
   movq %rsp, %rbp
@@ -40,8 +40,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
   /* Load GRegSet and FPRegSet pointers into callee save registers so that
      they are preserved across calls and syscalls below. These will be restored
      at the exit of this function */
-  leaq UCONTEXT_FPREGS_OFFSET(%rdi), %r14
-  leaq UCONTEXT_GREGS_OFFSET(%rdi), %r15
+  movq UCONTEXT_VIEW_FPREGS_OFFSET(%rdi), %r14
+  movq UCONTEXT_VIEW_GREGS_OFFSET(%rdi), %r15
 
   /*
      if (HasAVX512Registers()) {

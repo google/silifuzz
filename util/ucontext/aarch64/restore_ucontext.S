@@ -14,9 +14,9 @@
 
         .text
         .p2align 2
-        .globl  RestoreUContext
-        .type   RestoreUContext, @function
-RestoreUContext:
+        .globl  RestoreUContextView
+        .type   RestoreUContextView, @function
+RestoreUContextView:
 #include "restore_ucontext_body.inc"
-        .size   RestoreUContext, .-RestoreUContext
+        .size   RestoreUContextView, .-RestoreUContextView
         .section        .note.GNU-stack,"",@progbits

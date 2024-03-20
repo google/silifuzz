@@ -14,10 +14,10 @@
 
 #ifdef UCONTEXT_NO_SYSCALLS
 #define SAVE_UCONTEXT SaveUContextNoSyscalls
-#define RESTORE_UCONTEXT RestoreUContextNoSyscalls
+#define RESTORE_UCONTEXT_VIEW RestoreUContextViewNoSyscalls
 #else
 #define SAVE_UCONTEXT SaveUContext
-#define RESTORE_UCONTEXT RestoreUContext
+#define RESTORE_UCONTEXT_VIEW RestoreUContextView
 #endif
 
   .text
@@ -30,11 +30,11 @@
   .globl  CaptureStack
   .type   CaptureStack, @function
 CaptureStack:
-  // rdi is the context we will restore.
+  // rdi is the context view we will restore.
   // rsi is the alternate stack.
 
   movq %rsi, %rsp
-  jmp RESTORE_UCONTEXT
+  jmp RESTORE_UCONTEXT_VIEW
 
   .size   CaptureStack, .-CaptureStack
 

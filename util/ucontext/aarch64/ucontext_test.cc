@@ -269,7 +269,7 @@ TEST(UContextTest, Underflow) {
 }
 
 extern "C" void SaveThenRestore(UContext<AArch64>* save,
-                                UContext<AArch64>* restore);
+                                const UContextView<AArch64>& restore_view);
 
 TEST(UContextTest, SetJmpLongJmp) {
   // Use SaveUContext/RestoreUContext similar to setjmp/longjmp.
@@ -373,6 +373,7 @@ TEST(UContextTest, SaveThenRestore) {
   // `actual` is the context we save inside the ASM code.
   // `reentry` is the state after returning to C code.
   UContext<Host> saved, expected, actual, reentry;
+  UContextView<Host> saved_view(saved);
 
   // We run this test twice so we can validate the stack usage.
   for (int run_num = 0; run_num < 2; run_num++) {
@@ -391,8 +392,8 @@ TEST(UContextTest, SaveThenRestore) {
 
     // x0 points to the context we will be saving to.
     expected.gregs.x[0] = reinterpret_cast<uintptr_t>(&actual);
-    // x1 points to the context we will be restoring from.
-    expected.gregs.x[1] = reinterpret_cast<uintptr_t>(&saved);
+    // x1 points to the context view we will be restoring.
+    expected.gregs.x[1] = reinterpret_cast<uintptr_t>(&saved_view);
 
     // Initialize gregs to a simple pattern.
     for (int i = 2; i < 30; i++) {
@@ -415,7 +416,7 @@ TEST(UContextTest, SaveThenRestore) {
     // time checking for stack underflow.
     expected.gregs.sp = stack.offset_ptr(run_num ? stack.size() : 8 * 6);
 
-    // A big prime number to help create a psedo-random pattern in fpregs.
+    // A big prime number to help create a pseudo-random pattern in fpregs.
     constexpr __uint128_t P =
         (((__uint128_t)0x3a6037a8e2864274) << 64) | 0x28e629e23d8199b7;
     __uint128_t current = P;
@@ -538,6 +539,7 @@ extern "C" void CaptureStack(silifuzz::UContext<silifuzz::AArch64>* uc,
 
 TEST(UContextTest, RestoreUContextStackBytes) {
   UContext<AArch64> test, saved;
+  UContextView<AArch64> saved_view(saved);
 
   alignas(16) uint8_t entry_stack[kStackSize];
   PatternInitStack(entry_stack);
@@ -556,7 +558,7 @@ TEST(UContextTest, RestoreUContextStackBytes) {
 
   // Set up to restore the context into a call to CaptureStack
   test.gregs.pc = reinterpret_cast<uint64_t>(&CaptureStack);
-  test.gregs.x[0] = reinterpret_cast<uint64_t>(&saved);
+  test.gregs.x[0] = reinterpret_cast<uint64_t>(&saved_view);
   test.gregs.x[1] = reinterpret_cast<uint64_t>(&exit_stack[kStackOffset]);
   test.gregs.sp = reinterpret_cast<uint64_t>(&entry_stack[kStackOffset]);
 

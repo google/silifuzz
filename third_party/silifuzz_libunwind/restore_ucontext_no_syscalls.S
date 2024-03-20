@@ -23,16 +23,17 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
 
 .text
 
-/* void RestoreUContext(const silifuzz::UContext* ucontext);
+/* void RestoreUContextViewNoSyscalls(
+	     const silifuzz::ConstUContextView<silifuzz::X86_64>& ucontext);
    -- see ucontext.h */
-	.global RestoreUContextNoSyscalls
-	.type RestoreUContextNoSyscalls, @function
-RestoreUContextNoSyscalls:
+	.global RestoreUContextViewNoSyscalls
+	.type RestoreUContextViewNoSyscalls, @function
+RestoreUContextViewNoSyscalls:
 
 #define UCONTEXT_NO_SYSCALLS
 #include "restore_ucontext_body.inc"
 
-	.size RestoreUContextNoSyscalls, . - RestoreUContextNoSyscalls
+	.size RestoreUContextViewNoSyscalls, . - RestoreUContextViewNoSyscalls
 
 	/* We do not need executable stack.  */
 	.section        .note.GNU-stack,"",@progbits

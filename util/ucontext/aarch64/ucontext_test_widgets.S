@@ -14,10 +14,10 @@
 
 #ifdef UCONTEXT_NO_SYSCALLS
 #define SAVE_UCONTEXT SaveUContextNoSyscalls
-#define RESTORE_UCONTEXT RestoreUContextNoSyscalls
+#define RESTORE_UCONTEXT_VIEW RestoreUContextViewNoSyscalls
 #else
 #define SAVE_UCONTEXT SaveUContext
-#define RESTORE_UCONTEXT RestoreUContext
+#define RESTORE_UCONTEXT_VIEW RestoreUContextView
 #endif
 
   .text
@@ -217,23 +217,23 @@ SaveThenRestore:
   // Save the current context.
   bl SAVE_UCONTEXT
 
-  // Restore the context pointed to by the second argument.
+  // Restore the context view pointed to by the second argument.
   ldr x0, [sp, #8]
-  bl RESTORE_UCONTEXT
+  bl RESTORE_UCONTEXT_VIEW
   .size   SaveThenRestore, .-SaveThenRestore
 
 
-  // Swap stacks and the restore the context. This lets us see the effects of
-  // RestoreUContext() both on the stack we're restoring in to and the stack
-  // we're restoring out on.
+  // Swap stacks and the restore the context in view. This lets us see the
+  // effects of RestoreUContextView() both on the stack we're restoring in
+  // to and the stack we're restoring out on.
   .p2align 2
   .globl  CaptureStack
   .type   CaptureStack, @function
 CaptureStack:
-  // x0 is the context we will restore.
+  // x0 is a view of the context we will restore.
   // x1 is alternate stack.
   mov sp, x1
-  bl RESTORE_UCONTEXT
+  bl RESTORE_UCONTEXT_VIEW
 
   .size   CaptureStack, .-CaptureStack
 

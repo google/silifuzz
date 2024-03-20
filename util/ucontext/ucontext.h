@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "./util/arch.h"
 #include "./util/ucontext/ucontext_types.h"
 
 // Saves current CPU register state into *ucontext.
@@ -53,10 +54,9 @@ extern "C" void SaveUContextNoSyscalls(
     silifuzz::UContext<silifuzz::Host>* ucontext)
     __attribute__((__returns_twice__));
 
-// Restores CPU register state from *ucontext.
+// Restores CPU register state from `view`
 // This never returns, instead execution continues with the *exact same*
-// register state as if we've just returned from the SaveUContext() call
-// that created `*ucontext`.
+// register state as described by `view`.
 //
 // Very similar to setcontext() from libc, but unlike it:
 // * We use a different datastruct.
@@ -64,17 +64,17 @@ extern "C" void SaveUContextNoSyscalls(
 // * We restore all registers including rax.
 // * We do not restore CS and SS segment registers.
 //
-// REQUIRES: the %rsp value set by `ucontext` points to a writable memory
-// region that has at least 16 bytes. Those 16 bytes get overwritten as part of
-// executing RestoreUContext() with values of eflags and %rip.
+// REQUIRES: the %rsp value set by `view` points to a writable memory
+// region that has at least 32 bytes. Those 32 bytes get overwritten as part of
+// executing RestoreUContextView() with values of eflags and %rip.
 //
 // Note that this writing is not a problem for matching end-state expectations
 // during snapshot execution since we capture the snapshot's expected memory
 // end-state with the effects of those 16 bytes written present (note that
 // snapshot execution itself may overwrite those bytes - they are in the free
 // portion of its stack).
-extern "C" void RestoreUContext(
-    const silifuzz::UContext<silifuzz::Host>* ucontext)
+extern "C" void RestoreUContextView(
+    const silifuzz::UContextView<silifuzz::Host>& view)
     __attribute__((__noreturn__));
 
 // Similar to above but does not make any syscalls. On x86_64, FS_BASE, GS_BASE
@@ -84,9 +84,23 @@ extern "C" void RestoreUContext(
 // allowed values are the null selectors, which cause the segement bases to
 // be reset. If the callee depends on either FS or GS, e.g. TLS pointer in
 // FS base, callee needs to set the segment bases separately.
-extern "C" void RestoreUContextNoSyscalls(
-    const silifuzz::UContext<silifuzz::Host>* ucontext)
+extern "C" void RestoreUContextViewNoSyscalls(
+    const silifuzz::UContextView<silifuzz::Host>& view)
     __attribute__((__noreturn__));
+
+// Convenient functions that restore from a UContext object instead of
+// a view.
+
+static inline void __attribute__((__noreturn__)) RestoreUContext(
+    const silifuzz::UContext<silifuzz::Host>* ucontext) {
+  RestoreUContextView(silifuzz::UContextView<silifuzz::Host>(*ucontext));
+}
+
+static inline void __attribute__((__noreturn__)) RestoreUContextNoSyscalls(
+    const silifuzz::UContext<silifuzz::Host>* ucontext) {
+  RestoreUContextViewNoSyscalls(
+      silifuzz::UContextView<silifuzz::Host>(*ucontext));
+}
 
 // ========================================================================= //
 

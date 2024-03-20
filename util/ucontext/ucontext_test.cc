@@ -61,6 +61,12 @@ TYPED_TEST(UContextGeneric, RegsEquality) {
   ASSERT_FALSE(fpregs != fpregs);
 }
 
+TYPED_TEST(UContextGeneric, View) {
+  UContext<TypeParam> uctx;
+  UContextView<TypeParam> const_view(uctx);
+  EXPECT_TRUE((std::is_same<ARCH_OF(const_view), TypeParam>()));
+}
+
 }  // namespace
 
 }  // namespace silifuzz

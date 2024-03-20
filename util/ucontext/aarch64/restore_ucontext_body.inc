@@ -19,24 +19,25 @@
   // Allocate the stack frame.
   sub sp, sp, 32
 
-  // Set the data pointer to the start of the context.
-  mov x24, x0
+  // Set x25 to point to FPRegs and x24 to point to GRegs.
+  ldp x25, x24, [x0, #0]
 
   // Restore the floating point data registers.
-  ld1 {v0.2d, v1.2d, v2.2d, v3.2d}, [x24], #64
-  ld1 {v4.2d, v5.2d, v6.2d, v7.2d}, [x24], #64
-  ld1 {v8.2d, v9.2d, v10.2d, v11.2d}, [x24], #64
-  ld1 {v12.2d, v13.2d, v14.2d, v15.2d}, [x24], #64
-  ld1 {v16.2d, v17.2d, v18.2d, v19.2d}, [x24], #64
-  ld1 {v20.2d, v21.2d, v22.2d, v23.2d}, [x24], #64
-  ld1 {v24.2d, v25.2d, v26.2d, v27.2d}, [x24], #64
-  ld1 {v28.2d, v29.2d, v30.2d, v31.2d}, [x24], #64
+  ld1 {v0.2d, v1.2d, v2.2d, v3.2d}, [x25], #64
+  ld1 {v4.2d, v5.2d, v6.2d, v7.2d}, [x25], #64
+  ld1 {v8.2d, v9.2d, v10.2d, v11.2d}, [x25], #64
+  ld1 {v12.2d, v13.2d, v14.2d, v15.2d}, [x25], #64
+  ld1 {v16.2d, v17.2d, v18.2d, v19.2d}, [x25], #64
+  ld1 {v20.2d, v21.2d, v22.2d, v23.2d}, [x25], #64
+  ld1 {v24.2d, v25.2d, v26.2d, v27.2d}, [x25], #64
+  ld1 {v28.2d, v29.2d, v30.2d, v31.2d}, [x25], #64
 
   // Restore the floating point status and control registers.
-  ldp x0, x1, [x24], #16
+  ldp x0, x1, [x25], #16
   msr fpsr, x0
   // TODO conditional fpcr restore to avoid unnecessary stalls.
   msr fpcr, x1
+  // x25 is free after restoring FPRegs.
 
   ldp x0, x1, [x24], #16
   // We still need x0 and x1 as scratch registers, so save the final values for

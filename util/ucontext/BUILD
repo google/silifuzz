@@ -77,6 +77,7 @@ cc_library_plus_nolibc(
     ],
     deps = [
         ":ucontext_types",
+        "@silifuzz//util:arch",
         # TODO(b/240319898): non-x86 targets should not depend on this.
         # Either fix cc_library_plus_nolibc or abstract this into a CPU
         # independent target.
@@ -180,6 +181,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
+        "@com_google_absl//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],
@@ -217,6 +219,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
+        "@com_google_absl//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [],

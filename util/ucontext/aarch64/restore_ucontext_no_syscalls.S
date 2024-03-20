@@ -14,10 +14,10 @@
 
         .text
         .p2align 2
-        .globl  RestoreUContextNoSyscalls
-        .type   RestoreUContextNoSyscalls, @function
-RestoreUContextNoSyscalls:
+        .globl  RestoreUContextViewNoSyscalls
+        .type   RestoreUContextViewNoSyscalls, @function
+RestoreUContextViewNoSyscalls:
 #define UCONTEXT_NO_SYSCALLS
 #include "restore_ucontext_body.inc"
-        .size   RestoreUContextNoSyscalls, .-RestoreUContextNoSyscalls
+        .size   RestoreUContextViewNoSyscalls, .-RestoreUContextViewNoSyscalls
         .section        .note.GNU-stack,"",@progbits

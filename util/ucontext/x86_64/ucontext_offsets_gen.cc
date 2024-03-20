@@ -19,6 +19,7 @@
 #include "./util/ucontext/ucontext_types.h"
 
 using UContext = silifuzz::UContext<silifuzz::X86_64>;
+using UContextView = silifuzz::UContextView<silifuzz::X86_64>;
 using GRegSet = silifuzz::GRegSet<silifuzz::X86_64>;
 
 int main() {
@@ -46,6 +47,12 @@ int main() {
   std::cout
       << "#define THIRD_PARTY_SILIFUZZ_UTIL_UCONTEXT_X86_64_UCONTEXT_OFFSETS_H_"
       << '\n';
+
+  std::cout << "#define UCONTEXT_VIEW_FPREGS_OFFSET 0x" << std::hex
+            << offsetof(UContextView, fpregs) << '\n';
+  std::cout << "#define UCONTEXT_VIEW_GREGS_OFFSET 0x" << std::hex
+            << offsetof(UContextView, gregs) << '\n';
+
   std::cout << "#define UCONTEXT_FPREGS_OFFSET 0x" << std::hex
             << offsetof(UContext, fpregs) << '\n';
   std::cout << "#define UCONTEXT_GREGS_OFFSET 0x" << std::hex

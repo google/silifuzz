@@ -191,6 +191,22 @@ struct UContext {
   using Arch = T;
 };
 
+// A UContextView is similar to UContext above except it does not include
+// storage of the register sets. Instead it has pointers to register
+// sets.
+template <typename T>
+struct UContextView {
+  // Create a view of UContext `uc`.
+  explicit UContextView(const UContext<T>& uc)
+      : fpregs(&uc.fpregs), gregs(&uc.gregs) {}
+
+  // Register sets pointers. This does not own the pointed objects.
+  const FPRegSet<T>* fpregs;
+  const GRegSet<T>* gregs;
+
+  using Arch = T;
+};
+
 #define ARCH_OF(var) typename decltype(var)::Arch
 
 }  // namespace silifuzz

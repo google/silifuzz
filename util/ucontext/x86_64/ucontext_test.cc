@@ -21,6 +21,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/base/log_severity.h"
 #include "./util/arch.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
@@ -315,7 +316,7 @@ void CheckExitStackBytes(const GRegSet<X86_64>& gregs, const uint8_t* stack) {
   }
 }
 
-extern "C" void CaptureStack(silifuzz::UContext<silifuzz::X86_64>* uc,
+extern "C" void CaptureStack(silifuzz::UContextView<silifuzz::X86_64>* view,
                              void* alternate_stack);
 
 // TODO(ncbray): figure out why RestoreUContextNoSyscalls smashing TLS causes
@@ -324,6 +325,7 @@ extern "C" void CaptureStack(silifuzz::UContext<silifuzz::X86_64>* uc,
 
 TEST(UContextTest, RestoreUContextStackBytes) {
   UContext<X86_64> test, saved;
+  UContextView<X86_64> saved_view(saved);
 
   alignas(16) uint8_t entry_stack[kStackSize];
   PatternInitStack(entry_stack);
@@ -337,7 +339,7 @@ TEST(UContextTest, RestoreUContextStackBytes) {
 
   // Set up to restore the context into a call to CaptureStack
   test.gregs.rip = reinterpret_cast<uint64_t>(&CaptureStack);
-  test.gregs.rdi = reinterpret_cast<uint64_t>(&saved);
+  test.gregs.rdi = reinterpret_cast<uint64_t>(&saved_view);
   test.gregs.rsi = reinterpret_cast<uint64_t>(&exit_stack[kStackOffset]);
   test.gregs.rsp = reinterpret_cast<uint64_t>(&entry_stack[kStackOffset]);
 
