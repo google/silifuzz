@@ -201,6 +201,7 @@ cc_test(
         ":snapshot_test_util",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:arch",
+        "@silifuzz//util:misc_util",
         "@silifuzz//util:platform",
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_group_set",

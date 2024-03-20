@@ -26,6 +26,7 @@
 #include "./common/snapshot_test_util.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
+#include "./util/misc_util.h"
 #include "./util/platform.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
@@ -140,6 +141,16 @@ TEST(SnapshotProto, PlatformIdNoWraparound) {
   ASSERT_OK(got);
   ASSERT_THAT(got->trace_data(),
               UnorderedElementsAreArray(snapshot.trace_data()));
+}
+
+TEST(SnapshotProto, BitmaskRoundtrip) {
+  uint64_t bitmask = 0;
+  for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId); ++p) {
+    bitmask |= 1ULL << p;
+  }
+  EXPECT_EQ(SnapshotProto::PlatformsToBitmask(
+                SnapshotProto::BitmaskToPlatforms(bitmask)),
+            bitmask);
 }
 
 }  // namespace

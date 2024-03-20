@@ -126,6 +126,7 @@ static_assert(ToInt(PlatformId::kIntelEmeraldRapids) ==
               ToInt(proto::PlatformId::INTEL_EMERALDRAPIDS));
 static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
               ToInt(proto::PlatformId::AMD_RYZEN_V3000));
+static_assert(ToInt(kMaxPlatformId) < 64);
 
 // ========================================================================= //
 
@@ -221,13 +222,7 @@ absl::StatusOr<Snapshot::EndState> SnapshotProto::FromProto(
     end_state.add_memory_bytes(std::move(b).value());
   }
   if (proto.has_platforms()) {
-    static_assert(ToInt(kMaxPlatformId) < 64);
-    for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
-         ++p) {
-      if (proto.platforms() & (1ULL << p)) {
-        end_state.add_platform(static_cast<PlatformId>(p));
-      }
-    }
+    end_state.set_platforms(BitmaskToPlatforms(proto.platforms()));
   }
   if (proto.has_register_checksum()) {
     end_state.set_register_checksum(proto.register_checksum());
@@ -250,12 +245,8 @@ absl::StatusOr<Snapshot::TraceData> SnapshotProto::FromProto(
     const proto::SnapshotTraceData& proto) {
   TraceData t(proto.num_instructions(), proto.human_readable_disassembly());
   if (proto.has_platforms()) {
-    static_assert(ToInt(kMaxPlatformId) < 64);
-    for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
-         ++p) {
-      if (proto.platforms() & (1ULL << p)) {
-        t.add_platform(static_cast<PlatformId>(p));
-      }
+    for (PlatformId p : BitmaskToPlatforms(proto.platforms())) {
+      t.add_platform(p);
     }
   }
   return t;
@@ -332,6 +323,27 @@ absl::Status SnapshotProto::IsValid(const proto::Snapshot& proto) {
   return FromProto(proto).status();
 }
 
+// static
+uint64_t SnapshotProto::PlatformsToBitmask(
+    const std::vector<PlatformId>& platforms) {
+  uint64_t result = 0;
+  for (const auto& p : platforms) {
+    result |= 1ULL << static_cast<int>(p);
+  }
+  return result;
+}
+
+// static
+std::vector<PlatformId> SnapshotProto::BitmaskToPlatforms(uint64_t bitmask) {
+  std::vector<PlatformId> result;
+  for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId); ++p) {
+    if (bitmask & (1ULL << p)) {
+      result.push_back(static_cast<PlatformId>(p));
+    }
+  }
+  return result;
+}
+
 // ========================================================================= //
 
 // static
@@ -382,14 +394,7 @@ void SnapshotProto::ToProto(const EndState& snap, proto::EndState* proto) {
     ToProto(s, proto->add_memory_bytes());
   }
   if (!snap.empty_platforms()) {
-    static_assert(ToInt(kMaxPlatformId) < 64);
-    int64_t platforms = 0;
-    for (int p = ToInt(PlatformId::kUndefined); p <= ToInt(kMaxPlatformId);
-         ++p) {
-      if (snap.has_platform(static_cast<PlatformId>(p))) {
-        platforms |= (1ULL << p);
-      }
-    }
+    uint64_t platforms = PlatformsToBitmask(snap.platforms());
     proto->set_platforms(platforms);
   }
   proto->set_register_checksum(snap.register_checksum());
@@ -417,10 +422,7 @@ void SnapshotProto::ToProto(const TraceData& metadata,
   proto->set_human_readable_disassembly(
       std::string(metadata.human_readable_disassembly()));
 
-  uint64_t platforms = 0;
-  for (PlatformId p : metadata.platforms()) {
-    platforms |= (1ULL << ToInt(p));
-  }
+  uint64_t platforms = PlatformsToBitmask(metadata.platforms());
   proto->set_platforms(platforms);
 }
 

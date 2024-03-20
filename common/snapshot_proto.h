@@ -15,11 +15,15 @@
 #ifndef THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_PROTO_H_
 #define THIRD_PARTY_SILIFUZZ_COMMON_SNAPSHOT_PROTO_H_
 
+#include <cstdint>
+#include <vector>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_types.h"
 #include "./proto/snapshot.pb.h"
+#include "./util/platform.h"
 
 namespace silifuzz {
 
@@ -36,6 +40,11 @@ class SnapshotProto : private SnapshotTypeNames {
   // (a Snapshot can be made from it with FromProto()).
   // A convenience helper: is as expensive as FromProto().
   static absl::Status IsValid(const proto::Snapshot& proto);
+
+  // Converters between a list of PlatformIds and a bitmask representation of
+  // the same list used in the proto.
+  static uint64_t PlatformsToBitmask(const std::vector<PlatformId>& platforms);
+  static std::vector<PlatformId> BitmaskToPlatforms(uint64_t bitmask);
 
   // Dumps Snapshot into proto representation.
   // REQUIRES: snap.IsCompleteSomeState()
