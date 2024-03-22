@@ -22,6 +22,8 @@
 #include "gtest/gtest.h"
 #include "absl/strings/string_view.h"
 #include "./snap/snap.h"
+#include "./util/arch.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
@@ -100,6 +102,22 @@ TEST(SnapChecksumTest, ChecksumCorpusChunked) {
   for (size_t i = 1; i < 32; ++i) {
     EXPECT_EQ(checksum, ChecksumCorpusChunked(data, i)) << i;
   }
+}
+
+TEST(SnapChecksumTest, RegisterMemoryChecksumChecksum) {
+  UContext<Host> ctx;
+  UContextView<Host> view(ctx);
+
+  memset(&ctx.fpregs, 0xaa, sizeof(ctx.fpregs));
+  memset(&ctx.gregs, 0xbb, sizeof(ctx.gregs));
+
+  uint32_t expect_fpregs_checksum = CalculateMemoryChecksum(*view.fpregs);
+  uint32_t expect_gregs_checksum = CalculateMemoryChecksum(*view.gregs);
+
+  SnapRegisterMemoryChecksum<Host> actual_checksum =
+      CalculateRegisterMemoryChecksum(view);
+  EXPECT_EQ(expect_fpregs_checksum, actual_checksum.fpregs_checksum);
+  EXPECT_EQ(expect_gregs_checksum, actual_checksum.gregs_checksum);
 }
 
 }  // namespace

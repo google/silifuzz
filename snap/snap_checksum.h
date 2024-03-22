@@ -20,6 +20,8 @@
 #include <type_traits>
 
 #include "absl/strings/string_view.h"
+#include "./snap/snap.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -61,6 +63,11 @@ class CorpusChecksumCalculator {
   size_t corpus_offset_;
   uint32_t checksum_;
 };
+
+// Computes SnapRegisterMemoryChecksum from `view`. See snap.h for details.
+template <typename Arch>
+SnapRegisterMemoryChecksum<Arch> CalculateRegisterMemoryChecksum(
+    const UContextView<Arch>& view);
 
 }  // namespace silifuzz
 

@@ -136,6 +136,7 @@ cc_library_plus_nolibc(
     deps = [
         ":snap",
         "@silifuzz//util:crc32c",
+        "@silifuzz//util/ucontext:ucontext_types",
     ],
 )
 
@@ -146,6 +147,8 @@ cc_test(
     deps = [
         ":snap",
         ":snap_checksum",
+        "@silifuzz//util:arch",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],

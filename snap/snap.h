@@ -125,6 +125,19 @@ struct SnapMemoryMapping {
   SnapArray<SnapMemoryBytes> memory_bytes;
 };
 
+// Register memory checksum. This is used for ensuring integrity of a Snap
+// when it ends not as expected.
+template <typename Arch>
+struct SnapRegisterMemoryChecksum {
+  bool operator==(const SnapRegisterMemoryChecksum& other) const {
+    return fpregs_checksum == other.fpregs_checksum &&
+           gregs_checksum == other.gregs_checksum;
+  }
+
+  uint32_t fpregs_checksum;
+  uint32_t gregs_checksum;
+};
+
 // A simplified snapshot representation.
 template <typename Arch>
 struct Snap {
@@ -180,8 +193,8 @@ struct Snap {
   // checksum. However - these checksums cover smaller snap-specific regions of
   // data and they are not effected by relocation. This means we can do an
   // efficient, focused integrity check after snap execution fails.
-  uint32_t registers_memory_checksum;
-  uint32_t end_state_registers_memory_checksum;
+  SnapRegisterMemoryChecksum<Arch> registers_memory_checksum;
+  SnapRegisterMemoryChecksum<Arch> end_state_registers_memory_checksum;
 };
 
 namespace snap_internal {

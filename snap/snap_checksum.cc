@@ -20,6 +20,7 @@
 
 #include "./snap/snap.h"
 #include "./util/crc32c.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -68,5 +69,20 @@ void CorpusChecksumCalculator::AddData(const void* data, size_t size) {
 
   corpus_offset_ += size;
 }
+
+template <typename Arch>
+SnapRegisterMemoryChecksum<Arch> CalculateRegisterMemoryChecksum(
+    const UContextView<Arch>& view) {
+  SnapRegisterMemoryChecksum<Arch> checksum;
+  checksum.fpregs_checksum = CalculateMemoryChecksum(*view.fpregs);
+  checksum.gregs_checksum = CalculateMemoryChecksum(*view.gregs);
+  return checksum;
+}
+
+template SnapRegisterMemoryChecksum<AArch64>
+CalculateRegisterMemoryChecksum<AArch64>(const UContextView<AArch64>& view);
+
+template SnapRegisterMemoryChecksum<X86_64>
+CalculateRegisterMemoryChecksum<X86_64>(const UContextView<X86_64>& view);
 
 }  // namespace silifuzz

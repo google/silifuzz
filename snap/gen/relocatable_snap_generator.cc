@@ -47,7 +47,7 @@ namespace {
 // Sets register in `*tgt` using `src`.
 template <typename Arch>
 void SetRegisterState(const Snapshot::RegisterState& src, UContext<Arch>* tgt,
-                      uint32_t* memory_checksum,
+                      SnapRegisterMemoryChecksum<Arch>* memory_checksum,
                       bool allow_empty_register_state) {
   memset(tgt, 0, sizeof(*tgt));
 
@@ -68,7 +68,7 @@ void SetRegisterState(const Snapshot::RegisterState& src, UContext<Arch>* tgt,
   }
 
   // Checksum the result
-  *memory_checksum = CalculateMemoryChecksum(*tgt);
+  *memory_checksum = CalculateRegisterMemoryChecksum(UContextView<Arch>(*tgt));
 }
 
 // This encapsulates logic and data necessary to build a relocatable
@@ -387,7 +387,7 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
     memcpy(id_ref.contents(), snapshot.id().c_str(), snapshot.id().size() + 1);
 
     // Construct register state contents.
-    uint32_t registers_memory_checksum;
+    SnapRegisterMemoryChecksum<Arch> registers_memory_checksum;
     SetRegisterState<Arch>(
         snapshot.registers(),
         registers_storage_ref.contents_as_pointer_of<UContext<Arch>>(),
@@ -395,7 +395,7 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
         /*allow_empty_register_state=*/false);
 
     // End state may be undefined initially in the making process.
-    uint32_t end_state_registers_memory_checksum;
+    SnapRegisterMemoryChecksum<Arch> end_state_registers_memory_checksum;
     SetRegisterState<Arch>(end_state.registers(),
                            end_state_registers_storage_ref
                                .contents_as_pointer_of<UContext<Arch>>(),

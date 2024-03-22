@@ -507,35 +507,42 @@ bool VerifySnapChecksums(const Snap<Host>& snap) {
     }
   }
 
-  // Helper to calculate register checksum. Register sets in a view may
-  // not be stored consecutively.
-  auto CalculateRegisterChecksum = [](const UContextView<Host>& view) {
-    UContext<Host> ctx;
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.fpregs = *view.fpregs;
-    ctx.gregs = *view.gregs;
-    return CalculateMemoryChecksum(ctx);
-  };
+  // Helper to log differences in register memory checksum.
+  auto LogRegisterChecksumDiffs =
+      [](const SnapRegisterMemoryChecksum<Host>& expected,
+         const SnapRegisterMemoryChecksum<Host>& actual) {
+        if (expected.fpregs_checksum != actual.fpregs_checksum) {
+          LOG_ERROR("    Expected fpregs checksum ",
+                    HexStr(expected.fpregs_checksum), " but got ",
+                    HexStr(actual.fpregs_checksum));
+        }
+        if (expected.fpregs_checksum != actual.fpregs_checksum) {
+          LOG_ERROR("    Expected gregs checksum ",
+                    HexStr(expected.gregs_checksum), " but got ",
+                    HexStr(actual.gregs_checksum));
+        }
+      };
 
   {
     VLOG_INFO(1, "Checksumming ", snap.id, " initial registers");
-    uint32_t expected = snap.registers_memory_checksum;
-    uint32_t actual = CalculateRegisterChecksum(snap.registers);
+    const SnapRegisterMemoryChecksum<Host>& expected =
+        snap.registers_memory_checksum;
+    const SnapRegisterMemoryChecksum<Host> actual =
+        CalculateRegisterMemoryChecksum(snap.registers);
     if (expected != actual) {
-      LOG_ERROR(snap.id, " initial registers");
-      LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
-                HexStr(actual));
+      LogRegisterChecksumDiffs(expected, actual);
       ok = false;
     }
   }
   {
     VLOG_INFO(1, "Checksumming ", snap.id, " end state registers");
-    uint32_t expected = snap.end_state_registers_memory_checksum;
-    uint32_t actual = CalculateRegisterChecksum(snap.end_state_registers);
+    const SnapRegisterMemoryChecksum<Host>& expected =
+        snap.end_state_registers_memory_checksum;
+    const SnapRegisterMemoryChecksum<Host> actual =
+        CalculateRegisterMemoryChecksum(snap.end_state_registers);
     if (expected != actual) {
       LOG_ERROR(snap.id, " end state registers");
-      LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
-                HexStr(actual));
+      LogRegisterChecksumDiffs(expected, actual);
       ok = false;
     }
   }
