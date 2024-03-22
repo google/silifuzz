@@ -199,6 +199,8 @@ struct UContextView {
   // Create a view of UContext `uc`.
   explicit UContextView(const UContext<T>& uc)
       : fpregs(&uc.fpregs), gregs(&uc.gregs) {}
+  UContextView(const FPRegSet<T>* fpregs, const GRegSet<T>* gregs)
+      : fpregs(fpregs), gregs(gregs) {}
 
   // Register sets pointers. This does not own the pointed objects.
   const FPRegSet<T>* fpregs;

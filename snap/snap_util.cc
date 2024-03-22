@@ -60,13 +60,13 @@ absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<Arch>& snap,
     }
   }
   Snapshot::RegisterState rs =
-      ConvertRegsToSnapshot(snap.registers->gregs, snap.registers->fpregs);
+      ConvertRegsToSnapshot(*snap.registers.gregs, *snap.registers.fpregs);
   snapshot.set_registers(rs);
 
   Snapshot::EndState es(
       Snapshot::Endpoint(snap.end_state_instruction_address),
-      ConvertRegsToSnapshot(snap.end_state_registers->gregs,
-                            snap.end_state_registers->fpregs));
+      ConvertRegsToSnapshot(*snap.end_state_registers.gregs,
+                            *snap.end_state_registers.fpregs));
   for (const SnapMemoryBytes& snap_mb : snap.end_state_memory_bytes) {
     Snapshot::ByteData data = SnapMemoryBytesData(snap_mb);
     Snapshot::MemoryBytes mb = {snap_mb.start_address, data};

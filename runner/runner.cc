@@ -54,6 +54,7 @@
 #include "./util/text_proto_printer.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/signal.h"
+#include "./util/ucontext/ucontext_types.h"
 
 #ifndef MAP_FIXED_NOREPLACE
 #define MAP_FIXED_NOREPLACE 0x100000
@@ -505,10 +506,21 @@ bool VerifySnapChecksums(const Snap<Host>& snap) {
       ok = false;
     }
   }
+
+  // Helper to calculate register checksum. Register sets in a view may
+  // not be stored consecutively.
+  auto CalculateRegisterChecksum = [](const UContextView<Host>& view) {
+    UContext<Host> ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.fpregs = *view.fpregs;
+    ctx.gregs = *view.gregs;
+    return CalculateMemoryChecksum(ctx);
+  };
+
   {
     VLOG_INFO(1, "Checksumming ", snap.id, " initial registers");
     uint32_t expected = snap.registers_memory_checksum;
-    uint32_t actual = CalculateMemoryChecksum(*snap.registers);
+    uint32_t actual = CalculateRegisterChecksum(snap.registers);
     if (expected != actual) {
       LOG_ERROR(snap.id, " initial registers");
       LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
@@ -519,7 +531,7 @@ bool VerifySnapChecksums(const Snap<Host>& snap) {
   {
     VLOG_INFO(1, "Checksumming ", snap.id, " end state registers");
     uint32_t expected = snap.end_state_registers_memory_checksum;
-    uint32_t actual = CalculateMemoryChecksum(*snap.end_state_registers);
+    uint32_t actual = CalculateRegisterChecksum(snap.end_state_registers);
     if (expected != actual) {
       LOG_ERROR(snap.id, " end state registers");
       LOG_ERROR("    Expected checksum ", HexStr(expected), " but got ",
@@ -549,8 +561,8 @@ RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
     return RunSnapOutcome::kExecutionMisbehave;
   }
   // Verify register state.
-  if (!MemEqT(*end_spot.gregs, snap.end_state_registers->gregs) ||
-      !MemEqT(*end_spot.fpregs, snap.end_state_registers->fpregs)) {
+  if (!MemEqT(*end_spot.gregs, *snap.end_state_registers.gregs) ||
+      !MemEqT(*end_spot.fpregs, *snap.end_state_registers.fpregs)) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
   // Verify register checksum if there is one in snap.
@@ -629,12 +641,12 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
       // state.
       // See SnapGenerator::Options::allow_undefined_end_state for details.
       bool log_diff =
-          snap.end_state_registers->gregs.GetInstructionPointer() != 0;
-      LogGRegs(*run_result.end_spot.gregs, &snap.end_state_registers->gregs,
+          snap.end_state_registers.gregs->GetInstructionPointer() != 0;
+      LogGRegs(*run_result.end_spot.gregs, snap.end_state_registers.gregs,
                log_diff);
       LOG_INFO("  fpregs (modified only):");
       LogFPRegs(*run_result.end_spot.fpregs, true,
-                &snap.end_state_registers->fpregs, log_diff);
+                snap.end_state_registers.fpregs, log_diff);
       LogRegisterChecksum(run_result.end_spot.register_checksum,
                           &snap.end_state_register_checksum, log_diff);
     } else if (run_result.outcome == RunSnapOutcome::kMemoryMismatch) {
@@ -761,7 +773,7 @@ void RunSnap(const Snap<Host>& snap, const RunnerMainOptions& options,
              RunSnapResult& result) {
   PrepareSnapMemory(snap);
   result.cpu_id = GetCPUIdNoSyscall();
-  RunSnap(*snap.registers, options, result.end_spot);
+  RunSnap(snap.registers, options, result.end_spot);
   if (result.cpu_id != GetCPUIdNoSyscall()) {
     result.cpu_id = kUnknownCPUId;
   }

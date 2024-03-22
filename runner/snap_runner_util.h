@@ -77,14 +77,14 @@ bool IsInsideSnap();
 void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
                              const siginfo_t& sig_info);
 
-// Switches to 'context' to execute code in Snap with 'options'. After the snap
-// exits, switches back to the runner's context and returns to caller. Stores
-// CPU state at the time of Snap exit in 'end_spot'. The caller MUST install a
-// custom signal handler that invokes RunnerReentryFromSignal() for RunSnap() to
-// work properly for sig-causing snaps.
+// Switches context to 'view' to execute code in Snap with 'options'. After the
+// snap exits, switches back to the runner's context and returns to caller.
+// Stores CPU state at the time of Snap exit in 'end_spot'. The caller MUST
+// install a custom signal handler that invokes RunnerReentryFromSignal() for
+// RunSnap() to work properly for sig-causing snaps.
 //
 // REQUIRES: Called after calling InitSnapExit().
-void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
+void RunSnap(const UContextView<Host>& view, const RunnerMainOptions& options,
              EndSpot& end_spot);
 
 }  // namespace silifuzz

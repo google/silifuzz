@@ -23,9 +23,11 @@
 
 #include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
@@ -66,13 +68,14 @@ TEST(SnapRunnerUtil, BasicTest) {
 
   // Initialize execution context using current register state.
   UContext<Host> execution_context;
+  UContextView<Host> execution_context_view(execution_context);
   SaveUContextNoSyscalls(&execution_context);
   execution_context.gregs.rip = reinterpret_cast<uint64_t>(code_page);
   execution_context.gregs.rsp =
       reinterpret_cast<uint64_t>(stack_page) + kPageSize;
   execution_context.gregs.rdi = 0xabcd;
   EndSpot end_spot;
-  RunSnap(execution_context, RunnerMainOptions::Default(), end_spot);
+  RunSnap(execution_context_view, RunnerMainOptions::Default(), end_spot);
 
   // Verify that code has been executed.
   CHECK_EQ(snap_exit_context.gregs.rax, ~execution_context.gregs.rax);

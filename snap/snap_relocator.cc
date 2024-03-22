@@ -167,6 +167,14 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateMemoryBytesArray(
 }
 
 template <typename Arch>
+SnapRelocatorError SnapRelocator<Arch>::RelocateRegisterState(
+    Snap<Arch>::RegisterState& register_state) {
+  RETURN_IF_RELOCATION_FAILED(AdjustPointer(register_state.fpregs));
+  RETURN_IF_RELOCATION_FAILED(AdjustPointer(register_state.gregs));
+  return SnapRelocatorError::kOk;
+}
+
+template <typename Arch>
 SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus(bool verify) {
   // We know the pointer is in bounds, but check that the struct fits in memory
   // and is aligned.
@@ -239,8 +247,9 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateCorpus(bool verify) {
     }
 
     // Adjust register pointers.
-    RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.registers));
-    RETURN_IF_RELOCATION_FAILED(AdjustPointer(snap.end_state_registers));
+    RETURN_IF_RELOCATION_FAILED(RelocateRegisterState(snap.registers));
+    RETURN_IF_RELOCATION_FAILED(
+        RelocateRegisterState(snap.end_state_registers));
 
     // Adjust memory bytes for end state.
     RETURN_IF_RELOCATION_FAILED(

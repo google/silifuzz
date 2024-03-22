@@ -82,6 +82,7 @@ cc_library(
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/hash",
         "@com_google_absl//absl/log:check",

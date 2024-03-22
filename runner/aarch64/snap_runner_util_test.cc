@@ -68,6 +68,8 @@ TEST(SnapRunnerUtil, BasicTest) {
   // Initialize execution context using current register state.
   // This way TLS stays valid during the test.
   UContext<Host> execution_context;
+  UContextView<Host> execution_context_view(execution_context);
+
   SaveUContextNoSyscalls(&execution_context);
 
   // Initialize the general purpose registers with a pattern.
@@ -82,7 +84,7 @@ TEST(SnapRunnerUtil, BasicTest) {
 
   // Execute.
   EndSpot end_spot;
-  RunSnap(execution_context, RunnerMainOptions::Default(), end_spot);
+  RunSnap(execution_context_view, RunnerMainOptions::Default(), end_spot);
 
   // Verify that test code has been executed.
   CHECK_EQ(snap_exit_context.gregs.x[0], ~execution_context.gregs.x[0]);

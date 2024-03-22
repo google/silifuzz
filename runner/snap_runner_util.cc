@@ -163,7 +163,7 @@ void RunnerReentryFromSignal(const ucontext_t& libc_ucontext,
   __builtin_unreachable();
 }
 
-void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
+void RunSnap(const UContextView<Host>& view, const RunnerMainOptions& options,
              EndSpot& end_spot) {
   snap_signal_context.signal_occurred = false;
   enter_snap_context = true;
@@ -179,7 +179,7 @@ void RunSnap(const UContext<Host>& context, const RunnerMainOptions& options,
   }
 
   if (enter_snap_context) {
-    RestoreUContextNoSyscalls(&context);
+    RestoreUContextViewNoSyscalls(view);
     __builtin_unreachable();
   }
   // Otherwise, the snap has just finished executing

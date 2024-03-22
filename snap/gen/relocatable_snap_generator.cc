@@ -14,6 +14,7 @@
 
 #include "./snap/gen/relocatable_snap_generator.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
@@ -37,6 +38,7 @@
 #include "./util/reg_checksum.h"
 #include "./util/reg_checksum_util.h"
 #include "./util/ucontext/serialize.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -44,8 +46,7 @@ namespace {
 
 // Sets register in `*tgt` using `src`.
 template <typename Arch>
-void SetRegisterState(const Snapshot::RegisterState& src,
-                      typename Snap<Arch>::RegisterState* tgt,
+void SetRegisterState(const Snapshot::RegisterState& src, UContext<Arch>* tgt,
                       uint32_t* memory_checksum,
                       bool allow_empty_register_state) {
   memset(tgt, 0, sizeof(*tgt));
@@ -70,7 +71,7 @@ void SetRegisterState(const Snapshot::RegisterState& src,
   *memory_checksum = CalculateMemoryChecksum(*tgt);
 }
 
-// This encapsulates logic and data neccessary to build a relocatable
+// This encapsulates logic and data necessary to build a relocatable
 // Snap corpus.
 //
 // This class is not thread-safe.
@@ -195,7 +196,7 @@ class Traversal {
   RelocatableDataBlock register_state_block_;
   RelocatableDataBlock page_data_block_;
 
-  // Hash map for de-duping byte data.
+  // Hash map for deduping byte data.
   ByteDataRefMap byte_data_ref_map_;
 };
 
@@ -203,7 +204,7 @@ template <typename Arch>
 RelocatableDataBlock::Ref Traversal<Arch>::ProcessMemoryBytes(
     PassType pass, const Snapshot::MemoryBytes& memory_bytes) {
   const Snapshot::ByteData& byte_data = memory_bytes.byte_values();
-  // Check to see if we can de-dupe byte data.
+  // Check to see if we can dedupe byte data.
   static constexpr RelocatableDataBlock::Ref kNullRef;
   auto [it, success] = byte_data_ref_map_.try_emplace(&byte_data, kNullRef);
   auto&& [unused, ref] = *it;
@@ -375,10 +376,12 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
       ProcessMemoryBytesList(
           pass, ToBorrowedMemoryBytesList(end_state.memory_bytes()));
 
-  RelocatableDataBlock::Ref registers_ref =
-      register_state_block_.AllocateObjectsOfType<RegisterState>(1);
-  RelocatableDataBlock::Ref end_state_registers_ref =
-      register_state_block_.AllocateObjectsOfType<RegisterState>(1);
+  // Allocate space for the register states. A RegisterState object contains
+  // pointers to different register sets.
+  RelocatableDataBlock::Ref registers_storage_ref =
+      register_state_block_.AllocateObjectsOfType<UContext<Arch>>(1);
+  RelocatableDataBlock::Ref end_state_registers_storage_ref =
+      register_state_block_.AllocateObjectsOfType<UContext<Arch>>(1);
 
   if (pass == PassType::kGeneration) {
     memcpy(id_ref.contents(), snapshot.id().c_str(), snapshot.id().size() + 1);
@@ -387,21 +390,30 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
     uint32_t registers_memory_checksum;
     SetRegisterState<Arch>(
         snapshot.registers(),
-        registers_ref.contents_as_pointer_of<RegisterState>(),
+        registers_storage_ref.contents_as_pointer_of<UContext<Arch>>(),
         &registers_memory_checksum,
         /*allow_empty_register_state=*/false);
 
     // End state may be undefined initially in the making process.
     uint32_t end_state_registers_memory_checksum;
-    SetRegisterState<Arch>(
-        end_state.registers(),
-        end_state_registers_ref.contents_as_pointer_of<RegisterState>(),
-        &end_state_registers_memory_checksum,
-        /*allow_empty_register_state=*/true);
+    SetRegisterState<Arch>(end_state.registers(),
+                           end_state_registers_storage_ref
+                               .contents_as_pointer_of<UContext<Arch>>(),
+                           &end_state_registers_memory_checksum,
+                           /*allow_empty_register_state=*/true);
 
     // Construct Snap in data block content buffer.
     // Fill in register states separately to avoid copying.
     Snap<Arch>* snap = snapshot_ref.contents_as_pointer_of<Snap<Arch>>();
+
+    auto BuildUContextView = [](const RelocatableDataBlock::Ref& ucontext_ref) {
+      return UContextView<Arch>(
+          (ucontext_ref + offsetof(UContext<Arch>, fpregs))
+              .load_address_as_pointer_of<const FPRegSet<Arch>>(),
+          (ucontext_ref + offsetof(UContext<Arch>, gregs))
+              .load_address_as_pointer_of<const GRegSet<Arch>>());
+    };
+
     absl::StatusOr<RegisterChecksum<Arch>> register_checksum_or =
         DeserializeRegisterChecksum<Arch>(end_state.register_checksum());
     // TODO(dougkwan): Fail more gracefully.  We could report an absl::Status
@@ -415,11 +427,11 @@ void Traversal<Arch>::ProcessAllocated(PassType pass, const Snapshot& snapshot,
                 memory_mappings_elements_ref
                     .load_address_as_pointer_of<const SnapMemoryMapping>(),
         },
-        .registers = registers_ref.load_address_as_pointer_of<RegisterState>(),
+        .registers = BuildUContextView(registers_storage_ref),
         .end_state_instruction_address =
             end_state.endpoint().instruction_address(),
         .end_state_registers =
-            end_state_registers_ref.load_address_as_pointer_of<RegisterState>(),
+            BuildUContextView(end_state_registers_storage_ref),
         .end_state_memory_bytes{
             .size = end_state.memory_bytes().size(),
             .elements =

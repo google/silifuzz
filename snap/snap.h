@@ -128,10 +128,12 @@ struct SnapMemoryMapping {
 // A simplified snapshot representation.
 template <typename Arch>
 struct Snap {
-  // Describe register state of a Snapshot. This is stored in UContext/
-  // and can be used directly as the context for running a Snap without any
-  // conversion or copying.
-  using RegisterState = UContext<Arch>;
+  // Describes register state of a Snapshot. This is a UContextView instead
+  // of a UContext object since individual register sets may not be placed
+  // consecutively in a UContext due to deduplication. The view can be used
+  // directly as the context for running a Snap without any conversion or
+  // copying.
+  using RegisterState = UContextView<Arch>;
 
   // Identifier for this snapshot.
   const char* id;
@@ -146,7 +148,7 @@ struct Snap {
   SnapArray<SnapMemoryMapping> memory_mappings;
 
   // The state of the registers at the start of the snapshot.
-  RegisterState* registers;
+  RegisterState registers;
 
   // The only possible expected end-state of executing the snapshot.
   // We do not allow multiple end states.
@@ -155,7 +157,7 @@ struct Snap {
   uint64_t end_state_instruction_address;
 
   // The expected state of the registers to exist at `endpoint`.
-  RegisterState* end_state_registers;
+  RegisterState end_state_registers;
 
   // The expected memory state to exist at `endpoint`.
   // These must cover all writable memory bytes not just deltas compared to

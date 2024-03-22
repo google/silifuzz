@@ -104,11 +104,11 @@ void VerifySnapRegisterState(
     const Snapshot::RegisterState& registers,
     const typename Snap<Arch>::RegisterState& snap_registers) {
   Snapshot::ByteData gregs_bytes;
-  CHECK(SerializeGRegs(snap_registers.gregs, &gregs_bytes));
+  CHECK(SerializeGRegs(*snap_registers.gregs, &gregs_bytes));
   CHECK_EQ(registers.gregs(), gregs_bytes);
 
   Snapshot::ByteData fpregs_bytes;
-  CHECK(SerializeFPRegs(snap_registers.fpregs, &fpregs_bytes));
+  CHECK(SerializeFPRegs(*snap_registers.fpregs, &fpregs_bytes));
   CHECK_EQ(registers.fpregs(), fpregs_bytes);
 }
 
@@ -168,8 +168,7 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap<Arch>& snap,
                                snap.memory_mappings[i].memory_bytes,
                                snapified_snapshot.mapped_memory_map());
   }
-  VerifySnapRegisterState<Arch>(snapified_snapshot.registers(),
-                                *snap.registers);
+  VerifySnapRegisterState<Arch>(snapified_snapshot.registers(), snap.registers);
   CHECK_EQ(snapified_snapshot.expected_end_states().size(), 1);
   const Snapshot::EndState& end_state =
       snapified_snapshot.expected_end_states()[0];
@@ -179,7 +178,7 @@ void VerifyTestSnap(const Snapshot& snapshot, const Snap<Arch>& snap,
                   endpoint.instruction_address(),
                   snap.end_state_instruction_address);
   VerifySnapRegisterState<Arch>(end_state.registers(),
-                                *snap.end_state_registers);
+                                snap.end_state_registers);
 
   VerifySnapMemoryBytesArray(
       "memory_bytes", ToBorrowedMemoryBytesList(end_state.memory_bytes()),

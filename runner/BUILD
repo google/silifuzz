@@ -121,10 +121,12 @@ cc_test_nolibc(
         ":runner_main_options",
         ":snap_runner_util",
         "@silifuzz//snap:exit_sequence",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
         "@silifuzz//util/ucontext",
+        "@silifuzz//util/ucontext:ucontext_types",
     ],
 )
 
@@ -216,6 +218,7 @@ cc_library_nolibc(
         "@silifuzz//util:text_proto_printer",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:signal",
+        "@silifuzz//util/ucontext:ucontext_types",
     ],
 )
 
