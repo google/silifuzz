@@ -289,14 +289,8 @@ TEST(ProgramMutator, RepeatedSelectDeleteInstruction) {
   RepeatMutation<AArch64> m{
       {0, 0, 0, 1},
       SelectMutation<AArch64>(
-          Weighted{
-              .mutator = InsertGeneratedInstruction<AArch64>{},
-              .weight = 0.0,
-          },
-          Weighted{
-              .mutator = DeleteInstruction<AArch64>{},
-              .weight = 1.0,
-          })};
+          Weighted(0.0, InsertGeneratedInstruction<AArch64>{}),
+          Weighted(1.0, DeleteInstruction<AArch64>{}))};
   m.Mutate(rng, p, p);
   EXPECT_EQ(p.NumInstructions(), 1);
 }
@@ -309,14 +303,8 @@ TEST(ProgramMutator, RepeatedSelectInsertGeneratedInstruction) {
   RepeatMutation<AArch64> m{
       {0, 0, 0, 1},
       SelectMutation<AArch64>(
-          Weighted{
-              .mutator = InsertGeneratedInstruction<AArch64>{},
-              .weight = 1.0,
-          },
-          Weighted{
-              .mutator = DeleteInstruction<AArch64>{},
-              .weight = 0.0,
-          })};
+          Weighted(1.0, InsertGeneratedInstruction<AArch64>{}),
+          Weighted(0.0, DeleteInstruction<AArch64>{}))};
   m.Mutate(rng, p, p);
 
   // InsertGenerateInstruction may not always succeed, so accept a range.

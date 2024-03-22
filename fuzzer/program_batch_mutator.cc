@@ -84,22 +84,10 @@ ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed, size_t max_len)
       {0, 1, 1, 1},
       RetryMutation<Arch>{128,
                           SelectMutation<Arch>(
-                              Weighted{
-                                  .mutator = InsertGeneratedInstruction<Arch>{},
-                                  .weight = 1.0,
-                              },
-                              Weighted{
-                                  .mutator = MutateInstruction<Arch>{},
-                                  .weight = 1.0,
-                              },
-                              Weighted{
-                                  .mutator = SwapInstructions<Arch>{},
-                                  .weight = 1.0,
-                              },
-                              Weighted{
-                                  .mutator = DeleteInstruction<Arch>{3},
-                                  .weight = 1.0,
-                              })}});
+                              Weighted(1.0, InsertGeneratedInstruction<Arch>{}),
+                              Weighted(1.0, MutateInstruction<Arch>{}),
+                              Weighted(1.0, SwapInstructions<Arch>{}),
+                              Weighted(1.0, DeleteInstruction<Arch>{3}))}});
 }
 
 template <typename Arch>

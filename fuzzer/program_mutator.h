@@ -118,9 +118,16 @@ class RepeatMutation : public ProgramMutator<Arch> {
 
 template <typename Mutator>
 struct Weighted {
-  Mutator mutator;
+  Weighted(double weight, Mutator&& mutator)
+      : weight(weight), mutator(std::forward<Mutator>(mutator)) {}
+
   double weight;
+  Mutator mutator;
 };
+
+// Deduction template to make syntax cleaner.
+template <typename Mutator>
+Weighted(double weight, Mutator&& mutator) -> Weighted<Mutator>;
 
 // Select a mutation based on a weighted distribution.
 template <typename Arch>

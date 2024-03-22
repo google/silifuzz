@@ -116,19 +116,9 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
     insert.Mutate(rng, program, program);
   }
 
-  SelectMutation<Arch> mutate(
-      Weighted{
-          .mutator = MutateInstruction<Arch>(),
-          .weight = 1.0,
-      },
-      Weighted{
-          .mutator = SwapInstructions<Arch>(),
-          .weight = 0.5,
-      },
-      Weighted{
-          .mutator = DeleteInstruction<Arch>(),
-          .weight = 0.2,
-      });
+  SelectMutation<Arch> mutate(Weighted(1.0, MutateInstruction<Arch>()),
+                              Weighted(0.5, SwapInstructions<Arch>()),
+                              Weighted(0.2, DeleteInstruction<Arch>()));
   for (size_t i = 0; i < 1200; ++i) {
     mutate.Mutate(rng, program, program);
   }
