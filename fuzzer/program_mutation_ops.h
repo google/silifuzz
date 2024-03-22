@@ -124,6 +124,39 @@ class DeleteInstruction : public ProgramMutator<Arch> {
   size_t minimum_instructions_;
 };
 
+template <typename Arch>
+class SwapInstructions : public ProgramMutator<Arch> {
+ public:
+  SwapInstructions() {}
+
+  bool Mutate(MutatorRng& rng, Program<Arch>& program,
+              const Program<Arch>& other) override {
+    // Need at least two instructions to swap.
+    if (program.NumInstructions() < 2) return false;
+
+    // Select the targets.
+    size_t a = program.RandomInstructionIndex(rng);
+    size_t b = program.RandomInstructionIndex(rng);
+    while (a == b) {
+      b = program.RandomInstructionIndex(rng);
+    }
+
+    // Copy the instructions.
+    Instruction<Arch> a_instruction = program.GetInstruction(a);
+    Instruction<Arch> b_instruction = program.GetInstruction(b);
+
+    // Swap the instructions.
+    // Note that the branch displacements are not affected by this operation.
+    // A branch that is swapped will target the same absolute location.
+    // An alternative mutation would be to move the displacement how ever much
+    // the instruction moved and re-randomize it if it goes out of range.
+    program.SetInstruction(a, b_instruction);
+    program.SetInstruction(b, a_instruction);
+
+    return true;
+  }
+};
+
 // Remove instructions until `program.NumBytes()` <= `max_len`.
 // Returns `true` if the program was modified.
 template <typename Arch>

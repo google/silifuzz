@@ -59,6 +59,16 @@ std::vector<uint8_t> FromInts(std::vector<uint32_t>&& data) {
                               reinterpret_cast<uint8_t*>(&*data.end()));
 }
 
+template <typename Arch>
+std::vector<uint8_t> ToBytes(Program<Arch>& program) {
+  MutatorRng rng;
+  program.FixupEncodedDisplacements(rng);
+
+  std::vector<uint8_t> out;
+  program.ToBytes(out);
+  return out;
+}
+
 TEST(MutatorUtil, FixupLimit) {
   // A limit of zero means nothing is fixed up, including a branch with zero
   // displacement.
@@ -244,6 +254,21 @@ TEST(ProgramMutator, DeleteInstructionLimit) {
   // Can't delete the last instruction due to the limit.
   EXPECT_FALSE(m.Mutate(rng, p, p));
   EXPECT_EQ(p.NumInstructions(), 1);
+}
+
+TEST(ProgramMutator, SwapInstructions) {
+  MutatorRng rng;
+  Program<AArch64> p(FromInts({kAArch64NOP, kAArch64TbzSelf}));
+  EXPECT_EQ(p.NumInstructions(), 2);
+  SwapInstructions<AArch64> m{};
+
+  // Swap once.
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64TbzNext, kAArch64NOP}));
+
+  // Swap again.
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64NOP, kAArch64TbzSelf}));
 }
 
 TEST(ProgramMutator, RepeatedDeleteInstruction) {
@@ -648,16 +673,6 @@ TEST(InstructionFromBytes_AArch64, TNBZ) {
 
   CheckAArch64DisplacementBounds(kAArch64TbnzBackward, -32 * 1024,
                                  32 * 1024 - 4);
-}
-
-template <typename Arch>
-std::vector<uint8_t> ToBytes(Program<Arch>& program) {
-  MutatorRng rng;
-  program.FixupEncodedDisplacements(rng);
-
-  std::vector<uint8_t> out;
-  program.ToBytes(out);
-  return out;
 }
 
 TEST(Program_X86_64, Empty) {

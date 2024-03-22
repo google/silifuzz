@@ -93,6 +93,10 @@ ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed, size_t max_len)
                                   .weight = 1.0,
                               },
                               Weighted{
+                                  .mutator = SwapInstructions<Arch>{},
+                                  .weight = 1.0,
+                              },
+                              Weighted{
                                   .mutator = DeleteInstruction<Arch>{3},
                                   .weight = 1.0,
                               })}});

@@ -122,6 +122,10 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
           .weight = 1.0,
       },
       Weighted{
+          .mutator = SwapInstructions<Arch>(),
+          .weight = 0.5,
+      },
+      Weighted{
           .mutator = DeleteInstruction<Arch>(),
           .weight = 0.2,
       });
