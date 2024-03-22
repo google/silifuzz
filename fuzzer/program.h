@@ -21,6 +21,7 @@
 #include <random>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
@@ -232,7 +233,13 @@ class Program {
   }
 
   // Overwrite the instruction at `index` with `insn`.
-  void SetInstruction(size_t index, const Instruction<Arch>& insn);
+  void SetInstruction(size_t index, const Instruction<Arch>& insn) {
+    SetInstructionBlock(index, absl::Span(&insn, 1));
+  }
+
+  // Overwrite multiple instructions in a row.
+  void SetInstructionBlock(size_t index,
+                           absl::Span<const Instruction<Arch>> insns);
 
   size_t NumInstructions() const { return instructions_.size(); }
 
@@ -261,7 +268,20 @@ class Program {
   // single-instruction loops to remain undisturbed. A mutator will want to
   // randomize the kind of insert it performs.
   void InsertInstruction(size_t boundary, bool steal_displacements,
-                         const Instruction<Arch>& insn);
+                         const Instruction<Arch>& insn) {
+    InsertInstructionBlock(boundary, steal_displacements, absl::Span(&insn, 1));
+  }
+
+  // InsertInstruction, but inserting multiple instructions in a row.
+  // An important difference between calling this function and calling
+  // InsertInstruction multiple times is that every call to InsertInstruction
+  // can shift the displacements of any instruction already in the program.
+  // When the instructions are inserted as a block, any displacements in the
+  // block are copied verbatim and left unmodified.
+  // This makes it easier to fix up the displacements after the entire block has
+  // been inserted.
+  void InsertInstructionBlock(size_t boundary, bool steal_displacements,
+                              absl::Span<const Instruction<Arch>> insns);
 
   // Remove a specific instruction.
   void RemoveInstruction(size_t index);

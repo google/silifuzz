@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/log/check.h"
+#include "absl/types/span.h"
 #include "./fuzzer/program_arch.h"
 #include "./util/arch.h"
 
@@ -272,15 +273,20 @@ Program<Arch>::Program(const uint8_t* bytes, size_t len,
 }
 
 template <typename Arch>
-void Program<Arch>::SetInstruction(size_t index,
-                                   const Instruction<Arch>& insn) {
-  CHECK_LT(index, NumInstructions());
-  // Keep the size in sync.
-  byte_len_ -= instructions_[index].encoded.size();
-  byte_len_ += insn.encoded.size();
+void Program<Arch>::SetInstructionBlock(
+    size_t index, absl::Span<const Instruction<Arch>> insns) {
+  CHECK_LE(index + insns.size(), NumInstructions());
 
-  // Copy the instruction.
-  instructions_[index] = insn;
+  for (size_t i = 0; i < insns.size(); i++) {
+    const Instruction<Arch>& insn = insns[i];
+
+    // Keep the size in sync.
+    byte_len_ -= instructions_[index + i].encoded.size();
+    byte_len_ += insn.encoded.size();
+
+    // Overwrite the instruction.
+    instructions_[index + i] = insn;
+  }
 
   // Displacements may require fixup.
   // Instruction size may have changed or the instruction itself may have
@@ -305,8 +311,9 @@ void Program<Arch>::AdjustInstructionIndexes(size_t boundary, int64_t amount) {
 }
 
 template <typename Arch>
-void Program<Arch>::InsertInstruction(size_t boundary, bool steal_displacements,
-                                      const Instruction<Arch>& insn) {
+void Program<Arch>::InsertInstructionBlock(
+    size_t boundary, bool steal_displacements,
+    absl::Span<const Instruction<Arch>> insns) {
   CHECK_LT(boundary, NumInstructionBoundaries());
 
   // If we're stealing displacements, we want displacements targeting the
@@ -317,13 +324,16 @@ void Program<Arch>::InsertInstruction(size_t boundary, bool steal_displacements,
   if (steal_displacements) adjusted_offset++;
 
   // Fix up the instruction indexes.
-  AdjustInstructionIndexes(adjusted_offset, 1);
+  AdjustInstructionIndexes(adjusted_offset, insns.size());
 
   // Insert the instruction.
   // Note the displacements and indexes for the new instruction may not have
   // been set, yet, so we insert after adjusting the indexes.
-  byte_len_ += insn.encoded.size();
-  instructions_.insert(instructions_.begin() + boundary, insn);
+  for (const Instruction<Arch>& insn : insns) {
+    byte_len_ += insn.encoded.size();
+  }
+  instructions_.insert(instructions_.begin() + boundary, insns.begin(),
+                       insns.end());
 
   // Displacements may require fixup.
   encodings_may_be_invalid = true;

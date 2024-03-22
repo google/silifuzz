@@ -890,22 +890,27 @@ TEST(Program_X86_64, InsertNearBranch) {
   Instruction<X86_64> nop_insn{};
   nop_insn.encoded.Copy(nop.data(), nop.size());
 
+  // Use an instruction block to test multi-instruction insertion.
+  std::vector<Instruction<X86_64>> nop_block;
+  nop_block.push_back(nop_insn);
+  nop_block.push_back(nop_insn);
+
   struct InsertTest {
     size_t index;
     bool steal;
     std::vector<uint8_t> result;
   } tests[] = {
-      {0, false, {0x90, 0x76, 0xfe, 0x77, 0xfe}},
-      {0, true, {0x90, 0x76, 0xfd, 0x77, 0xfe}},
-      {1, false, {0x76, 0xfe, 0x90, 0x77, 0xfe}},
-      {1, true, {0x76, 0xfe, 0x90, 0x77, 0xfd}},
-      {2, false, {0x76, 0xfe, 0x77, 0xfe, 0x90}},
-      {2, true, {0x76, 0xfe, 0x77, 0xfe, 0x90}},
+      {0, false, {0x90, 0x90, 0x76, 0xfe, 0x77, 0xfe}},
+      {0, true, {0x90, 0x90, 0x76, 0xfc, 0x77, 0xfe}},
+      {1, false, {0x76, 0xfe, 0x90, 0x90, 0x77, 0xfe}},
+      {1, true, {0x76, 0xfe, 0x90, 0x90, 0x77, 0xfc}},
+      {2, false, {0x76, 0xfe, 0x77, 0xfe, 0x90, 0x90}},
+      {2, true, {0x76, 0xfe, 0x77, 0xfe, 0x90, 0x90}},
   };
 
   for (const InsertTest& test : tests) {
     Program<X86_64> mut = p;
-    mut.InsertInstruction(test.index, test.steal, nop_insn);
+    mut.InsertInstructionBlock(test.index, test.steal, nop_block);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), test.result) << test.index << " " << test.steal;
     mut.CheckConsistency();
@@ -947,6 +952,61 @@ TEST(Program_X86_64, RemoveNearBranch) {
     mut.RemoveInstruction(test.index);
     mut.CheckConsistency();
     EXPECT_EQ(ToBytes(mut), test.result) << test.index;
+    mut.CheckConsistency();
+  }
+}
+
+TEST(Program_X86_64, OverwriteNearBranch) {
+  // JNE, JBE, then JA.
+  // JNE jumps to end.
+  // JBE jumps to beginning.
+  // JA jumps to JBE.
+  std::vector<uint8_t> bytes = {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc};
+  Program<X86_64> p(bytes.data(), bytes.size(), {}, true);
+
+  // Check bytes are interpreted as expected.
+  constexpr size_t kNumInstructions = 3;
+  ASSERT_EQ(p.NumInstructions(), kNumInstructions);
+  for (size_t i = 0; i < kNumInstructions; ++i) {
+    const Instruction<X86_64>& insn = p.GetInstruction(i);
+    EXPECT_EQ(insn.encoded.size(), 2);
+    EXPECT_TRUE(insn.direct_branch.valid());
+  }
+
+  // Can recover original program.
+  EXPECT_EQ(ToBytes(p), bytes);
+  p.CheckConsistency();
+
+  struct OverwriteTest {
+    size_t index;
+    size_t count;
+    std::vector<uint8_t> result;
+  } tests[] = {
+      {0, 0, {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc}},
+      {0, 1, {0x90, 0x76, 0xfd, 0x77, 0xfc}},
+      {0, 2, {0x90, 0x90, 0x77, 0xfd}},
+      {0, 3, {0x90, 0x90, 0x90}},
+      {1, 0, {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc}},
+      {1, 1, {0x75, 0x03, 0x90, 0x77, 0xfd}},
+      {1, 2, {0x75, 0x02, 0x90, 0x90}},
+      {2, 0, {0x75, 0x04, 0x76, 0xfc, 0x77, 0xfc}},
+      {2, 1, {0x75, 0x03, 0x76, 0xfc, 0x90}},
+  };
+
+  // Create NOP instruction.
+  std::vector<uint8_t> nop = {0x90};
+  Instruction<X86_64> nop_insn{};
+  nop_insn.encoded.Copy(nop.data(), nop.size());
+
+  for (const OverwriteTest& test : tests) {
+    std::vector<Instruction<X86_64>> block;
+    for (size_t i = 0; i < test.count; ++i) {
+      block.push_back(nop_insn);
+    }
+    Program<X86_64> mut = p;
+    mut.SetInstructionBlock(test.index, block);
+    mut.CheckConsistency();
+    EXPECT_EQ(ToBytes(mut), test.result) << test.index << " " << test.count;
     mut.CheckConsistency();
   }
 }
