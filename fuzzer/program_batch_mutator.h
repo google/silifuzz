@@ -17,10 +17,10 @@
 
 #include <cstddef>
 #include <limits>
-#include <random>
 #include <vector>
 
 #include "./fuzzer/program.h"
+#include "./fuzzer/program_mutator.h"
 
 namespace silifuzz {
 
@@ -28,18 +28,20 @@ template <typename Arch>
 class ProgramBatchMutator {
  public:
   ProgramBatchMutator(uint64_t seed,
-                      size_t max_len = std::numeric_limits<size_t>::max())
-      : rng_(seed), max_len_(max_len) {}
+                      size_t max_len = std::numeric_limits<size_t>::max());
 
   void Mutate(const std::vector<const std::vector<uint8_t> *> &inputs,
               size_t num_mutants, std::vector<std::vector<uint8_t>> &mutants);
 
  private:
   void GenerateSingleOutput(const Program<Arch> &input,
+                            const Program<Arch> &other,
                             std::vector<uint8_t> &output);
 
   MutatorRng rng_;
   size_t max_len_;
+
+  ProgramMutatorPtr<Arch> mutator_;
 };
 
 }  // namespace silifuzz

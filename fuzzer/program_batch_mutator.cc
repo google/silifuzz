@@ -17,70 +17,24 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <random>
 #include <vector>
 
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_mutation_ops.h"
+#include "./fuzzer/program_mutator.h"
 #include "./util/arch.h"
 
 namespace silifuzz {
 
 namespace {
 
-template <typename Arch>
-bool TrySingleMutation(MutatorRng& rng, Program<Arch>& program) {
-  // TODO(ncbray): swap instructions.
-  // TODO(ncbray): copy instruction from other program.
-  // TODO(ncbray): copy instruction from dictionary.
-  // TODO(ncbray): crossover.
-
-  // TODO(ncbray): how should these be weighted?
-  std::discrete_distribution<> d({10, 10, 10});
-
-  switch (d(rng)) {
-    case 0:
-      return InsertRandomInstruction(rng, program);
-    case 1:
-      return MutateRandomInstruction(rng, program);
-    case 2:
-      // TODO(ncbray): consider what the best policy is for randomly removing
-      // instructions.
-      // Removing instructions is tricky to get right.
-      // In general we want to grow larger, non-trivial inputs.
-      // On the other hand, we also want to aggressively garbage collect
-      // "uninteresting" instructions to prevent them from being copied along
-      // from input to input along with the interesting ones.
-      // How we balance growth vs. garbage collection TBD.
-      // For now, do not remove instructions if the program is small.
-      // This avoid cases where we remove all the instructions in a program and
-      // destroy 100% of the information the original input contained.
-      if (program.NumInstructions() < 3) {
-        return false;
-      }
-      return RemoveRandomInstruction(rng, program);
-    default:
-      return false;
-  }
-}
-
-template <typename Arch>
-void ApplySingleMutation(MutatorRng& rng, Program<Arch>& program) {
-  // Mutation operations may fail, retry a few times until we succeed.
-  for (size_t i = 0; i < 64; i++) {
-    if (TrySingleMutation(rng, program)) {
-      program.CheckConsistency();
-      return;
-    }
-  }
-}
-
 // Centipede expects that mutators will never produce outputs that are zero
 // bytes in length. Get out of this situation by adding random instructions.
 template <typename Arch>
 void AddInstructionIfZeroLength(MutatorRng& rng, Program<Arch>& program) {
+  InsertGeneratedInstruction<Arch> m;
   while (program.ByteLen() == 0) {
-    InsertRandomInstruction(rng, program);
+    m.Mutate(rng, program, program);
   }
 }
 
@@ -108,16 +62,51 @@ void FinalizeProgram(MutatorRng& rng, Program<Arch>& program, size_t max_len) {
 }  // namespace
 
 template <typename Arch>
+ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed, size_t max_len)
+    : rng_(seed), max_len_(max_len) {
+  // TODO(ncbray): swap instructions.
+  // TODO(ncbray): copy instruction from other program.
+  // TODO(ncbray): copy instruction from dictionary.
+  // TODO(ncbray): crossover.
+  // TODO(ncbray): how should these be weighted?
+  // TODO(ncbray): consider what the best policy is for randomly removing
+  // instructions.
+  // Removing instructions is tricky to get right.
+  // In general we want to grow larger, non-trivial inputs.
+  // On the other hand, we also want to aggressively garbage collect
+  // "uninteresting" instructions to prevent them from being copied along
+  // from input to input along with the interesting ones.
+  // How we balance growth vs. garbage collection TBD.
+  // For now, do not remove instructions if the program is small.
+  // This avoid cases where we remove all the instructions in a program and
+  // destroy 100% of the information the original input contained.
+  mutator_ = MoveIntoPtr(RepeatMutation<Arch>{
+      {0, 1, 1, 1},
+      RetryMutation<Arch>{128,
+                          SelectMutation<Arch>(
+                              Weighted{
+                                  .mutator = InsertGeneratedInstruction<Arch>{},
+                                  .weight = 1.0,
+                              },
+                              Weighted{
+                                  .mutator = MutateInstruction<Arch>{},
+                                  .weight = 1.0,
+                              },
+                              Weighted{
+                                  .mutator = DeleteInstruction<Arch>{3},
+                                  .weight = 1.0,
+                              })}});
+}
+
+template <typename Arch>
 void ProgramBatchMutator<Arch>::GenerateSingleOutput(
-    const Program<Arch>& input, std::vector<uint8_t>& output) {
+    const Program<Arch>& input, const Program<Arch>& other,
+    std::vector<uint8_t>& output) {
   // Copy
   Program<Arch> program = input;
 
   // Mutate
-  size_t num_mutations = std::uniform_int_distribution<size_t>{1, 3}(rng_);
-  for (size_t i = 0; i < num_mutations; ++i) {
-    ApplySingleMutation(rng_, program);
-  }
+  mutator_->Mutate(rng_, program, other);
 
   // Output
   FinalizeProgram(rng_, program, max_len_);
@@ -140,7 +129,8 @@ void ProgramBatchMutator<Arch>::Mutate(
   // Generate the requested mutants.
   for (size_t i = 0; i < num_mutants; ++i) {
     size_t base = RandomIndex(rng_, inputs.size());
-    GenerateSingleOutput(programs[base], mutants[i]);
+    size_t other = RandomIndex(rng_, inputs.size());
+    GenerateSingleOutput(programs[base], programs[other], mutants[i]);
   }
 }
 

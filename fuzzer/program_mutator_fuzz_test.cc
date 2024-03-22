@@ -23,6 +23,7 @@
 #include "fuzztest/fuzztest.h"
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_mutation_ops.h"
+#include "./fuzzer/program_mutator.h"
 #include "./util/arch.h"
 
 using ::fuzztest::Arbitrary;
@@ -110,16 +111,22 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
 
   // Do a mixture of mutation operations so that we have a decently-sized
   // program.
+  InsertGeneratedInstruction<Arch> insert;
   for (size_t i = 0; i < 2000; ++i) {
-    InsertRandomInstruction(rng, program);
+    insert.Mutate(rng, program, program);
   }
 
-  for (size_t i = 0; i < 1000; ++i) {
-    MutateRandomInstruction(rng, program);
-  }
-
-  for (size_t i = 0; i < 200; ++i) {
-    RemoveRandomInstruction(rng, program);
+  SelectMutation<Arch> mutate(
+      Weighted{
+          .mutator = MutateInstruction<Arch>(),
+          .weight = 1.0,
+      },
+      Weighted{
+          .mutator = DeleteInstruction<Arch>(),
+          .weight = 0.2,
+      });
+  for (size_t i = 0; i < 1200; ++i) {
+    mutate.Mutate(rng, program, program);
   }
 
   program.CheckConsistency();
@@ -159,8 +166,9 @@ void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   Program<Arch> program(data, config, false);
 
   // Generate a random program.
+  InsertGeneratedInstruction<Arch> insert;
   for (size_t i = 0; i < 1000; ++i) {
-    InsertRandomInstruction(rng, program);
+    insert.Mutate(rng, program, program);
   }
 
   // This should canonicalize most branches.
@@ -196,6 +204,11 @@ void MaxLenTest_X86_64(uint64_t seed, const std::vector<uint8_t> &data) {
 // Needed to work around FUZZ_TEST macro limitations.
 void MaxLenTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
   MaxLenTest<AArch64>(seed, data);
+}
+
+TEST(FuzzProgramMutator,
+     MutationTest_AArch64_UBSAN_Alignment_Check_Regression) {
+  MutationTest_AArch64(18446744073709551615ULL, fuzztest::ToByteArray(""));
 }
 
 FUZZ_TEST(FuzzProgramMutator, RoundtripTest_X86_64)

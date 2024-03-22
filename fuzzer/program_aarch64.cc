@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
@@ -165,7 +166,11 @@ bool InstructionFromBytes(const uint8_t* bytes, size_t num_bytes,
     CapstoneDisassembler<AArch64> disassembler;
     if (!disassembler.Disassemble(0x0, bytes, num_bytes)) return false;
   }
-  uint32_t insn_word = *reinterpret_cast<const uint32_t*>(bytes);
+
+  uint32_t insn_word;
+  // "bytes" may be misaligned so we need to memcpy.
+  memcpy(&insn_word, bytes, 4);
+
   instruction.direct_branch =
       GetDirectBranchInfo(insn_word, config.displacement_fixup_limit);
 

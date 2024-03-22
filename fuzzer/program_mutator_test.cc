@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "./fuzzer/program_mutator.h"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -206,6 +208,95 @@ TEST(MutatorUtil, FlipRandomBit) {
     // Did we flip every bit in the target bytes?
     EXPECT_EQ(all_bits, (1ULL << (range * 8)) - 1) << range;
   }
+}
+
+TEST(ProgramMutator, DeleteInstruction) {
+  MutatorRng rng;
+  Program<AArch64> p(
+      FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
+  EXPECT_EQ(p.NumInstructions(), 4);
+  DeleteInstruction<AArch64> m{};
+
+  // Delete each instruction.
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 3);
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 2);
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 1);
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 0);
+
+  // Can't delete any more.
+  EXPECT_FALSE(m.Mutate(rng, p, p));
+}
+
+TEST(ProgramMutator, DeleteInstructionLimit) {
+  MutatorRng rng;
+  Program<AArch64> p(FromInts({kAArch64NOP, kAArch64NOP}));
+  EXPECT_EQ(p.NumInstructions(), 2);
+  DeleteInstruction<AArch64> m{1};
+
+  // Delete first instruction.
+  EXPECT_TRUE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 1);
+
+  // Can't delete the last instruction due to the limit.
+  EXPECT_FALSE(m.Mutate(rng, p, p));
+  EXPECT_EQ(p.NumInstructions(), 1);
+}
+
+TEST(ProgramMutator, RepeatedDeleteInstruction) {
+  MutatorRng rng;
+  Program<AArch64> p(
+      FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
+  EXPECT_EQ(p.NumInstructions(), 4);
+  RepeatMutation<AArch64> m{{0, 0, 0, 1}, DeleteInstruction<AArch64>{}};
+  m.Mutate(rng, p, p);
+  EXPECT_EQ(p.NumInstructions(), 1);
+}
+
+TEST(ProgramMutator, RepeatedSelectDeleteInstruction) {
+  MutatorRng rng;
+  Program<AArch64> p(
+      FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
+  EXPECT_EQ(p.NumInstructions(), 4);
+  RepeatMutation<AArch64> m{
+      {0, 0, 0, 1},
+      SelectMutation<AArch64>(
+          Weighted{
+              .mutator = InsertGeneratedInstruction<AArch64>{},
+              .weight = 0.0,
+          },
+          Weighted{
+              .mutator = DeleteInstruction<AArch64>{},
+              .weight = 1.0,
+          })};
+  m.Mutate(rng, p, p);
+  EXPECT_EQ(p.NumInstructions(), 1);
+}
+
+TEST(ProgramMutator, RepeatedSelectInsertGeneratedInstruction) {
+  MutatorRng rng;
+  Program<AArch64> p(
+      FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
+  EXPECT_EQ(p.NumInstructions(), 4);
+  RepeatMutation<AArch64> m{
+      {0, 0, 0, 1},
+      SelectMutation<AArch64>(
+          Weighted{
+              .mutator = InsertGeneratedInstruction<AArch64>{},
+              .weight = 1.0,
+          },
+          Weighted{
+              .mutator = DeleteInstruction<AArch64>{},
+              .weight = 0.0,
+          })};
+  m.Mutate(rng, p, p);
+
+  // InsertGenerateInstruction may not always succeed, so accept a range.
+  EXPECT_GE(p.NumInstructions(), 4);
+  EXPECT_LE(p.NumInstructions(), 7);
 }
 
 TEST(InstructionFromBytes_X86_64, Copy) {

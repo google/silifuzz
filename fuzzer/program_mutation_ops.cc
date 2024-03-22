@@ -125,8 +125,8 @@ template void CopyOrRandomizeInstructionDisplacementBoundaries(
     Instruction<AArch64>& mutated, size_t num_boundaries);
 
 template <typename Arch>
-bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
-                       Instruction<Arch>& mutated) {
+bool MutateSingleInstruction(MutatorRng& rng, const Instruction<Arch>& original,
+                             Instruction<Arch>& mutated) {
   InstructionByteBuffer<Arch> bytes;
   size_t num_old_bytes = original.encoded.size();
 
@@ -166,15 +166,15 @@ bool MutateInstruction(MutatorRng& rng, const Instruction<Arch>& original,
   return false;
 }
 
-template bool MutateInstruction(MutatorRng& rng,
-                                const Instruction<X86_64>& original,
-                                Instruction<X86_64>& mutated);
-template bool MutateInstruction(MutatorRng& rng,
-                                const Instruction<AArch64>& original,
-                                Instruction<AArch64>& mutated);
+template bool MutateSingleInstruction(MutatorRng& rng,
+                                      const Instruction<X86_64>& original,
+                                      Instruction<X86_64>& mutated);
+template bool MutateSingleInstruction(MutatorRng& rng,
+                                      const Instruction<AArch64>& original,
+                                      Instruction<AArch64>& mutated);
 
 template <typename Arch>
-bool GenerateRandomInstruction(MutatorRng& rng,
+bool GenerateSingleInstruction(MutatorRng& rng,
                                Instruction<Arch>& instruction) {
   InstructionByteBuffer<Arch> bytes;
   // It may take us a few tries to find a random set of bytes that decompile.
@@ -187,32 +187,10 @@ bool GenerateRandomInstruction(MutatorRng& rng,
   return false;
 }
 
-template bool GenerateRandomInstruction(MutatorRng& rng,
+template bool GenerateSingleInstruction(MutatorRng& rng,
                                         Instruction<X86_64>& instruction);
-template bool GenerateRandomInstruction(MutatorRng& rng,
+template bool GenerateSingleInstruction(MutatorRng& rng,
                                         Instruction<AArch64>& instruction);
-
-template <typename Arch>
-bool InsertRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
-  Instruction<Arch> insn;
-  bool success = GenerateRandomInstruction(rng, insn);
-  if (!success) return false;
-
-  // Inserting the instruction will increase the number of potential instruction
-  // boundaries by one.
-  RandomizeInstructionDisplacementBoundaries(
-      rng, insn, program.NumInstructionBoundaries() + 1);
-
-  size_t insert_boundary = program.RandomInstructionBoundary(rng);
-  bool steal_displacements = RandomIndex(rng, 2);
-  program.InsertInstruction(insert_boundary, steal_displacements, insn);
-  return true;
-}
-
-template bool InsertRandomInstruction(MutatorRng& rng,
-                                      Program<X86_64>& program);
-template bool InsertRandomInstruction(MutatorRng& rng,
-                                      Program<AArch64>& program);
 
 void FlipBit(uint8_t* buffer, size_t bit) {
   buffer[bit >> 3] ^= 1 << (bit & 0b111);
@@ -222,53 +200,15 @@ void FlipRandomBit(MutatorRng& rng, uint8_t* buffer, size_t buffer_size) {
   FlipBit(buffer, RandomIndex(rng, buffer_size * 8));
 }
 
-template <typename Arch>
-bool MutateRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
-  // Is there anything to mutate?
-  if (program.NumInstructions() == 0) return false;
-
-  // Select a random instruction.
-  size_t target = program.RandomInstructionIndex(rng);
-  const Instruction<Arch>& original = program.GetInstruction(target);
-
-  Instruction<Arch> mutated{};
-  if (MutateInstruction(rng, original, mutated)) {
-    CopyOrRandomizeInstructionDisplacementBoundaries(
-        rng, original, mutated, program.NumInstructionBoundaries());
-    program.SetInstruction(target, mutated);
-    return true;
-  }
-  return false;
-}
-
-template bool MutateRandomInstruction(MutatorRng& rng,
-                                      Program<X86_64>& program);
-template bool MutateRandomInstruction(MutatorRng& rng,
-                                      Program<AArch64>& program);
-
-template <typename Arch>
-bool RemoveRandomInstruction(MutatorRng& rng, Program<Arch>& program) {
-  // Is there anything to remove?
-  if (program.NumInstructions() == 0) return false;
-
-  size_t victim = program.RandomInstructionIndex(rng);
-  program.RemoveInstruction(victim);
-  return true;
-}
-
-template bool RemoveRandomInstruction(MutatorRng& rng,
-                                      Program<X86_64>& program);
-template bool RemoveRandomInstruction(MutatorRng& rng,
-                                      Program<AArch64>& program);
-
 // Throw away instruction until we're under the length limit.
 template <typename Arch>
 bool LimitProgramLength(MutatorRng& rng, Program<Arch>& program,
                         size_t max_len) {
   bool modified = false;
+  DeleteInstruction<Arch> m;
   while (program.ByteLen() > max_len) {
     CHECK_GT(program.NumInstructions(), 0);
-    RemoveRandomInstruction(rng, program);
+    m.Mutate(rng, program, program);
     modified = true;
   }
   return modified;

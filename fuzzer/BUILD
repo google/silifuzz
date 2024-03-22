@@ -30,6 +30,7 @@ cc_library(
         "program_arch.h",
         "program_batch_mutator.h",
         "program_mutation_ops.h",
+        "program_mutator.h",
     ],
     deps = [
         "@silifuzz//instruction:capstone_disassembler",
