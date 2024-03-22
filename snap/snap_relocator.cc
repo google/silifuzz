@@ -168,7 +168,7 @@ SnapRelocatorError SnapRelocator<Arch>::RelocateMemoryBytesArray(
 
 template <typename Arch>
 SnapRelocatorError SnapRelocator<Arch>::RelocateRegisterState(
-    Snap<Arch>::RegisterState& register_state) {
+    typename Snap<Arch>::RegisterState& register_state) {
   RETURN_IF_RELOCATION_FAILED(AdjustPointer(register_state.fpregs));
   RETURN_IF_RELOCATION_FAILED(AdjustPointer(register_state.gregs));
   return SnapRelocatorError::kOk;

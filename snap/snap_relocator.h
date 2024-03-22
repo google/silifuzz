@@ -102,7 +102,7 @@ class SnapRelocator {
   // RETURNS: whether relocation succeeded. If it failed, contents of
   // `register_state` are undefined.
   SnapRelocatorError RelocateRegisterState(
-      Snap<Arch>::RegisterState& register_state);
+      typename Snap<Arch>::RegisterState& register_state);
 
   // Relocates corpus by adjusting all pointers inside the corpus.
   // If `verify` is true, calculate and verify the corpus checksum before
