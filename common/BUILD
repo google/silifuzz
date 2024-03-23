@@ -267,6 +267,7 @@ cc_library(
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
     ],
 )

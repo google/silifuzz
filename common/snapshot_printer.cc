@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/log/log.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
