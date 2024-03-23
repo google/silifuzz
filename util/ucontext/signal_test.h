@@ -19,8 +19,10 @@
 
 #include <cstdint>
 
+#include "./util/arch.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 

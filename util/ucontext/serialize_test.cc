@@ -21,7 +21,9 @@
 #include <type_traits>
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {

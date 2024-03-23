@@ -324,6 +324,8 @@ cc_test(
     deps = [
         ":serialize",
         ":ucontext",
+        ":ucontext_types",
+        "@silifuzz//util:arch",
         "@com_google_googletest//:gtest_main",
     ],
 )
