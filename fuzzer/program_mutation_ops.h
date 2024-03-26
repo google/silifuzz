@@ -16,6 +16,8 @@
 #define THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_MUTATION_OPS_H_
 
 #include <cstddef>
+#include <cstdint>
+#include <vector>
 
 #include "./fuzzer/program.h"
 #include "./fuzzer/program_mutator.h"
@@ -43,6 +45,31 @@ template <typename Arch>
 void CopyOrRandomizeInstructionDisplacementBoundaries(
     MutatorRng& rng, const Instruction<Arch>& original,
     Instruction<Arch>& mutated, size_t num_boundaries);
+
+// Shift the instruction displacement boundaries of `instruction` so that the
+// relative displacements are same after the instruction's index has shifted to
+// index + `index_offset`. This is done by also shifting the displacements by
+// `index_offset`.
+// If keeping the new displacement no longer points to a valid instruction
+// boundary, randomize the displacement to point to a valid boundary.
+// This function is used when we want to copy one or more instructions from
+// somewhere and we want to ensure the displacements of the copied instructions
+// have the same relative shape when placed at their new location rather than
+// preserving the absolute values.
+template <typename Arch>
+void ShiftOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<Arch>& instruction, int64_t index_offset,
+    size_t num_boundaries);
+
+template <typename Arch>
+void ShiftOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, std::vector<Instruction<Arch>>& block,
+    int64_t index_offset, size_t num_boundaries) {
+  for (Instruction<Arch>& instruction : block) {
+    ShiftOrRandomizeInstructionDisplacementBoundaries(
+        rng, instruction, index_offset, num_boundaries);
+  }
+}
 
 // Insert a randomly generated instruction at a random boundary in the program.
 template <typename Arch>
@@ -157,6 +184,85 @@ class SwapInstructions : public ProgramMutator<Arch> {
   }
 };
 
+// Copy a random chunk from the other program and insert it at a random
+// instruction boundary.
+template <typename Arch>
+class CrossoverInsert : public ProgramMutator<Arch> {
+ public:
+  CrossoverInsert() {}
+
+  bool Mutate(MutatorRng& rng, Program<Arch>& program,
+              const Program<Arch>& other) override {
+    // Is there anything to crossover with?
+    if (other.NumInstructions() == 0) return false;
+
+    // Determine how much of the other program we want to copy.
+    // src_size = [1, NumInstructions()]
+    size_t max_size = other.NumInstructions();
+    size_t src_size = RandomIndex(rng, max_size) + 1;
+    size_t src_index = RandomIndex(rng, other.NumInstructions() - src_size + 1);
+
+    // We must copy because `program` and `other` can be aliased.
+    std::vector<Instruction<Arch>> block =
+        other.CopyInstructionBlock(src_index, src_size);
+
+    // Determine where we want to insert the block.
+    size_t dst_boundary = program.RandomInstructionBoundary(rng);
+
+    // Fixup the branch displacements of the copied instructions.
+    int64_t index_offset = (int64_t)dst_boundary - (int64_t)src_index;
+    ShiftOrRandomizeInstructionDisplacementBoundaries(
+        rng, block, index_offset,
+        program.NumInstructionBoundaries() + block.size());
+
+    // Insert.
+    bool steal_displacements = RandomIndex(rng, 2);
+    program.InsertInstructionBlock(dst_boundary, steal_displacements, block);
+    return true;
+  }
+};
+
+// Copy a random chunk from the other program and overwrite the current program
+// at a random instruction idnex.
+template <typename Arch>
+class CrossoverOverwrite : public ProgramMutator<Arch> {
+ public:
+  CrossoverOverwrite() {}
+
+  bool Mutate(MutatorRng& rng, Program<Arch>& program,
+              const Program<Arch>& other) override {
+    // Is there anything to overwrite?
+    if (program.NumInstructions() == 0) return false;
+
+    // Is there anything to crossover with?
+    if (other.NumInstructions() == 0) return false;
+
+    // Determine how much of the other program we want to copy.
+    // We do not want to overwrite more than half the current program and cannot
+    // copy more from the other program than exists.
+    size_t max_size = std::min(std::max(1UL, program.NumInstructions() / 2),
+                               other.NumInstructions());
+    size_t src_size = RandomIndex(rng, max_size) + 1;
+    size_t src_index = RandomIndex(rng, other.NumInstructions() - src_size + 1);
+
+    // We must copy because `program` and `other` can be aliased.
+    std::vector<Instruction<Arch>> block =
+        other.CopyInstructionBlock(src_index, src_size);
+
+    // Determine where we want to insert the block.
+    size_t dst_index =
+        RandomIndex(rng, program.NumInstructions() - block.size() + 1);
+
+    // Fixup the branch displacements of the copied instructions.
+    int64_t index_offset = (int64_t)dst_index - (int64_t)src_index;
+    ShiftOrRandomizeInstructionDisplacementBoundaries(
+        rng, block, index_offset, program.NumInstructionBoundaries());
+
+    // Overwrite.
+    program.SetInstructionBlock(dst_index, block);
+    return true;
+  }
+};
 // Remove instructions until `program.NumBytes()` <= `max_len`.
 // Returns `true` if the program was modified.
 template <typename Arch>

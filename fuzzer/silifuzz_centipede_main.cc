@@ -43,8 +43,10 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
   SilifuzzCentipedeCallbacks(const centipede::Environment &env)
       : CentipedeDefaultCallbacks(env),
         arch_(absl::GetFlag(FLAGS_arch)),
-        x86_64_mutator_(centipede::GetRandomSeed(env.seed), env.max_len),
-        aarch64_mutator_(centipede::GetRandomSeed(env.seed), env.max_len) {}
+        x86_64_mutator_(centipede::GetRandomSeed(env.seed),
+                        env.crossover_level / 100.0, env.max_len),
+        aarch64_mutator_(centipede::GetRandomSeed(env.seed),
+                         env.crossover_level / 100.0, env.max_len) {}
 
   void Mutate(const std::vector<centipede::MutationInputRef> &inputs,
               size_t num_mutants, std::vector<centipede::ByteArray> &mutants) {

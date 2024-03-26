@@ -14,6 +14,7 @@
 
 #include "./fuzzer/program_batch_mutator.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -62,12 +63,14 @@ void FinalizeProgram(MutatorRng& rng, Program<Arch>& program, size_t max_len) {
 }  // namespace
 
 template <typename Arch>
-ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed, size_t max_len)
+ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed,
+                                               double crossover_weight,
+                                               size_t max_len)
     : rng_(seed), max_len_(max_len) {
-  // TODO(ncbray): swap instructions.
-  // TODO(ncbray): copy instruction from other program.
+  // Clamp the crossover weight to [0.0, 1.0]
+  crossover_weight = std::max(std::min(crossover_weight, 1.0), 0.0);
+
   // TODO(ncbray): copy instruction from dictionary.
-  // TODO(ncbray): crossover.
   // TODO(ncbray): how should these be weighted?
   // TODO(ncbray): consider what the best policy is for randomly removing
   // instructions.
@@ -80,14 +83,22 @@ ProgramBatchMutator<Arch>::ProgramBatchMutator(uint64_t seed, size_t max_len)
   // For now, do not remove instructions if the program is small.
   // This avoid cases where we remove all the instructions in a program and
   // destroy 100% of the information the original input contained.
-  mutator_ = MoveIntoPtr(RepeatMutation<Arch>{
-      {0, 1, 1, 1},
-      RetryMutation<Arch>{128,
-                          SelectMutation<Arch>(
-                              Weighted(1.0, InsertGeneratedInstruction<Arch>{}),
-                              Weighted(1.0, MutateInstruction<Arch>{}),
-                              Weighted(1.0, SwapInstructions<Arch>{}),
-                              Weighted(1.0, DeleteInstruction<Arch>{3}))}});
+  mutator_ = MoveIntoPtr(RetryMutation<Arch>{
+      128,
+      SelectMutation<Arch>(
+          Weighted(
+              1.0 - crossover_weight,
+              RepeatMutation<Arch>{
+                  {0, 1, 1, 1},
+                  RetryMutation<Arch>{
+                      128,
+                      SelectMutation<Arch>(
+                          Weighted(1.0, InsertGeneratedInstruction<Arch>{}),
+                          Weighted(1.0, MutateInstruction<Arch>{}),
+                          Weighted(1.0, SwapInstructions<Arch>{}),
+                          Weighted(1.0, DeleteInstruction<Arch>{3}))}}),
+          Weighted(0.5 * crossover_weight, CrossoverInsert<Arch>{}),
+          Weighted(0.5 * crossover_weight, CrossoverOverwrite<Arch>{}))});
 }
 
 template <typename Arch>

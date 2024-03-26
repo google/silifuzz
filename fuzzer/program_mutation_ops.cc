@@ -90,6 +90,19 @@ void CopyOrRandomizeInstructionDisplacementBoundary(
   }
 }
 
+void ShiftOrRandomizeInstructionDisplacementBoundary(
+    MutatorRng& rng, InstructionDisplacementInfo& info, int64_t index_offset,
+    size_t num_boundaries) {
+  if (info.valid()) {
+    int64_t shifted = (int64_t)info.instruction_boundary + index_offset;
+    // If the shifted value is out of bounds, randomize it.
+    if (shifted < 0 || shifted >= num_boundaries) {
+      shifted = RandomIndex(rng, num_boundaries);
+    }
+    info.instruction_boundary = (size_t)shifted;
+  }
+}
+
 }  // namespace
 
 // This function tries to determine which instruction each displacement of a
@@ -123,6 +136,21 @@ template void CopyOrRandomizeInstructionDisplacementBoundaries(
 template void CopyOrRandomizeInstructionDisplacementBoundaries(
     MutatorRng& rng, const Instruction<AArch64>& original,
     Instruction<AArch64>& mutated, size_t num_boundaries);
+
+template <typename Arch>
+void ShiftOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<Arch>& instruction, int64_t index_offset,
+    size_t num_boundaries) {
+  ShiftOrRandomizeInstructionDisplacementBoundary(
+      rng, instruction.direct_branch, index_offset, num_boundaries);
+}
+
+template void ShiftOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<X86_64>& instruction, int64_t index_offset,
+    size_t num_boundaries);
+template void ShiftOrRandomizeInstructionDisplacementBoundaries(
+    MutatorRng& rng, Instruction<AArch64>& instruction, int64_t index_offset,
+    size_t num_boundaries);
 
 template <typename Arch>
 bool MutateSingleInstruction(MutatorRng& rng, const Instruction<Arch>& original,

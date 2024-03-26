@@ -232,6 +232,13 @@ class Program {
     return instructions_[index];
   }
 
+  std::vector<Instruction<Arch>> CopyInstructionBlock(size_t index,
+                                                      size_t size) const {
+    CHECK_LE(index + size, instructions_.size());
+    return std::vector<Instruction<Arch>>(instructions_.begin() + index,
+                                          instructions_.begin() + index + size);
+  }
+
   // Overwrite the instruction at `index` with `insn`.
   void SetInstruction(size_t index, const Instruction<Arch>& insn) {
     SetInstructionBlock(index, absl::Span(&insn, 1));

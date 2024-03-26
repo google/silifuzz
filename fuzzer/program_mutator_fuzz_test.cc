@@ -123,6 +123,11 @@ void MutationTest(uint64_t seed, const std::vector<uint8_t> &data) {
     mutate.Mutate(rng, program, program);
   }
 
+  CrossoverOverwrite<Arch> overwrite;
+  for (size_t i = 0; i < 50; ++i) {
+    overwrite.Mutate(rng, program, program);
+  }
+
   program.CheckConsistency();
 
   program.FixupEncodedDisplacements(rng);

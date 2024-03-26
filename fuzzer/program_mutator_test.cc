@@ -220,6 +220,40 @@ TEST(MutatorUtil, FlipRandomBit) {
   }
 }
 
+TEST(MutatorUtil, ShiftBoundaries) {
+  Program<AArch64> p(
+      FromInts({kAArch64NOP, kAArch64TbzSelf, kAArch64TbzNext, kAArch64NOP}));
+
+  size_t src_index = 1;
+
+  // Copy the branches.
+  std::vector<Instruction<AArch64>> block =
+      p.CopyInstructionBlock(src_index, 2);
+  ASSERT_EQ(block.size(), 2);
+
+  size_t dst_index = 0;
+
+  // Correct the displacements.
+  MutatorRng rng(0);
+  ShiftOrRandomizeInstructionDisplacementBoundaries(
+      rng, block, (int64_t)dst_index - (int64_t)src_index, 3);
+
+  Program<AArch64> mut;
+
+  // Insert two nops.
+  mut.InsertInstructionBlock(0, false, p.CopyInstructionBlock(0, 1));
+  ASSERT_EQ(mut.NumInstructions(), 1);
+  mut.InsertInstructionBlock(0, false, p.CopyInstructionBlock(0, 1));
+  ASSERT_EQ(mut.NumInstructions(), 2);
+
+  // Insert the branches.
+  mut.InsertInstructionBlock(dst_index, false, block);
+  ASSERT_EQ(mut.NumInstructions(), 4);
+
+  EXPECT_EQ(ToBytes(mut), FromInts({kAArch64TbzSelf, kAArch64TbzNext,
+                                    kAArch64NOP, kAArch64NOP}));
+}
+
 TEST(ProgramMutator, DeleteInstruction) {
   MutatorRng rng;
   Program<AArch64> p(
@@ -310,6 +344,26 @@ TEST(ProgramMutator, RepeatedSelectInsertGeneratedInstruction) {
   // InsertGenerateInstruction may not always succeed, so accept a range.
   EXPECT_GE(p.NumInstructions(), 4);
   EXPECT_LE(p.NumInstructions(), 7);
+}
+
+TEST(ProgramMutator, CrossoverInsert) {
+  MutatorRng rng;
+  Program<AArch64> p;
+  Program<AArch64> other(FromInts({kAArch64TbzSelf}));
+  CrossoverInsert<AArch64> m{};
+
+  EXPECT_TRUE(m.Mutate(rng, p, other));
+  EXPECT_EQ(p.NumInstructions(), 1);
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64TbzSelf}));
+
+  EXPECT_TRUE(m.Mutate(rng, p, other));
+  EXPECT_EQ(p.NumInstructions(), 2);
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64TbzSelf, kAArch64TbzSelf}));
+
+  EXPECT_TRUE(m.Mutate(rng, p, other));
+  EXPECT_EQ(p.NumInstructions(), 3);
+  EXPECT_EQ(ToBytes(p),
+            FromInts({kAArch64TbzSelf, kAArch64TbzSelf, kAArch64TbzSelf}));
 }
 
 TEST(InstructionFromBytes_X86_64, Copy) {

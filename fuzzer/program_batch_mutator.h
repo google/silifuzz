@@ -27,7 +27,11 @@ namespace silifuzz {
 template <typename Arch>
 class ProgramBatchMutator {
  public:
-  ProgramBatchMutator(uint64_t seed,
+  // `seed` is used to initialized the mutator's RNG.
+  // `crossover_weight` determines how much crossover the mutator performs.
+  // 0.0 => no crossover / 1.0 => only crossover
+  // `max_len` is the largest size (in bytes) that the output should be.
+  ProgramBatchMutator(uint64_t seed, double crossover_weight,
                       size_t max_len = std::numeric_limits<size_t>::max());
 
   void Mutate(const std::vector<const std::vector<uint8_t> *> &inputs,
