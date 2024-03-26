@@ -19,8 +19,10 @@
 #include <cstddef>
 #include <cstring>
 
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
