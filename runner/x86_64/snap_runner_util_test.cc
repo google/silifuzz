@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./runner/endspot.h"
 #include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
 #include "./util/arch.h"
