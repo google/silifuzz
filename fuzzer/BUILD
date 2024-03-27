@@ -76,6 +76,7 @@ cc_binary(
         ":program_mutator",
         "@silifuzz//util:arch",
         "@silifuzz//util:enum_flag_types",
+        "@silifuzz//util:itoa",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:flags",

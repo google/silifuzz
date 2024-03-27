@@ -17,6 +17,7 @@
 #   in them and thus could be potentially moved/usable elsewhere.
 #   Contrast with silifuzz/common.
 
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load(
     "@silifuzz//util:nolibc.bzl",
     "cc_binary_nolibc",
@@ -24,7 +25,6 @@ load(
     "cc_test_nolibc",
     "cc_test_plus_nolibc",
 )
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 
 package(default_visibility = ["//visibility:public"])
 

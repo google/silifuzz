@@ -16,8 +16,8 @@
 #   All SiliFuzz ptotocol messages are to live here.
 #   Exceptions are example or for-test protos with very local usage scope.
 
-load("@rules_python//python:proto.bzl", "py_proto_library")
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = ["//visibility:public"])
 

@@ -30,6 +30,7 @@
 #include "./fuzzer/program_batch_mutator.h"
 #include "./util/arch.h"
 #include "./util/enum_flag_types.h"
+#include "./util/itoa.h"
 
 ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
           "Architecture for instruction-aware fuzzing.");
@@ -92,6 +93,7 @@ int main(int argc, char **argv) {
   const auto runtime_state = centipede::config::InitCentipede(argc, argv);
   centipede::Environment env =
       centipede::CreateEnvironmentFromFlags(runtime_state->leftover_argv());
+  LOG(INFO) << "Mutator arch: " << silifuzz::EnumStr(absl::GetFlag(FLAGS_arch));
   centipede::DefaultCallbacksFactory<silifuzz::SilifuzzCentipedeCallbacks>
       callbacks;
   return CentipedeMain(env, callbacks);
