@@ -61,7 +61,7 @@ std::vector<uint8_t> FromInts(std::vector<uint32_t>&& data) {
 
 template <typename Arch>
 std::vector<uint8_t> ToBytes(Program<Arch>& program) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   program.FixupEncodedDisplacements(rng);
 
   std::vector<uint8_t> out;
@@ -255,7 +255,7 @@ TEST(MutatorUtil, ShiftBoundaries) {
 }
 
 TEST(ProgramMutator, DeleteInstruction) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(
       FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
   EXPECT_EQ(p.NumInstructions(), 4);
@@ -276,7 +276,7 @@ TEST(ProgramMutator, DeleteInstruction) {
 }
 
 TEST(ProgramMutator, DeleteInstructionLimit) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(FromInts({kAArch64NOP, kAArch64NOP}));
   EXPECT_EQ(p.NumInstructions(), 2);
   DeleteInstruction<AArch64> m{1};
@@ -291,7 +291,7 @@ TEST(ProgramMutator, DeleteInstructionLimit) {
 }
 
 TEST(ProgramMutator, SwapInstructions) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(FromInts({kAArch64NOP, kAArch64TbzSelf}));
   EXPECT_EQ(p.NumInstructions(), 2);
   SwapInstructions<AArch64> m{};
@@ -306,7 +306,7 @@ TEST(ProgramMutator, SwapInstructions) {
 }
 
 TEST(ProgramMutator, RepeatedDeleteInstruction) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(
       FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
   EXPECT_EQ(p.NumInstructions(), 4);
@@ -316,7 +316,7 @@ TEST(ProgramMutator, RepeatedDeleteInstruction) {
 }
 
 TEST(ProgramMutator, RepeatedSelectDeleteInstruction) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(
       FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
   EXPECT_EQ(p.NumInstructions(), 4);
@@ -330,7 +330,7 @@ TEST(ProgramMutator, RepeatedSelectDeleteInstruction) {
 }
 
 TEST(ProgramMutator, RepeatedSelectInsertGeneratedInstruction) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p(
       FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP, kAArch64NOP}));
   EXPECT_EQ(p.NumInstructions(), 4);
@@ -347,23 +347,22 @@ TEST(ProgramMutator, RepeatedSelectInsertGeneratedInstruction) {
 }
 
 TEST(ProgramMutator, CrossoverInsert) {
-  MutatorRng rng;
+  MutatorRng rng(0);
   Program<AArch64> p;
-  Program<AArch64> other(FromInts({kAArch64TbzSelf}));
+  Program<AArch64> other(FromInts({kAArch64NOP}));
   CrossoverInsert<AArch64> m{};
 
   EXPECT_TRUE(m.Mutate(rng, p, other));
   EXPECT_EQ(p.NumInstructions(), 1);
-  EXPECT_EQ(ToBytes(p), FromInts({kAArch64TbzSelf}));
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64NOP}));
 
   EXPECT_TRUE(m.Mutate(rng, p, other));
   EXPECT_EQ(p.NumInstructions(), 2);
-  EXPECT_EQ(ToBytes(p), FromInts({kAArch64TbzSelf, kAArch64TbzSelf}));
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64NOP, kAArch64NOP}));
 
   EXPECT_TRUE(m.Mutate(rng, p, other));
   EXPECT_EQ(p.NumInstructions(), 3);
-  EXPECT_EQ(ToBytes(p),
-            FromInts({kAArch64TbzSelf, kAArch64TbzSelf, kAArch64TbzSelf}));
+  EXPECT_EQ(ToBytes(p), FromInts({kAArch64NOP, kAArch64NOP, kAArch64NOP}));
 }
 
 TEST(InstructionFromBytes_X86_64, Copy) {
