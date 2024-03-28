@@ -52,9 +52,11 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
   void Mutate(const std::vector<centipede::MutationInputRef> &inputs,
               size_t num_mutants, std::vector<centipede::ByteArray> &mutants) {
     // Fall back to the byte mutator if the architecture was not specified.
-    if (arch_ == ArchitectureId::kUndefined)
+    if (arch_ == ArchitectureId::kUndefined) {
       centipede::CentipedeDefaultCallbacks::Mutate(inputs, num_mutants,
                                                    mutants);
+      return;
+    }
 
     // Init
     mutants.resize(num_mutants);
