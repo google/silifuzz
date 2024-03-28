@@ -72,7 +72,7 @@ SSE4_2_TARGET_ATTRIBUTE uint32_t crc32c_accelerated_impl(uint32_t seed,
     data += bytes;
   }
 
-  while (n > sizeof(uint64_t)) {
+  while (n >= sizeof(uint64_t)) {
     value = CRC32CFunctions::crc32c_uint64(
         value, *reinterpret_cast<const uint64_t*>(data));
     n -= sizeof(uint64_t);
