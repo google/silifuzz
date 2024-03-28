@@ -67,11 +67,9 @@ cc_test(
     ],
 )
 
-cc_binary(
-    name = "silifuzz_centipede",
-    srcs = [
-        "silifuzz_centipede_main.cc",
-    ],
+cc_library(
+    name = "silifuzz_centipede_main",
+    srcs = ["silifuzz_centipede_main.cc"],
     deps = [
         ":program_mutator",
         "@silifuzz//util:arch",
@@ -89,5 +87,12 @@ cc_binary(
         "@com_google_fuzztest//centipede:environment_flags",
         "@com_google_fuzztest//centipede:mutation_input",
         "@com_google_fuzztest//centipede:util",
+    ],
+)
+
+cc_binary(
+    name = "silifuzz_centipede",
+    deps = [
+        ":silifuzz_centipede_main",
     ],
 )
