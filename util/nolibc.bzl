@@ -33,7 +33,9 @@ NOLIBC_COPTS = [
     "-fno-rtti",  # reduced size/deps
     "-fno-builtin",
 ] + select({
-    "@silifuzz//build_defs/platform:x86_64": X86_NO_VECTOR_INSN_COPTS,
+    # TODO(b/332400982): Restore the setting or clean up depending on the result
+    # of the experiment in qpool.
+    # "@silifuzz//build_defs/platform:x86_64": X86_NO_VECTOR_INSN_COPTS,
     "//conditions:default": [],
 })
 
