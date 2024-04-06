@@ -25,6 +25,7 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
     ],
@@ -49,6 +50,7 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:subprocess",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
