@@ -21,6 +21,45 @@
 
 namespace silifuzz {
 
+namespace {
+
+// This is used in the runner to check that memory contents are
+// equal. It is optimized for the positive case.
+template <bool compare_with_zero>
+bool MemAllEqualToImpl(const void* src, uint8_t c, size_t n) {
+  // Specialize for zero comparison. We expect a compiler to do constant
+  // propagation and then optimize away the XORs below. Doing so reduces the
+  // number of vector logical ops per 16 bytes from 4 to 2 on both x86 and
+  // aarch64.
+  if (compare_with_zero) {
+    c = 0;
+  }
+
+  // Optimize only if src and n are both 8-byte aligned.
+  if (reinterpret_cast<uintptr_t>(src) % sizeof(uint64_t) == 0 &&
+      n % sizeof(uint64_t) == 0) {
+    const size_t num_u64s = n / sizeof(uint64_t);
+    const uint64_t* src_u64 = reinterpret_cast<const uint64_t*>(src);
+    const uint64_t c_u64 = c * 0x0101010101010101ULL;  // replicate 8 times.
+    uint64_t diff = 0;
+    for (size_t i = 0; i < num_u64s; ++i) {
+      diff |= src_u64[i] ^ c_u64;
+    }
+    return diff == 0;
+  } else {
+    // Simple byte loop for the non-optimized case.
+    const uint8_t* src_u8 = reinterpret_cast<const uint8_t*>(src);
+    for (size_t i = 0; i < n; ++i) {
+      if (src_u8[i] != c) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+}  // namespace
+
 // The no_builtin attribute tells a compiler not replace any part of this
 // function with a call to memcpy(). An optimizing compiler can recognize
 // the uint64_t copying loop below and replace that with a call to memcpy(),
@@ -90,29 +129,12 @@ bool MemEq(const void* s1, const void* s2, size_t n)
   return diff == 0;
 }
 
-// This is used in the runner to check that memory contents are
-// equal. It is optimized for the positive case.
 bool MemAllEqualTo(const void* src, uint8_t c, size_t n) {
-  // Optimize only if src and n are both 8-byte aligned.
-  if (reinterpret_cast<uintptr_t>(src) % sizeof(uint64_t) == 0 &&
-      n % sizeof(uint64_t) == 0) {
-    const size_t num_u64s = n / sizeof(uint64_t);
-    const uint64_t* src_u64 = reinterpret_cast<const uint64_t*>(src);
-    const uint64_t c_u64 = c * 0x0101010101010101ULL;  // replicate 8 times.
-    uint64_t diff = 0;
-    for (size_t i = 0; i < num_u64s; ++i) {
-      diff |= src_u64[i] ^ c_u64;
-    }
-    return diff == 0;
+  if (c == 0) {
+    // See MemAllEqualToImpl() above for why we treat 0 differently.
+    return MemAllEqualToImpl</* compare_with_zero=*/true>(src, 0, n);
   } else {
-    // Simple byte loop for the non-optimized case.
-    const uint8_t* src_u8 = reinterpret_cast<const uint8_t*>(src);
-    for (size_t i = 0; i < n; ++i) {
-      if (src_u8[i] != c) {
-        return false;
-      }
-    }
-    return true;
+    return MemAllEqualToImpl</* compare_with_zero=*/false>(src, c, n);
   }
 }
 

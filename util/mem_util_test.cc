@@ -213,16 +213,22 @@ TEST(MemAllEqualTo, BasicTest) {
     char* ptr = buffer.AllocateCopyBuffer(size, offset);
     buffer.Reset();
 
-    constexpr uint8_t kData = 0xaa;
-    for (size_t i = 0; i < size; ++i) {
-      ptr[i] = kData;
-    }
+    // MemAllEqualTo is specialized for 0 comparison. Test for both
+    // 0 and non-0 values.
+    constexpr size_t kNumData = 2;
+    constexpr uint8_t kData[kNumData] = {0, 0xaa};
+    for (size_t d = 0; d < kNumData; ++d) {
+      uint8_t data = kData[d];
+      for (size_t i = 0; i < size; ++i) {
+        ptr[i] = data;
+      }
 
-    CHECK(MemAllEqualTo(ptr, kData, size));
+      CHECK(MemAllEqualTo(ptr, data, size));
 
-    if (size != 0) {
-      ptr[size / 2] ^= 0xff;
-      CHECK(!MemAllEqualTo(ptr, kData, size));
+      if (size != 0) {
+        ptr[size / 2] ^= 0xff;
+        CHECK(!MemAllEqualTo(ptr, data, size));
+      }
     }
   }
 }
