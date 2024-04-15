@@ -204,6 +204,27 @@ cc_test(
 )
 
 cc_library_plus_nolibc(
+    name = "crc32c_internal",
+    srcs = [
+        "crc32c_internal.cc",
+    ],
+    hdrs = ["crc32c_internal.h"],
+)
+
+cc_binary(
+    name = "gen_crc32c_zero_extension_tables",
+    srcs = ["gen_crc32c_zero_extension_tables.cc"],
+    deps = [":crc32c_internal"],
+)
+
+genrule(
+    name = "gen_crc32c_zero_extension_tables_cc",
+    outs = ["crc32c_zero_extension_tables.cc"],
+    cmd = "$(location :gen_crc32c_zero_extension_tables) > $@",
+    tools = [":gen_crc32c_zero_extension_tables"],
+)
+
+cc_library_plus_nolibc(
     name = "crc32c",
     srcs = [
         "crc32c.cc",
@@ -212,6 +233,7 @@ cc_library_plus_nolibc(
     hdrs = ["crc32c.h"],
     deps = [
         ":cpu_features",
+        ":crc32c_internal",
     ],
 )
 
@@ -224,14 +246,9 @@ cc_test_plus_nolibc(
     deps = [
         ":checks",
         ":crc32c",
+        ":crc32c_internal",
         ":nolibc_gunit",
     ],
-)
-
-cc_binary(
-    name = "gen_crc32c_zero_extension_tables",
-    srcs = ["gen_crc32c_zero_extension_tables.cc"],
-    deps = [":crc32c"],
 )
 
 cc_test(

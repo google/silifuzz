@@ -19,6 +19,7 @@
 #include <cstdint>
 
 #include "./util/checks.h"
+#include "./util/crc32c_internal.h"
 #include "./util/nolibc_gunit.h"
 
 namespace silifuzz {
