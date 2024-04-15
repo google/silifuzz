@@ -223,6 +223,16 @@ cc_test_plus_nolibc(
     ],
 )
 
+cc_test(
+    name = "crc32c_benchmarks",
+    srcs = ["crc32c_benchmarks.cc"],
+    deps = [
+        ":crc32c",
+        "@com_github_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "data_dependency",
     srcs = ["data_dependency.cc"],
