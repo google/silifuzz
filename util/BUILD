@@ -205,9 +205,14 @@ cc_test(
 
 cc_library_plus_nolibc(
     name = "crc32c",
-    srcs = ["crc32c.cc"],
+    srcs = [
+        "crc32c.cc",
+        "crc32c_zero_extension_tables.cc",
+    ],
     hdrs = ["crc32c.h"],
-    deps = [":cpu_features"],
+    deps = [
+        ":cpu_features",
+    ],
 )
 
 cc_test_plus_nolibc(
@@ -221,6 +226,12 @@ cc_test_plus_nolibc(
         ":crc32c",
         ":nolibc_gunit",
     ],
+)
+
+cc_binary(
+    name = "gen_crc32c_zero_extension_tables",
+    srcs = ["gen_crc32c_zero_extension_tables.cc"],
+    deps = [":crc32c"],
 )
 
 cc_test(

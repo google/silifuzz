@@ -45,6 +45,57 @@ namespace silifuzz {
 
 namespace internal {
 
+uint32_t CRC32CZeroExtensionTable::Extend(uint32_t crc) const {
+  uint32_t zero_extended = 0;
+  for (size_t group = 0; group < kNumGroups; ++group) {
+    size_t idx = (crc >> (group * kBitsPerGroup)) % kGroupTableSize;
+    zero_extended ^= table[group][idx];
+  }
+  return zero_extended;
+}
+
+CRC32CZeroExtensionTable CRC32CZeroExtensionTable::Zero() {
+  CRC32CZeroExtensionTable zero;
+  zero.n = 0;
+  for (size_t group = 0; group < kNumGroups; ++group) {
+    for (size_t idx = 0; idx < kGroupTableSize; ++idx) {
+      zero.table[group][idx] = idx << (group * kBitsPerGroup);
+    }
+  }
+  return zero;
+}
+
+CRC32CZeroExtensionTable CRC32CZeroExtensionTable::One() {
+  CRC32CZeroExtensionTable one;
+  one.n = 1;
+  for (size_t group = 0; group < kNumGroups; ++group) {
+    for (size_t idx = 0; idx < kGroupTableSize; ++idx) {
+      uint32_t crc = idx << (group * kBitsPerGroup);
+      constexpr uint8_t kZero = 0;
+      // Note: zero extension is done internally. The external CRC32C API
+      // reverses the input seed and the output CRC value. We need to reverse
+      // the bits again here to undo the reversals at the API interface.
+      one.table[group][idx] =
+          crc32c_unaccelerated(crc ^ 0xffffffffUL, &kZero, 1) ^ 0xffffffffUL;
+    }
+  }
+  return one;
+}
+
+CRC32CZeroExtensionTable CRC32CZeroExtensionTable::Add(
+    const CRC32CZeroExtensionTable& a, const CRC32CZeroExtensionTable& b) {
+  CRC32CZeroExtensionTable sum;
+  sum.n = a.n + b.n;
+  for (size_t group = 0; group < kNumGroups; ++group) {
+    for (size_t idx = 0; idx < kGroupTableSize; ++idx) {
+      // Same as b.Extend(a.Extend(idx)) but a bit faster. This works as
+      // bits in other groups are zeros and Extend(0) is always 0.
+      sum.table[group][idx] = b.Extend(a.table[group][idx]);
+    }
+  }
+  return sum;
+}
+
 uint32_t crc32c_unaccelerated(uint32_t seed, const uint8_t* data, size_t n);
 
 namespace {
@@ -70,6 +121,51 @@ SSE4_2_TARGET_ATTRIBUTE uint32_t crc32c_accelerated_impl(uint32_t seed,
     }
     n -= bytes;
     data += bytes;
+  }
+
+  // For sufficiently large block, it is better to split input into multiple
+  // streams to hidden the latency of CRC instruction. For many x86
+  // architectures the latency is 3 cycles. We expect something similar for
+  // ARM. While splitting input can hide instruction latency, combining the
+  // partial results is very costly for us. There are carryless multiply
+  // instructions on both X86 (see CLMUL extension) and ARM to make combination
+  // more efficient but on the x86 those instructions are vector instructions
+  // so we want to avoid using them to reduce perturbation to the vector state.
+  const size_t kBigBlockSize = 512;
+  if (n >= kBigBlockSize) {
+    constexpr size_t kNumStreams = 3;
+    size_t block_size = n / sizeof(uint64_t) / kNumStreams;
+    size_t block_byte_size = block_size * sizeof(uint64_t);
+    uint32_t value2 = 0, value3 = 0;
+
+    const uint64_t* u64_data = reinterpret_cast<const uint64_t*>(data);
+    const uint64_t* u64_data_2 =
+        reinterpret_cast<const uint64_t*>(data + block_byte_size);
+    const uint64_t* u64_data_3 =
+        reinterpret_cast<const uint64_t*>(data + block_byte_size * 2);
+
+    // Compute kNumStreams CRC values simultaneously to hide latency of CRC
+    // instruction.
+    for (size_t i = 0; i < block_size; ++i) {
+      value = CRC32CFunctions::crc32c_uint64(value, u64_data[i]);
+      value2 = CRC32CFunctions::crc32c_uint64(value2, u64_data_2[i]);
+      value3 = CRC32CFunctions::crc32c_uint64(value3, u64_data_3[i]);
+    }
+
+    // Combine multiple CRC values into one. For two byte strings M1 and M2,
+    // CRC(M1 ^ M2) = CRC(M1) ^ CRC(M2). For the byte string M1.M2 formed by
+    // concatenating M1 and M2,
+    //    CRC(M1.M2) = CRC(M1.ZEROS(LEN(M2)) ^ M2)
+    //               = CRC(M1.ZEROS(LEN(M2))) ^ CRC(M2)
+    // where ZEROS(n) is a strings of n zero bytes.
+    value = internal::crc32c_zero_extend(value, block_byte_size);
+    value ^= value2;
+    value = internal::crc32c_zero_extend(value, block_byte_size);
+    value ^= value3;
+
+    // Advance data pointer.
+    n -= block_byte_size * kNumStreams;
+    data += block_byte_size * kNumStreams;
   }
 
   while (n >= sizeof(uint64_t)) {
@@ -237,6 +333,21 @@ uint32_t crc32c_unaccelerated(uint32_t seed, const uint8_t* data, size_t n) {
     crc = crctable[(crc ^ data[i]) & 0xff] ^ (crc >> 8);
   }
   crc ^= 0xffffffffUL;
+  return crc;
+}
+
+uint32_t crc32c_zero_extend(uint32_t crc, size_t n) {
+  // TODO(dougkwan): Precompute zero extension tables for the most frequently
+  // occurring values of 'n' so that we only do extension once instead of
+  // O(log n) times. We probably want to precompute for CRC block sizes 2048 and
+  // 4096, which needs tables for sizes 680 and 1360 respectively.
+  for (size_t i = 0; n != 0 && i < kNumCRC32CZeroExtensionTables; ++i) {
+    size_t bit = static_cast<size_t>(1) << i;
+    if ((n & bit) != 0) {
+      crc = internal::GetCRC32CZeroExtensionTableForBit(i).Extend(crc);
+      n &= ~bit;
+    }
+  }
   return crc;
 }
 
