@@ -21,60 +21,86 @@
 #include "./util/x86_cpuid.h"
 
 namespace silifuzz {
+
+// Fall back to these if no special instructions are available to
+// get CPUID quickly.
+extern int GetCPUIdUsingSyscall();
+extern int GetCPUAffinityNoSyscall();
+
 namespace {
 
-enum RDTSCPState {
-  kUnknownRDTSCP = 0,
-  kNoRDTSCP = 1,
-  kYesRDTSCP = 2,
-};
+// wrapper functions that choose the actual implementation the first time
+// GetCPUId*() are called.
+int InitializeGetCPUId();
+int InitializeGetCPUIdNoSyscall();
 
-std::atomic<RDTSCPState> has_rdtscp;
+// Function pointers to the best implementation of GetCPUID*() that
+// we can use on the current platform. These are initialized when
+// one of GetCPUID() and GetCPUIDNoSyscall() is called the first time.
+typedef int (*GetCPUIDFunctionPtr)();
+std::atomic<GetCPUIDFunctionPtr> get_cpuid_impl = InitializeGetCPUId;
+std::atomic<GetCPUIDFunctionPtr> get_cpuid_no_syscall_impl =
+    InitializeGetCPUIdNoSyscall;
 
-inline bool HasRDTSCPImpl() {
-  X86CPUIDResult res;
-  X86CPUID(0x80000001U, &res);
-  constexpr uint32_t kRDTSCPBit = 1U << 27;
-  return (res.edx & kRDTSCPBit) != 0;
-}
-
-bool HasRDTSCP() {
-  RDTSCPState state = has_rdtscp.load(std::memory_order_relaxed);
-  if (state == kUnknownRDTSCP) {
-    state = HasRDTSCPImpl() ? kYesRDTSCP : kNoRDTSCP;
-    has_rdtscp.store(state, std::memory_order_relaxed);
-  }
-  return state == kYesRDTSCP;
-}
-
-// The Linux kernel fills in TSC auxiliary MSR with CPU core ID information,
-// which is readable using RDTSCP instruction.
-inline int GetCPUIdUsingRDTSCP() {
+int GetCPUIdUsingRDTSCP() {
   uint32_t ecx;
   asm volatile("rdtscp" : "=c"(ecx) : /* no input*/ : "%eax", "%edx");
   // Lower 12 bits contain CPU ID.
   return ecx & 0xfff;
 }
 
-}  // namespace
-
-extern int GetCPUIdUsingSyscall();
-extern int GetCPUAffinityNoSyscall();
-
-int GetCPUId() {
-  if (HasRDTSCP()) {
-    return GetCPUIdUsingRDTSCP();
-  } else {
-    return GetCPUIdUsingSyscall();
-  }
+int GetCPUIdUsingRDPID() {
+  uint64_t tsc_aux;
+  asm volatile("rdpid %0" : "=r"(tsc_aux) : /* no input*/);
+  // Lower 12 bits contain CPU ID.
+  return tsc_aux & 0xfff;
 }
 
-int GetCPUIdNoSyscall() {
-  if (HasRDTSCP()) {
-    return GetCPUIdUsingRDTSCP();
-  } else {
-    return GetCPUAffinityNoSyscall();
+// Initializes implementation function pointers for both GetCPUID() and
+// GetCPUIDNoSyscall().
+void InitializeCommon() {
+  X86CPUIDResult res;
+
+  // Prefer RDPID over RDTSCP if available.
+  X86CPUID(0x7U, &res);
+  constexpr uint32_t kRDPIDBit = 1U << 22;
+  if ((res.ecx & kRDPIDBit) != 0) {
+    // Data races are benign as writes to function pointers are idempotent.
+    // We can use atomic::exchange if we ever use a thread sanitizer.
+    get_cpuid_impl.store(GetCPUIdUsingRDPID);
+    get_cpuid_no_syscall_impl.store(GetCPUIdUsingRDPID);
+    return;
   }
+
+  X86CPUID(0x80000001U, &res);
+  constexpr uint32_t kRDTSCPBit = 1U << 27;
+  if ((res.edx & kRDTSCPBit) != 0) {
+    get_cpuid_impl.store(GetCPUIdUsingRDTSCP);
+    get_cpuid_no_syscall_impl.store(GetCPUIdUsingRDTSCP);
+    return;
+  }
+
+  // No special instructions available, use slow methods.
+  get_cpuid_impl.store(GetCPUIdUsingSyscall);
+  get_cpuid_no_syscall_impl.store(GetCPUAffinityNoSyscall);
+}
+
+int InitializeGetCPUId() {
+  InitializeCommon();
+  return (*get_cpuid_impl.load(std::memory_order_relaxed))();
+}
+
+int InitializeGetCPUIdNoSyscall() {
+  InitializeCommon();
+  return (*get_cpuid_no_syscall_impl.load(std::memory_order_relaxed))();
+}
+
+}  // namespace
+
+int GetCPUId() { return (*get_cpuid_impl.load(std::memory_order_relaxed))(); }
+
+int GetCPUIdNoSyscall() {
+  return (*get_cpuid_no_syscall_impl.load(std::memory_order_relaxed))();
 }
 
 }  // namespace silifuzz
