@@ -24,10 +24,7 @@ licenses(["notice"])
 
 cc_binary(
     name = "snap_tool",
-    srcs = ["snap_tool.cc"] + select({
-        "@silifuzz//build_defs/platform:aarch64": ["aarch64/snap_tool_trace.cc"],
-        "@silifuzz//build_defs/platform:x86_64": ["x86_64/snap_tool_trace.cc"],
-    }),
+    srcs = ["snap_tool.cc"],
     # Link statically to eliminate shared libraries deps and make this binary
     # easier to deploy in an environment lacking libc.
     features = ["fully_static_link"],
@@ -36,10 +33,11 @@ cc_binary(
         "@silifuzz//common:memory_state",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
-        "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_file_util",
         "@silifuzz//common:snapshot_printer",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//player:trace_options",
+        "@silifuzz//runner:disassembling_snap_tracer",
         "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//runner/driver:runner_driver",
@@ -55,7 +53,6 @@ cc_binary(
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:platform",
         "@silifuzz//util:tool_util",
-        "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/flags:flag",
@@ -64,13 +61,7 @@ cc_binary(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-    ] + select({
-        "@silifuzz//build_defs/platform:aarch64": [],
-        "@silifuzz//build_defs/platform:x86_64": [
-            "@silifuzz//player:trace_options",
-            "@silifuzz//runner:disassembling_snap_tracer",
-        ],
-    }),
+    ],
 )
 
 cc_binary(

@@ -27,6 +27,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/functional/bind_front.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/escaping.h"
@@ -40,6 +41,8 @@
 #include "./common/snapshot_file_util.h"
 #include "./common/snapshot_printer.h"
 #include "./common/snapshot_util.h"
+#include "./player/trace_options.h"
+#include "./runner/disassembling_snap_tracer.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
@@ -214,9 +217,38 @@ absl::Status GetInstructions(const Snapshot& snapshot, int out_fd) {
   return absl::OkStatus();
 }
 
-// Actual implementation is platforms-specific. See x86_64/snap_tool_trace.cc
 absl::Status Trace(const Snapshot& snapshot, PlatformId platform_id,
-                   LinePrinter* line_printer);
+                   LinePrinter* line_printer) {
+  SnapifyOptions opts =
+      SnapifyOptions::V2InputRunOpts(snapshot.architecture_id());
+  opts.platform_id = platform_id;
+
+  ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapified, Snapify(snapshot, opts));
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      RunnerDriver runner,
+      RunnerDriverFromSnapshot(snapified, RunnerLocation()));
+
+  TraceOptions trace_options = TraceOptions::Default();
+  // Don't be opinionated about non-deterministic code like we are in SnapMaker.
+  // If there's an existing (possibly, legacy) snapshot with non-deterministic
+  // instructions just trace it.
+  trace_options.filter_non_deterministic_insn = false;
+  DisassemblingSnapTracer tracer(snapshot, trace_options);
+  auto trace_fn = absl::bind_front(&DisassemblingSnapTracer::Step, &tracer);
+  absl::StatusOr<RunnerDriver::RunResult> trace_result =
+      runner.TraceOne(snapshot.id(), trace_fn);
+  DisassemblingSnapTracer::TraceResult trace_data = tracer.trace_result();
+  for (const std::string& s : trace_data.disassembly) {
+    line_printer->Line(s);
+  }
+
+  RETURN_IF_NOT_OK(trace_result.status());
+  if (!trace_result->success()) {
+    return absl::InternalError(
+        absl::StrCat("Tracing failed: ", trace_data.early_termination_reason));
+  }
+  return absl::OkStatus();
+}
 
 absl::StatusOr<Snapshot> SetBytes(const Snapshot& snapshot,
                                   const Snapshot::MemoryBytes& memory_bytes) {
