@@ -35,11 +35,6 @@ licenses(["notice"])
 
 # =========================================================================== #
 
-DISABLE_ARM_TAGS = [
-    "not_build:arm",
-    "not_run:arm",
-]
-
 cc_library_plus_nolibc(
     name = "loading_snap_corpus",
     srcs = ["loading_snap_corpus.cc"],
@@ -302,26 +297,48 @@ cc_test(
 
 cc_library(
     name = "disassembling_snap_tracer",
-    srcs = ["disassembling_snap_tracer.cc"],
+    srcs = ["disassembling_snap_tracer.cc"] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/disassembling_snap_tracer.cc",
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "x86_64/disassembling_snap_tracer.cc",
+        ],
+    }),
     hdrs = ["disassembling_snap_tracer.h"],
     deps = [
         "@silifuzz//common:harness_tracer",
         "@silifuzz//common:snapshot",
-        "@silifuzz//instruction:decoded_insn",
+        "@silifuzz//instruction:default_disassembler",
         "@silifuzz//player:trace_options",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-    ],
+    ] + select({
+        "@silifuzz//build_defs/platform:aarch64": [
+        ],
+        "@silifuzz//build_defs/platform:x86_64": [
+            "@silifuzz//instruction:decoded_insn",
+        ],
+    }),
 )
 
 cc_test(
     name = "disassembling_snap_tracer_test",
     size = "medium",
-    srcs = ["disassembling_snap_tracer_test.cc"],
+    srcs =
+        select({
+            "@silifuzz//build_defs/platform:aarch64": [
+                "aarch64/disassembling_snap_tracer_test.cc",
+            ],
+            "@silifuzz//build_defs/platform:x86_64": [
+                "x86_64/disassembling_snap_tracer_test.cc",
+            ],
+        }),
     data = [
         "@silifuzz//snap/testing:test_corpus",
     ],

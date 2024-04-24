@@ -18,13 +18,16 @@
 #include <sys/types.h>
 #include <sys/user.h>
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
+#include "./instruction/default_disassembler.h"
 #include "./player/trace_options.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
@@ -86,6 +89,9 @@ class DisassemblingSnapTracer {
   TraceResult trace_result() { return trace_result_; }
 
  private:
+  // Returns value instruction pointer in 'regs'
+  uint64_t GetInstructionPointer(const user_regs_struct& regs);
+
   // Stepper is a stateful implementation for single-stepping one snapshot.
   // StepInstruction() is compatible with HarnessTracer::Callback.
   class SnapshotStepper {
@@ -127,6 +133,9 @@ class DisassemblingSnapTracer {
 
     // Trace result.
     TraceResult& trace_result_;
+
+    // Currently the assembler is only used for AArch64.
+    DefaultDisassembler<Host> disassembler_;
   };
 
   TraceResult trace_result_;

@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_PLAYER_TRACE_OPTIONS_H_
 
 #include "./player/play_options.h"
+#include "./util/arch.h"
 
 namespace silifuzz {
 
@@ -24,6 +25,16 @@ namespace silifuzz {
 // This class is a thread-compatible value type.
 class TraceOptions {
  public:
+  // Default instruction count limit is architecture specific.
+  template <typename Arch>
+  static constexpr int kInstructCountLimit = 1000;
+
+  template <>
+  static constexpr int kInstructCountLimit<AArch64> = 4000;
+
+  template <>
+  static constexpr int kInstructCountLimit<X86_64> = 1000;
+
   TraceOptions() {}
   ~TraceOptions() = default;
 
@@ -36,7 +47,7 @@ class TraceOptions {
 
   // Maximum number of instructions the snapshot is allowed to execute
   // before the tracer stops it. 0 for unlimited.
-  int instruction_count_limit = 1000;
+  int instruction_count_limit = kInstructCountLimit<Host>;
 
   // If true, tracer injects a signal when a locking instruction accesses
   // memory across a cache line boundary. This has no effect on non-x86

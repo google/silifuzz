@@ -631,6 +631,16 @@ brk 0
 """,
   )
 
+  # Running eret in user mode should raise a SIGILL.
+  b.snapshot(
+      name="SigIll",
+      arch=AARCH64,
+      normal_end=False,
+      src="""
+eret
+""",
+  )
+
   b.snapshot(
       name="SigSegvWrite",
       arch=AARCH64,

@@ -28,6 +28,7 @@ cc_library(
     hdrs = ["trace_options.h"],
     deps = [
         ":play_options",
+        "@silifuzz//util:arch",
     ],
 )
 
