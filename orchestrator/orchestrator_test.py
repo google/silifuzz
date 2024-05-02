@@ -338,14 +338,23 @@ class OrchestratorTest(absltest.TestCase):
     os.close(read_fd)
     self.assertLess(len(bin_log), 4096, msg='Binary log was likely truncated')
     session_summary = None
+    session_start = None
     for e in self._parse_binary_log(bin_log):
       if e.HasField('session_summary'):
         self.assertIsNone(session_summary, msg='Expected exactly 1')
         session_summary = e.session_summary
+      if e.HasField('session_start'):
+        self.assertIsNone(session_start, msg='Expected exactly 1')
+        session_start = e.session_start
     self.assertIsNotNone(
         session_summary,
         msg='SessionSummary was not set in any log entry, expected exactly 1',
     )
+    self.assertIsNotNone(
+        session_start,
+        msg='SessionStart was not set in any log entry, expected exactly 1',
+    )
+
     # the value is sampled by the orchestrator and it's hard to reliably
     # catch non-zero value in the test setting so we avoid testing the actual
     # value.

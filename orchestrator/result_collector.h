@@ -72,6 +72,10 @@ class ResultCollector {
   // disables time-based throttling.
   void LogSummary(bool always = false);
 
+  // Logs session start to binary_log_channel (if any).
+  absl::Status LogSessionStart(const proto::CorpusMetadata &corpus_metadata,
+                               absl::string_view orchestrator_version);
+
   // Logs session summary to binary_log_channel (if any).
   absl::Status LogSessionSummary(const proto::CorpusMetadata &corpus_metadata,
                                  absl::string_view orchestrator_version);

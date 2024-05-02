@@ -221,6 +221,31 @@ void ResultCollector::LogSummary(bool always) {
   }
 }
 
+absl::Status ResultCollector::LogSessionStart(
+    const proto::CorpusMetadata &corpus_metadata,
+    absl::string_view orchestrator_version) {
+  if (binary_log_producer_ == nullptr) {
+    return absl::OkStatus();
+  }
+  absl::Time now = absl::Now();
+  proto::BinaryLogEntry entry;
+  entry.set_session_id(session_id_);
+  *entry.mutable_timestamp() = TimeToProto(now);
+  if (!orchestrator_version.empty()) {
+    entry.mutable_session_start()->mutable_orchestrator_info()->set_version(
+        std::string(orchestrator_version));
+  }
+
+  entry.mutable_session_start()->mutable_machine_info()->set_num_cores(
+      NumCpus());
+  entry.mutable_session_start()->mutable_machine_info()->set_hostname(
+      std::string(ShortHostname()));
+
+  *entry.mutable_session_start()->mutable_corpus_metadata() = corpus_metadata;
+
+  return binary_log_producer_->Send(entry);
+}
+
 absl::Status ResultCollector::LogSessionSummary(
     const proto::CorpusMetadata &corpus_metadata,
     absl::string_view orchestrator_version) {

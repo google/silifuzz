@@ -22,7 +22,7 @@ import "proto/session_summary.proto";
 import "proto/snapshot_execution_result.proto";
 
 // A union of all message types that can be sent via a binary log channel.
-// NextID: 7
+// NextID: 8
 message BinaryLogEntry {
   // ID of the session this entry belongs to.
   string session_id = 5;
@@ -31,6 +31,9 @@ message BinaryLogEntry {
   google.protobuf.Timestamp timestamp = 6;
 
   oneof kind {
+    // Session start event.
+    silifuzz.proto.logging.SessionStart session_start = 7;
+
     // Result of executing a snapshot
     SnapshotExecutionResult snapshot_execution_result = 1;
 

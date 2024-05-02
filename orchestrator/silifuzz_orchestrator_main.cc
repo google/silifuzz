@@ -69,6 +69,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "./orchestrator/corpus_util.h"
 #include "./orchestrator/orchestrator_util.h"
@@ -190,13 +191,23 @@ absl::Status ReadProtoFromTextFile(absl::string_view filename,
   return absl::OkStatus();
 }
 
-absl::Status LogSessionSummary(ResultCollector &result_collector) {
-  VLOG_INFO(0, "Logging session summary");
+struct RuntimeMetadata {
+  proto::CorpusMetadata corpus_metadata;
+  std::string orchestrator_version;
+};
+
+absl::StatusOr<RuntimeMetadata> LoadRuntimeMetadata() {
   std::string corpus_metadata_file = absl::GetFlag(FLAGS_corpus_metadata_file);
   proto::CorpusMetadata metadata;
   RETURN_IF_NOT_OK(ReadProtoFromTextFile(corpus_metadata_file, &metadata));
   std::string version = absl::GetFlag(FLAGS_orchestrator_version);
-  return result_collector.LogSessionSummary(metadata, version);
+  return RuntimeMetadata{metadata, version};
+}
+
+bool SessionLoggingEnabled() {
+  static bool enabled = absl::Uniform(absl::BitGen{}, 0, 1.0) <=
+                        absl::GetFlag(FLAGS_log_session_summary_probability);
+  return enabled;
 }
 
 int OrchestratorMain(const std::vector<std::string> &corpora,
@@ -206,6 +217,12 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
 
   const absl::Time start_time = absl::Now();
   absl::Time deadline = start_time + absl::GetFlag(FLAGS_duration);
+
+  const absl::StatusOr<RuntimeMetadata> runtime_meta = LoadRuntimeMetadata();
+  if (!runtime_meta.ok()) {
+    LOG_ERROR(runtime_meta.status().message());
+    return EXIT_FAILURE;
+  }
 
   // Load corpora and exit if there is any error.
   // File descriptors of the uncompressed corpora are kept open
@@ -263,6 +280,15 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
       {.report_runaways_as_errors =
            absl::GetFlag(FLAGS_report_runaways_as_errors),
        .fail_after_n_errors = absl::GetFlag(FLAGS_fail_after_n_errors)});
+
+  if (SessionLoggingEnabled()) {
+    if (absl::Status s = result_collector.LogSessionStart(
+            runtime_meta->corpus_metadata, runtime_meta->orchestrator_version);
+        !s.ok()) {
+      LOG_ERROR(s.message());
+    }
+  }
+
   ExecutionContext *ctx = OrchestratorInit(
       deadline, num_threads,
       absl::bind_front(&ResultCollector::operator(), &result_collector));
@@ -291,13 +317,10 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   ctx->ProcessResultQueue();
   result_collector.LogSummary(true);
   Summary summary = result_collector.summary();
-  double log_session_summary_probability =
-      absl::GetFlag(FLAGS_log_session_summary_probability);
-  absl::BitGen bitgen;
-  if (absl::Uniform(bitgen, 0, 1.0) <= log_session_summary_probability ||
-      summary.num_failed_snapshots > 0) {
-    absl::Status s = LogSessionSummary(result_collector);
-    if (!s.ok()) {
+  if (SessionLoggingEnabled() || summary.num_failed_snapshots > 0) {
+    if (absl::Status s = result_collector.LogSessionSummary(
+            runtime_meta->corpus_metadata, runtime_meta->orchestrator_version);
+        !s.ok()) {
       LOG_ERROR(s.message());
     }
   }

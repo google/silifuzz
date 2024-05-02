@@ -56,6 +56,18 @@ message OrchestratorBinaryInfo {
   string version = 1;
 }
 
+// Message capturing the start of a single session (orchestartor invocation).
+message SessionStart {
+  // Corpus metadata.
+  silifuzz.proto.CorpusMetadata corpus_metadata = 1;
+
+  // Machine information.
+  MachineInfo machine_info = 2;
+
+  // Orchestrator version, etc
+  OrchestratorBinaryInfo orchestrator_info = 6;
+}
+
 // Summary of a single session (orchestartor invocation).
 message SessionSummary {
   // Corpus metadata.
