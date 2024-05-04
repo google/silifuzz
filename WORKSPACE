@@ -130,13 +130,6 @@ new_local_repository(
     name = "cityhash",
     build_file = "@silifuzz//:third_party/BUILD.cityhash",
     path = "silifuzz_libs/cityhash",
-#    patch_cmds = [
-#        # Running "configure" creates the config.h file needed for this library.
-#        "./configure",
-#        "mv config.h src",
-#        """sed -i -e 's/<city.h>/"city.h"/' src/*.cc src/*.h""",
-#        """sed -i -e 's/<citycrc.h>/"citycrc.h"/' src/*.cc""",
-#    ],
 )
 
 new_git_repository(
