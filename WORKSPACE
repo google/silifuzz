@@ -120,27 +120,23 @@ rules_proto_toolchains()
 
 lss_ver = "93e5acf3ef8793cad821c6af42612685e17392d8"
 
-new_git_repository(
+new_local_repository(
     name = "lss",
+    path = "silifuzz_libs/linux-syscall-support",
     build_file = "@silifuzz//:third_party/BUILD.lss",
-    commit = lss_ver,
-    remote = "https://chromium.googlesource.com/linux-syscall-support",
-    shallow_since = "1705605906 +0000",
 )
 
-new_git_repository(
+new_local_repository(
     name = "cityhash",
     build_file = "@silifuzz//:third_party/BUILD.cityhash",
-    commit = "8af9b8c2b889d80c22d6bc26ba0df1afb79a30db",
-    patch_cmds = [
-        # Running "configure" creates the config.h file needed for this library.
-        "./configure",
-        "mv config.h src",
-        """sed -i -e 's/<city.h>/"city.h"/' src/*.cc src/*.h""",
-        """sed -i -e 's/<citycrc.h>/"citycrc.h"/' src/*.cc""",
-    ],
-    remote = "https://github.com/google/cityhash",
-    shallow_since = "1375313681 +0000",
+    path = "silifuzz_libs/cityhash",
+#    patch_cmds = [
+#        # Running "configure" creates the config.h file needed for this library.
+#        "./configure",
+#        "mv config.h src",
+#        """sed -i -e 's/<city.h>/"city.h"/' src/*.cc src/*.h""",
+#        """sed -i -e 's/<citycrc.h>/"citycrc.h"/' src/*.cc""",
+#    ],
 )
 
 new_git_repository(
