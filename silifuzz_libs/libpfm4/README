@@ -1,0 +1,198 @@
+          ------------------------------------------------------------
+                                    libpfm-4.x:
+          a helper library to program the performance monitoring events
+          ------------------------------------------------------------
+ 	  Copyright (c) 2009 Google, Inc
+	                Contributed by Stephane Eranian <eranian@gmail.com>
+
+ 	  Copyright (c) 2001-2007 Hewlett-Packard Development Company, L.P.
+	                Contributed by Stephane Eranian <eranian@hpl.hp.com>
+	
+
+This package provides a library, called libpfm4 which is used to develop
+monitoring tools exploiting the performance monitoring events such as those
+provided by the Performance Monitoring Unit (PMU) of modern processors.
+
+This is a complete rewrite of libpfm3 and it is NOT backward compatible
+with it.
+
+Libpfm4 helps convert from an event name, expressed as a string, to 
+the event encoding that is either the raw event as documented by HW vendor
+or the OS-specific encoding. In the latter case, the library is able to
+prepare the OS-specific data structures needed by the kernel to setup the
+event.
+
+The current libpfm4 provides support for the perf_events interface which was
+introduced in Linux v2.6.31. Perfmon support is not present yet.
+
+The library does not make any performance monitoring system calls. It is
+portable and supports other operating system environments beyond Linux,
+such as Mac OS X, and Windows.
+
+The library supports many PMUs. The current version can handle:
+
+	- For AMD X86:
+		AMD64 K7, K8
+		AMD64 Fam10h (Barcelona, Shanghai, Istanbul)
+		AMD64 Fam11h (Turion)
+		AMD64 Fam12h (Llano)
+		AMD64 Fam14h (Bobcat)
+		AMD64 Fam15h (Bulldozer) (core and uncore)
+		AMD64 Fam16h (Jaguar)
+		AMD64 Fam17h (Zen1)
+		AMD64 Fam17h (Zen2)
+		AMD64 Fam19h (Zen3) (core and L3)
+		AMD64 Fam19h (Zen4)
+
+	- For Intel X86: 
+		Intel P6 (Pentium II, Pentium Pro, Pentium III, Pentium M)
+		Intel Yonah (Core Duo/Core Solo),
+		Intel Core (Merom, Penryn, Dunnington)
+		Intel Atom
+		Intel Nehalem, Westmere
+		Intel Sandy Bridge
+		Intel Ivy Bridge
+		Intel Haswell
+		Intel Broadwell
+		Intel SkyLake
+		Intel CascadeLake
+		Intel IceLake
+		Intel SapphireRapid
+		Intel EmeraldRapid
+		Intel Alderlake (P-core)
+		Intel Alderlake (E-core)
+		Intel Raptorlake (P-core, E-core)
+		Intel Silvermont
+		Intel Airmont
+		Intel Goldmont
+		Intel Tremont
+		Intel RAPL (energy consumption)
+		Intel Knights Corner
+		Intel Knights Landing (core, uncore)
+		Intel Knights Mill (core, uncore)
+		Intel architectural perfmon v1, v2, v3
+
+	- For ARM:
+		ARMV7 Cortex A8
+		ARMV7 Cortex A9
+		ARMV7 Cortex A15
+		ARMV8 Cortex A57, A53
+		Applied Micro X-Gene
+		Qualcomm Krait
+		Fujitsu A64FX
+		Arm Neoverse V1
+		Arm Neoverse V2
+		Huawei HiSilicon Kunpeng 920
+
+	- For SPARC
+		Ultra I, II
+		Ultra III, IIIi, III+
+		Ultra IV+
+		Niagara I, Niagara II
+
+	- For IBM
+		Power 4
+		Power 5
+		Power 6
+		Power 7
+		Power 8
+		Power 8 Nest
+		Power 9
+		Power 10
+		PPC970
+		Torrent
+		System z (s390x)
+
+	- For MIPS
+		Mips 74k
+
+WHAT'S THERE
+-------------
+	- the library source code including support for all processors listed
+	  above
+
+	- a set of generic examples showing how to list and query events. They
+	  are in examples.
+
+	- a set of examples showing how the library can be used with the
+	  perf_events interface. They are in perf_examples.
+
+	- a set of library header files used to compile the library and
+	  perf_examples
+
+	- man pages for all the library entry points
+
+	- Python bindings for the library
+
+	- a SPEC file to build RPMs from the library
+
+	- the Debian-style config file to build a .deb package from the library
+
+INSTALLATION
+------------
+	- edit config.mk to :
+		- update some of the configuration variables
+		- select your compiler options
+
+	- type make
+	- type make install
+
+	- The default installation location is /usr/local. You can specify
+	  a diffierent install location as follows:
+	        $ make PREFIX=<install-dir> install
+	  Depending on your install location, you may need to run the 'ldconfig'
+	  command or use LD_LIBRARY_PATH when you build and run tools that
+	  link to the libpfm4 library.
+
+	- By default, libpfm library files are installed in <install-dir>/lib.
+	  If 'make' builds 64-bit libraries on your system, and your target
+	  architecture expects 64-bit libraries to be located in a library
+	  named "lib64", then you should use the LIBDIR variable when installing,
+	  as follows:
+	        $ make LIBDIR=<install-dir>/lib64 install
+
+ 	- To compile and install the Python bindings, you need to go to the
+	  python sub-directory and type make. Python may not be systematically
+	  built.
+
+	- to compile the library for another ABI (e.g. 32-bit x86 on a
+	  64-bit x86) system, you can pass the ABI flag to the compiler as
+	  follows (assuming you have the multilib version of gcc):
+		$ make OPTIM="-m32 -O2"
+
+PACKAGING
+---------
+	The library comes with the config files necessary to generate RPMs or
+	Debian packages. The source code produces 3 packages:
+	- libpfm : runtime library
+	- libpfm-dev: development files (headers, manpages, static library)
+	- libpfm-python: Python bindings for the library
+
+	To generate the RPMs:
+	$ rpmbuild -ba libpfm.spec
+
+	To generate the Debian packages:
+	$ debuild -i -us -uc -b
+
+	You may need to install some extra packages to make Debian package
+	generation possible.
+
+REQUIREMENTS:
+-------------
+	- to run the programs in the perf_examples subdir, you MUST be using a
+	  linux kernel with perf_events. That means v2.6.31 or later.
+
+	- to compile the Python bindings, you need to have SWIG and the python
+	  development packages installed
+
+	- To compile on Windows, you need the MinGW and MSYS compiler environment
+	  (see www.mingw.org). The environment needs to be augmented with the
+	  mingw regex user contributed package (mingw-libgnurx-2.5.1.dev.tar.gz).
+
+	- To compile on Mac OS X, you need to have gmake installed.
+
+DOCUMENTATION
+-------------
+	- man pages for all entry points. It is recommended you start with: man libpfm
+	- More information can be found on library web site:
+			http://perfmon2.sf.net

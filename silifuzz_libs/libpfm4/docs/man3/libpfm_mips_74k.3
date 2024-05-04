@@ -1,0 +1,57 @@
+.TH LIBPFM 3  "September, 2011" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_mips_74k - support for MIPS 74k processors
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: mips_74k
+.B PMU desc: MIPS 74k
+.sp
+.SH DESCRIPTION
+The library supports MIPS 74k processors in big or little endian modes.
+
+.SH ENCODINGS
+On this processor, what is measured by an event depends on the event code and
+on the counter it is programmed on. Usually the meaning of the event code
+changes between odd and even indexed counters. For instance, event code \fB0x2\fR
+means 'PREDICTED_JR31' when programmed on even-indexed counters and it means 'JR_31_MISPREDICTIONS'
+when programmed on odd-indexed counters. To correctly measure an event, one needs
+both the event encoding and a list of possible counters.
+
+When \fRpfm_get_os_event_encoding()\fR is used with \fBPFM_OS_NONE\fR to return the raw
+PMU encoding, the library returns two values: the event encoding as per the architecture
+manual and a bitmask of valid counters to program it on. For instance, for 'JR_31_MISPREDICTIONS'
+The library returns codes[0] = 0x4a, codes[1]= 0xa (supported on counter 1, 3).
+
+The encoding for a specific kernel interface may vary and is handled internally
+by the library.
+
+.SH MODIFIERS
+The following modifiers are supported on MIPS 74k.
+.TP
+.B u
+Measure at user level. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B e
+Measure at exception level. This corresponds to \fBPFM_PLM2\fR.
+This is a boolean modifier.
+.TP
+.B s
+Measure at supervisor level. This corresponds to \fBPFM_PLM1\fR.
+This is a boolean modifier.
+
+It should be noted that those modifiers are available for encoding as raw mode
+with \fBPFM_OS_NONE\fR but they may not all be present with specific kernel
+interfaces.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

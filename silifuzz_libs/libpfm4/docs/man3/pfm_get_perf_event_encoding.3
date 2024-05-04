@@ -1,0 +1,152 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_perf_event_encoding \- encode event for perf_event API
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib_perf_event.h>
+.sp
+.BI "int pfm_get_perf_event_encoding(const char *" str ", int " dfl_plm ", struct perf_event_attr *" attr ", char **" fstr ", int *" idx ");"
+.sp
+.SH DESCRIPTION
+This function can be used in conjunction with the perf_events Linux kernel API which
+provides access to hardware performance counters, kernel software counters and tracepoints.
+The function takes an event string in \fBstr\fR and a default privilege level mask in \fBdfl_plm\fR
+and fills out the relevant parts of the perf_events specific data structure in \fBattr\fR.
+
+This function is \fBdeprecated\fR. It is superseded by \fBpfm_get_os_event_encoding()\fR
+with the OS argument set to either \fBPFM_OS_PERF_EVENT\fR or \fBPFM_OS_PERF_EVENT_EXT\fR.
+Using this function provides extended support for perf_events. Certain perf_event configuration
+option are only available through this new interface.
+
+The following examples illustrates the transition:
+
+.nf
+   struct perf_event_attr attr;
+   int i, count = 0;
+   uint64_t *codes;
+
+   memset(&attr, 0, sizeof(attr));
+
+   ret = pfm_get_perf_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, &attrs, NULL, NULL);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+.fi
+
+is equivalent to:
+
+.nf
+   #include <perfmon/pfmlib_perf_event.h>
+   struct perf_event_attr attr;
+   pfm_perf_encode_arg_t arg;
+
+   memset(&arg, 0, sizeof(arg));
+   arg.size = sizeof(arg);
+   arg.attr = &attr;
+
+   ret = pfm_get_os_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, PFM_OS_PERF, &arg);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+.nf
+
+
+The \fBdfl_plm\fR cannot be zero, though it may not necessarily be used by the event.
+Depending on the event, combination of the following privilege levels may be used:
+.TP
+.B PFM_PLM3
+Measure at privilege level 3. This usually corresponds to user level. On X86, it corresponds
+to privilege levels 3, 2, 1. Check the PMU specific man page to verify if this level
+is supported by your PMU model.
+.TP
+.B PFM_PLM2
+Measure at privilege level 2. Check the PMU specific man page to verify if this level
+is supported by your PMU model.
+.TP
+.B PFM_PLM1
+Measure at privilege level 1. Check the PMU specific man page to verify if this level
+is supported by your PMU model.
+.TP
+.B PFM_PLM0
+Measure at privilege level 0. This usually corresponds to kernel level. Check the PMU
+specific man page to verify if this level is supported by your PMU model.
+.TP
+.B PFM_PLMH
+Measure at hypervisor privilege level. This is used in conjunction with hardware virtualization.
+Check the PMU specific man page to verify if this level is supported by your PMU model.
+.PP
+
+If \fBfstr\fR is not NULL, the function will make it point to the fully qualified event string,
+i.e., a string with the event name, all unit masks set, and the value of all modifiers.
+The library will allocate memory to store the event string but it is the responsibility of the
+caller to eventually free that string using free().
+
+If \fBidx\fR is not NULL, it returns the corresponding unique event identifier.
+
+Only select fields are modified by the function, the others are untouched.
+The following fields in \fBattr\fR are modified:
+.TP
+.B type
+The type of the event
+.TP
+.B config
+The encoding of the event
+.TP
+.B exclude_user
+Whether or not user level execution should be excluded from monitoring. The definition
+of user is PMU model specific.
+.TP
+.B exclude_kernel
+Whether or not kernel level execution should be excluded from monitoring. The definition
+of kernel is PMU model specific.
+.TP
+.B exclude_hv
+Whether or not hypervisor level execution should be excluded from monitoring. The definition
+of hypervisor is PMU model specific.
+.PP
+By default, if no privilege level modifier is specified in the event string, the library clears
+\fBexclude_user\fR, \fBexclude_kernel\fR and \fBexclude_hv\fR, resulting in the event being
+measured at all levels subject to hardware support.
+
+The function is able to work on only one event at a time. For convenience, it accepts
+event strings with commas. In that case, it will translate the first event up to the
+first comma. This is handy in case tools gets passed events as a comma-separated list.
+
+.SH RETURN
+The function returns in \fBattr\fR the perf_event encoding which corresponds to the event
+string. If \fBidx\fR is not NULL, then it will contain the unique event identifier upon
+successful return. The value \fBPFM_SUCCESS\fR is returned if successful, otherwise a negative
+error code is returned.
+
+.SH ERRORS
+.TP
+.B PFM_ERR_TOOSMALL
+The \fBcode\fR argument is too small for the encoding.
+.TP
+.B PFM_ERR_INVAL
+The \fBattr\fR argument is \fBNULL\fR.
+.TP
+.B PFM_ERR_NOMEM
+Not enough memory.
+.TP
+.B PFM_ERR_NOTFOUND
+Event not found.
+.TP
+.B PFM_ERR_ATTR
+Invalid event attribute (unit mask or modifier)
+.TP
+.B PFM_ERR_ATTR_VAL
+Invalid modifier value.
+.TP
+.B PFM_ERR_ATTR_SET
+attribute already set, cannot be changed.
+.TP
+.B PFM_ERR_ATTR_UMASK
+Missing unit mask.
+.TP
+.B PFM_ERR_ATTR_FEATCOMB
+Unit masks or features cannot be combined into a single event.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.SH SEE ALSO
+pfm_get_os_event_encoding(3)

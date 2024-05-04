@@ -1,0 +1,78 @@
+.TH LIBPFM 3  "February, 2014" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_ivbep_unc_cbo - support for Intel Ivy Bridge-EP C-Box uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: ivbep_unc_cbo[0-7]
+.B PMU desc: Intel Ivy Bridge-EP C-Box uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel Ivy Bridge C-Box (coherency engine) uncore PMU.
+This PMU model only exists on Ivy Bridge model 62. There is one C-box
+PMU per physical core. Therefore there are up to fifteen identical C-Box PMU instances
+numbered from 0 to 14. On dual-socket systems, the number refers to the C-Box
+PMU on the socket where the program runs. For instance, if running on CPU15, then
+ivbep_unc_cbo0 refers to the C-Box for physical core 0 on socket 1. Conversely,
+if running on CPU0, then the same ivbep_unc_cbo0 refers to the C-Box for physical
+core 0 but on socket 0.
+
+Each C-Box PMU implements 4 generic counters and two filter registers used only
+with certain events and umasks.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Ivy Bridge C-Box uncore PMU:
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of C-Box cycles in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:255].
+.TP
+.B nf
+Node filter. Certain events, such as UNC_C_LLC_LOOKUP, UNC_C_LLC_VICTIMS, provide a \fBNID\fR umask.
+Sometimes the \fBNID\fR is combined with other filtering capabilities, such as opcodes.
+The node filter is an 8-bit max bitmask. A node corresponds to a processor
+socket. The legal values therefore depend on the underlying hardware configuration. For
+dual-socket systems, the bitmask has two valid bits [0:1].
+.TP
+.B cf
+Core Filter. This is a 3-bit filter which is used to filter based on physical core origin
+of the C-Box request. Possible values are 0-7. If the filter is not specified, then no
+filtering takes place.
+.TP
+.B tf
+Thread Filter. This is a 1-bit filter which is used to filter C-Box requests based on logical
+processor (hyper-thread) identification. Possibles values are 0-1. If the filter is not
+specified, then no filtering takes place.
+.TP
+.B nc
+Non-Coherent. This is a 1-bit filter which is used to filter C-Box requests only for the
+TOR_INSERTS and TOR_OCCUPANCY umasks using the OPCODE matcher. If the filter is not
+specified, then no filtering takes place.
+.TP
+.B isoc
+Isochronous. This is a 1-bit filter which is used to filter C-Box requests only for the
+TOR_INSERTS and TOR_OCCUPANCY umasks using the OPCODE matcher. If the filter is not
+specified, then no filtering takes place.
+
+.SH Opcode filtering
+
+Certain events, such as UNC_C_TOR_INSERTS supports opcode matching on the C-BOX transaction
+type. To use this feature, first an opcode matching umask must be selected, e.g., MISS_OPCODE.
+Second, the opcode to match on must be selected via a second umask among the OPC_* umasks.
+For instance, UNC_C_TOR_INSERTS:OPCODE:OPC_RFO, counts the number of TOR insertions for RFO
+transactions. 
+
+Opcode matching may be combined with node filtering with certain umasks. In general, the
+filtering support is encoded into the umask name, e.g., NID_OPCODE supports both
+node and opcode filtering. For instance, UNC_C_TOR_INSERTS:NID_OPCODE:OPC_RFO:nf=1.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

@@ -1,0 +1,35 @@
+.TH LIBPFM 3  "January, 2018" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_skx_unc_ubo - support for Intel Skylake X Server U-Box uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: skx_unc_ubo
+.B PMU desc: Intel Skylake X Server U-Box uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel Skylake X server system configuration unit (U-Box) uncore PMU.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Skylake X server U-Box uncore PMU:
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of HA cycles in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:15].
+.TP
+.B i
+Invert the meaning of the threshold or edge filter. If set, the event counts when strictly less
+than N occurrences occur per cycle if threshold is set to N. When invert is set, then threshold
+must be set to non-zero value. If set, the event counts when the event transitions from occurring
+to not occurring (falling edge) when edge detection is set. This is a boolean modifier
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

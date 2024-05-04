@@ -1,0 +1,129 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_event_encoding \- get raw event encoding
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_event_encoding(const char *" str ",int " dfl_plm ", char **" fstr ", int *" idx ", uint64_t *"code ", int *" count ");"
+.sp
+.SH DESCRIPTION
+This function is used to retrieve the raw event encoding corresponding to the event string in \fBstr\fR.
+Only one event per call can be encoded. As such, \fBstr\fR can contain only one symbolic event name.
+The string may contain unit masks and modifiers. The default privilege level mask is passed in \fBdfl_plm\fR.
+It may be used depending on the event.
+
+This function is \fBdeprecated\fR. It is superseded by \fBpfm_get_os_event_encoding()\fR where the OS is set to
+\fBPFM_OS_NONE\fR. Encoding is retrieve through the \fBpfm_pmu_encode_arg_t\fR structure.
+
+The following examples illustrates the transition:
+
+.nf
+   int i, count = 0;
+   uint64_t *codes;
+
+   ret = pfm_get_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, NULL, &codes, &count);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+   for(i=0; i < count; i++)
+      printf("count[%d]=0x%"PRIx64"\\n", i, codes[i]);
+.fi
+
+is equivalent to:
+
+.nf
+   pfm_pmu_encode_arg_t arg;
+   int i;
+
+   memset(&arg, 0, sizeof(arg));
+   arg.size = sizeof(arg);
+
+   ret = pfm_get_os_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, PFM_OS_NONE, &arg);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+   for(i=0; i < arg.count; i++)
+      printf("count[%d]=0x%"PRIx64"\\n", i, arg.codes[i]);
+
+   free(arg.codes);
+.nf
+
+The encoding may take several 64-bit integers. The function can use the array passed in \fBcode\fR if the number
+of entries passed in \fBcount\fR is big enough. However, if both \fB*codes\fR is \fBNULL\fR and \fBcount\fR
+is 0, the function allocates the memory necessary to store the encoding. It is up to the caller to
+eventually free the memory. The number of 64-bit entries in \fBcodes\fR is reflected in \fB*count\fR upon
+return regardless of whether the \fBcodes\fR was allocated or used as is. If the number of 64-bit integers is
+greater than one, then the order in which each component is returned is PMU-model specific. Refer to the PMU
+specific man page.
+
+The raw encoding means the encoding as mandated by the underlying PMU model. It may not be directly suitable
+to pass to a kernel API. You may want to use API-specific library calls to ensure the correct encoding is passed.
+
+If \fBfstr\fR is not NULL, it will point to the fully qualified event string upon successful return. The string
+contains the event name, any umask set, and the value of all the modifiers. It reflects what the encoding will
+actually measure. The function allocates the memory to store the string. The caller must eventually free the
+string.
+
+Here is a example of how this function could be used:
+.nf
+#include <inttypes.h>
+#include <err.h>
+#include <perfmon/pfmlib.h>
+int main(int argc, char **argv)
+{
+   uint64_t *codes 0;
+   int count = 0;
+   int ret;
+
+   ret = pfm_initialize();
+   if (ret != PFMLIB_SUCCESS)
+      err(1", cannot initialize library %s", pfm_strerror(ret));
+
+   ret = pfm_get_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, NULL, &codes, &count);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+   for(i=0; i < count; i++)
+      printf("count[%d]=0x%"PRIx64"\\n", i, codes[i]);
+
+   free(codes);
+   return 0;
+}
+.fi
+.SH RETURN
+The function returns in \fB*codes\fR the encoding of the event and in \fB*count\fR the number
+of 64-bit integers to support that encoding. Upon success, \fBPFM_SUCCESS\fR is returned otherwise
+a specific error code is returned.
+.SH ERRORS
+.TP
+.B PFM_ERR_TOOSMALL
+The \fBcode\fR argument is too small for the encoding.
+.TP
+.B PFM_ERR_INVAL
+The \fBcode\fR or \fBcount\fR argument is \fBNULL\fR or the \fBstr\fR contains more than one symbolic event.
+.TP
+.B PFM_ERR_NOMEM
+Not enough memory.
+.TP
+.B PFM_ERR_NOTFOUND
+Event not found.
+.TP
+.B PFM_ERR_ATTR
+Invalid event attribute (unit mask or modifier)
+.TP
+.B PFM_ERR_ATTR_VAL
+Invalid modifier value.
+.TP
+.B PFM_ERR_ATTR_SET
+attribute already set, cannot be changed.
+.TP
+.B PFM_ERR_ATTR_UMASK
+Missing unit mask.
+.TP
+.B PFM_ERR_ATTR_FEATCOMB
+Unit masks or features cannot be combined into a single event.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.SH SEE ALSO
+pfm_get_os_event_encoding(3)

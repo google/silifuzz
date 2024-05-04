@@ -1,0 +1,131 @@
+.TH LIBPFM 3  "December, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_pmu_info \- get PMU information
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_pmu_info(pfm_pmu_t " pmu ", pfm_pmu_info_t *" info ");"
+.sp
+.SH DESCRIPTION
+This function returns in \fBinfo\fR information about a PMU model
+designated by its identifier in \fBpmu\fR.
+
+The \fBpfm_pmu_info\fR structure is defined as follows:
+.nf
+typedef struct {
+        const char              *name;
+        const char              *desc;
+        pfm_pmu_t               pmu;
+        pfm_pmu_type_t          type;
+        int                     size;
+        int                     nevents;
+        int                     first_event;
+        int                     max_encoding;
+        int                     num_cntrs;
+        int                     num_fixed_cntrs;
+        struct {
+                int             is_present:1;
+                int             is_arch_default:1;
+                int             is_core:1;
+                int             is_uncore:1;
+                int             reserved:28;
+        };
+} pfm_pmu_info_t;
+.fi
+
+The fields of this structure are defined as follows:
+.TP
+.B name
+This is the symbolic name of the PMU. This name
+can be used as a prefix in an event string. This is a read-only
+string.
+.TP
+.B desc
+This is the description of PMU. This is a read-only string. 
+.TP
+.B pmu
+This is the unique PMU identification code. It is identical to the value
+passed in \fBpmu\fR and it provided only for completeness.
+.TP
+.B type
+This field contains the type of the PMU. The following types are defined:
+.RS
+.TP
+.B PFM_PMU_TYPE_UNKNOWN
+The type of the PMU could not be determined.
+.TP
+.B PFM_PMU_TYPE_CORE
+This field is set to one when the PMU is implemented by the processor core.
+.TP
+.B PFM_PMU_TYPE_UNCORE
+This field is set to one when the PMU is implemented on the processor
+die but at the socket level, i.e., capturing events for all cores.
+.PP
+.RE
+.TP
+.B nevents
+This is the number of available events for this PMU model based on the
+host processor. It is \fBonly\fR valid if the \fBis_present\fR field
+is set to 1. Event identifiers are not guaranteed contiguous. In other words,
+it is not because \fBnevents\fR is equal to 100, that event identifiers go
+from 0 to 99. The iterator function \fBpfm_get_event_next()\fR must be
+used to go from one identifier to the next.
+.TP
+.B first_event
+This field returns the opaque index of the first event for this PMU model. The index
+can be used with \fBpfm_get_event_info()\fR or \fBpfm_get_event_next()\fR functions.
+In case no event is available, this field contains \fB-1\fR.
+.TP
+.B num_cntrs
+This field contains the number of generic counters supported by the PMU.
+A counter is generic if it can count more than one event. When it is not
+possible to determine the number of generic counters, this field contains \fb-1\fR.
+.TP
+.B num_fixed_cntrs
+This field contains the number of fixed counters supported by the PMU.
+A counter is fixed if it hardwired to count only one event. When it is not
+possible to determine the number of generic counters, this field contains \fb-1\fR.
+
+.TP
+.B size
+This field contains the size of the struct passed. This field is used to provide
+for extensibility of the struct without compromising backward compatibility.
+The value should be set to \fBsizeof(pfm_pmu_info_t)\fR. If instead, a value of
+\fB0\fR is specified, the library assumes the struct passed is identical to the
+first ABI version which size is \fBPFM_PMU_INFO_ABI0\fR. Thus, if fields were
+added after the first ABI, they will not be set by the library. The library
+does check that bytes beyond what is implemented are zeroes.
+.TP
+.B max_encoding
+This field returns the number of event codes returned by \fBpfm_get_event_encoding()\fR.
+.TP
+.B is_present
+This field is set to one is the PMU model has been detected on the
+host system.
+.TP
+.B is_dfl
+This field is set to one if the PMU is the default PMU for this architecture.
+Otherwise this field is zero.
+.PP
+
+.SH RETURN
+
+If successful, the function returns \fBPFM_SUCCESS\fR and PMU information
+in \fBinfo\fR, otherwise it returns an error code.
+.SH ERRORS
+.TP
+.B PFMLIB_ERR_NOINIT
+Library has not been initialized properly.
+.TP
+.B PFMLIB_ERR_NOTSUPP
+PMU model is not supported by the library.
+.TP
+.B PFMLIB_ERR_INVAL
+The \fBpmu\fR argument is invalid or \fBinfo\fR is \fBNULL\fR or \fBsize\fR
+is not zero.
+.SH SEE ALSO
+pfm_get_event_next(3)
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

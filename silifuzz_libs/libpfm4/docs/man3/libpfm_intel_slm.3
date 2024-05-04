@@ -1,0 +1,84 @@
+.TH LIBPFM 3  "November, 2013" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_slm - support for Intel Silvermont core PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: slm
+.B PMU desc: Intel Silvermont
+.sp
+.SH DESCRIPTION
+The library supports the Intel Silvermont core PMU.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Silvermont processors:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event
+to at least one occurrence. This modifier must be combined with a counter mask modifier (m) with a value greater or equal to one.
+This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+
+.SH OFFCORE_RESPONSE events
+Intel Silvermont provides two offcore_response events:
+\fBOFFCORE_RESPONSE_0\fR and \fBOFFCORE_RESPONSE_1\fR.
+
+Those events need special treatment in the performance monitoring infrastructure
+because each event uses an extra register to store some settings. Thus, in
+case multiple offcore_response events are monitored simultaneously, the kernel needs
+to manage the sharing of that extra register.
+
+The offcore_response events are exposed as a normal event by the library. The extra
+settings are exposed as regular umasks. The library takes care of encoding the
+events according to the underlying kernel interface.
+
+On Intel Silvermont, the umasks are divided into three categories: request, supplier
+and snoop. The user must provide at least one umask for each category. The categories
+are shown in the umask descriptions. The library provides a default umask per category
+if not provided by the user.
+
+There is also the special response umask called \fBANY_RESPONSE\fR. When this umask
+is used then it overrides any supplier and snoop umasks. In other words, users can
+specify either \fBANY_RESPONSE\fR \fBOR\fR any combinations of supplier + snoops.
+
+In case no supplier or snoop is specified, the library defaults to using
+\fBANY_RESPONSE\fR.
+
+For instance, the following are valid event selections:
+.TP
+.B OFFCORE_RESPONSE_0:DMND_DATA_RD:ANY_RESPONSE
+.TP
+.B OFFCORE_RESPONSE_0:ANY_REQUEST
+.TP
+.B OFFCORE_RESPONSE_0:ANY_RFO:LLC_HITM:SNOOP_ANY
+
+.P
+But the following are illegal:
+
+.TP
+.B OFFCORE_RESPONSE_0:ANY_RFO:NON_DRAM:ANY_RESPONSE
+.TP
+.B OFFCORE_RESPONSE_0:ANY_RFO:L2_HIT:SNOOP_ANY:ANY_RESPONSE
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

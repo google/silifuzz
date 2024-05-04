@@ -1,0 +1,48 @@
+.TH LIBPFM 3  "June, 2013" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_ivb_unc - support for Intel Ivy Bridge uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: ivb_unc_cbo0, ivb_unc_cbo1, ivb_unc_cbo2, ivb_unc_cbo3
+.B PMU desc: Intel Ivy Bridge C-box uncore
+.sp
+.SH DESCRIPTION
+The library supports the Intel Ivy Bridge client part (model 58) uncore PMU.
+The support is currently limited to the Coherency Box, so called C-Box for up
+to 4 physical cores.
+
+Each physical core has an associated C-Box which it uses to communicate with
+the L3 cache. The C-boxes all support the same set of events. However, Core 0
+C-box (snb_unc_cbo0) supports an additional uncore clock ticks event: \fBUNC_CLOCKTICKS\fR.
+
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Ivy Bridge C-Box uncore PMU:
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event
+to at least one occurrence. This modifier must be combined with a counter mask modifier (m) with a value greater or equal to one.
+This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+
+.P
+Both the \fBUNC_CBO_CACHE_LOOKUP\fR and \fBUNC_CBO_XSNP_RESPONSE\fR requires two umasks to be valid.
+For \fBUNC_CBO_CACHE_LOOKUP\fR the first umask must be one of the MESI state umasks, the second has to be one
+of the filters.  For \fBUNC_CBO_XSNP_RESPONSE\fR the first umask must be one of the snoop types, the second
+has to be one of the filters.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

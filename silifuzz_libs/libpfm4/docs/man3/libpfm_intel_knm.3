@@ -1,0 +1,100 @@
+.TH LIBPFM 3  "March, 2018" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_knm - support for Intel Knights Mill core PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: knm
+.B PMU desc: Intel Kinghts Mill
+.sp
+.SH DESCRIPTION
+The library supports the Intel Kinghts Mill core PMU. It should be noted that
+this PMU model only covers each core's PMU and not the socket level PMU.
+
+On Knights Mill, the number of generic counters is 4. There is 4-way HyperThreading support.
+The \fBpfm_get_pmu_info()\fR function returns the maximum number of generic counters
+in \fBnum_cntrs\fr.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Kinghts Mill processors:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event
+to at least one occurrence. This modifier must be combined with a counter mask modifier (m) with a value greater or equal to one.
+This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+.TP
+.B t
+Measure on any of the 4 hyper-threads at the same time assuming hyper-threading is enabled. This is a boolean modifier.
+This modifier is only available on fixed counters (unhalted_reference_cycles, instructions_retired, unhalted_core_cycles).
+Depending on the underlying kernel interface, the event may be programmed on a fixed counter or a generic counter, except for
+unhalted_reference_cycles, in which case, this modifier may be ignored or rejected.
+
+.SH OFFCORE_RESPONSE events
+Intel Knights Mill provides two offcore_response events. They are called OFFCORE_RESPONSE_0 and OFFCORE_RESPONSE_1.
+
+Those events need special treatment in the performance monitoring infrastructure
+because each event uses an extra register to store some settings. Thus, in
+case multiple offcore_response events are monitored simultaneously, the kernel needs
+to manage the sharing of that extra register.
+
+The offcore_response events are exposed as normal events by the library. The extra
+settings are exposed as regular umasks. The library takes care of encoding the
+events according to the underlying kernel interface.
+
+On Intel Knights Mill, the umasks are divided into 4 categories: request, supplier
+and snoop and average latency. Offcore_response event has two modes of operations: normal and average latency.
+In the first mode, the two offcore_respnse events operate independently of each other. The user must provide at
+least one umask for each of the first 3 categories: request, supplier, snoop. In the second mode, the two
+offcore_response events are combined to compute an average latency per request type.
+
+For the normal mode, there is a special supplier (response) umask called \fBANY_RESPONSE\fR. When this umask
+is used then it overrides any supplier and snoop umasks. In other words, users can
+specify either \fBANY_RESPONSE\fR \fBOR\fR any combinations of supplier + snoops. In case no supplier or snoop
+is specified, the library defaults to using \fBANY_RESPONSE\fR.
+
+For instance, the following are valid event selections:
+.TP
+.B OFFCORE_RESPONSE_0:DMND_DATA_RD:ANY_RESPONSE
+.TP
+.B OFFCORE_RESPONSE_0:ANY_REQUEST
+.TP
+.B OFFCORE_RESPONSE_0:ANY_RFO:DDR_NEAR
+
+.P
+But the following is illegal:
+
+.TP
+.B OFFCORE_RESPONSE_0:ANY_RFO:DDR_NEAR:ANY_RESPONSE
+.P
+In average latency mode, \fBOFFCORE_RESPONSE_0\fR must be programmed to select the request types of interest, for instance, \fBDMND_DATA_RD\fR, and the \fBOUTSTANDING\fR umask must be set and no others. the library will enforce that restriction as soon as the \fBOUTSTANDING\fR umask is used. Then \fBOFFCORE_RESPONSE_1\fR must be set with the same request types and the \fBANY_RESPONSE\fR umask. It should be noted that the library encodes events independently of each other and therefore cannot verify that the requests are matching between the two events.
+Example of average latency settings:
+.TP
+.B OFFCORE_RESPONSE_0:DMND_DATA_RD:OUTSTANDING+OFFCORE_RESPONSE_1:DMND_DATA_RD:ANY_RESPONSE
+.TP
+.B OFFCORE_RESPONSE_0:ANY_REQUEST:OUTSTANDING+OFFCORE_RESPONSE_1:ANY_REQUEST:ANY_RESPONSE
+.P
+The average latency for the request(s) is obtained by dividing the counts of \fBOFFCORE_RESPONSE_0\fR by the count of \fBOFFCORE_RESPONSE_1\fR. The ratio is expressed in core cycles.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

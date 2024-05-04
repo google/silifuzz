@@ -1,0 +1,35 @@
+.TH LIBPFM 3  "August, 2012" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_arm_ac7 - support for Arm Cortex A7 PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: arm_ac7
+.B PMU desc: ARM Cortex A7
+.sp
+.SH DESCRIPTION
+The library supports the ARM Cortex A7 core PMU.
+
+This PMU supports 4 counters and privilege levels filtering.
+
+.SH MODIFIERS
+The following modifiers are supported on ARM Cortex A7:
+.TP
+.B u
+Measure at the user level. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at the kernel level. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B hv
+Measure at the hypervisor level. This corresponds to \fBPFM_PLMH\fR.
+This is a boolean modifier.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

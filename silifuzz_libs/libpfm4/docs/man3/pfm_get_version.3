@@ -1,0 +1,30 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_version \- get library version
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_version(void)";
+.sp
+.SH DESCRIPTION
+This function can be called at any time to get the revision
+level of the library. It is not necessary to have invoked
+\fBpfm_initialize()\fR prior to calling this function.
+
+The revision number is composed of two fields: a major number
+and a minor number. Both can be extracted using macros provided
+in the header file:
+.TP
+.B PFMLIB_MAJ_VERSION(v)
+returns the major number encoded in v.
+.TP
+.B PFMLIB_MIN_VERSION(v)
+returns the minor number encoded in v.
+.SH RETURN
+The function is always successful, i.e., it always returns
+the 32-bit version number.
+.SH ERRORS
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

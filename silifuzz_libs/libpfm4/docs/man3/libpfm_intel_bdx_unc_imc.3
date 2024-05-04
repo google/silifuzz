@@ -1,0 +1,34 @@
+.TH LIBPFM 3  "June, 2017" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_bdx_unc_imc - support for Intel Broadwell Server Integrated Memory Controller (IMC)  uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: bdx_unc_imc[0-7]
+.B PMU desc: Intel Broadwell Server IMC uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel Broadwell Server Integrated Memory Controller (IMC) uncore PMU.
+This PMU model only exists on various Broadwell server models (79, 86).
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Broadwell server IMC uncore PMU:
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of IMC cycles in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:255].
+.B i
+Invert the meaning of the threshold or edge filter. If set, the event counts when strictly less
+than N occurrences occur per cycle if threshold is set to N. When invert is set, then threshold
+must be set to non-zero value. If set, the event counts when the event transitions from occurring
+to not occurring (falling edge) when edge detection is set. This is a boolean modifier
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

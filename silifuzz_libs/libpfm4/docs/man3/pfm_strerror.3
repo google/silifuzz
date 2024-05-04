@@ -1,0 +1,32 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_strerror \- return constant string describing error code
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "const char *pfm_strerror(int "code);
+.sp
+.SH DESCRIPTION
+This function returns a string which describes the libpfm error
+value in \fBcode\fR. The string returned by the call is \fBread-only\fR.
+
+The function must \fBonly\fR be used with libpfm calls documented to return
+specific error codes. The value \-1 is not considered a specific error code.
+Strings and \fBpfm_pmu_t\fR return values cannot be used with this function.
+Typically \fBNULL\fR is returned in case of error for string values, and
+\fBPFM_PMU_NONE\fR is returned for \fBpfm_pmu_t\fR values.
+
+The function is also not designed to handle OS system call errors, i.e.,
+errno values.
+
+.SH RETURN
+The function returns a pointer to the constant string describing
+the error code. The string is in English. If code is invalid then
+a default error message is returned.
+.SH ERRORS
+If the error code is invalid, then the function returns
+a pointer to a string which says "unknown error code".
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

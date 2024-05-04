@@ -1,0 +1,8 @@
+Requirements:
+
+To use the python bindings, you need the following packages:
+
+1. swig (http://www.swig.org)
+2. python-dev (http://www.python.org)
+3. module-linux (http://code.google.com/p/module-linux)
+   linux.sched is python package that comes with module-linux.

@@ -1,0 +1,30 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_initialize \- initialize library
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_initialize(void);"
+.sp
+.SH DESCRIPTION
+This is the first function that a program \fBmust\fR call otherwise
+the library will not operate.  This function probes the
+underlying hardware looking for valid PMU event tables to activate.
+Multiple distinct PMU tables may be activated at the same time.
+
+The function must be called only once. If the function is called
+more than once, it does not execute the initialization multiple times,
+it simply returns the same value as for the first call.
+
+.SH RETURN
+The function returns whether or not it was successful, i.e., at least
+one PMU was activated. A return value of \fBPFMLIB_SUCCESS\fR indicates
+success, otherwise the value is an error code.
+.SH ERRORS
+.TP
+.B PFMLIB_ERR_NOTSUPP
+No PMU was activated.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

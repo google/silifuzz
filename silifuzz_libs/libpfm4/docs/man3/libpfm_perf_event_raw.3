@@ -1,0 +1,96 @@
+.TH LIBPFM 3  "February, 2014" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_perf_event_raw - support for perf_events raw events syntax
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: perf_raw
+.B PMU desc: Raw perf_events event syntax
+.sp
+.SH DESCRIPTION
+The library supports a pseudo PMU model to allow raw encodings of PMU events
+for the Linux perf_events kernel interface.
+
+With this PMU, it is possible to provide the raw hexadecimal encoding of any
+hardware event for any PMU models. The raw encoding is passed as is to the
+kernel. All events are encoded as \fBPERF_TYPE_RAW\fR. As such, perf_events
+generic events, such as cycles, instructions, cannot be encoded by this
+PMU.
+
+The syntax is very simple: rX. X is the hexadecimal 64-bit value for the event.
+It may include event filters on some PMU models. The hexadecimal number is passed
+without the 0x prefix, e.g., r01c4.
+
+The library's standard perf_events attributes are supported by this PMU model.
+They are separated with colons as is customary with the library.
+
+.SH MODIFIERS
+The following modifiers are supported by this PMU model:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B h
+Measure at the hypervisor level. This corresponds to \fBPFM_PLMH\fR.
+This is a boolean modifier
+.TP
+.B mg 
+Measure guest execution only. This is a boolean modifier
+.TP
+.B mh
+Measure host execution only. This is a boolean modifier
+.TP
+.B period
+Specify the the sampling period value. Value can be expressed in decimal or hexadecimal.
+Value is 64-bit wide. This option is mutually exclusive with
+\fBfreq\fR. The period is expressed in the unit of the event. There is no default value.
+.TP
+.B freq
+Specify the the sampling frequency value. Value can be expressed in decimal or hexadecimal.
+Value is 64-bit wide. This options is mutually exclusive with
+\fBperiod\fR. The value is expressed in Hertz. For instance, freq=100, means that the
+event should be sampled 100 times per second on average. There is no default value.
+.TP
+.B excl
+The associated event is the only event measured on the PMU. This applies only to hardware
+events. This attribute requires admin privileges. Default is off.
+.TP
+.B precise
+Enables precise sampling mode. This option is only valid when sampling on events. The options takes
+an integer argument. It can have the following values: 1=enable precise sampling, 2=enable precise
+sampling and eliminate skid, 3=enable precise sampling, eliminate skid and bias. Not all events
+necessarily support precise mode at all levels, this is dependent on the underlying PMU. Eliminating
+skid is a best effort feature. It may not work for all samples. This option is mutually exclusive
+with \fBhw_smpl\fR. This options implies using the hardware assist sampling mechanism.
+.TP
+.B hw_smpl
+Enables hardware assist sampling. This is a boolean option. It is false by default. On some processors,
+it is possible to have the hardware record samples in a buffer and then notify the kernel when it is full.
+Such feature may not be available for all events. Using a hardware buffer does not necessarily eliminate
+skid and bias, it usually lowers the overhead of interrupt-based sampling by amortizing the interrupt over
+multiple samples. This option is usually implicit with precise sampling events.
+.TP
+.B cpu
+This integer option is used with system-wide events, i.e., events attached to a CPU instead of
+a thread. The value designate the CPU to attach the event to. It is up to the caller of the library
+to use the cpu field in the library event encoding argument to create the event. No verification on
+the validity of the CPU number is made by the library. Default value is -1 for this field.
+.TP
+.B pinned
+This boolean option is used with system-wide events, i.e., events attached to a CPU instead of
+a thread. If set, then the event is marked as pinned. That means it needs to remain on the counters
+at all time, i.e., it cannot be multiplexed. There can only be as many pinned events as there are
+counters, yet the library does not check for that, the perf_event subsystem does. The default value
+for this field is false, i.e., the event is not pinned.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

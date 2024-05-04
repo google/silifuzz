@@ -1,0 +1,137 @@
+.TH LIBPFM 3  "May, 2010" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm \- a helper library to develop monitoring tools 
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+
+.SH DESCRIPTION
+This is a helper library used by applications to program
+specific performance monitoring events. Those events are typically
+provided by the hardware or the OS kernel. The most common hardware events
+are provided by the Performance Monitoring Unit (PMU) of modern processors.
+They can measure elapsed cycles or the number of cache misses. Software events
+usually count kernel events  such as the number of context switches, or pages faults.
+
+The library groups events based on which source is providing them.
+The term PMU is generalized to any event source, not just hardware sources.
+The library supports hardware performance events from most common processors,
+each group under a specific PMU name, such as Intel Core, IBM Power 6.
+
+Programming events is usually done through a kernel API, such as Oprofile,
+perfmon, perfctr, or perf_events on Linux. The library provides support for
+perf_events which is available in the Linux kernel as of v2.6.31. Perf_events
+supports selected PMU models and several software events.
+
+At its core, the library provides a simple translation service, whereby
+a user specifies an event to measure as a string and the library returns
+the parameters needed to invoke the kernel API. It is important to realize
+that the library does \fBnot\fR make the system call to program the event.
+
+\fBNote:\fR You must first call \fBpfm_initialize()\fR in order to use any of the other
+provided functions in the library.
+
+A first part of the library provides an event listing and query
+interface. This can be used to discover the events available on a specific hardware 
+platform.
+
+The second part of the library provides a set of functions to obtain event
+encodings form event strings. Event encoding depends primarily on the underlying
+hardware but also on the kernel API. The library offers a generic API to address
+the first situation but it also provides entry points for specific kernel APIs such
+as perf_events. In that case, it is able to prepare the data structure which
+must be passed to the kernel to program a specific event.
+
+.SH EVENT DETECTION
+
+When the library is initialized via \fBpfm_initialize()\fR, it first detects the
+underlying hardware and software configuration.  Based on this information
+it enables certain PMU support.  Multiple events tables may be activated.
+
+It is possible to force activation of a specific PMU (group of events)
+using an environment variable.
+
+.SH EVENT STRINGS
+Events are expressed as strings. Those string are structured and may contain
+several components depending on the type of event and the underlying hardware.
+
+String parsing is always case insensitive.
+
+The string structure is defined as follows:
+.sp
+.ce
+.B [pmu::][event_name][:unit_mask][:modifier|:modifier=val]
+
+or
+.ce
+.B [pmu::][event_name][.unit_mask][.modifier|.modifier=val]
+
+The components are defined as follows:
+.TP
+.B pmu
+Optional name of the PMU (group of events) to which the event belongs to. This is
+useful to disambiguate events in case events from difference sources have the same
+name. If not specified, the first match is used.
+.TP
+.B event_name
+The name of the event. It must be the complete name, partial matches are not accepted.
+This component is required.
+.TP
+.B unit_mask
+This designate an optional sub-events. Some events can be refined using sub-events.
+Event may have multiple unit masks and it may or may be possible to combine them.
+If more than one unit masks needs to be passed, then the [:unit_mask] pattern can
+be repeated.
+.TP
+.B modifier
+A modifier is an optional filter which modifies how the event counts. Modifiers
+have a type and a value. The value is specified after the equal sign. No space is
+allowed. In case of boolean modifiers, it is possible to omit the value true (1).
+The presence of the modifier is interpreted as meaning true. Events may support
+multiple modifiers, in which case the [:modifier|:modifier=val] pattern can be
+repeated. The is no ordering constraint between modifier and unit masks. Modifiers
+may be specified before unit masks and vice-versa.
+
+.SH ENVIRONMENT VARIABLES
+It is possible to enable certain debug features of the library using environment
+variables. The following variables are defined:
+.TP
+.B LIBPFM_VERBOSE
+Enable verbose output. Value must be 0 or 1. 
+.TP
+.B LIBPFM_DEBUG
+Enable debug  output. Value must be 0 or 1
+.TP
+.B LIBPFM_DEBUG_STDOUT
+Redirect verbose and debug output to the standard output file descriptor (stdout).
+By default, the output is directed to the standard error file descriptor (stderr).
+.TP
+.B LIBPFM_FORCE_PMU
+Force a specific PMU model to be activated. In this mode, only that one model
+is activated. The value of the variable must be the PMU name as returned by the
+\fBpfm_get_pmu_name()\fR function. Note for some PMU models, it may be possible
+to specify additional options, such as specific processor models or stepping.
+Additional parameters necessarily appears after a comma. For instance,
+LIBPFM_FORCE_PMU=amd64,16,2,1.
+.TP
+.B LIBPFM_ENCODE_INACTIVE
+Set this variable to 1 to enable encoding of events for non detected, but supported,
+PMUs models.
+.TP
+.B LIBPFM_DISABLED_PMUS
+Provides a list of PMU models to disable. This is a comma separated list of PMU
+models. The PMU model is the string in \fBname\fR field of the \fBpfm_pmu_info_t\fR
+structure. For instance: LIBPFM_DISABLE_PMUS=core,snb, will disable both the Intel
+Core and SandyBridge core PMU support.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+Robert Richter <robert.richter@amd.com>
+.fi
+.SH SEE ALSO
+libpfm_amd64_k7(3), libpfm_amd64_k8(3), libpfm_amd64_fam10h(3), libpfm_intel_core(3),
+libpfm_intel_atom(3), libpfm_intel_p6(3), libpfm_intel_nhm(3), libpfm_intel_nhm_unc(3),
+pfm_get_perf_event_encoding(3), pfm_initialize(3)
+.sp
+Some examples are shipped with the library

@@ -1,0 +1,106 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME pfm_find_event \- search for an event masks
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_find_event(const char *"str ");"
+.sp
+.SH DESCRIPTION
+This function is used to convert an event string passed in \fBstr\fR into an opaque
+event identifier, i.e., the return value.
+
+Events are first manipulated a strings which contain the event name, sub-event
+names and optional filters and modifiers. This function analyzes the string
+and try to find the matching event.
+
+The event string is a structured string and it is composed as follows:
+.TP
+.B [pmu_name::]event_name[:unit_mask][:modifier|:modifier=val]
+.PP
+
+The various components are separated by \fB:\fR or \fB::\fR, they
+are defined as follows:
+
+.TP
+.B pmu_name
+This is an optional prefix to designate a specific PMU model. With the
+prefix the event which matches the event_name is used. In case multiple
+PMU models are activated, there may be conflict with identical event
+names to mean the same or different things. In that case, it is necessary
+to fully specify the event with a pmu_name. That string corresponds to
+what is returned by \fBpfm_get_pmu_name()\fR.
+.TP
+.B event_name
+This is the event name and is required. The library is not case sensitive
+on event string. The event name must match \fBcompletely\fR the actual
+event name; it cannot be a substring.
+.TP
+.B unit_mask
+The optional unit mask which can be considered like a sub-event of the
+major event. If a event has unit masks, and there is no default, then
+at least one unit mask must be passed in the string. Multiple unit
+masks may be specified for a single event.
+.TP
+.B modifier
+A modifier is an optional filter which is provided by the hardware
+register hosting the event or by the underlying kernel infrastructure.
+Typical modifiers include privilege level filters. Some modifiers
+are simple boolean, in which case just passing their names is equivalent
+to setting their value to \fBtrue\fR. Other modifiers need a specific
+value, in which case it is provided after the equal sign. No space is
+tolerate around the equal sign. The list of modifiers depends on the
+host PMU and underlying kernel API. They are documented in PMU-specific
+documentation. Multiple modifiers may be passed. There is not order
+between unit masks and modifiers.
+.PP
+
+The library uses the generic term \fBattribute\fR to designate both
+unit masks and modifiers.
+
+Here are a few examples of event strings:
+.TP
+.B amd64::RETIRED_INSTRUCTIONS:u
+Event RETIRED_INSTRUCTION on AMD64 processor, measure at user privilege level only
+.TP
+.B RS_UOPS_DISPATCHED:c=1:i:u
+Event RS_UOPS_DISPATCHED measured at user privilege level only, and with counter-mask set to 1
+.PP
+For the purpose of this function, only the pmu_name and event_name
+are considered, everything else is parsed, thus must be valid, but is ignored.
+
+The function searches only for one event per call. As a convenience, the function will
+identify the event up to the first comma. In other words, if \fBstr\fR is equal to
+"EVENTA,EVENTB", then the function will only look at EVENTA and will not return an
+error because of invalid event string. This is handy when parsing constant event
+strings containing multiple, comma-separated, events.
+
+.SH RETURN
+The function returns the opaque event identifier that corresponds
+that the event string. In case of error, a negative error code
+is returned instead.
+.SH ERRORS
+.TP
+.B PFMLIB_ERR_NOINIT
+The library has not been initialized properly.
+.TP
+.B PFMLIB_ERR_INVAL
+The event string is NULL.
+.TP
+.B PFMLIB_ERR_NOMEM
+The library ran out of memory.
+.TP
+.B PFMLIB_ERR_NOTFOUND
+The event was not found
+.TP
+.B PFMLIB_ERR_ATTR
+Invalid event attribute
+.TP
+.B PFMLIB_ERR_ATTR_VAL
+Invalid event attribute value
+.TP
+.B PFMLIB_ERR_TOOMANY
+Too many event attributes passed
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

@@ -1,0 +1,40 @@
+.TH LIBPFM 3  "February, 2010" "" "Linux Programmer's Manual"
+.SH NAME libpfm_intel_wsm_unc \- support for Intel Westmere uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: wsm_unc
+.B PMU desc: Intel Westmere uncore
+.sp
+.SH DESCRIPTION
+The library supports the Intel Westmere uncore PMU as implemented by processors
+such as Intel Core i7, and Intel Core i5 (models 37, 44).
+
+The PMU is located at the socket-level and is therefore shared between
+the various cores. By construction it can only measure at all privilege
+levels.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Westmere processors:
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition. This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+.TP
+.B o
+Causes the queue occupancy counter associated with the event to be cleared (zeroed). This is a boolean
+modifier.
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

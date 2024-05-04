@@ -1,0 +1,195 @@
+libpfm4 (13.0) unstable; urgency=low
+  * update Intel SKL/SKX/CLX event table
+  * add ARM Neoverse V2 core PMU support
+  * move ARM Neoverse N2 to ARMv9 support
+  * add ARM v9  support basic infrastructure
+  * add Arm Neoverse V1 core PMU support
+  * Update Intel SapphireRapid event table
+  * update Intel Icelake event table
+  * Update AMD Zen4 event table
+  * remove useless combination in AMD Zen4 packed_int_ops_retired event
+  * Fix AMD Zen4 cpu_family used in detection code
+  * Add AMD Zen4 core PMU support
+  * Correctly detect all AMD Zen3 processors
+  * fix CPU_CLK_UNHALTED.REF_DISTRIBUTED on Intel Icelake
+  * add missing break in amd64_get_revision()
+  * update Intel Skylake event table
+  * Fix typos in Intel Icelake event table
+  * Update Intel SapphireRapid event table
+  * update perf_event.h to Linux 5.18
+  * fix amd_get_revision() to identify AMD Zen3 uniquely
+
+ -- Stephane Eranian <eranian@gmail.com>  Tue, 28 Mar  2023 08:00:01 +0200
+
+libpfm4 (12.1) unstable; urgency=low
+  * fix debian changelog 12.0 entry order
+  * fix debian rules to build again
+
+ -- Stephane Eranian <eranian@gmail.com>  Tue, 20 Sep  2022 08:00:01 +0200
+
+libpfm4 (12.0) unstable; urgency=low
+  * Add IBM Power10 core PMU support
+  * Add Intel IcelakeX core PMU support
+  * Add Intel SapphireRapid core PMU support
+  * Add Intel SapphireRapid RAPL PMU support
+  * Update Intel Icelake RAPL PMU support
+  * Add support HiSilicon Kunpeng uncore PMUs
+  * Add support HiSilicon Kunpeng core PMU
+  * Remove arm_fujitsu_a64fx_support for ARM(32 bit)
+  * Update Intel Skylake event table
+  * Add Intel PERF_METRICS event support for Icelake
+  * Add support for ARM Neoverse N2 core PMU
+  * Add ARM SPE events for Neoverse N1 core PMU
+  * Add cgroup-switches software event
+  * Add Intel Tigerlake and Rocketlake core PMU support
+  * Add AMD64 Fam19h Zen3 L3 PMU support
+  * Add AMD64 Fam17h Zen2 RAPL support
+  * Add AMD64 Fam19h Zen3 core PMU support
+  * Add RAPL for AMD64 Fam19h Zen3 processor
+  * Update ARM N1 event table
+  * Update AMD Fam17h Zen2 event table
+  * s390: Update counter definition for IBM z16
+
+ -- Stephane Eranian <eranian@gmail.com>  Fri, 16 Sep  2022 12:00:01 +0200
+
+libpfm4 (11.1) unstable; urgency=low
+  * Fix Makefile revision
+  * Fix Fujitsu A64Fx man page install in ARM64 mode
+
+ -- Stephane Eranian <eranian@gmail.com>  Wed, 23 Sep  2020 12:00:01 +0200
+
+libpfm4 (11.0) unstable; urgency=low
+  * Cavium TX2 core updates
+  * Cavium TX2 uncore core
+  * Intel CascadeLakeX core PMU support
+  * AMD Zen1 updates
+  * AMD Zen2 core pmu support
+  * S390 updates
+  * Update Skylake event table
+  * speculative event info infrastructure
+  * RAPL updates
+  * Intel Icelake core PMU support
+  * add hw_smpl attribute to the interface
+  * enable priv level filtering on ARMv8
+  * add ARM Neoverse N1 core PMU support
+
+ -- Stephane Eranian <eranian@gmail.com>  Wed, 2 Sep  2020 12:00:01 +0200
+
+libpfm4 (10.1) unstable; urgency=low
+  * fix Cavium Thunder X2 build issues
+  * Update Skylake event table
+
+ -- Stephane Eranian <eranian@gmail.com>  Thu, 13 Jun  2018 23:40:01 +0200
+
+libpfm4 (10.0) unstable; urgency=low
+  * add support for Skylake X uncore PMUs
+  * add support for Cavium Thunder X2 core PMU
+  * add support for Intel Knights Mill core PMU
+  * various fixes and event table updates
+
+ -- Stephane Eranian <eranian@gmail.com>  Thu, 6 Jun  2018 11:37:01 +0200
+
+libpfm4 (9.0) unstable; urgency=low
+  * add support for Broadwell EP uncore PMUa
+  * add support for Intel Skylake X
+  * add support for AMD Fam17h
+  * add support for IBM Power9
+  * add support for AMD Fam16h
+  * various fixes and event table updates
+
+ -- Stephane Eranian <eranian@gmail.com>  Thu, 4 Jan  2018 13:37:01 +0200
+
+libpfm4 (8.0) unstable; urgency=low
+  * add Intel Knights Landing support
+  * add Intel Goldmont support
+  * update Intel event tables
+  * allow . as delimiter for event string
+  * add SQ_MISC:SPLIT_LOCK
+  * enable Broadwell EP
+  * various fixes
+
+ -- Stephane Eranian <eranian@gmail.com>  Sat, 5 Nov  2016 14:38:01 +0200
+
+libpfm4 (7.0) unstable; urgency=low
+  * add Intel Skylake support
+  * add Intel Haswell-EP uncore PMU support
+  * add Broadwell DE support
+  * updated most Intel x86 event tables to match official tables
+  * refreshed perf_event.h header to 4.2
+  * more bug fixes and minor updates
+
+ -- Stephane Eranian <eranian@gmail.com>  Thu, 11 Feb  2016 16:56:01 +0200
+
+libpfm4 (6.0) unstable; urgency=low
+  * add Intel Broadwell (desktop) support
+  * add Intel Haswell-EP support (core)
+  * add Applied Micro X-Gene processor support
+  * simplified X86 model detection for Intel processors
+  * Intel SNB, IVB, HSW event table updates
+  * IBM Power8 event table updates
+  * add ARM Cortex A53 support
+  * more bug fixes and minor updates
+
+ -- Stephane Eranian <eranian@gmail.com>  Tue, 30 Dec  2014 16:56:01 +0200
+
+libpfm4 (5.0) unstable; urgency=low
+  * Intel IVB-EP uncore PMU support
+  * Intel Silvermont support
+  * Perf raw event syntax support
+  * Intel RAPL event support
+  * AMD Fam15h northbridge support
+  * Qualcomm Krait support
+  * IBM Power 8 support
+  * IBM s390 updates
+  * AMD Fam15h fixes
+  * various IVB, SNB, HSW event table updates
+  * more bug fixes
+
+ -- Stephane Eranian <eranian@gmail.com>  Fri, 21 Feb  2014 18:45:01 +0200
+
+libpfm4 (4.0) unstable; urgency=low
+  * Intel IVB-EP support
+  * Intel IVB updates support
+  * Intel SNB updates support
+  * Intel SNB-EP uncore support
+  * ldlat support (PEBS-LL)
+  * New Intel Atom support
+  * bug fixes
+
+ -- Stephane Eranian <eranian@gmail.com>  Fri, 08 JUn  2013 18:45:01 +0200
+
+libpfm4 (3.0) unstable; urgency=low
+
+  * ARM Cortex A15 support
+  * updated Intel Sandy Bridge core PMU events
+  * Intel Sandy Bridge desktop (model 42) uncore PMU support
+  * Intel Ivy Bridge support
+  * full perf_events generic event support
+  * updated perf_examples
+  * enabled Intel Nehalem/Westmere uncore PMU support
+  * AMD LLano processor supoprt (Fam 12h)
+  * AMD Turion rocessor supoprt (Fam 11h)
+  * Intel Atom Cedarview processor support
+  * Win32 compilation support
+  * perf_events excl attribute
+  * perf_events generic hw event aliases support
+  * many bug fixes
+
+ -- Stephane Eranian <eranian@gmail.com>  Mon, 27 Aug  2012 17:45:22 +0200
+
+libpfm4 (2.0) unstable; urgency=low
+
+  * updated event tables for Intel X86 processors
+  * new AMD Fam15h support
+  * new MIPS 74k support
+  * updated ARM Cortex A8/A9 support
+  * 30% size reduction for Intel/AMD X86 event tables
+  * bug fixes and other improvements
+
+ -- Stephane Eranian <eranian@gmail.com>  Fri, 7 Oct  2011 15:55:22 +0200
+
+libpfm4 (1.0) unstable; urgency=low
+
+  * Initial Release.
+
+ -- Arun Sharma <aruns@google.com>  Mon, 21 Jun 2010 15:17:22 -0700

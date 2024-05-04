@@ -1,0 +1,133 @@
+.TH LIBPFM 3  "December, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_event_info \- get event information
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_event_info(int " idx ", pfm_os_t " os ", pfm_event_info_t *" info ");"
+.sp
+.SH DESCRIPTION
+This function returns in \fBinfo\fR information about a specific event
+designated by its opaque unique identifier in \fBidx\fR for the operating system
+specified in \fBos\fR.
+
+The \fBpfm_event_info_t\fR structure is defined as follows:
+.nf
+typedef struct {
+        const char              *name;
+        const char              *desc;
+        const char              *equiv;
+        size_t			size;
+        uint64_t                code;
+        pfm_pmu_t               pmu;
+        pfm_dtype_t             dtype
+        int                     idx;
+        int                     nattrs;
+        struct {
+          unsigned int is_precise:1;
+          unsigned int reserved_bits:31;
+        };
+} pfm_event_info_t;
+.fi
+
+The fields of this structure are defined as follows:
+.TP
+.B name
+This is the name of the event. This is a read-only string.
+.TP
+.B desc
+This is the description of the event. This is a read-only string. It may contain
+multiple sentences.
+.TP
+.B equiv
+Certain events may be just variations of actual events. They may be provided as
+handy shortcuts to avoid supplying a long list of attributes. For those events,
+this field is not NULL and contains the complete equivalent event string.
+.TP
+.B code
+This is the raw event code. It should not be confused with the encoding
+of the event. This field represents only the event selection code, it does
+not include any unit mask or attribute settings.
+.TP
+.B pmu
+This is the identification of the PMU model this event belongs to. It is
+of type \fBpfm_pmu_t\fR. Using this value and the \fBpfm_get_pmu_info\fR
+function, it is possible to get PMU information.
+.TP
+.B dtype
+This field returns the representation of the event data. By default, it
+is \fBPFM_DATA_UINT64\fR.
+
+.B idx
+This is the event unique opaque identifier. It is identical to the idx
+passed to the call and is provided for completeness.
+.TP
+.B nattrs
+This is the number of attributes supported by this event. Attributes
+may be unit masks or modifiers. If the event has not attribute, then
+the value of this field is simply 0.
+.TP
+.B size
+This field contains the size of the struct passed. This field is used to provide
+for extensibility of the struct without compromising backward compatibility.
+The value should be set to \fBsizeof(pfm_event_info_t)\fR. If instead, a value of
+\fB0\fR is specified, the library assumes the struct passed is identical to the
+first ABI version which size is \fBPFM_EVENT_INFO_ABI0\fR. Thus, if fields were
+added after the first ABI, they will not be set by the library. The library
+does check that bytes beyond what is implemented are zeroes.
+.TP
+.B is_precise
+This bitfield indicates whether or not the event support precise sampling.
+Precise sampling is a hardware mechanism that avoids instruction address
+skid when using interrupt-based sampling. When the event has umasks, this
+field means that at least one umask supports precise sampling. On Intel X86
+processors, this indicates whether the event supports Precise Event-Based
+Sampling (PEBS).
+.PP
+.TP
+.B is_speculative
+This bitfield indicates whether or not the event includes occurrences happening
+during speculative execution for both wrong and correct path. Given that this
+kind of event information is not always available from vendors, this field uses
+multiple bits. A value of \fBPFM_EVENT_INFO_SPEC_NA\fR indicates that speculation
+information is not available. A value of \fBPFM_EVENT_INFO_SPEC_TRUE\fR indicates
+that the event count during speculative execution. A value of \fBPFM_EVENT_INFO_SPEC_FALS\fR
+indicates that the event does not count during speculative execution.
+.PP
+
+The \fBpfm_os_t\fR enumeration provides the following choices:
+.TP
+.B PFM_OS_NONE
+The returned information pertains only to what the PMU hardware exports.
+No operating system attributes is taken into account.
+.TP
+.B PFM_OS_PERF_EVENT
+The returned information includes the actual PMU hardware and the
+additional attributes exported by the perf_events kernel interface.
+The perf_event attributes pertain only the PMU hardware.
+In case perf_events is not detected, an error is returned.
+.TP
+.B PFM_OS_PERF_EVENT_EXT
+The returned information includes all of what is already provided
+by \fBPFM_OS_PERF_EVENT\fR plus all the software attributes controlled
+by perf_events, such as sampling period, precise sampling.
+.PP
+.SH RETURN
+
+If successful, the function returns \fBPFM_SUCCESS\fR and event information
+in \fBinfo\fR, otherwise it returns an error code.
+.SH ERRORS
+.TP
+.B PFMLIB_ERR_NOINIT
+Library has not been initialized properly.
+.TP
+.B PFMLIB_ERR_INVAL
+The \fBidx\fR argument is invalid or \fBinfo\fR is \fBNULL\fR or \fBsize\fR
+is not zero.
+.TP
+.B PFMLIB_ERR_NOTSUPP
+The requested \fBos\fR is not detected or supported.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

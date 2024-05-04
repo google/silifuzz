@@ -1,0 +1,35 @@
+.TH LIBPFM 3  "August, 2012" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_snbep_unc_r2pcie - support for Intel Sandy Bridge-EP R2 PCIe  uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: snbep_unc_r2pcie
+.B PMU desc: Intel Sandy Bridge-EP R2 PCIe  uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel Sandy Bridge R2 PCIe uncore PMU.
+This PMU model only exists on Sandy Bridge model 45. There is only one R2PCIe PMU
+per processor socket.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Sandy Bridge R2PCIe uncore PMU:
+.TP
+.B i
+Invert the meaning of the event. The counter will now count R2 PCIe cycles in which the
+event is \fBnot\fR occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of R2PCIe cycles in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:15].
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

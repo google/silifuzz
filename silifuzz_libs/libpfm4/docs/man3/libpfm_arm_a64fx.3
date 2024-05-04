@@ -1,0 +1,36 @@
+.TH LIBPFM 3  "May, 2020" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_arm_a64fx - support for Fujitsu A64FX PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: arm_a64fx
+.B PMU desc: Fujitsu A64FX
+.sp
+.SH DESCRIPTION
+The library supports the Fujitsu A64FX core PMU.
+
+This PMU supports 8 counters and privilege levels filtering.
+It can operate in 64 bit mode only.
+
+.SH MODIFIERS
+The following modifiers are supported on Fujitsu A64FX:
+.TP
+.B u
+Measure at the user level. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at the kernel level. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B hv
+Measure at the hypervisor level. This corresponds to \fBPFM_PLMH\fR.
+This is a boolean modifier.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

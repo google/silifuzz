@@ -1,0 +1,180 @@
+.TH LIBPFM 3  "December, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_event_attr_info \- get event attribute information
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_event_attr_info(int " idx ", int " attr ", pfm_os_t " os ", pfm_event_attr_info_t *" info ");"
+.sp
+.SH DESCRIPTION
+This function returns in \fBinfo\fR information about the
+attribute designated by \fBattr\fR for the event specified
+in \fBidx\fR and the os layer in \fBos\fR.
+
+The \fBpfm_os_t\fR enumeration provides the following choices:
+.TP
+.B PFM_OS_NONE
+The returned information pertains only to what the PMU hardware exports.
+No operating system attributes is taken into account.
+.TP
+.B PFM_OS_PERF_EVENT
+The returned information includes the actual PMU hardware and the
+additional attributes exported by the perf_events kernel interface.
+The perf_event attributes pertain only the PMU hardware.
+In case perf_events is not detected, an error is returned.
+.TP
+.B PFM_OS_PERF_EVENT_EXT
+The returned information includes all of what is already provided
+by \fBPFM_OS_PERF_EVENT\fR plus all the software attributes controlled
+by perf_events, such as sampling period, precise sampling.
+.PP
+
+The \fBpfm_event_attr_info_t\fR structure is defined as follows:
+.nf
+typedef struct {
+        const char              *name;
+        const char              *desc;
+        const char              *equiv;
+        size_t			size;
+        uint64_t                code;
+        pfm_attr_t              type;
+        int                     idx;
+        pfm_attr_ctrl_t         ctrl;
+        int                     reserved1;
+        struct {
+                int             is_dfl:1;
+                int             is_precise:1;
+                int             is_speculative:2;
+                int             reserved:28;
+        };
+        union {
+                uint64_t        dfl_val64;
+                const char      *dfl_str;
+                int             dfl_bool;
+                int             dfl_int;
+        };
+} pfm_event_attr_info_t;
+.fi
+
+The fields of this structure are defined as follows:
+.TP
+.B name
+This is the name of the attribute. This is a read-only string.
+.TP
+.B desc
+This is the description of the attribute. This is a read-only string.
+It may contain multiple sentences.
+.TP
+.B equiv
+Certain attributes may be just variations of other attributes for the same event.
+They may be provided as handy shortcuts to avoid supplying a long list of attributes.
+For those attributes, this field is not NULL and contains the complete equivalent attribute
+string. This string, once appended to the event name, may be used library calls requiring
+an event string.
+.TP
+.B code
+This is the raw attribute code. For PFM_ATTR_UMASK, this is the unit mask code. For
+all other attributes, this is an opaque index.
+.TP
+.B type
+This is the type of the attribute. Attributes represent either sub-events or extra
+filters that can be applied to the event. Filters (also called modifiers)  may be
+tied to the event or the PMU register the event is programmed into. The type of an attribute
+determines how it must be specified. The following types are defined:
+.RS
+.TP
+.B PFM_ATTR_UMASK
+This is a unit mask, i.e., a sub-event. It is specified using its name.
+Depending on the event, it may be possible to specify multiple unit masks.
+.TP
+.B PFM_ATTR_MOD_BOOL
+This is a boolean attribute. It has a value of 0, 1, y or n. The
+value is specified after the equal sign, e.g., foo=1. As a convenience,
+the equal sign and value may be omitted, in which case this is equivalent
+to =1.
+.TP
+.B PFM_ATTR_MOD_INTEGER
+This is an integer attribute. It has a value which must be passed after
+the equal sign. The range of valid values depends on the attribute and
+is usually specified in its description.
+.PP
+.RE
+.TP
+.B idx
+This is the attribute index. It is identical to the value of \fBattr\fR
+passed to the call and is provided for completeness.
+.TP
+.B size
+This field contains the size of the struct passed. This field is used to provide
+for extensibility of the struct without compromising backward compatibility.
+The value should be set to \fBsizeof(pfm_event_attr_info_t)\fR. If instead, a value of
+\fB0\fR is specified, the library assumes the struct passed is identical to the
+first ABI version which size is \fBPFM_ATTR_INFO_ABI0\fR. Thus, if fields were
+added after the first ABI, they will not be set by the library. The library
+does check that bytes beyond what is implemented are zeroes.
+.TP
+.B is_dfl
+This field indicates whether or not this attribute is set by default. This
+applies mostly for PFM_ATTR_UMASK. If a unit mask is marked as default,
+and no unit mask is specified in the event string, then the library uses
+it by default. Note that there may be multiple defaults per event depending
+on how unit masks are grouped.
+.TP
+.B is_precise
+This field indicates whether or not this umask supports precise sampling.
+Precise sampling is a hardware mechanism that avoids instruction address
+skid when using interrupt-based sampling. On Intel X86 processors, this
+field indicates that the umask supports Precise Event-Based Sampling (PEBS).
+.TP
+.B is_speculative
+This bitfield indicates whether or not the attribute includes occurrences happening
+during speculative execution for both wrong and correct paths. Given that this
+kind of event information is not always available from vendors, this field uses
+multiple bits. A value of \fBPFM_EVENT_INFO_SPEC_NA\fR indicates that speculation
+information is not available. A value of \fBPFM_EVENT_INFO_SPEC_TRUE\fR indicates
+that the attribute counts during speculative execution. A value of \fBPFM_EVENT_INFO_SPEC_FALSE\fR
+indicates that the attribute does not count during speculative execution.
+.TP
+.B dfl_val64, dfl_str, dfl_bool, dfl_int
+This union contains the value of an attribute. For PFM_ATTR_UMASK, the is
+the unit mask code, for all other types this is the actual value of the
+attribute.
+.TP
+.B ctrl
+This field indicates which layer or source controls the attribute.
+The following sources are defined:
+.RS
+.TP
+.B PFM_ATTR_CTRL_UNKNOWN
+The source controlling the attribute is not known.
+.TP
+.B PFM_ATTR_CTRL_PMU
+The attribute is controlled by the PMU hardware.
+.TP
+.B PFM_ATTR_CTRL_PERF_EVENT
+The attribute is controlled by the perf_events kernel interface.
+.RE
+.TP
+.B reserved
+These fields must be set to zero.
+.PP
+
+.SH RETURN
+
+If successful, the function returns \fBPFM_SUCCESS\fR and attribute information
+in \fBinfo\fR, otherwise it returns an error code.
+.SH ERRORS
+.TP
+.B PFMLIB_ERR_NOINIT
+Library has not been initialized properly.
+.TP
+.B PFMLIB_ERR_INVAL
+The \fBidx\fR or \fBattr\fR arguments are invalid or \fBinfo\fR is \fBNULL\fR or \fBsize\fR
+is not zero.
+.TP
+.B PFM_ERR_NOTSUPP
+The requested os layer has not been detected on the host system.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

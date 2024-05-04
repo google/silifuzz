@@ -1,0 +1,51 @@
+.TH LIBPFM 3  "July, 2017" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_amd64_fam17h - support for AMD64 Family 17h processors
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: amd64_fam17h (deprecated), amd_fam17h_zen1
+.B PMU desc: AMD64 Fam17h Zen1
+.sp
+.SH DESCRIPTION
+The library supports AMD Family 17h processors Zen1 core PMU in both 32 and 64-bit modes.
+The amd64_fam17h PMU model name has been deprecated in favor of amd_fam17h_zen1. The old
+name is maintained for backward compatibility reasons, but should not be used anymore.
+
+.SH MODIFIERS
+The following modifiers are supported on AMD64 Family 17h Zen1 core PMU:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B h
+Measure at while executing in host mode (when using virtualization). This corresponds to \fBPFM_PLMH\fR.
+This modifier is available starting with Fam10h. This is a boolean modifier.
+.TP
+.B g
+Measure at while executing in guest mode (when using virtualization). This modifier is available
+starting with Fam10h. This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition. This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

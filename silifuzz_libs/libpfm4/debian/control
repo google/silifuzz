@@ -1,0 +1,41 @@
+Source: libpfm4
+Priority: extra
+Maintainer: Stephane Eranian <eranian@gmail.com>
+Build-Depends: debhelper (>= 7), python (>= 2.4), python-support,
+               python-dev (>= 2.4), swig
+Standards-Version: 3.8.4
+Section: libs
+Homepage: http://perfmon2.sourceforge.net/
+
+Package: libpfm4-dev
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A library to program the performance monitoring events
+ Libpfm4 helps convert from an event name, expressed as a string, to
+ the event encoding. The encoding can then be used with specific OS
+ interfaces. Libpfm4 also provides OS-specific interfaces to directly
+ setup OS-specific data structures to be passed to the kernel. The
+ current libpfm4, for instance, provides support for the perf_events
+ interface which was introduced in Linux v2.6.31.
+
+Package: libpfm4
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: A library to program the performance monitoring events
+ Libpfm4 helps convert from an event name, expressed as a string, to
+ the event encoding. The encoding can then be used with specific OS
+ interfaces. Libpfm4 also provides OS-specific interfaces to directly
+ setup OS-specific data structures to be passed to the kernel. The
+ current libpfm4, for instance, provides support for the perf_events
+ interface which was introduced in Linux v2.6.31.
+
+Package: python-libpfm4
+Depends: libpfm4, python, ${shlibs:Depends}, ${misc:Depends}
+Architecture: any
+Section: python
+Description: Python bindings for libpfm4
+ This package allows you to write simple python scripts that monitor
+ various hardware performance monitoring events. It may be more efficient
+ to use this approach instead of parsing the output of other tools.

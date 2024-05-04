@@ -1,0 +1,20 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_terminate \- free resources used by library
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_terminate(void);"
+.sp
+.SH DESCRIPTION
+This is the last function that a program \fBmust\fR call to free
+all the resources allocated by the library, e.g., memory.
+The function is not reentrant, caller must ensure only one
+thread at a time is executing it.
+
+.SH RETURN
+There is no return value to this function
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

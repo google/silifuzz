@@ -1,0 +1,28 @@
+.TH LIBPFM 3  "August, 2010" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_amd64 - support for AMD64 processors
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.SH DESCRIPTION
+The library supports all AMD64 processors in both 32 and 64-bit modes.
+
+The support is broken down in three groups:
+.TP
+.B AMD K7 processors (family 6)
+.TP
+.B AMD K8 processors (family 15)
+.TP
+.B AMD Family 10h processors (family 16)
+.sp
+.TP
+Each group has a distinct man page. See links below.
+.SH SEE ALSO
+libpfm_amd64_k7(3), libpfm_amd64_k8(3), libpfm_amd64_fam10h(3)
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+Robert Richter <robert.richter@amd.com>
+.if
+.PP

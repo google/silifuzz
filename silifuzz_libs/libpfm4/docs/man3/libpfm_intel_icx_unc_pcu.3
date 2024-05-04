@@ -1,0 +1,40 @@
+.TH LIBPFM 3  "November, 2023" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_icx_unc_pcu - support for Intel IcelakeX Server PCU uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: icx_unc_pcu
+.B PMU desc: Intel IcelakeX PCU uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel IcelakeX PCU (Power Control Unit) uncore PMU. There is one PCU per system.
+Each PCU PMU implements 4 generic counters.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel IcelakeX PCU uncore PMU:
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of PCU clockticks in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:63].
+.TP
+.B i
+Invert the threshold (t) test from strictly greater than to less or equal to. This is a boolean modifier.
+.TP
+.B occ_i
+Invert the threshold (t) for occupancy events \fBPOWER_STATE_OCCUPANY\fR test from strictly greater than to less or equal to. This is a boolean modifier.
+.TP
+.B occ_e
+Enable edge detection for occupancy events \fBPOWER_STATE_OCCUPANCY\fR, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

@@ -1,0 +1,74 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_wsm - support for Intel Westmere core PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: wsm
+.B PMU desc: Intel Westmere
+.B PMU name: wsm_dp
+.B PMU desc: Intel Westmere DP
+.sp
+.SH DESCRIPTION
+The library supports the Intel Westmere core PMU. It should be noted that
+this PMU model only covers the each core's PMU and not the socket level
+PMU. It is provided separately. Support is provided for the Intel Core i7
+and Core i5 processors (models 37, 44).
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Westmere processors:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event
+to at least one occurrence. This modifier must be combined with a counter mask modifier (m) with a value greater or equal to one.
+This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+.TP
+.B t
+Measure on both threads at the same time assuming hyper-threading is enabled. This is a boolean modifier.
+.TP
+.B ldlat
+Pass a latency threshold to the MEM_INST_RETIRED:LATENCY_ABOVE_THRESHOLD event.
+This is an integer attribute that must be in the range [1:65535]. It is required
+for this event.  Note that the event must be used with precise sampling (PEBS).
+
+.SH OFFCORE_RESPONSE events
+The library is able to encode the OFFCORE_RESPONSE_0 and OFFCORE_RESPONSE_1 events.
+Those are special events because they, each, need a second MSR (0x1a6 and 0x1a7 respectively)
+to be programmed for the event to count properly. Thus two values are necessary for each event.
+The first value can be programmed on any of the generic counters. The second value goes into
+the dedicated MSR (0x1a6 or 0x1a7).
+
+The OFFCORE_RESPONSE events are exposed as normal events with several umasks which are divided in
+two groups: request and response. The user must provide \fBat least\fR one umask from each group.
+For instance, OFFCORE_RESPONSE_0:ANY_DATA:LOCAL_DRAM.
+
+When using \fBpfm_get_event_encoding()\fR, two 64-bit values are returned. The first value
+corresponds to what needs to be programmed into any of the generic counters. The second value
+must be programmed into the corresponding dedicated MSR (0x1a6 or 0x1a7).
+
+When using an OS-specific encoding routine, the way the event is encoded is OS specific. Refer to
+the corresponding man page for more information.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

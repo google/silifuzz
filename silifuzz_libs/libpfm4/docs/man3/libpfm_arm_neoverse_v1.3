@@ -1,0 +1,37 @@
+.TH LIBPFM 3  "August, 2022" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_arm_neoverse_v1 - support for Arm Neoverse V1 core PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: arm_v1
+.B PMU desc: Arm Neoverse V1
+.sp
+.SH DESCRIPTION
+The library supports the Arm Neoverse V1 core PMU.
+
+This PMU supports 6 counters and privilege levels filtering.
+It can operate in both 32 and 64 bit modes.
+
+.SH MODIFIERS
+The following modifiers are supported on ARM Neoverse V1:
+.TP
+.B u
+Measure at the user level. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at the kernel level. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B hv
+Measure at the hypervisor level. This corresponds to \fBPFM_PLMH\fR.
+This is a boolean modifier.
+
+.SH AUTHORS
+.nf
+John Linford <jlinford@nvidia.com>
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

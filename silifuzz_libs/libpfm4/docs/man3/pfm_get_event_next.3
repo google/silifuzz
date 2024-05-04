@@ -1,0 +1,75 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_event_next \- iterate over events
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_event_next(int "idx ");"
+.sp
+.SH DESCRIPTION
+Events are uniquely identified with opaque integer identifiers.
+There is no guaranteed order within identifiers. Thus, to list 
+all the events, it is necessary to use iterators.
+
+Events are grouped in tables within the library. A table usually
+corresponds to a PMU model or family. The library contains support
+for multiple PMU models, thus it has multiple tables. Based on the
+host hardware and software environments, tables get activated when
+the library is initialized via \fBpfm_initialize()\fR. Events from
+activated tables are called active events. Events from
+non-activated tables are called supported events.
+
+Event identifiers are usually retrieved via \fBpfm_find_event()\fR or
+when encoding events.
+
+To iterate over a list of events for a given PMU model, all that is
+needed is an initial identifier for the PMU. The first event identifier
+is usually obtained via \fBpfm_get_pmu_info()\fR.
+
+The \fBpfm_get_event_next()\fR function returns the identifier of
+next supported event after the one passed in \fBidx\fR. This iterator
+stops when the last event for the PMU is passed as argument, in which
+case the function returns \-1.
+.sp
+.nf
+void list_pmu_events(pfm_pmu_t pmu)
+{
+   struct pfm_event_info info;
+   struct pfm_pmu_info pinfo;
+   int i, ret;
+
+   memset(&info, 0, sizeof(info));
+   memset(&pinfo, 0, sizeof(pinfo));
+
+   info.size = sizeof(info);
+   pinfo.size = sizeof(pinfo);
+
+   ret = pfm_get_pmu_info(pmu, &pinfo);
+   if (ret != PFM_SUCCESS)
+      errx(1, "cannot get pmu info");
+
+   for (i = pinfo.first_event; i != \-1; i = pfm_get_event_next(i)) {
+      ret = pfm_get_event_info(i, &info);
+      if (ret != PFM_SUCCESS)
+        errx(1, "cannot get event info");
+
+        printf("%s Event: %s::%s\\n",
+               pinfo.present ? "Active" : "Supported",
+               pinfo.name, info.name);
+  }
+}
+.fi
+
+.SH RETURN
+The function returns the identifier of the next
+supported event. It returns \-1 when the argument is already the last
+event for the PMU.
+
+.SH ERRORS
+No error code, besides \-1, is returned by this function.
+.SH SEE ALSO
+pfm_find_event(3)
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

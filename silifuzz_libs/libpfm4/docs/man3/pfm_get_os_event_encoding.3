@@ -1,0 +1,197 @@
+.TH LIBPFM 3  "January, 2011" "" "Linux Programmer's Manual"
+.SH NAME
+pfm_get_os_event_encoding \- get event encoding for a specific operating system
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.BI "int pfm_get_os_event_encoding(const char *" str ", int " dfl_plm ", pfm_os_t " os ",  void *" arg ");"
+.sp
+.SH DESCRIPTION
+This is the key function to retrieve the encoding of an event for a specific operating system
+interface. The event string passed in \fBstr\fR is parsed and encoded for the operating system
+specified by \fBos\fR. Only one event per call can be encoded. As such, \fBstr\fR can contain only
+one symbolic event name. The event is encoded to monitor at the privilege levels specified
+by the \fBdfl_plm\fR mask, if supported, otherwise this parameter is ignored. The operating
+system specific input and output arguments are passed in \fBarg\fR.
+
+The event string, \fBstr\fR, may contains sub-event masks (umask) and any other supported modifiers. Only one
+event is parsed from the string. For convenience, it is possible to pass a comma-separated list
+of events in \fBstr\fR but only the first event is encoded.
+
+The following values are supported for \fBos\fR:
+.TP
+.B PFM_OS_NONE
+This value causes the event to be encoded purely as specified by the PMU hardware. The \fBarg\fR
+argument must be a pointer to a \fBpfm_pmu_encode_arg_t\fR structure which is defined as follows:
+
+.nf
+typedef struct {
+    uint64_t    *codes;
+    char        **fstr;
+    size_t      size;
+    int         count;
+    int         idx;
+} pfm_pmu_encode_arg_t;
+.fi
+
+The fields are defined as follows:
+.RS
+.TP
+.B codes
+A pointer to an array of 64-bit values. On input, if \fBcodes\fR is NULL, then the library allocates
+whatever is necessary to store the encoding of the event. If \fBcodes\fR is not NULL on input, then
+\fBcount\fR must reflect its actual number of elements. If \fBcount\fR is big enough, the library
+stores the encoding at the address provided.  Otherwise, an error is returned.
+.TP
+.B count
+On input, the field contains the maximum number of elements in the array \fBcodes\fR. Upon return,
+it contains the number of actual entries in \fBcodes\fR. If \fBcodes\fR is NULL, then count must
+be zero.
+.TP
+.B fstr
+If the caller is interested in retrieving the fully qualified event string where all used unit masks
+and all modifiers are spelled out, this field must be set to a non-null address of a pointer to a string (char **).
+Upon return, if \fBfstr\fR was not NULL, then the string pointer passed on entry points to the event string. The string is
+dynamically allocated and \fBmust\fR eventually be freed by the caller. If \fBfstr\fR was NULL on entry, then nothing is returned
+in this field. The typical calling sequence looks as follows:
+.nf
+   char *fstr = NULL
+   pfm_pmu_encode_arg_t arg;
+   arg.fstr = &fstr;
+   ret = pfm_get_os_event_encoding("event",
+                                   PFM_PLM0|PFM_PLM3,
+                                   PFM_OS_NONE,
+                                   &e);
+   if (ret == PFM_SUCCESS) {
+      printf("fstr=%s\\n", fstr);
+      free(fstr);
+   }
+.fi
+.TP
+.B size
+This field contains the size of the struct passed. This field is used to provide
+for extensibility of the struct without compromising backward compatibility.
+The value should be set to \fBsizeof(pfm_pmu_encode_arg_t)\fR. If instead, a value of
+\fB0\fR is specified, the library assumes the struct passed is identical to the
+first ABI version which size is \fBPFM_RAW_ENCODE_ABI0\fR. Thus, if fields were
+added after the first ABI, they will not be set by the library. The library
+does check that bytes beyond what is implemented are zeroes.
+.TP
+.B idx
+Upon return, this field contains the opaque unique identifier for the event described in \fBstr\fR.
+This index can be used to retrieve information about the event using \fBpfm_get_event_info()\fR, for instance.
+.RE
+.TP
+.B PFM_OS_PERF_EVENT, PFM_OS_PERF_EVENT_EXT
+This value causes the event to be encoded for the perf_event Linux kernel interface (available since 2.6.31).
+The \fBarg\fR must be a pointer to a \fBpfm_perf_encode_arg_t\fR structure. The PFM_OS_PERF_EVENT layer
+provides the modifiers exported by the underlying PMU hardware, some of which may actually be overridden
+by the perf_event interface, such as the monitoring privilege levels. The \fBPFM_OS_PERF_EVENT_EXT\fR extends
+\fBPFM_OS_PERF_EVENT\fR to add modifiers controlled only by the perf_event interface, such as sampling period (\fBperiod\fR),
+frequency (\fBfreq\fR) and exclusive resource access (\fBexcl\fR).
+
+.nf
+typedef struct {
+    struct perf_event_attr *attr;
+    char **fstr;
+    size_t size;
+    int idx;
+    int cpu;
+    int flags;
+} pfm_perf_encode_arg_t;
+.fi
+The fields are defined as follows:
+.RS
+.TP
+.B attr
+A pointer to a struct perf_event_attr as defined in perf_event.h. This field cannot be NULL
+on entry. The struct is not completely overwritten by the call. The library only modifies the
+fields it knows about, thereby allowing perf_event ABI mismatch between caller and library.
+.TP
+.B fstr
+Same behavior as is described for PFM_OS_NONE above.
+.TP
+.B size
+This field contains the size of the struct passed. This field is used to provide
+for extensibility of the struct without compromising backward compatibility.
+The value should be set to \fBsizeof(pfm_perf_encode_arg_t)\fR. If instead, a value of
+\fB0\fR is specified, the library assumes the struct passed is identical to the
+first ABI version which size is \fBPFM_PERF_ENCODE_ABI0\fR. Thus, if fields were
+added after the first ABI, they will not be set by the library. The library
+does check that bytes beyond what is implemented are zeroes.
+.TP
+.B idx
+Upon return, this field contains the opaque unique identifier for the event described in \fBstr\fR.
+This index can be used to retrieve information about the event using \fBpfm_get_event_info()\fR, for instance.
+.TP
+.B cpu
+Not used yet.
+.TP
+.B flags
+Not used yet.
+.RE
+.PP
+
+Here is a example of how this function could be used with PFM_OS_NONE:
+.nf
+#include <inttypes.h>
+#include <err.h>
+#include <perfmon/pfmlib.h>
+int main(int argc, char **argv)
+{
+   pfm_pmu_encode_t arg;
+   int ret;
+
+   ret = pfm_initialize();
+   if (ret != PFMLIB_SUCCESS)
+      errx(1, "cannot initialize library %s", pfm_strerror(ret));
+
+   memset(&arg, 0, sizeof(arg));
+
+   ret = pfm_get_os_event_encoding("RETIRED_INSTRUCTIONS", PFM_PLM3, PFM_OS_NONE, &arg);
+   if (ret != PFM_SUCCESS)
+      err(1", cannot get encoding %s", pfm_strerror(ret));
+
+   for(i=0; i < arg.count; i++)
+      printf("count[%d]=0x%"PRIx64"\\n", i, arg.codes[i]);
+
+   free(arg.codes);
+   return 0;
+}
+.fi
+.SH RETURN
+The function returns in \fBarg\fR the encoding of the event for the os passed in \fBos\fR. The content
+of \fBarg\fR depends on the \fBos\fR argument. Upon success, \fBPFM_SUCCESS\fR is returned otherwise
+a specific error code is returned.
+.SH ERRORS
+.TP
+.B PFM_ERR_TOOSMALL
+The \fBcode\fR argument is too small for the encoding.
+.TP
+.B PFM_ERR_INVAL
+The \fBcode\fR or \fBcount\fR argument is \fBNULL\fR or the \fBstr\fR contains more than one symbolic event.
+.TP
+.B PFM_ERR_NOMEM
+Not enough memory.
+.TP
+.B PFM_ERR_NOTFOUND
+Event not found.
+.TP
+.B PFM_ERR_ATTR
+Invalid event attribute (unit mask or modifier)
+.TP
+.B PFM_ERR_ATTR_VAL
+Invalid modifier value.
+.TP
+.B PFM_ERR_ATTR_SET
+attribute already set, cannot be changed.
+.TP
+.B PFM_ERR_ATTR_UMASK
+Missing unit mask.
+.TP
+.B PFM_ERR_ATTR_FEATCOMB
+Unit masks or features cannot be combined into a single event.
+.SH AUTHOR
+Stephane Eranian <eranian@gmail.com>
+.PP

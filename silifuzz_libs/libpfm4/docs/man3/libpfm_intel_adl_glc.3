@@ -1,0 +1,80 @@
+.TH LIBPFM 3  "February, 2024" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_adl_glc - support for Intel Alderlake Goldencove (P-Core) core PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: adl_glc
+.B PMU desc: Intel Alderlake Goldencove (P-core)
+.sp
+.SH DESCRIPTION
+The library supports the Intel Alderlake Goldencove (P-Core) core PMU. It should be noted that
+this PMU model only covers each core's PMU and not the socket level PMU.
+Because the processor uses a hybrid architecture with a P-Core and E-Core with a different PMU
+model, it may be necessary to force a PMU instance name to get the desired encoding. For instance,
+to encode for the P-Core adl_glc::BR_INST_RETIRED and for the E-core adl_grt::BR_INST_RETIRED.
+
+On Adlerlake Goldencove (P-Core), the number of generic counters depends on the Hyperthreading (HT) mode.
+
+The \fBpfm_get_pmu_info()\fR function returns the maximum number
+of generic counters in \fBnum_cntrs\fR.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel SapphireRapid processors:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event
+to at least one occurrence. This modifier must be combined with a counter mask modifier (m) with a value greater or equal to one.
+This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+.TP
+.B intx
+Monitor the event only when executing inside a transactional memory region (in tx). Event
+does not count otherwise. This is a boolean modifiers. Default value is 0.
+.TP
+.B intxcp
+Do not count occurrences of the event when they are inside an aborted transactional memory
+region. This is a boolean modifier. Default value is 0.
+.TP
+.B ldlat
+Pass a latency threshold in core cycles to the MEM_TRANS_RETIRED:LOAD_LATENCY event.
+This is an integer attribute that must be in the range [1:65535]. It is required
+for this event. The library provides a set of presets for specific latencies, such as 128.
+Note that the event \fBmust\fR be used with precise sampling (PEBS).
+
+.SH  FRONTEND_RETIRED event
+For Alderlake Goldencove (P-Core), the library uses the hardcoded bubble width and bubble length provided by Intel preset events.
+It is not possible to tweak either the latency or the width via the library.
+
+.SH OFFCORE_RESPONSE events
+Intel Alderlake Goldencove (P-Core) supports two encodings for offcore_response events (0x2a, 0x2b). In the library, these are called
+OCR0 and OCR1. The two encodings are equivalent. On Linux, the kernel can schedule any OCR encoding into any of the two OCR counters.
+The offcore_response events are exposed as a normal events by the library. The extra settings are exposed as regular umasks. The
+library takes care of encoding the events according to the underlying kernel interface.
+
+On Intel Alderlake Goldencove (P-Core), the event is treated as a regular event with a flat set of umasks to choose from.
+It is not possible to combine the various requests, supplier, snoop bits anymore. The library offers the list of validated
+combinations as per Intel's official event list.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

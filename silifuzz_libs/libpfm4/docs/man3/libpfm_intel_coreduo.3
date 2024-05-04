@@ -1,0 +1,45 @@
+.TH LIBPFM 3  "September, 2009" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_coreduo - support for Intel Core Duo/Solo processors
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: coreduo
+.B PMU desc: Intel Core Duo
+.sp
+.SH DESCRIPTION
+The library supports all Intel Yonah-based processors such as Intel Core Duo and
+Intel Core Solo processors.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Core Duo processors:
+.TP
+.B u
+Measure at user level which includes privilege levels 1, 2, 3. This corresponds to \fBPFM_PLM3\fR.
+This is a boolean modifier.
+.TP
+.B k
+Measure at kernel level which includes privilege level 0. This corresponds to \fBPFM_PLM0\fR.
+This is a boolean modifier.
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition. This is a boolean modifier.
+.TP
+.B c
+Set the counter mask value. The mask acts as a threshold. The counter will count the number of cycles
+in which the number of occurrences of the event is greater or equal to the threshold. This is an integer
+modifier with values in the range [0:255].
+
+.SH ENVIRONMENT VARIABLES
+It is possible to force activation of the Intel Core Duo support using the \fBLIBPFM_FORCE_PMU\fR variable.
+The PMU name, coreduo, must be passed. No additional options are supported.
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP

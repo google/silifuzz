@@ -1,0 +1,79 @@
+.TH LIBPFM 3  "January, 2018" "" "Linux Programmer's Manual"
+.SH NAME
+libpfm_intel_skx_unc_cha - support for Intel Skylake X Server CHA-Box uncore PMU
+.SH SYNOPSIS
+.nf
+.B #include <perfmon/pfmlib.h>
+.sp
+.B PMU name: skx_unc_cha[0-27]
+.B PMU desc: Intel Skylake X CHA uncore PMU
+.sp
+.SH DESCRIPTION
+The library supports the Intel Skylake X CHA-Box (coherency and home agent engine) uncore PMU.
+There is one CHA-box PMU per physical core. Therefore there are up to twenty-eight identical CHA-Box
+PMU instances numbered from 0 up to possibly 27. On dual-socket systems, the number refers to the CHA-Box
+PMU on the socket where the program runs. For instance, if running on CPU18, then
+skx_unc_cha0 refers to the CHA-Box for physical core 0 on socket 1. Conversely,
+if running on CPU0, then the same skx_unc_cha0 refers to the CHA-Box for physical
+core 0 but on socket 0.
+
+Each CHA-Box PMU implements 4 generic counters and two filter registers used only
+with certain events and umasks. The filters are either accessed via modifiers (see below)
+or umasks, such as the opcode or cache state filter.
+
+.SH MODIFIERS
+The following modifiers are supported on Intel Skylake CHA-Box uncore PMU:
+.TP
+.B e
+Enable edge detection, i.e., count only when there is a state transition from no occurrence of the event to at least one occurrence. This modifier must be combined with a threshold modifier (t) with a value greater or equal to one.  This is a boolean modifier.
+.TP
+.B t
+Set the threshold value. When set to a non-zero value, the counter counts the number
+of C-Box cycles in which the number of occurrences of the event is greater or equal to
+the threshold.  This is an integer modifier with values in the range [0:255].
+.TP
+.B i
+Invert the meaning of the event. The counter will now count cycles in which the event is \fBnot\fR
+occurring. This is a boolean modifier.
+.TP
+.B loc
+Match on local node target. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+.TP
+.B rem
+Match on remote node target. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+.TP
+.B lmem
+Match near memory cacheable. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+.TP
+.B rmem
+Match not near memory cacheable. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+.TP
+.B nc
+Match non-coherent requests. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+.TP
+.B isoc
+Match isochronous requests. This filter is only supported on UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY.
+This is a boolean filter.
+
+.SH Opcode filtering
+
+Events UNC_C_TOR_INSERTS and UNC_C_TOR_OCCUPANCY support opcode matching. The processor
+implements two opcode filters. Both are used at the same time. The OPC0 umasks correspond
+to the first opcode matcher and OPC1 to the second opcode matcher. If only one opcode must
+be tracked then the unused filter will be set to 0. The opcode umasks must be used in combination
+with a specific queue umask otherwise the library will reject the event. The umask description
+shows which queue umask is required for each opcode. For instance, OPC0_RFO/OPC1_RFO require
+the IRQ queue and thus the IRQ umask.
+ 
+The opcode match umasks can be combined with other modifiers.
+
+.SH AUTHORS
+.nf
+Stephane Eranian <eranian@gmail.com>
+.if
+.PP
