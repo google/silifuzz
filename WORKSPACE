@@ -1,6 +1,6 @@
 workspace(name = "silifuzz")
 
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_local_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 ###############################################################################
@@ -132,27 +132,16 @@ new_local_repository(
     path = "silifuzz_libs/cityhash",
 )
 
-new_git_repository(
+new_local_repository(
     name = "mbuild",
     build_file = "@silifuzz//:third_party/BUILD.mbuild",
-    commit = "75cb46e6536758f1a3cdb3d6bd83a4a9fd0338bb",
-    patch_cmds = [
-        "rm -f setup.py",
-        "mv mbuild/*.py .",
-    ],
-    remote = "https://github.com/intelxed/mbuild",
-    shallow_since = "1659030943 +0300",
+    path = "silifuzz_libs/mbuild",
 )
 
-new_git_repository(
+new_local_repository(
     name = "libxed",
     build_file = "@silifuzz//:third_party/BUILD.libxed",
-    commit = "d7d46c73fb04a1742e99c9382a4acb4ed07ae272",
-    patch_cmds = [
-        "sed -i -e 's|xed/xed-interface.h|xed-interface.h|' examples/xed-tester.c",
-    ],
-    remote = "https://github.com/intelxed/xed",
-    shallow_since = "1697457597 +0300",
+    path = "silifuzz_libs/xed",
 )
 
 http_archive(
@@ -179,22 +168,17 @@ http_archive(
 )
 
 # Capstone disassembler
-new_git_repository(
+new_local_repository(
     name = "capstone",
     build_file = "@silifuzz//:third_party/BUILD.capstone",
-    commit = "702dbe78ca116de8ec65f122d9202c2c1f4a2b4c",
-    remote = "https://github.com/capstone-engine/capstone.git",
+    path = "silifuzz_libs/capstone",    
 )
 
 # Unicorn for the proxies
-new_git_repository(
+new_local_repository(
     name = "unicorn",
     build_file = "@silifuzz//:third_party/BUILD.unicorn",
-    commit = "d4b92485b1a228fb003e1218e42f6c778c655809",
-    patch_cmds = [
-    ],
-    remote = "https://github.com/unicorn-engine/unicorn",
-    shallow_since = "1687038706 +0200",
+    path = "silifuzz_libs/unicorn",
 )
 
 http_archive(
@@ -233,11 +217,10 @@ http_archive(
 )
 
 # libpf4m required by PMU event proxy
-new_git_repository(
+new_local_irepository(
     name = "libpfm4",
     build_file = "@silifuzz//:third_party/BUILD.libpfm4",
-    commit = "535c204286d84079a8102bdc7a53b1f50990c0a3",
-    remote = "https://git.code.sf.net/p/perfmon2/libpfm4",
+    path = "silifuzz_libs/libpfm4",
 )
 
 http_archive(
