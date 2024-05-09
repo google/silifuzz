@@ -51,6 +51,19 @@ bool InstructionCanRunInUserSpace(const xed_decoded_inst_t& instruction);
 // runner does not have the privilege to do so.
 bool InstructionRequiresIOPrivileges(const xed_decoded_inst_t& instruction);
 
+// Is this an expensive instruction? Currently an instruction is considered
+// expensive if it has worst case latency higher than 50 cycles on a Skylake.
+// This is based on Intel Skylake latency data in:
+//
+// https://www.agner.org/optimize/instruction_tables.pdf
+//
+// The data is not complete but it is the best we have. Ideally, this should be
+// microarchitecture-specific but it will take a lot effort to do that and we do
+// not have all the data. For REP instructions, we only consider a single
+// iteration. Useful to filtering expensive instructions to limit the run time
+// of a snapshot.
+bool InstructionIsExpensive(const xed_decoded_inst_t& instruction);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_INSTRUCTION_XED_UTIL_H_

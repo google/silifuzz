@@ -166,4 +166,75 @@ bool InstructionRequiresIOPrivileges(const xed_decoded_inst_t& instruction) {
   return category == XED_CATEGORY_IO || category == XED_CATEGORY_IOSTRINGOP;
 }
 
+bool InstructionIsExpensive(const xed_decoded_inst_t& instruction) {
+  const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&instruction);
+  switch (iclass) {
+    // Integer divisions exceed 50 cycles only for 64-bit case.
+    case XED_ICLASS_DIV:
+    case XED_ICLASS_IDIV:
+      return true;
+
+    // Non-temporal load/store are really expensive in terms
+    // of latency. Can be O(100) cycles on Skylake.
+    // MOVNTDQA and VMOVNTDQA are exceptions with low latencies.
+    case XED_ICLASS_MOVNTDQ:
+    case XED_ICLASS_MOVNTI:
+    case XED_ICLASS_MOVNTPD:
+    case XED_ICLASS_MOVNTPS:
+    case XED_ICLASS_MOVNTQ:
+    case XED_ICLASS_MOVNTSD:
+    case XED_ICLASS_MOVNTSS:
+    case XED_ICLASS_VMOVNTDQ:
+    case XED_ICLASS_VMOVNTPD:
+    case XED_ICLASS_VMOVNTPS:
+      return true;
+
+    // Many of the x87 instructions are expensive.
+    case XED_ICLASS_F2XM1:
+    case XED_ICLASS_FBSTP:  // FBLD also has a high latency but below 50.
+    case XED_ICLASS_FCOS:
+    case XED_ICLASS_FPATAN:
+    case XED_ICLASS_FPREM1:
+    case XED_ICLASS_FPTAN:
+    case XED_ICLASS_FSCALE:
+    case XED_ICLASS_FSIN:
+    case XED_ICLASS_FSINCOS:
+    case XED_ICLASS_FYL2X:
+    case XED_ICLASS_FYL2XP1:
+      return true;
+
+    // Masked moves.
+    case XED_ICLASS_MASKMOVQ:
+    case XED_ICLASS_MASKMOVDQU:
+      return true;
+
+    // ENTER can have a long latency for nested
+    // lexical scopes.
+    case XED_ICLASS_ENTER:
+      return true;
+
+    // These expensive instructions are included for completeness.
+    // They are not expected to be used in snapshots because of privilege
+    // and non-deterministic behaviors.
+    case XED_ICLASS_CPUID:
+    case XED_ICLASS_RDRAND:
+    case XED_ICLASS_RDSEED:
+    case XED_ICLASS_FNSAVE:
+    case XED_ICLASS_FRSTOR:
+    case XED_ICLASS_FXSAVE:
+    case XED_ICLASS_FXSAVE64:
+    case XED_ICLASS_FXRSTOR:
+    case XED_ICLASS_FXRSTOR64:
+    case XED_ICLASS_XSAVE:
+    case XED_ICLASS_XRSTOR:
+    case XED_ICLASS_XRSTOR64:
+    case XED_ICLASS_XSAVEOPT:
+    case XED_ICLASS_XSAVEOPT64:
+      return true;
+
+    default:
+      return false;
+  }
+}
+
 }  // namespace silifuzz

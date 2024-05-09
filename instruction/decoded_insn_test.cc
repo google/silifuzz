@@ -554,5 +554,23 @@ TEST(DecodedInsn, may_access_memory) {
   EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()), "ret");
   EXPECT_TRUE(insn3.may_access_memory());
 }
+
+TEST(DecodedInsn, is_expensive) {
+  DecodedInsn insn("\x90");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "nop");
+  EXPECT_FALSE(insn.is_expensive());
+
+  DecodedInsn insn2("\x48\x0f\xc3\x07");
+  ASSERT_TRUE(insn2.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn2.DebugString()),
+            "movnti qword ptr [rdi], rax");
+  EXPECT_TRUE(insn2.is_expensive());
+
+  DecodedInsn insn3("\xd9\xff");
+  ASSERT_TRUE(insn3.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn3.DebugString()), "fcos");
+  EXPECT_TRUE(insn3.is_expensive());
+}
 }  // namespace
 }  // namespace silifuzz

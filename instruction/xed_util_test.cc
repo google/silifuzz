@@ -39,6 +39,7 @@ struct XedTest {
   bool not_deterministic;
   bool not_userspace;
   bool is_io;
+  bool is_expensive;
 };
 
 std::vector<XedTest> MakeXedTests() {
@@ -89,6 +90,16 @@ std::vector<XedTest> MakeXedTests() {
           .bytes = {0x0F, 0x31},
           .not_deterministic = true,
       },
+      {
+          .text = "fcos ",
+          .bytes = {0xd9, 0xff},
+          .is_expensive = true,
+      },
+      {
+          .text = "movnti qword ptr [rdi], rax",
+          .bytes = {0x48, 0x0f, 0xc3, 0x07},
+          .is_expensive = true,
+      },
   };
 }
 
@@ -121,6 +132,7 @@ TEST(XedUtilTest, All) {
       EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(xedd))
           << test.text;
       EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(xedd)) << test.text;
+      EXPECT_EQ(test.is_expensive, InstructionIsExpensive(xedd)) << test.text;
     }
   }
 }
