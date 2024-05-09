@@ -53,10 +53,7 @@ size_t XedDisassembler::InstructionSize() const {
 
 bool XedDisassembler::CanBranch() const {
   if (!valid_) return false;
-
-  xed_category_enum_t category = xed_decoded_inst_get_category(&xedd_);
-  return category == XED_CATEGORY_CALL || category == XED_CATEGORY_COND_BR ||
-         category == XED_CATEGORY_RET || category == XED_CATEGORY_UNCOND_BR;
+  return InstructionIsBranch(xed_decoded_inst_inst(&xedd_));
 }
 
 bool XedDisassembler::CanLoad() const {

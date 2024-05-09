@@ -19,14 +19,10 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./util/platform.h"
 
 extern "C" {
-#include "third_party/libxed/xed-address-width-enum.h"
-#include "third_party/libxed/xed-decode.h"
-#include "third_party/libxed/xed-decoded-inst-api.h"
-#include "third_party/libxed/xed-decoded-inst.h"
-#include "third_party/libxed/xed-error-enum.h"
-#include "third_party/libxed/xed-machine-mode-enum.h"
+#include "third_party/libxed/xed-interface.h"
 }
 
 namespace silifuzz {
@@ -38,7 +34,10 @@ struct XedTest {
   std::vector<uint8_t> bytes;
   bool not_deterministic;
   bool not_userspace;
+  bool is_branch;
   bool is_io;
+  bool is_sse;
+  bool is_x87;
   bool is_expensive;
 };
 
@@ -86,18 +85,30 @@ std::vector<XedTest> MakeXedTests() {
           .is_io = true,
       },
       {
+          .text = "ret ",
+          .bytes = {0xc3},
+          .is_branch = true,
+      },
+      {
           .text = "rdtsc ",
           .bytes = {0x0F, 0x31},
           .not_deterministic = true,
       },
       {
+          .text = "addpd xmm6, xmm1",
+          .bytes = {0x66, 0x0F, 0x58, 0xf1},
+          .is_sse = true,
+      },
+      {
           .text = "fcos ",
           .bytes = {0xd9, 0xff},
+          .is_x87 = true,
           .is_expensive = true,
       },
       {
           .text = "movnti qword ptr [rdi], rax",
           .bytes = {0x48, 0x0f, 0xc3, 0x07},
+          .is_sse = true,
           .is_expensive = true,
       },
   };
@@ -105,7 +116,7 @@ std::vector<XedTest> MakeXedTests() {
 
 constexpr const uint64_t kDefaultAddress = 0x10000;
 
-TEST(XedUtilTest, All) {
+TEST(XedUtilTest, InstructionPredicates) {
   InitXedIfNeeded();
 
   char text[96];
@@ -126,15 +137,27 @@ TEST(XedUtilTest, All) {
       if (formatted) {
         EXPECT_STREQ(text, test.text.c_str()) << test.text;
       }
+      const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
       EXPECT_EQ(test.not_deterministic,
-                !InstructionIsDeterministicInRunner(xedd))
+                !InstructionIsDeterministicInRunner(instruction))
           << test.text;
-      EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(xedd))
+      EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(instruction))
           << test.text;
-      EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(xedd)) << test.text;
-      EXPECT_EQ(test.is_expensive, InstructionIsExpensive(xedd)) << test.text;
+      EXPECT_EQ(test.is_branch, InstructionIsBranch(instruction)) << test.text;
+      EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(instruction))
+          << test.text;
+      EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
+      EXPECT_EQ(test.is_x87, InstructionIsX87(instruction)) << test.text;
+      EXPECT_EQ(test.is_expensive, InstructionIsExpensive(instruction))
+          << test.text;
     }
   }
+}
+
+TEST(XedUtilTest, ChipId) {
+  EXPECT_EQ(PlatformIdToChip(PlatformId::kIntelSapphireRapids),
+            XED_CHIP_SAPPHIRE_RAPIDS);
+  EXPECT_EQ(PlatformIdToChip(PlatformId::kAmdRome), XED_CHIP_AMD_ZEN2);
 }
 
 }  // namespace

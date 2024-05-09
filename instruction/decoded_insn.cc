@@ -76,7 +76,7 @@ DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
 
 bool DecodedInsn::is_deterministic() const {
   DCHECK_STATUS(status_);
-  return InstructionIsDeterministicInRunner(xed_insn_);
+  return InstructionIsDeterministicInRunner(xed_decoded_inst_inst(&xed_insn_));
 }
 
 bool DecodedInsn::is_locking() const {
@@ -174,7 +174,7 @@ absl::StatusOr<bool> DecodedInsn::may_have_split_lock(
 
 bool DecodedInsn::is_expensive() const {
   DCHECK_STATUS(status_);
-  return InstructionIsExpensive(xed_insn_);
+  return InstructionIsExpensive(xed_decoded_inst_inst(&xed_insn_));
 }
 
 std::string DecodedInsn::mnemonic() const {

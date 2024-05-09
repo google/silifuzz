@@ -18,16 +18,10 @@
 #include <cstdint>
 
 #include "absl/base/call_once.h"
+#include "./util/platform.h"
 
 extern "C" {
-#include "third_party/libxed/xed-category-enum.h"
-#include "third_party/libxed/xed-decoded-inst-api.h"
-#include "third_party/libxed/xed-decoded-inst.h"
-#include "third_party/libxed/xed-iclass-enum.h"
-#include "third_party/libxed/xed-init.h"
-#include "third_party/libxed/xed-inst.h"
-#include "third_party/libxed/xed-print-info.h"
-#include "third_party/libxed/xed-syntax-enum.h"
+#include "third_party/libxed/xed-interface.h"
 }
 
 namespace silifuzz {
@@ -60,9 +54,8 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
   return xed_format_generic(&pi);
 }
 
-bool InstructionIsDeterministicInRunner(const xed_decoded_inst_t& instruction) {
-  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&instruction);
-  switch (iclass) {
+bool InstructionIsDeterministicInRunner(const xed_inst_t* instruction) {
+  switch (xed_inst_iclass(instruction)) {
     case XED_ICLASS_RDPID:
     case XED_ICLASS_RDRAND:
     case XED_ICLASS_RDSEED:
@@ -157,18 +150,34 @@ bool InstructionIsDeterministicInRunner(const xed_decoded_inst_t& instruction) {
   }
 }
 
-bool InstructionCanRunInUserSpace(const xed_decoded_inst_t& instruction) {
-  return xed_inst_cpl(xed_decoded_inst_inst(&instruction)) >= 3;
+bool InstructionCanRunInUserSpace(const xed_inst_t* instruction) {
+  return xed_inst_cpl(instruction) >= 3;
 }
 
-bool InstructionRequiresIOPrivileges(const xed_decoded_inst_t& instruction) {
-  xed_category_enum_t category = xed_decoded_inst_get_category(&instruction);
+bool InstructionRequiresIOPrivileges(const xed_inst_t* instruction) {
+  xed_category_enum_t category = xed_inst_category(instruction);
   return category == XED_CATEGORY_IO || category == XED_CATEGORY_IOSTRINGOP;
 }
 
-bool InstructionIsExpensive(const xed_decoded_inst_t& instruction) {
-  const xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&instruction);
-  switch (iclass) {
+bool InstructionIsBranch(const xed_inst_t* instruction) {
+  xed_category_enum_t category = xed_inst_category(instruction);
+  return category == XED_CATEGORY_CALL || category == XED_CATEGORY_COND_BR ||
+         category == XED_CATEGORY_RET || category == XED_CATEGORY_UNCOND_BR;
+}
+
+bool InstructionIsX87(const xed_inst_t* instruction) {
+  return xed_inst_extension(instruction) == XED_EXTENSION_X87;
+}
+
+bool InstructionIsSSE(const xed_inst_t* instruction) {
+  xed_extension_enum_t ext = xed_inst_extension(instruction);
+  return ext == XED_EXTENSION_SSE || ext == XED_EXTENSION_SSE2 ||
+         ext == XED_EXTENSION_SSE3 || ext == XED_EXTENSION_SSE4 ||
+         ext == XED_EXTENSION_SSE4A || ext == XED_EXTENSION_SSSE3;
+}
+
+bool InstructionIsExpensive(const xed_inst_t* instruction) {
+  switch (xed_inst_iclass(instruction)) {
     // Integer divisions exceed 50 cycles only for 64-bit case.
     case XED_ICLASS_DIV:
     case XED_ICLASS_IDIV:
@@ -234,6 +243,50 @@ bool InstructionIsExpensive(const xed_decoded_inst_t& instruction) {
 
     default:
       return false;
+  }
+}
+
+// Note: we use the "server" versions of each chips because we're primarily
+// targeting the data center. This may skew with desktops.
+xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
+  switch (platform_id) {
+    case PlatformId::kIntelSkylake:
+      return XED_CHIP_SKYLAKE_SERVER;
+    case PlatformId::kIntelHaswell:
+      return XED_CHIP_HASWELL;
+    case PlatformId::kIntelBroadwell:
+      return XED_CHIP_BROADWELL;
+    case PlatformId::kIntelIvybridge:
+      return XED_CHIP_IVYBRIDGE;
+    case PlatformId::kIntelCascadelake:
+      return XED_CHIP_CASCADE_LAKE;
+    case PlatformId::kAmdRome:
+      return XED_CHIP_AMD_ZEN2;
+    case PlatformId::kIntelIcelake:
+      return XED_CHIP_ICE_LAKE_SERVER;
+    case PlatformId::kAmdMilan:
+      // Should be ZEN3?
+      return XED_CHIP_AMD_FUTURE;
+    case PlatformId::kIntelSapphireRapids:
+      return XED_CHIP_SAPPHIRE_RAPIDS;
+    case PlatformId::kAmdGenoa:
+      // Should be ZEN4?
+      return XED_CHIP_AMD_FUTURE;
+    case PlatformId::kIntelCoffeelake:
+      // TODO(ncbray): verify this is correct, although it fairly low priority.
+      // In this era of Intel chips, different process nodes were given
+      // different code names. XED does not have enums for these names, however.
+      // A cursory investigation shows that Coffeelake should support the same
+      // instructions as Skylake.
+      return XED_CHIP_SKYLAKE_SERVER;
+    case PlatformId::kIntelAlderlake:
+      return XED_CHIP_ALDER_LAKE;
+    case PlatformId::kIntelEmeraldRapids:
+      return XED_CHIP_EMERALD_RAPIDS;
+    case PlatformId::kIntelGraniteRapids:
+      return XED_CHIP_GRANITE_RAPIDS;
+    default:
+      return XED_CHIP_INVALID;
   }
 }
 

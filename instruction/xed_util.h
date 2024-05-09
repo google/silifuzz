@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "./util/platform.h"
+
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
 }
@@ -41,15 +43,27 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
 // are instructions that produce random numbers. A less obvious type of
 // instruction are instructions that depend on state the runner does not /
 // cannot control.
-bool InstructionIsDeterministicInRunner(const xed_decoded_inst_t& instruction);
+bool InstructionIsDeterministicInRunner(const xed_inst_t* instruction);
 
 // Is this an unprivileged instruction? Useful for filtering instructions before
 // the run on hardware. Once they run on hardware, the answer should be obvious.
-bool InstructionCanRunInUserSpace(const xed_decoded_inst_t& instruction);
+bool InstructionCanRunInUserSpace(const xed_inst_t* instruction);
 
 // Is this an IO instruction? IO instructions can run in user space, but the
 // runner does not have the privilege to do so.
-bool InstructionRequiresIOPrivileges(const xed_decoded_inst_t& instruction);
+bool InstructionRequiresIOPrivileges(const xed_inst_t* instruction);
+
+// Can this instruction alter the instruction pointer?
+bool InstructionIsBranch(const xed_inst_t* instruction);
+
+// Is this an X87 instruction?
+// X87 instructions can push/pop the register file. Some instructions can have
+// high latencies.
+bool InstructionIsX87(const xed_inst_t* instruction);
+
+// Is this an SSE instruction?
+// Some chips may have a penalty for mixing SSE and AVX instructions.
+bool InstructionIsSSE(const xed_inst_t* instruction);
 
 // Is this an expensive instruction? Currently an instruction is considered
 // expensive if it has worst case latency higher than 50 cycles on a Skylake.
@@ -62,7 +76,10 @@ bool InstructionRequiresIOPrivileges(const xed_decoded_inst_t& instruction);
 // not have all the data. For REP instructions, we only consider a single
 // iteration. Useful to filtering expensive instructions to limit the run time
 // of a snapshot.
-bool InstructionIsExpensive(const xed_decoded_inst_t& instruction);
+bool InstructionIsExpensive(const xed_inst_t* instruction);
+
+// Translate a Silifuzz platform ID to a XED chip enum.
+xed_chip_enum_t PlatformIdToChip(PlatformId platform_id);
 
 }  // namespace silifuzz
 

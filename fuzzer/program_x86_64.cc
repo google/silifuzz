@@ -33,9 +33,10 @@ namespace {
 bool AcceptInstruction(const xed_decoded_inst_t& xedd) {
   // TODO(ncbray): filter with xed_decoded_inst_valid_for_chip or
   // xed_decoded_inst_set_input_chip?
-  return InstructionIsDeterministicInRunner(xedd) &&
-         InstructionCanRunInUserSpace(xedd) &&
-         !InstructionRequiresIOPrivileges(xedd);
+  const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
+  return InstructionIsDeterministicInRunner(instruction) &&
+         InstructionCanRunInUserSpace(instruction) &&
+         !InstructionRequiresIOPrivileges(instruction);
 }
 
 InstructionDisplacementInfo GetDirectBranchInfo(

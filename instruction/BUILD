@@ -55,6 +55,7 @@ cc_library(
     srcs = ["xed_util.cc"],
     hdrs = ["xed_util.h"],
     deps = [
+        "@silifuzz//util:platform",
         "@com_google_absl//absl/base",
         "@libxed//:xed",
     ],
@@ -65,6 +66,7 @@ cc_test(
     srcs = ["xed_util_test.cc"],
     deps = [
         ":xed_util",
+        "@silifuzz//util:platform",
         "@com_google_googletest//:gtest_main",
         "@libxed//:xed",
     ],
