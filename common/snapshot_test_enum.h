@@ -120,6 +120,9 @@ enum class TestSnapshot {
   // Snapshot that does not conform to fuzzing config.
   kFuzzingConfigNonconformance,
 
+  // Snapshot that contains expensive instructions.
+  kExpensiveInstructions,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot
 };

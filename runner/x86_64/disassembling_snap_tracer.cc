@@ -122,6 +122,15 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
         return HarnessTracer::kInjectSigusr1;
       }
     }
+    if (insn_or->is_expensive()) {
+      if (++trace_result_.expensive_instructions_executed >=
+              options_.expensive_instruction_count_limit &&
+          options_.expensive_instruction_count_limit > 0) {
+        trace_result_.early_termination_reason =
+            "Reached expensive instruction limit";
+        return HarnessTracer::kInjectSigusr1;
+      }
+    }
   } else {
     VLOG_INFO(1, HexStr(addr), ": <undecodable>");
     prev_instruction_decoding_failed_ = true;

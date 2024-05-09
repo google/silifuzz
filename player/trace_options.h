@@ -25,15 +25,21 @@ namespace silifuzz {
 // This class is a thread-compatible value type.
 class TraceOptions {
  public:
-  // Default instruction count limit is architecture specific.
+  // Default instruction count limits are architecture specific.
   template <typename Arch>
-  static constexpr int kInstructCountLimit = 1000;
+  struct ArchDefaults;
 
   template <>
-  static constexpr int kInstructCountLimit<AArch64> = 4000;
+  struct ArchDefaults<AArch64> {
+    static constexpr int kInstructCountLimit = 4000;
+    static constexpr int kExpensiveInstructCountLimit = 0;  // no limit;
+  };
 
   template <>
-  static constexpr int kInstructCountLimit<X86_64> = 1000;
+  struct ArchDefaults<X86_64> {
+    static constexpr int kInstructCountLimit = 1000;
+    static constexpr int kExpensiveInstructCountLimit = 0;  // no limit;
+  };
 
   TraceOptions() {}
   ~TraceOptions() = default;
@@ -47,7 +53,12 @@ class TraceOptions {
 
   // Maximum number of instructions the snapshot is allowed to execute
   // before the tracer stops it. 0 for unlimited.
-  int instruction_count_limit = kInstructCountLimit<Host>;
+  int instruction_count_limit = ArchDefaults<Host>::kInstructCountLimit;
+
+  // Maximum number of expensive instructions the snapshot is allowed to
+  // execute before the tracer stops.
+  int expensive_instruction_count_limit =
+      ArchDefaults<Host>::kExpensiveInstructCountLimit;
 
   // If true, tracer injects a signal when a locking instruction accesses
   // memory across a cache line boundary. This has no effect on non-x86

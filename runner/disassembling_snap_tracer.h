@@ -54,6 +54,11 @@ class DisassemblingSnapTracer {
     // Number of instructions executed by the snapshot.
     int instructions_executed = 0;
 
+    // Number of expensive instructions executed by the snapshot must be below
+    // the limit. If the limit is 0, no restriction is applied.
+    // This is only used for x86.
+    int expensive_instructions_executed = 0;
+
     // Disassembly of the instructions as executed.
     std::vector<std::string> disassembly;
 

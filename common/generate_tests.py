@@ -536,6 +536,18 @@ movq 0x28000000, %rax
 """,
   )
 
+  b.snapshot(
+      name="ExpensiveInstructions",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+// fcos and fptan are expensive instructions, they take 100+ cycles on some CPUs.
+fldz
+fcos
+fptan
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")

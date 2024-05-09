@@ -257,5 +257,42 @@ TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {
               ElementsAre(Insn("nop"), Insn("call qword ptr [rip]")));
 }
 
+TEST(DisassemblingSnapTracer, ExpensiveInstructionLimit) {
+  RunnerDriver driver = HelperDriver();
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kExpensiveInstructions);
+  TraceOptions options = TraceOptions::Default();
+  options.expensive_instruction_count_limit = 0;  // unlimited
+  DisassemblingSnapTracer tracer(snapshot, options);
+  ASSERT_OK_AND_ASSIGN(
+      const auto result,
+      driver.TraceOne(
+          snapshot.id(),
+          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  // The test snapshot does not have a matching register state.
+  EXPECT_FALSE(result.success());
+  const auto& trace_result = tracer.trace_result();
+  // We should reach the snap exit.
+  ASSERT_THAT(trace_result.disassembly, Not(IsEmpty()));
+  EXPECT_THAT(trace_result.disassembly.back(), Insn("call qword ptr [rip]"));
+  EXPECT_EQ(trace_result.expensive_instructions_executed, 2);
+
+  // Abort tracing after seeing one expensive instruction.
+  options.expensive_instruction_count_limit = 1;
+  DisassemblingSnapTracer tracer_with_limit(snapshot, options);
+
+  const auto result_with_limit = driver.TraceOne(
+      snapshot.id(),
+      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer_with_limit));
+  EXPECT_THAT(result_with_limit, StatusIs(absl::StatusCode::kInvalidArgument));
+  const auto& trace_result_with_limit = tracer_with_limit.trace_result();
+  EXPECT_EQ(trace_result_with_limit.instructions_executed, 2);
+  EXPECT_EQ(trace_result_with_limit.expensive_instructions_executed, 1);
+  EXPECT_THAT(trace_result_with_limit.disassembly,
+              ElementsAre(Insn("fldz"), Insn("fcos")));
+  EXPECT_EQ(trace_result_with_limit.early_termination_reason,
+            "Reached expensive instruction limit");
+}
+
 }  // namespace
 }  // namespace silifuzz
