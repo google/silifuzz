@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 #include "./util/platform.h"
 
@@ -80,6 +81,35 @@ bool InstructionIsExpensive(const xed_inst_t* instruction);
 
 // Translate a Silifuzz platform ID to a XED chip enum.
 xed_chip_enum_t PlatformIdToChip(PlatformId platform_id);
+
+// A wrapper for the XED instruction encoding interface that allows incremental
+// specification of each operand. The native XED interface requires all operands
+// to be specified at once.
+class InstructionBuilder {
+ public:
+  InstructionBuilder(xed_iclass_enum_t iclass, unsigned int effective_op_width)
+      : iclass_(iclass), effective_op_width_(effective_op_width) {}
+
+  template <typename... Args>
+  void AddOperands(xed_encoder_operand_t&& operand, Args&&... args) {
+    operands_[num_operands_++] = std::move(operand);
+    AddOperands(std::forward<Args>(args)...);
+  }
+
+  [[nodiscard]] bool Encode(uint8_t* buf, size_t& len);
+
+  xed_iclass_enum_t iclass() const { return iclass_; }
+
+ private:
+  // Base case to terminate vardic recursion.
+  void AddOperands() {}
+
+  xed_iclass_enum_t iclass_;
+  unsigned int effective_op_width_;
+
+  xed_uint_t num_operands_ = 0;
+  xed_encoder_operand_t operands_[XED_ENCODER_OPERANDS_MAX];
+};
 
 }  // namespace silifuzz
 

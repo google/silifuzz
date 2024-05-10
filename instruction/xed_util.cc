@@ -290,4 +290,24 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
   }
 }
 
+bool InstructionBuilder::Encode(uint8_t* buf, size_t& len) {
+  xed_state_t dstate;
+  xed_state_init2(&dstate, XED_MACHINE_MODE_LONG_64, XED_ADDRESS_WIDTH_64b);
+
+  xed_encoder_instruction_t enc;
+  xed_inst(&enc, dstate, iclass_, effective_op_width_, num_operands_,
+           operands_);
+
+  xed_encoder_request_t req;
+  xed_encoder_request_zero_set_mode(&req, &dstate);
+  if (!xed_convert_to_encoder_request(&req, &enc)) {
+    return false;
+  }
+
+  unsigned int tmp_len = len;
+  xed_error_enum_t res = xed_encode(&req, buf, len, &tmp_len);
+  len = tmp_len;
+  return res == XED_ERROR_NONE;
+}
+
 }  // namespace silifuzz

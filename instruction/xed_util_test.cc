@@ -14,6 +14,7 @@
 
 #include "./instruction/xed_util.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -158,6 +159,29 @@ TEST(XedUtilTest, ChipId) {
   EXPECT_EQ(PlatformIdToChip(PlatformId::kIntelSapphireRapids),
             XED_CHIP_SAPPHIRE_RAPIDS);
   EXPECT_EQ(PlatformIdToChip(PlatformId::kAmdRome), XED_CHIP_AMD_ZEN2);
+}
+
+TEST(XedUtilTest, InstructionBuilder) {
+  // Generate a simple instruction.
+  InstructionBuilder builder(XED_ICLASS_DEC, 64U);
+  builder.AddOperands(xed_reg(XED_REG_R8));
+
+  uint8_t buf[16];
+  size_t size = sizeof(buf);
+  ASSERT_TRUE(builder.Encode(buf, size));
+
+  // Try to decode the generated instruction.
+  xed_decoded_inst_t xedd;
+  xed_decoded_inst_zero(&xedd);
+  xed_decoded_inst_set_mode(&xedd, XED_MACHINE_MODE_LONG_64,
+                            XED_ADDRESS_WIDTH_64b);
+  ASSERT_EQ(xed_decode(&xedd, buf, size), XED_ERROR_NONE);
+  EXPECT_EQ(xed_decoded_inst_get_iclass(&xedd), XED_ICLASS_DEC);
+
+  // Check the formatted text.
+  char text[96];
+  ASSERT_TRUE(FormatInstruction(xedd, kDefaultAddress, text, sizeof(text)));
+  EXPECT_STREQ(text, "dec r8");
 }
 
 }  // namespace
