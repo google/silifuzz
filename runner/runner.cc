@@ -516,7 +516,7 @@ bool VerifySnapChecksums(const Snap<Host>& snap) {
                     HexStr(expected.fpregs_checksum), " but got ",
                     HexStr(actual.fpregs_checksum));
         }
-        if (expected.fpregs_checksum != actual.fpregs_checksum) {
+        if (expected.gregs_checksum != actual.gregs_checksum) {
           LOG_ERROR("    Expected gregs checksum ",
                     HexStr(expected.gregs_checksum), " but got ",
                     HexStr(actual.gregs_checksum));
