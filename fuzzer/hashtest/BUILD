@@ -18,12 +18,17 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "hashtest_generator_lib",
+    srcs = [
+        "xed_operand_util.cc",
+    ],
     hdrs = [
         "rand_util.h",
+        "xed_operand_util.h",
     ],
     deps = [
         "@silifuzz//util:checks",
         "@com_google_absl//absl/base:core_headers",
+        "@libxed//:xed",
     ],
 )
 
@@ -34,6 +39,8 @@ cc_test(
     ],
     deps = [
         ":hashtest_generator_lib",
+        "@silifuzz//instruction:xed_util",
         "@com_google_googletest//:gtest_main",
+        "@libxed//:xed",
     ],
 )
