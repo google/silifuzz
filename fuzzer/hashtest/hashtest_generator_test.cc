@@ -21,6 +21,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/ascii.h"
+#include "./fuzzer/hashtest/prefilter.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/xed_operand_util.h"
 #include "./instruction/xed_util.h"
@@ -99,6 +101,7 @@ TEST(XedOperandTest, TestAll) {
   const struct {
     std::string text;
     std::vector<uint8_t> bytes;
+    bool filtered = false;
     XedOperandResult result;
   } tests[] = {
       {
@@ -185,6 +188,25 @@ TEST(XedOperandTest, TestAll) {
                   .imm_count = 1,
               },
       },
+      {
+          .text = "nop",
+          .bytes = {0x90},
+          .filtered = true,
+          .result = {},
+      },
+      {
+          .text = "int3",
+          .bytes = {0xcc},
+          .filtered = true,
+          .result =
+              {
+                  // XED says int3 reads and writes flags and writes RIP.
+                  .operand_count = 2,
+                  .suppressed_count = 2,
+                  .reg_count = 2,
+                  .flag_count = 1,
+              },
+      },
   };
 
   constexpr uint64_t kDefaultAddress = 0x10000;
@@ -212,11 +234,13 @@ TEST(XedOperandTest, TestAll) {
     if (!formatted) {
       continue;
     }
-    EXPECT_STREQ(text, test.text.c_str()) << test.text;
+    EXPECT_EQ(absl::StripAsciiWhitespace(test.text), test.text) << test.text;
+
+    const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
+    EXPECT_EQ(test.filtered, !PrefilterInstruction(instruction)) << test.text;
 
     // Scan the operands.
     XedOperandResult result = {};
-    const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
     for (size_t operand_index = 0;
          operand_index < xed_inst_noperands(instruction); ++operand_index) {
       const xed_operand_t* const operand =
