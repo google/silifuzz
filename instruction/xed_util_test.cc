@@ -162,6 +162,8 @@ TEST(XedUtilTest, ChipId) {
 }
 
 TEST(XedUtilTest, InstructionBuilder) {
+  InitXedIfNeeded();
+
   // Generate a simple instruction.
   InstructionBuilder builder(XED_ICLASS_DEC, 64U);
   builder.AddOperands(xed_reg(XED_REG_R8));
