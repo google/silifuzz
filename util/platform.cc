@@ -37,7 +37,7 @@ ABSL_CONST_INIT const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "reserved-25", "reserved-26", "reserved-27", "reserved-28", "reserved-29",
     "reserved-30", "reserved-31", "reserved-32", "reserved-33", "reserved-34",
     "reserved-35", "reserved-36", "reserved-37", "reserved-38", "reserved-39",
-    "reserved-40", "intel-graniterapids", "ANY-PLATFORM",
+    "reserved-40", "intel-graniterapids", "amd-siena", "ANY-PLATFORM",
     "NON-EXISTENT-PLATFORM",
 };
 
@@ -58,6 +58,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kIntelEmeraldRapids:
     case PlatformId::kAmdRyzenV3000:
     case PlatformId::kIntelGraniteRapids:
+    case PlatformId::kAmdSiena:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
     case PlatformId::kAmpereOne:

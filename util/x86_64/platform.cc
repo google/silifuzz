@@ -119,6 +119,9 @@ PlatformId AmdPlatformId() {
     return PlatformId::kAmdGenoa;
   if (family == 25 && (model >= 64 && model <= 79))
     return PlatformId::kAmdRyzenV3000;
+  if (family == 25 && (model >= 160 && model <= 175))
+    return PlatformId::kAmdSiena;
+
   // TODO(dougkwan): add support for future AMD platforms as needed.
 
   LOG_ERROR("Unknown AMD platform: family = ", family, " model = ", model,

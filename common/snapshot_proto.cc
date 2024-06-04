@@ -124,6 +124,10 @@ static_assert(ToInt(PlatformId::kAmpereOne) ==
               ToInt(proto::PlatformId::AMPERE_ONE));
 static_assert(ToInt(PlatformId::kIntelEmeraldRapids) ==
               ToInt(proto::PlatformId::INTEL_EMERALDRAPIDS));
+static_assert(ToInt(PlatformId::kIntelGraniteRapids) ==
+              ToInt(proto::PlatformId::INTEL_GRANITERAPIDS));
+static_assert(ToInt(PlatformId::kAmdSiena) ==
+              ToInt(proto::PlatformId::AMD_SIENA));
 static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
               ToInt(proto::PlatformId::AMD_RYZEN_V3000));
 static_assert(ToInt(kMaxPlatformId) < 64);

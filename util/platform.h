@@ -70,10 +70,11 @@ enum class PlatformId {
   kReserved40 = 40,
 
   kIntelGraniteRapids = 41,
+  kAmdSiena = 42,
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 42,          // any platform for platform selectors
-  kNonExistent = 43,  // for tests only
+  kAny = 43,          // any platform for platform selectors
+  kNonExistent = 44,  // for tests only
 };
 
 // Max valid value of PlatformId, min being kUndefined.
