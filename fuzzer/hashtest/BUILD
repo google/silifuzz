@@ -20,11 +20,13 @@ cc_library(
     name = "hashtest_generator_lib",
     srcs = [
         "prefilter.cc",
+        "register_info.cc",
         "xed_operand_util.cc",
     ],
     hdrs = [
         "prefilter.h",
         "rand_util.h",
+        "register_info.h",
         "xed_operand_util.h",
     ],
     deps = [
