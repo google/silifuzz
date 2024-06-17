@@ -149,8 +149,9 @@ size_t VectorWidth(const xed_operand_t* operand) {
   } else if (OperandIsZMMRegister(operand)) {
     return 512U;
   } else {
-    CHECK(false) << xed_nonterminal_enum_t2str(
-        xed_operand_nonterminal_name(operand));
+    LOG_FATAL(
+        "Unsupported operand: ",
+        xed_nonterminal_enum_t2str(xed_operand_nonterminal_name(operand)));
   }
 }
 
@@ -313,7 +314,8 @@ size_t OperandBitWidth(const xed_operand_t* operand,
       // 32-bit floor
       return std::max(effective_op_width, 32U);
     default:
-      CHECK(false) << xed_operand_width_enum_t2str(xed_operand_width(operand));
+      LOG_FATAL("Unsupported operand width: ",
+                xed_operand_width_enum_t2str(xed_operand_width(operand)));
   }
 }
 
