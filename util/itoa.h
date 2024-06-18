@@ -164,6 +164,13 @@ const char* EnumStr(EnumT e) {
   return EnumNameMap<EnumT>[i];
 }
 
+// Returns signal names exactly as `kill -l` prints them.
+// This routine is (and must remain) async-signal-safe.
+// NOTE: strsignal.3 returns signal descriptions, such as "Segmentation fault",
+// rather than the technical names, and is thread- and async-signal-unsafe.
+// sigdabbrev_np.3 would do, but is unavailable in GRTE's glibc.
+const char* SignalNameStr(int signal);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_ITOA_H_

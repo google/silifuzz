@@ -14,6 +14,8 @@
 
 #include "./util/itoa.h"
 
+#include <csignal>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/base/attributes.h"
@@ -96,6 +98,17 @@ TEST(EnumStr, All) {
   EXPECT_STREQ(EnumStr(MyEnum::kF), "NO-ENUM-NAME-DEFINED");
 
   EXPECT_STREQ(EnumStr(kFoo), "NO-ENUM-NAME-DEFINED");
+}
+
+TEST(SignalNameStr, All) {
+  EXPECT_STREQ(SignalNameStr(SIGHUP), "SIGHUP");
+  EXPECT_STREQ(SignalNameStr(SIGSEGV), "SIGSEGV");
+  EXPECT_STREQ(SignalNameStr(SIGILL), "SIGILL");
+  EXPECT_STREQ(SignalNameStr(SIGABRT), "SIGABRT");
+  EXPECT_STREQ(SignalNameStr(SIGFPE), "SIGFPE");
+  EXPECT_STREQ(SignalNameStr(SIGKILL), "SIGKILL");
+  EXPECT_STREQ(SignalNameStr(SIGUSR1), "SIGUSR1");
+  EXPECT_STREQ(SignalNameStr(__SIGRTMIN + 18), "__SIGRTMIN+18");
 }
 
 }  // namespace

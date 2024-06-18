@@ -221,14 +221,14 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
   }
   // A signal was not caused by any snapshot. If it is one of the
   // timeout signals we _exit(2). Otherwise crash.
-  ASS_LOG_INFO("Received signal ", IntStr(signal),
+  ASS_LOG_INFO("Received signal ", SignalNameStr(signal),
                " while outside of snap. Exiting");
   if (signal == SIGXCPU) {
     _exit(2);
   }
   // A signal occurred while executing the runner code. Most likely indicates
   // a bug in the runner or a signal from the environment (keyboard, RLIMIT).
-  ASS_LOG_FATAL("Unhandled signal ", IntStr(signal));
+  ASS_LOG_FATAL("Unhandled signal ", SignalNameStr(signal));
   __builtin_unreachable();
 }
 
@@ -341,7 +341,7 @@ void InstallSigHandler() {
     }
     struct kernel_sigaction save_action;
     if (sys_sigaction(signal, &action, &save_action) != 0) {
-      LOG_FATAL("sigaction() failed for ", IntStr(signal), ": ",
+      LOG_FATAL("sigaction() failed for ", SignalNameStr(signal), ": ",
                 ErrnoStr(errno));
     }
     // Sanity-check that we don't install the same handler twice.
