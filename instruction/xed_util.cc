@@ -290,6 +290,35 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
   }
 }
 
+unsigned int ChipVectorRegisterWidth(xed_chip_enum_t chip) {
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_AVX512F_512, chip)) {
+    return 512;
+  }
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_AVX2, chip)) {
+    return 256;
+  }
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_SSE, chip)) {
+    return 128;
+  }
+  return 0;
+}
+
+unsigned int ChipMaskRegisterWidth(xed_chip_enum_t chip) {
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_AVX512BW_KOPQ, chip)) {
+    return 64;
+  }
+  // TODO(ncbray): Is there any chip in existence with KOPD but not KOPQ?
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_AVX512BW_KOPD, chip)) {
+    return 32;
+  }
+  // Note: it's unlikely to encounter chips with a 16-bit mask in a data center.
+  if (xed_isa_set_is_valid_for_chip(XED_ISA_SET_AVX512F_KOPW, chip)) {
+    return 16;
+  }
+  // Chip does not support AVX512.
+  return 0;
+}
+
 bool InstructionBuilder::Encode(uint8_t* buf, size_t& len) {
   xed_state_t dstate;
   xed_state_init2(&dstate, XED_MACHINE_MODE_LONG_64, XED_ADDRESS_WIDTH_64b);

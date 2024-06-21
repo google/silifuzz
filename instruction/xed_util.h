@@ -82,6 +82,14 @@ bool InstructionIsExpensive(const xed_inst_t* instruction);
 // Translate a Silifuzz platform ID to a XED chip enum.
 xed_chip_enum_t PlatformIdToChip(PlatformId platform_id);
 
+// Return the size of the widest addressable vector registers on this chip, in
+// bits. Returns 0 if the chip does not have vector registers.
+unsigned int ChipVectorRegisterWidth(xed_chip_enum_t chip);
+
+// Return the size of the widest addressable mask registers on this chip, in
+// bits. Returns 0 if the chip does not have mask registers.
+unsigned int ChipMaskRegisterWidth(xed_chip_enum_t chip);
+
 // A wrapper for the XED instruction encoding interface that allows incremental
 // specification of each operand. The native XED interface requires all operands
 // to be specified at once.

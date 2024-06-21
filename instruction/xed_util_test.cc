@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./util/itoa.h"
 #include "./util/platform.h"
 
 extern "C" {
@@ -155,11 +156,29 @@ TEST(XedUtilTest, InstructionPredicates) {
   }
 }
 
-TEST(XedUtilTest, ChipId) {
-  EXPECT_EQ(PlatformIdToChip(PlatformId::kIntelSapphireRapids),
-            XED_CHIP_SAPPHIRE_RAPIDS);
-  EXPECT_EQ(PlatformIdToChip(PlatformId::kAmdRome), XED_CHIP_AMD_ZEN2);
+TEST(XedUtilTest, ChipInfo) {
+  struct {
+    PlatformId platform;
+    xed_chip_enum_t chip;
+    unsigned int vector_width;
+    unsigned int mask_width;
+  } chips[] = {
+      {PlatformId::kIntelIvybridge, XED_CHIP_IVYBRIDGE, 128, 0},
+      {PlatformId::kIntelBroadwell, XED_CHIP_BROADWELL, 256, 0},
+      {PlatformId::kIntelSkylake, XED_CHIP_SKYLAKE_SERVER, 512, 64},
+      {PlatformId::kIntelSapphireRapids, XED_CHIP_SAPPHIRE_RAPIDS, 512, 64},
+      {PlatformId::kAmdRome, XED_CHIP_AMD_ZEN2, 256, 0},
+  };
+
+  for (const auto& info : chips) {
+    SCOPED_TRACE(EnumStr(info.platform));
+    EXPECT_EQ(PlatformIdToChip(info.platform), info.chip);
+    EXPECT_EQ(ChipVectorRegisterWidth(info.chip), info.vector_width);
+    EXPECT_EQ(ChipMaskRegisterWidth(info.chip), info.mask_width);
+  }
 }
+
+TEST(XedUtilTest, ChipRegisterWidths) {}
 
 TEST(XedUtilTest, InstructionBuilder) {
   InitXedIfNeeded();
