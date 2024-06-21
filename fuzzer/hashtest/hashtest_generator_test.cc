@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
+#include "./fuzzer/hashtest/candidate.h"
 #include "./fuzzer/hashtest/prefilter.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
@@ -205,6 +206,7 @@ TEST(XedOperandTest, TestAll) {
     std::vector<uint8_t> bytes;
     bool filtered = false;
     XedOperandResult result;
+    InstructionCandidate candidate;
   } tests[] = {
       {
           // Note: implicit flag register.
@@ -219,6 +221,19 @@ TEST(XedOperandTest, TestAll) {
                   .greg_count = 1,
                   .flag_count = 1,
                   .imm_count = 1,
+              },
+          .candidate =
+              {
+                  .reg_read = {.gp = 1},
+                  .reg_written = {.gp = 1},
+                  .fixed_reg =
+                      {
+                          .written = {.flags = true},
+                      },
+                  .vector_width = 0,
+                  .width_16 = true,
+                  .width_32 = true,
+                  .width_64 = true,
               },
       },
       {
@@ -238,6 +253,15 @@ TEST(XedOperandTest, TestAll) {
                   .flag_count = 1,
                   .imm_count = 1,
               },
+          .candidate =
+              {
+                  .reg_read = {.gp = 1},
+                  .reg_written = {.gp = 1},
+                  .fixed_reg =
+                      {
+                          .written = {.flags = true},
+                      },
+              },
       },
       {
           .text = "vaddps ymm1, ymm13, ymm15",
@@ -249,6 +273,12 @@ TEST(XedOperandTest, TestAll) {
                   .reg_count = 3,
                   .vreg_count = 3,
                   .ymm_count = 3,
+              },
+          .candidate =
+              {
+                  .reg_read = {.vec = 2},
+                  .reg_written = {.vec = 1},
+                  .vector_width = 256,
               },
       },
       {
@@ -265,6 +295,13 @@ TEST(XedOperandTest, TestAll) {
                   .zmm_count = 3,
                   .writemask_count = 1,
               },
+          .candidate =
+              {
+                  .reg_read = {.vec = 2, .mask = 1},
+                  .reg_written = {.vec = 1},
+                  .vector_width = 512,
+                  .writemask = true,
+              },
       },
       {
           .text = "kmovq k1, r14",
@@ -277,6 +314,11 @@ TEST(XedOperandTest, TestAll) {
                   .greg_count = 1,
                   .mreg_count = 1,
               },
+          .candidate =
+              {
+                  .reg_read = {.gp = 1},
+                  .reg_written = {.mask = 1},
+              },
       },
       {
           .text = "psrlw mm0, 0x8a",
@@ -288,6 +330,38 @@ TEST(XedOperandTest, TestAll) {
                   .reg_count = 1,
                   .mmxreg_count = 1,
                   .imm_count = 1,
+              },
+          .candidate =
+              {
+                  .reg_read = {.mmx = 1},
+                  .reg_written = {.mmx = 1},
+              },
+      },
+      {
+          .text = "cmovnz rax, rbx",
+          .bytes = {0x48, 0x0f, 0x45, 0xc3},
+          .result =
+              {
+                  .operand_count = 3,
+                  .explicit_count = 2,
+                  .suppressed_count = 1,
+                  .reg_count = 3,
+                  .greg_count = 2,
+                  .flag_count = 1,
+              },
+          .candidate =
+              {
+                  // Note: the conditional output means the output register is
+                  // effectively an input.
+                  .reg_read = {.gp = 2},
+                  .reg_written = {.gp = 1},
+                  .fixed_reg =
+                      {
+                          .read = {.flags = true},
+                      },
+                  .width_16 = true,
+                  .width_32 = true,
+                  .width_64 = true,
               },
       },
       {
@@ -336,10 +410,41 @@ TEST(XedOperandTest, TestAll) {
     if (!formatted) {
       continue;
     }
-    EXPECT_EQ(absl::StripAsciiWhitespace(test.text), test.text) << test.text;
+    EXPECT_EQ(absl::StripAsciiWhitespace(text), test.text) << test.text;
 
     const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
     EXPECT_EQ(test.filtered, !PrefilterInstruction(instruction)) << test.text;
+
+    InstructionCandidate candidate{};
+    if (!test.filtered) {
+      EXPECT_EQ(true, IsCandidate(instruction, candidate)) << test.text;
+      EXPECT_EQ(candidate.instruction, instruction);
+    }
+    EXPECT_EQ(candidate.reg_read.gp, test.candidate.reg_read.gp) << test.text;
+    EXPECT_EQ(candidate.reg_written.gp, test.candidate.reg_written.gp)
+        << test.text;
+    EXPECT_EQ(candidate.reg_read.vec, test.candidate.reg_read.vec) << test.text;
+    EXPECT_EQ(candidate.reg_written.vec, test.candidate.reg_written.vec)
+        << test.text;
+    EXPECT_EQ(candidate.reg_read.mask, test.candidate.reg_read.mask)
+        << test.text;
+    EXPECT_EQ(candidate.reg_written.mask, test.candidate.reg_written.mask)
+        << test.text;
+    EXPECT_EQ(candidate.reg_read.mmx, test.candidate.reg_read.mmx) << test.text;
+    EXPECT_EQ(candidate.reg_written.mmx, test.candidate.reg_written.mmx)
+        << test.text;
+    EXPECT_EQ(candidate.fixed_reg.read.flags,
+              test.candidate.fixed_reg.read.flags)
+        << test.text;
+    EXPECT_EQ((int)candidate.fixed_reg.written.flags,
+              (int)test.candidate.fixed_reg.written.flags)
+        << test.text;
+
+    EXPECT_EQ(candidate.vector_width, test.candidate.vector_width) << test.text;
+    EXPECT_EQ(candidate.width_16, test.candidate.width_16) << test.text;
+    EXPECT_EQ(candidate.width_32, test.candidate.width_32) << test.text;
+    EXPECT_EQ(candidate.width_64, test.candidate.width_64) << test.text;
+    EXPECT_EQ(candidate.writemask, test.candidate.writemask) << test.text;
 
     // Scan the operands.
     XedOperandResult result = {};

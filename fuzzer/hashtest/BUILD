@@ -19,12 +19,14 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "hashtest_generator_lib",
     srcs = [
+        "candidate.cc",
         "debugging.cc",
         "prefilter.cc",
         "register_info.cc",
         "xed_operand_util.cc",
     ],
     hdrs = [
+        "candidate.h",
         "debugging.h",
         "prefilter.h",
         "rand_util.h",
