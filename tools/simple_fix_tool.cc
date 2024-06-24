@@ -40,7 +40,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "external/com_google_fuzztest/centipede/blob_file.h"
-#include "external/com_google_fuzztest/centipede/defs.h"
+#include "third_party/googlefuzztest/common/defs.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./snap/gen/relocatable_snap_generator.h"

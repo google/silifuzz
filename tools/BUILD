@@ -164,6 +164,7 @@ cc_library(
     srcs = ["simple_fix_tool.cc"],
     hdrs = ["simple_fix_tool.h"],
     deps = [
+        "//third_party/googlefuzztest/common:defs",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//snap/gen:relocatable_snap_generator",
@@ -188,7 +189,6 @@ cc_library(
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@com_google_fuzztest//centipede:blob_file",
-        "@com_google_fuzztest//centipede:defs",
     ],
 )
 
