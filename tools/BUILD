@@ -164,6 +164,7 @@ cc_library(
     srcs = ["simple_fix_tool.cc"],
     hdrs = ["simple_fix_tool.h"],
     deps = [
+        "//third_party/googlefuzztest/common:blob_file",
         "//third_party/googlefuzztest/common:defs",
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
@@ -188,7 +189,6 @@ cc_library(
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
-        "@com_google_fuzztest//centipede:blob_file",
     ],
 )
 
@@ -213,6 +213,7 @@ cc_test(
     srcs = ["simple_fix_tool_test.cc"],
     deps = [
         ":simple_fix_tool",
+        "//third_party/googlefuzztest/common:blob_file",
         "@silifuzz//common:snapshot",
         "@silifuzz//snap",
         "@silifuzz//snap:snap_relocator",
@@ -227,7 +228,6 @@ cc_test(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
-        "@com_google_fuzztest//centipede:blob_file",
         "@com_google_googletest//:gtest_main",
     ],
 )
