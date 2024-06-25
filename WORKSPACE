@@ -194,11 +194,11 @@ http_archive(
 
 # To use the latest version of FuzzTest, update this regularly to the latest
 # commit in the main branch: https://github.com/google/fuzztest/commits/main
-FUZZTEST_COMMIT = "cd852157d0effbd727ef228912d6c72b5376aef4"
+FUZZTEST_COMMIT = "650088bcea68caf77b72d59076dfebca6a5fe27a"
 
 http_archive(
     name = "com_google_fuzztest",
-    integrity = "sha256-a+nYhfSkrvuFIKhstxXvT64T1tGXiemm0pJe5YWIO84=",
+    integrity = "sha256-1HqjIKF4P8WrqX8stMj0YTG1LMPZL9jyxsWfnbviCT8=",
     strip_prefix = "fuzztest-" + FUZZTEST_COMMIT,
     url = "https://github.com/google/fuzztest/archive/" + FUZZTEST_COMMIT + ".zip",
 )

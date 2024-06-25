@@ -72,7 +72,6 @@ cc_library(
     srcs = ["silifuzz_centipede_main.cc"],
     deps = [
         ":program_mutator",
-        "//third_party/googlefuzztest/common:defs",
         "@silifuzz//util:arch",
         "@silifuzz//util:enum_flag_types",
         "@silifuzz//util:itoa",
@@ -87,6 +86,7 @@ cc_library(
         "@com_google_fuzztest//centipede:environment_flags",
         "@com_google_fuzztest//centipede:mutation_input",
         "@com_google_fuzztest//centipede:util",
+        "@com_google_fuzztest//common:defs",
     ],
 )
 
