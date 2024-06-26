@@ -26,7 +26,7 @@
 #include "external/com_google_fuzztest/centipede/environment_flags.h"
 #include "external/com_google_fuzztest/centipede/mutation_input.h"
 #include "external/com_google_fuzztest/centipede/util.h"
-#include "third_party/googlefuzztest/common/defs.h"
+#include "external/com_google_fuzztest/common/defs.h"
 #include "./fuzzer/program_batch_mutator.h"
 #include "./util/arch.h"
 #include "./util/enum_flag_types.h"
