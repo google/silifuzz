@@ -164,6 +164,18 @@ absl::StatusOr<Snapshot::EndState> ApplySideEffects(
   return es_with_sideeffects;
 }
 
+template <typename Arch>
+inline constexpr PlatformId kDefaultTestSnapshotPlatform =
+    PlatformId::kUndefined;
+
+template <>
+inline constexpr PlatformId kDefaultTestSnapshotPlatform<X86_64> =
+    PlatformId::kIntelSkylake;
+
+template <>
+inline constexpr PlatformId kDefaultTestSnapshotPlatform<AArch64> =
+    PlatformId::kArmNeoverseN1;
+
 }  // namespace
 
 template <typename Arch>
@@ -173,18 +185,6 @@ bool TestSnapshotExists(TestSnapshot type) {
 
 template bool TestSnapshotExists<X86_64>(TestSnapshot type);
 template bool TestSnapshotExists<AArch64>(TestSnapshot type);
-
-template <typename Arch>
-static constexpr PlatformId kDefaultTestSnapshotPlatform =
-    PlatformId::kUndefined;
-
-template <>
-static constexpr PlatformId kDefaultTestSnapshotPlatform<X86_64> =
-    PlatformId::kIntelSkylake;
-
-template <>
-static constexpr PlatformId kDefaultTestSnapshotPlatform<AArch64> =
-    PlatformId::kArmNeoverseN1;
 
 template <typename Arch>
 PlatformId TestSnapshotPlatform() {
