@@ -33,8 +33,12 @@ enum class MyEnum {
 
 // Exercise .h's recommendation for separate declaration and definition of
 // a EnumNameMap's specialization.
+// TODO: b/350661407 - This is non-standard and may stop working in the future.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wexplicit-specialization-storage-class"
 template <>
 extern const char* EnumNameMap<MyEnum>[4];
+#pragma clang diagnostic pop
 
 // ========================================================================= //
 
