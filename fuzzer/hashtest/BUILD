@@ -23,6 +23,7 @@ cc_library(
         "debugging.cc",
         "prefilter.cc",
         "register_info.cc",
+        "synthesize_instruction.cc",
         "xed_operand_util.cc",
     ],
     hdrs = [
@@ -31,6 +32,7 @@ cc_library(
         "prefilter.h",
         "rand_util.h",
         "register_info.h",
+        "synthesize_instruction.h",
         "xed_operand_util.h",
     ],
     deps = [
