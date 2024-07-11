@@ -69,10 +69,15 @@ TEST(RandUtil, MultipleRandomBits) {
   EXPECT_THAT(popped_bits, UnorderedElementsAre(11, 13, 53, 97));
 }
 
-TEST(RandUtil, RandomElement) {
+TEST(RandUtil, RandomElementVec) {
   std::mt19937_64 rng(0);
   std::vector<int> v = {7};
   EXPECT_EQ(7, ChooseRandomElement(rng, v));
+}
+
+TEST(RandUtil, RandomElementInitList) {
+  std::mt19937_64 rng(0);
+  EXPECT_EQ(11, ChooseRandomElement(rng, {11}));
 }
 
 TEST(WeightedChooseOne, Single) {

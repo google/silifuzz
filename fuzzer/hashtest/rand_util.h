@@ -17,6 +17,8 @@
 
 #include <bitset>
 #include <cstddef>
+#include <initializer_list>
+#include <iterator>
 #include <random>
 #include <vector>
 
@@ -39,11 +41,26 @@ void SometimesSwap(Rng& rng, T& a, T& b) {
   }
 }
 
-// Return a random element from `vec`.
+// Return a random element in an iterable range.
+template <typename Rng, typename Iter>
+auto& ChooseRandomElement(Rng& rng, Iter begin, Iter end) {
+  std::uniform_int_distribution<size_t> dist(0, std::distance(begin, end) - 1);
+  std::advance(begin, dist(rng));
+  return *begin;
+}
+
+// Return a random element of an iterable type `collection`.
+template <typename Rng, typename C>
+auto& ChooseRandomElement(Rng& rng,
+                          C& collection ABSL_ATTRIBUTE_LIFETIME_BOUND) {
+  return ChooseRandomElement(rng, std::begin(collection), std::end(collection));
+}
+
+// Template type resolution cannot handle literal lists like "{1, 2, 3}" being
+// passed as a parameter unless there is an initializer_list overload.
 template <typename Rng, typename T>
-const T& ChooseRandomElement(
-    Rng& rng, const std::vector<T>& vec ABSL_ATTRIBUTE_LIFETIME_BOUND) {
-  return vec[std::uniform_int_distribution<size_t>(0, vec.size() - 1)(rng)];
+T ChooseRandomElement(Rng& rng, std::initializer_list<T> collection) {
+  return ChooseRandomElement(rng, std::begin(collection), std::end(collection));
 }
 
 // Return the index of a random set bit in `bits`.
