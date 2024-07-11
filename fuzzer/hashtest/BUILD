@@ -56,3 +56,22 @@ cc_test(
         "@libxed//:xed",
     ],
 )
+
+cc_binary(
+    name = "hashtest_generator",
+    srcs = [
+        "hashtest_generator_main.cc",
+    ],
+    deps = [
+        ":hashtest_generator_lib",
+        "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:enum_flag_types",
+        "@silifuzz//util:itoa",
+        "@silifuzz//util:platform",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log:check",
+        "@libxed//:xed",
+    ],
+)
