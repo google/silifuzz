@@ -38,8 +38,8 @@ void InstructionData<Arch>::Copy(const uint8_t* bytes, size_t num_bytes) {
 template class InstructionData<X86_64>;
 template class InstructionData<AArch64>;
 
-template class Instruction<X86_64>;
-template class Instruction<AArch64>;
+template struct Instruction<X86_64>;
+template struct Instruction<AArch64>;
 
 template <typename Arch>
 void Program<Arch>::CheckConsistency() const {

@@ -26,6 +26,10 @@ struct WeightedChoice {
   F callback;
 };
 
+// Template deduction guide.
+template <class F>
+WeightedChoice(int, F&&) -> WeightedChoice<F>;
+
 namespace internal {
 
 template <typename F>
