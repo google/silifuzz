@@ -26,6 +26,7 @@
 #include "./fuzzer/hashtest/prefilter.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/weighted_choose_one.h"
 #include "./fuzzer/hashtest/xed_operand_util.h"
 #include "./instruction/xed_util.h"
 
@@ -72,6 +73,93 @@ TEST(RandUtil, RandomElement) {
   std::mt19937_64 rng(0);
   std::vector<int> v = {7};
   EXPECT_EQ(7, ChooseRandomElement(rng, v));
+}
+
+TEST(WeightedChooseOne, Single) {
+  std::mt19937_64 rng(0);
+  size_t a = 0;
+  constexpr size_t kNumIter = 40000;
+  for (size_t i = 0; i < kNumIter; i++) {
+    EXPECT_EQ(WeightedChooseOne(rng,
+                                WeightedChoice{
+                                    1,
+                                    [&] {
+                                      a += 1;
+                                      return 11;
+                                    },
+                                }),
+              11);
+  }
+  EXPECT_EQ(a, kNumIter);
+}
+
+TEST(WeightedChooseOne, Zero) {
+  std::mt19937_64 rng(0);
+  size_t a = 0;
+  size_t b = 0;
+  constexpr size_t kNumIter = 40000;
+  for (size_t i = 0; i < kNumIter; i++) {
+    WeightedChooseOne(rng,
+                      // A
+                      WeightedChoice{
+                          1,
+                          [&] { a += 1; },
+                      },
+                      // B
+                      WeightedChoice{
+                          0,
+                          [&] { b += 1; },
+                      });
+  }
+  EXPECT_EQ(a, kNumIter);
+  EXPECT_EQ(b, 0);
+}
+
+TEST(WeightedChooseOne, CheckWeights) {
+  std::mt19937_64 rng(0);
+  size_t a = 0;
+  size_t b = 0;
+  size_t c = 0;
+  size_t d = 0;
+  constexpr size_t kNumIter = 40000;
+  constexpr int kAWeight = 1;
+  constexpr int kBWeight = 2;
+  constexpr int kCWeight = 3;
+  constexpr int kDWeight = 4;
+  constexpr int kTotalWeight = kAWeight + kBWeight + kCWeight + kDWeight;
+  for (size_t i = 0; i < kNumIter; i++) {
+    WeightedChooseOne(rng,
+                      // A
+                      WeightedChoice{
+                          kAWeight,
+                          [&] { a += 1; },
+                      },
+                      // B
+                      WeightedChoice{
+                          kBWeight,
+                          [&] { b += 1; },
+                      },
+                      // C
+                      WeightedChoice{
+                          kCWeight,
+                          [&] { c += 1; },
+                      },
+                      // D
+                      WeightedChoice{
+                          kDWeight,
+                          [&] { d += 1; },
+                      });
+  }
+  // Assert that we are not more than 5% off the expected distribution.
+  // It's questionable to test random behavior, but this is somewhat forgiven
+  // by having a fixed seed.
+  constexpr auto lower_limit = [&](int weight) -> size_t {
+    return kNumIter * weight * 95 / 100 / kTotalWeight;
+  };
+  EXPECT_GE(a, lower_limit(kAWeight));
+  EXPECT_GE(b, lower_limit(kBWeight));
+  EXPECT_GE(c, lower_limit(kCWeight));
+  EXPECT_GE(d, lower_limit(kDWeight));
 }
 
 TEST(RegisterInfo, RegisterTranslation) {

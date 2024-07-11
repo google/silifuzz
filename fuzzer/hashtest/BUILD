@@ -33,6 +33,7 @@ cc_library(
         "rand_util.h",
         "register_info.h",
         "synthesize_instruction.h",
+        "weighted_choose_one.h",
         "xed_operand_util.h",
     ],
     deps = [
