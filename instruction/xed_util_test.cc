@@ -31,6 +31,14 @@ namespace silifuzz {
 
 namespace {
 
+class XedUtilTest : public testing::Test {
+ protected:
+  // Every test will need XED to be initialized.
+  // It's easier to do this in SetUp rather than remember to add this to every
+  // test.
+  void SetUp() override { InitXedIfNeeded(); }
+};
+
 struct XedTest {
   std::string text;
   std::vector<uint8_t> bytes;
@@ -118,9 +126,7 @@ std::vector<XedTest> MakeXedTests() {
 
 constexpr const uint64_t kDefaultAddress = 0x10000;
 
-TEST(XedUtilTest, InstructionPredicates) {
-  InitXedIfNeeded();
-
+TEST_F(XedUtilTest, InstructionPredicates) {
   char text[96];
 
   std::vector<XedTest> tests = MakeXedTests();
@@ -156,7 +162,7 @@ TEST(XedUtilTest, InstructionPredicates) {
   }
 }
 
-TEST(XedUtilTest, ChipInfo) {
+TEST_F(XedUtilTest, ChipInfo) {
   struct {
     PlatformId platform;
     xed_chip_enum_t chip;
@@ -178,11 +184,7 @@ TEST(XedUtilTest, ChipInfo) {
   }
 }
 
-TEST(XedUtilTest, ChipRegisterWidths) {}
-
-TEST(XedUtilTest, InstructionBuilder) {
-  InitXedIfNeeded();
-
+TEST_F(XedUtilTest, InstructionBuilder) {
   // Generate a simple instruction.
   InstructionBuilder builder(XED_ICLASS_DEC, 64U);
   builder.AddOperands(xed_reg(XED_REG_R8));
