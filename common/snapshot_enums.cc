@@ -14,9 +14,7 @@
 
 #include "./common/snapshot_enums.h"
 
-#include "absl/base/attributes.h"
 #include "./util/checks.h"
-#include "./util/itoa.h"
 
 namespace silifuzz {
 namespace snapshot_types {
@@ -71,33 +69,5 @@ Address Endpoint::sig_instruction_address() const {
 }
 
 }  // namespace snapshot_types
-
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::EndpointType>[2] = {
-    "Instruction",
-    "Signal",
-};
-
-// Same values as the silifuzz.proto.EndPoint.SigNum literals.
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::SigNum>[6] = {
-    "UNDEFINED_SIG_NUM", "SIG_SEGV", "SIG_TRAP",
-    "SIG_FPE",           "SIG_ILL",  "SIG_BUS",
-};
-
-// Same values as the silifuzz.proto.EndPoint.SigCause literals.
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::SigCause>[7] = {
-    "UNDEFINED_SIG_CAUSE",     "GENERIC_SIG_CAUSE", "SEGV_CANT_EXEC",
-    "SEGV_CANT_WRITE",         "SEGV_CANT_READ",    "SEGV_OVERFLOW",
-    "SEGV_GENERAL_PROTECTION",
-};
-
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<snapshot_types::MakerStopReason>[7] = {
-    "Endpoint",    "CannotAddMemory",          "TimeBudget",
-    "HardSigSegv", "GeneralProtectionSigSegv", "SigTrap",
-    "Signal",
-};
 
 }  // namespace silifuzz

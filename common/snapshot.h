@@ -550,9 +550,14 @@ class Snapshot::Metadata {
 };
 
 template <>
-extern const char* EnumNameMap<
+inline constexpr const char* EnumNameMap<
     Snapshot::Metadata::Origin>[ToInt(Snapshot::Metadata::Origin::kUseString) +
-                                1];
+                                1] = {
+    "UNDEFINED_ORIGIN", "UNKNOWN(1)", "IFUZZ",       "UNICORN",
+    "UNKNOWN(4)",       "BOCHS",      "XED",         "GEM5",
+    "UNKNOWN(8)",       "UNKNOWN(9)", "UNKNOWN(10)", "UNKNOWN(11)",
+    "UNKNOWN(12)",      "USE_STRING",
+};
 
 // ========================================================================= //
 

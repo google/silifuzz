@@ -17,6 +17,7 @@
 
 #include <cstdint>
 
+#include "absl/strings/string_view.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
@@ -82,7 +83,23 @@ constexpr PlatformId kMaxPlatformId = PlatformId::kNonExistent;
 
 // EnumStr() works for PlatformId.
 template <>
-extern const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) + 1];
+inline constexpr const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
+                                                     1] = {
+    "UNDEFINED-PLATFORM-ID", "intel-skylake", "intel-haswell",
+    "intel-broadwell", "intel-ivybridge", "intel-cascadelake", "amd-rome",
+    "intel-icelake", "amd-milan", "intel-sapphirerapids", "amd-genoa",
+    "intel-coffeelake", "intel-alderlake", "arm-neoverse-n1", "ampere-one",
+    "intel-emeraldrapids",
+    "reserved-16",
+    "amd-ryzen-v3000",
+    "reserved-18", "reserved-19",
+    "reserved-20", "reserved-21", "reserved-22", "reserved-23", "reserved-24",
+    "reserved-25", "reserved-26", "reserved-27", "reserved-28", "reserved-29",
+    "reserved-30", "reserved-31", "reserved-32", "reserved-33", "reserved-34",
+    "reserved-35", "reserved-36", "reserved-37", "reserved-38", "reserved-39",
+    "reserved-40", "intel-graniterapids", "amd-siena", "ANY-PLATFORM",
+    "NON-EXISTENT-PLATFORM",
+};
 
 // Returns the PlatformId of where this code runs on or kUndefined if
 // we don't have a needed PlatformId value defined or it can't be determined.

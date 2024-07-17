@@ -16,8 +16,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/attributes.h"
 #include "absl/status/status.h"
+#include "./util/itoa.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
@@ -25,8 +25,8 @@ namespace silifuzz {
 enum TestEnum { kFirst, kSecond };
 
 template <>
-ABSL_CONST_INIT const char* EnumNameMap<TestEnum>[2] = {"first-option",
-                                                        "second-option"};
+constexpr const char* EnumNameMap<TestEnum>[2] = {"first-option",
+                                                  "second-option"};
 
 namespace {
 

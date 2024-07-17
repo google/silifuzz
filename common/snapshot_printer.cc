@@ -21,7 +21,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/base/attributes.h"
 #include "absl/log/log.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
@@ -44,19 +43,6 @@
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
-
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<SnapshotPrinter::RegsMode>[2] = {
-    "all", "non-0"};
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<SnapshotPrinter::FPRegsMode>[3] = {
-    "all", "ctrl", "none"};
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<SnapshotPrinter::EndRegsMode>[2] = {
-    "all", "changed"};
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<SnapshotPrinter::EndStateMode>[2] = {
-    "all", "diffs"};
 
 // ========================================================================= //
 

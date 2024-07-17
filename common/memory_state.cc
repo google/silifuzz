@@ -20,7 +20,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/base/attributes.h"
 #include "absl/base/log_severity.h"
 #include "absl/strings/str_cat.h"
 #include "./common/mapped_memory_map.h"
@@ -31,14 +30,6 @@
 #include "./util/itoa.h"
 
 namespace silifuzz {
-
-template <>
-ABSL_CONST_INIT const char*
-    EnumNameMap<MemoryState::MemoryMappingCmd::Action>[3] = {
-        "mmap",
-        "mprotect",
-        "munmap",
-};
 
 std::string MemoryState::MemoryMappingCmd::DebugString() const {
   return absl::StrCat(MemoryMapping::DebugString(), " ", EnumStr(action_));

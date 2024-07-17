@@ -20,7 +20,7 @@
 namespace silifuzz {
 
 // For each type of generator and runner tests below, a Snapshot is defined.
-// The snaphost is snapified using SnapGenerator::Snapified() and passed to
+// The snapshot is snapified using SnapGenerator::Snapified() and passed to
 // SnapGenerator::DefineSnap() get a Snap corresponding to the Snapshot.
 
 // Types of Snap generator tests. These tests are meant for testing code
@@ -37,7 +37,10 @@ enum class SnapGeneratorTestType {
 };
 
 template <>
-extern const char* EnumNameMap<SnapGeneratorTestType>[2];
+inline constexpr const char* EnumNameMap<SnapGeneratorTestType>[2] = {
+    "kBasicSnapGeneratorTest",
+    "kMemoryBytesPermsTest",
+};
 
 }  // namespace silifuzz
 

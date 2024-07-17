@@ -30,7 +30,6 @@ licenses(["notice"])
 cc_library_plus_nolibc(
     name = "snap_test_types",
     testonly = 1,
-    srcs = ["snap_test_types.cc"],
     hdrs = ["snap_test_types.h"],
     as_is_deps = [
         "@com_google_absl//absl/base:core_headers",

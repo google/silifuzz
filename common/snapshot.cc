@@ -23,7 +23,6 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
-#include "absl/base/attributes.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/ascii.h"
@@ -42,14 +41,6 @@
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
-
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<Snapshot::Metadata::Origin>[14] = {
-    "UNDEFINED_ORIGIN", "UNKNOWN(1)", "IFUZZ",       "UNICORN",
-    "UNKNOWN(4)",       "BOCHS",      "XED",         "GEM5",
-    "UNKNOWN(8)",       "UNKNOWN(9)", "UNKNOWN(10)", "UNKNOWN(11)",
-    "UNKNOWN(12)",      "USE_STRING",
-};
 
 // Descriptor for an architecture for which we support snapshot data.
 //
@@ -73,7 +64,7 @@ struct Snapshot::ArchitectureDescr {
 };
 
 // static
-ABSL_CONST_INIT const Snapshot::ArchitectureDescr
+constinit const Snapshot::ArchitectureDescr
     Snapshot::kSupportedArchitectures[] = {
         {
             .id = Snapshot::Architecture::kX86_64,

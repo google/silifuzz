@@ -175,7 +175,7 @@ cc_test_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "cpu_features",
-    srcs = ["cpu_features.cc"] + select({
+    srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/cpu_features.cc"],
     }),
@@ -346,7 +346,6 @@ cc_test(
     srcs = ["itoa_test.cc"],
     deps = [
         ":itoa",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -390,8 +389,8 @@ cc_test(
     srcs = ["enum_flag_test.cc"],
     deps = [
         ":enum_flag",
+        ":itoa",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
@@ -791,9 +790,9 @@ cc_library(
         ":misc_util",
         ":tool_util",
         ":x86_cpuid",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )
 
@@ -1027,9 +1026,6 @@ cc_test(
 
 cc_library_plus_nolibc(
     name = "arch",
-    srcs = [
-        "arch.cc",
-    ],
     hdrs = [
         "arch.h",
     ],

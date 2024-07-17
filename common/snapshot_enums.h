@@ -27,7 +27,6 @@
 
 #include "absl/time/time.h"
 #include "./util/itoa.h"
-#include "./util/misc_util.h"
 #include "./util/ucontext/signal.h"
 
 namespace silifuzz {
@@ -258,21 +257,42 @@ enum class MakerStopReason {
 }  // namespace snapshot_types
 
 template <>
-extern const char* EnumNameMap<
-    snapshot_types::EndpointType>[ToInt(snapshot_types::EndpointType::kSignal) +
-                                  1];
-template <>
-extern const char* EnumNameMap<
-    snapshot_types::SigNum>[ToInt(snapshot_types::SigNum::kSigBus) + 1];
-template <>
-extern const char* EnumNameMap<
-    snapshot_types::
-        SigCause>[ToInt(snapshot_types::SigCause::kSegvGeneralProtection) + 1];
+inline constexpr const char* EnumNameMap<snapshot_types::EndpointType>[2] = {
+    "Instruction",
+    "Signal",
+};
 
 template <>
-extern const char* EnumNameMap<
-    snapshot_types::
-        MakerStopReason>[ToInt(snapshot_types::MakerStopReason::kSignal) + 1];
+inline constexpr const char* EnumNameMap<snapshot_types::SigNum>[6] = {
+    "UNDEFINED_SIG_NUM",  //
+    "SIG_SEGV",           //
+    "SIG_TRAP",           //
+    "SIG_FPE",            //
+    "SIG_ILL",            //
+    "SIG_BUS",            //
+};
+
+template <>
+inline constexpr const char* EnumNameMap<snapshot_types::SigCause>[7] = {
+    "UNDEFINED_SIG_CAUSE",      //
+    "GENERIC_SIG_CAUSE",        //
+    "SEGV_CANT_EXEC",           //
+    "SEGV_CANT_WRITE",          //
+    "SEGV_CANT_READ",           //
+    "SEGV_OVERFLOW",            //
+    "SEGV_GENERAL_PROTECTION",  //
+};
+
+template <>
+inline constexpr const char* EnumNameMap<snapshot_types::MakerStopReason>[7] = {
+    "Endpoint",                  //
+    "CannotAddMemory",           //
+    "TimeBudget",                //
+    "HardSigSegv",               //
+    "GeneralProtectionSigSegv",  //
+    "SigTrap",                   //
+    "Signal",                    //
+};
 
 }  // namespace silifuzz
 

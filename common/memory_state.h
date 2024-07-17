@@ -18,7 +18,6 @@
 #include <stddef.h>
 
 #include <optional>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -360,9 +359,13 @@ class MemoryState : private SnapshotTypeNames {
 
 // EnumStr() works for MemoryState::MemoryMappingCmd::Action.
 template <>
-extern const char*
-    EnumNameMap<MemoryState::MemoryMappingCmd::
-                    Action>[ToInt(MemoryState::MemoryMappingCmd::kUnmap) + 1];
+inline constexpr const char* EnumNameMap<
+    MemoryState::MemoryMappingCmd::
+        Action>[ToInt(MemoryState::MemoryMappingCmd::kUnmap) + 1] = {
+    "mmap",
+    "mprotect",
+    "munmap",
+};
 
 }  // namespace silifuzz
 

@@ -266,7 +266,6 @@ cc_library(
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/strings",
     ],
@@ -286,7 +285,6 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:range_map",
-        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:log_severity",
         "@com_google_absl//absl/strings",
     ],
@@ -308,7 +306,6 @@ cc_test(
 cc_library_plus_nolibc(
     name = "snapshot_test_enum",
     testonly = True,
-    srcs = ["snapshot_test_enum.cc"],
     hdrs = ["snapshot_test_enum.h"],
     as_is_deps = [
         "@com_google_absl//absl/base:core_headers",

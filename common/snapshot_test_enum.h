@@ -129,8 +129,40 @@ enum class TestSnapshot {
 
 // EnumStr() works for TestSnapshot.
 template <>
-extern const char*
-    EnumNameMap<TestSnapshot>[static_cast<int>(TestSnapshot::kNumTestSnapshot)];
+inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
+    TestSnapshot::kNumTestSnapshot)] = {
+    "kEmpty",
+    "kEndsAsExpected",
+    "kEndsUnexpectedly",
+    "kRegsMismatch",
+    "kMemoryMismatch",
+    "kRegsAndMemoryMismatch",
+    "kRegsMismatchRandom",
+    "kMemoryMismatchRandom",
+    "kRegsAndMemoryMismatchRandom",
+    "kICEBP",
+    "kBreakpoint",
+    "kINT3_CD03",
+    "kSigIll",
+    "kSigSegvWrite",
+    "kSigSegvWriteFixable",
+    "kSigSegvRead",
+    "kSigSegvReadFixable",
+    "kSigSegvExec",
+    "kSyscall",
+    "kGeneralProtectionFault",
+    "kChangesSegmentReg",
+    "kIn",
+    "kRunaway",
+    "kSplitLock",
+    "kSetThreeRegisters",
+    "kExitGroup",
+    "kVsyscallRegionAccess",
+    "kHasNondeterministicInsn",
+    "kUalignedExitingStackPointer",
+    "kFuzzingConfigNonconformance",
+    "kExpensiveInstructions",
+};
 
 }  // namespace silifuzz
 

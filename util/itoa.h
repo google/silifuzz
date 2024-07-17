@@ -130,14 +130,10 @@ const char* BoolStr(bool b);
 //   // In the same .h as MyEnum (has to be in silifuzz namespace same as
 //   // original EnumNameMap template):
 //   template<>
-//   extern const char* EnumNameMap<MyEnum>[2];
+//   inline constexpr const char* EnumNameMap<MyEnum>[2];
 //
 //   // In another .h or .cc:
 //   ... EnumStr(my_enum) ...
-//
-//   // In the .cc corresponding to .h with MyEnum:
-//   template<>
-//   ABSL_CONST_INIT const char* EnumNameMap<MyEnum>[2] = { "kA", "kB" };
 //
 // Enum values need to be reasonably gap-free and non-negative for EnumNameMap
 // to provide names for them: the first array element is for enum value 0,
@@ -163,6 +159,8 @@ const char* EnumStr(EnumT e) {
     return "NO-ENUM-NAME-DEFINED";
   return EnumNameMap<EnumT>[i];
 }
+
+// ========================================================================= //
 
 // Returns signal names exactly as `kill -l` prints them.
 // This routine is (and must remain) async-signal-safe.

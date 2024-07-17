@@ -40,8 +40,11 @@ static_assert(static_cast<int>(X86CPUFeatures::kEnd) < 64);
 
 // EnumStr() works for X86CPUFeatures.
 template <>
-extern const char*
-    EnumNameMap<X86CPUFeatures>[static_cast<int>(X86CPUFeatures::kEnd)];
+inline constexpr const char*
+    EnumNameMap<X86CPUFeatures>[static_cast<int>(X86CPUFeatures::kEnd)] = {
+        "AMX_TILE", "AVX", "AVX512BW", "AVX512F",
+        "OSXSAVE",  "SSE", "SSE4_2",   "XSAVE",
+};
 
 #ifdef __x86_64__
 

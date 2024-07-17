@@ -15,8 +15,6 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 
-#include <utility>
-
 #include "./util/checks.h"
 #include "./util/itoa.h"
 
@@ -33,9 +31,6 @@ enum class ArchitectureId {
   kAArch64 = 2,
 };
 
-template <>
-extern const char* EnumNameMap<ArchitectureId>[3];
-
 struct X86_64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;
   static constexpr const char* arch_name = "x86_64";
@@ -46,6 +41,13 @@ struct AArch64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kAArch64;
   static constexpr const char* arch_name = "aarch64";
   static constexpr const char* type_name = "AArch64";
+};
+
+template <>
+inline constexpr const char* EnumNameMap<ArchitectureId>[3] = {
+    "UNDEFINED",
+    X86_64::arch_name,
+    AArch64::arch_name,
 };
 
 #define ALL_ARCH_TYPES X86_64, AArch64

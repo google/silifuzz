@@ -17,7 +17,6 @@
 
 #include <stdint.h>
 
-#include <optional>
 #include <utility>
 
 #include "absl/strings/string_view.h"
@@ -245,13 +244,17 @@ class SnapshotPrinter : private SnapshotTypeNames {
 // ========================================================================= //
 
 template <>
-extern const char* EnumNameMap<SnapshotPrinter::RegsMode>[2];
+inline constexpr const char* EnumNameMap<SnapshotPrinter::RegsMode>[2] = {
+    "all", "non-0"};
 template <>
-extern const char* EnumNameMap<SnapshotPrinter::FPRegsMode>[3];
+inline constexpr const char* EnumNameMap<SnapshotPrinter::FPRegsMode>[3] = {
+    "all", "ctrl", "none"};
 template <>
-extern const char* EnumNameMap<SnapshotPrinter::EndRegsMode>[2];
+inline constexpr const char* EnumNameMap<SnapshotPrinter::EndRegsMode>[2] = {
+    "all", "changed"};
 template <>
-extern const char* EnumNameMap<SnapshotPrinter::EndStateMode>[2];
+inline constexpr const char* EnumNameMap<SnapshotPrinter::EndStateMode>[2] = {
+    "all", "diffs"};
 
 }  // namespace silifuzz
 

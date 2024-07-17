@@ -18,7 +18,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/attributes.h"
 
 namespace silifuzz {
 
@@ -31,14 +30,8 @@ enum class MyEnum {
   kF = -10,
 };
 
-// Exercise .h's recommendation for separate declaration and definition of
-// a EnumNameMap's specialization.
-// TODO: b/350661407 - This is non-standard and may stop working in the future.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wexplicit-specialization-storage-class"
 template <>
-extern const char* EnumNameMap<MyEnum>[4];
-#pragma clang diagnostic pop
+constexpr const char* EnumNameMap<MyEnum>[4] = {"kA", "kB", nullptr, "kD-name"};
 
 // ========================================================================= //
 
@@ -116,9 +109,5 @@ TEST(SignalNameStr, All) {
 }
 
 }  // namespace
-
-template <>
-ABSL_CONST_INIT const char* EnumNameMap<MyEnum>[4] = {"kA", "kB", nullptr,
-                                                      "kD-name"};
 
 }  // namespace silifuzz
