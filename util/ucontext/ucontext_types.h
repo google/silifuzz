@@ -110,7 +110,8 @@ inline bool operator==(const GRegSet<Arch>& x, const GRegSet<Arch>& y) {
 
 // The bits of pstate that are saved and restored.
 // Currently this is only NZCV.
-constexpr uint64_t kPStateMask = 0b1111'0000'0000'0000'0000'0000'0000'0000;
+inline constexpr uint64_t kPStateMask =
+    0b1111'0000'0000'0000'0000'0000'0000'0000;
 
 // ========================================================================= //
 

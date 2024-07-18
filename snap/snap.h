@@ -209,8 +209,7 @@ constexpr T MakeMagic(const char (&data)[sizeof(T)]) {
 }
 
 }  // namespace snap_internal
-
-constexpr uint64_t kSnapCorpusMagic = snap_internal::MakeMagic<uint64_t>(
+inline constexpr uint64_t kSnapCorpusMagic = snap_internal::MakeMagic<uint64_t>(
     {'S', 'n', 'a', 'p', 'C', 'o', 'r', 'p'});
 
 struct SnapCorpusHeader {

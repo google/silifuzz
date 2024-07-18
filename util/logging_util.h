@@ -18,7 +18,10 @@
 // This library contains various simple utilities to help nicely log
 // register states.
 
+#include <cstddef>
+
 #include "./util/reg_checksum.h"
+#include "./util/reg_group_set.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -86,7 +89,7 @@ void LogRegisterChecksum(const RegisterChecksum<Arch>& register_checksum,
 // Internal helper function to convert a register group set into a string.
 // This is used in nolibc environment so we specify a maximum string size.
 // buffer must hold at least kMaxGroupSetStringLeng bytes.
-constexpr size_t kMaxGroupSetStringLength = 128;
+inline constexpr size_t kMaxGroupSetStringLength = 128;
 template <typename Arch>
 void GroupSetToStr(const RegisterGroupSet<Arch>& groups, char* buffer);
 

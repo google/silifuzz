@@ -65,7 +65,7 @@ struct X86Exception {
 
 // X86 trap flag (TF) value. Same as X86_EFLAGS_TF in kernel sources.
 // https://en.wikipedia.org/wiki/Trap_flag
-constexpr inline uint64_t kX86TrapFlag = 0x100;
+inline constexpr uint64_t kX86TrapFlag = 0x100;
 
 }  // namespace silifuzz
 

@@ -37,14 +37,12 @@ template <typename Arch>
 struct FuzzingConfig;
 
 // This is usually the fuzzing config you should use.
-// Note: static qualifier is needed because const templates are not implicitly
-// static, unlike non-templated consts.
 template <typename Arch>
-static constexpr FuzzingConfig<Arch> DEFAULT_FUZZING_CONFIG;
+inline constexpr FuzzingConfig<Arch> DEFAULT_FUZZING_CONFIG;
 
 // The fuzzing config to use for proxies with limited memory.
 template <typename Arch>
-static constexpr FuzzingConfig<Arch> LIMITED_MEMORY_FUZZING_CONFIG;
+inline constexpr FuzzingConfig<Arch> LIMITED_MEMORY_FUZZING_CONFIG;
 
 // FuzzingConfig describes desired Snapshot execution environment. Currently,
 // this is limited to the memory regions where code and data can be placed.
@@ -67,7 +65,7 @@ struct FuzzingConfig<X86_64> {
 };
 
 template <>
-static constexpr FuzzingConfig<X86_64> DEFAULT_FUZZING_CONFIG<X86_64> = {
+inline constexpr FuzzingConfig<X86_64> DEFAULT_FUZZING_CONFIG<X86_64> = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -107,7 +105,7 @@ struct FuzzingConfig<AArch64> {
 };
 
 template <>
-static constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
+inline constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
     .code_range =
         {
             .start_address = 0x3000'0000,
@@ -133,7 +131,7 @@ static constexpr FuzzingConfig<AArch64> DEFAULT_FUZZING_CONFIG<AArch64> = {
 
 // This config is used to accommodate proxies with limited physical memory.
 template <>
-static constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
+inline constexpr FuzzingConfig<AArch64> LIMITED_MEMORY_FUZZING_CONFIG<AArch64> =
     {
         .code_range =
             {

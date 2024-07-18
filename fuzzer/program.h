@@ -36,12 +36,12 @@ size_t RandomIndex(MutatorRng& rng, size_t size);
 
 // An out-of-range displacement value, to be used when the displacement does not
 // exist.
-constexpr int64_t kInvalidByteDisplacement =
+inline constexpr int64_t kInvalidByteDisplacement =
     std::numeric_limits<int64_t>::max();
 
 // An out-of-range instruction boundary, to be used when the boundary does not
 // exist.
-constexpr size_t kInvalidInstructionBoundary =
+inline constexpr size_t kInvalidInstructionBoundary =
     std::numeric_limits<size_t>::max();
 
 // Information about a PC-relative displacement contained in an instruction that
@@ -122,17 +122,17 @@ struct ArchInstructionInfo {
 };
 
 template <typename Arch>
-static constexpr ArchInstructionInfo kInstructionInfo = {};
+inline constexpr ArchInstructionInfo kInstructionInfo = {};
 
 template <>
-static constexpr ArchInstructionInfo kInstructionInfo<X86_64> = {
+inline constexpr ArchInstructionInfo kInstructionInfo<X86_64> = {
     .min_size = 1,
     .max_size = 15,
     .buffer_size = 16,
 };
 
 template <>
-static constexpr ArchInstructionInfo kInstructionInfo<AArch64> = {
+inline constexpr ArchInstructionInfo kInstructionInfo<AArch64> = {
     .min_size = 4,
     .max_size = 4,
     .buffer_size = 4,

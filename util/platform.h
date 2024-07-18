@@ -17,7 +17,6 @@
 
 #include <cstdint>
 
-#include "absl/strings/string_view.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
@@ -79,7 +78,7 @@ enum class PlatformId {
 };
 
 // Max valid value of PlatformId, min being kUndefined.
-constexpr PlatformId kMaxPlatformId = PlatformId::kNonExistent;
+inline constexpr PlatformId kMaxPlatformId = PlatformId::kNonExistent;
 
 // EnumStr() works for PlatformId.
 template <>

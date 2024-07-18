@@ -30,7 +30,7 @@ namespace internal {
 // To zero-extend a CRC32C value by 'n' zeros, we use extension tables for
 // powers of 2. We do a zero-extension for each set bit in n. To overall
 // extension is done with O(log n) power-of-2 zero extension.
-static constexpr size_t kNumCRC32CZeroExtensionTables =
+inline constexpr size_t kNumCRC32CZeroExtensionTables =
     sizeof(size_t) * CHAR_BIT;
 
 // Returns the CRC32C zero extension table for a given bit.

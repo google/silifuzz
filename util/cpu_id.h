@@ -18,10 +18,10 @@
 namespace silifuzz {
 
 // No preference for choice of CPU.
-static constexpr int kAnyCPUId = -1;
+inline constexpr int kAnyCPUId = -1;
 
 // CPU ID information not available.
-static constexpr int kUnknownCPUId = -1;
+inline constexpr int kUnknownCPUId = -1;
 
 // Returns the current CPU Id or kUnknownCPUId if that cannot be determined.
 int GetCPUId();

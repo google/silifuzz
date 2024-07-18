@@ -26,12 +26,12 @@
 namespace silifuzz {
 
 // We manipulate data in multiples of uint64_t. So we require this alignment.
-constexpr size_t kByteRunAlignmentSize = sizeof(uint64_t);
+inline constexpr size_t kByteRunAlignmentSize = sizeof(uint64_t);
 
 // The minimum size of a repeating byte runs that we would split out from a
 // MemoryBytes object into its own MemoryBytes object. It unprofitable to split
 // if the run size is too small.
-static constexpr size_t kMinRepeatingByteRunSize = 16;
+inline constexpr size_t kMinRepeatingByteRunSize = 16;
 static_assert(kMinRepeatingByteRunSize >= kByteRunAlignmentSize &&
               kMinRepeatingByteRunSize % kByteRunAlignmentSize == 0);
 

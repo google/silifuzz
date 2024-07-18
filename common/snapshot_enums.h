@@ -36,8 +36,8 @@ namespace snapshot_types {
 
 // Type for a memory address (instructions or data inside a snapshot).
 using Address = uint64_t;
-static constexpr Address kMinAddress = std::numeric_limits<Address>::min();
-static constexpr Address kMaxAddress = std::numeric_limits<Address>::max();
+inline constexpr Address kMinAddress = std::numeric_limits<Address>::min();
+inline constexpr Address kMaxAddress = std::numeric_limits<Address>::max();
 
 // Type for a size (a non-negative difference between two `Address`es).
 using ByteSize = uint64_t;

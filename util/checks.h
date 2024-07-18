@@ -48,7 +48,7 @@
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 #include "absl/log/check.h"        // IWYU pragma: export
 #include "absl/log/log.h"          // IWYU pragma: export
-#include "absl/strings/str_cat.h"  // for absl::StrCat()
+#include "absl/strings/str_cat.h"  // IWYU pragma: export
 #endif
 
 #include "absl/base/attributes.h"    // for ABSL_ATTRIBUTE_NORETURN
@@ -402,7 +402,7 @@ extern int vlog_level;
 // a filename after the last "/" path separator.  The search starts at
 // the end of the string; the second parameter is the length of the string.
 // Used by SILIFUZZ_CHECKS_INTERNAL_BASENAME.
-constexpr const char* Basename(const char* fname, int offset) {
+inline constexpr const char* Basename(const char* fname, int offset) {
   return offset == 0 || fname[offset - 1] == '/' ? fname + offset
                                                  : Basename(fname, offset - 1);
 }

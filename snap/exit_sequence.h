@@ -26,7 +26,7 @@ namespace silifuzz {
 // This address does not change in different runner binaries so that we can
 // directly generate jumps to this address in Snaps.
 // REQUIRES: page size aligned.
-constexpr inline uint64_t kSnapExitAddress = 0xABCD0000;
+inline constexpr uint64_t kSnapExitAddress = 0xABCD0000;
 
 // Size of Snap exit sequence.
 template <typename Arch>

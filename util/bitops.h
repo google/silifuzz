@@ -30,13 +30,13 @@ namespace silifuzz {
 
 // Number of bits contained in type T.
 template <typename T>
-constexpr inline size_t NumBits() {
+inline constexpr size_t NumBits() {
   return sizeof(T) * 8;
 }
 
 // Convenience function to infer the template type from a variable.
 template <typename T>
-constexpr inline size_t NumBits(const T& a) {
+inline constexpr size_t NumBits(const T& a) {
   return NumBits<T>();
 }
 
@@ -54,7 +54,7 @@ namespace bitops_internal {
 // rely on pure compiler optimization, but currently the compiler doesn't always
 // get there wihtout a little help
 template <size_t N>
-static constexpr auto BestIntType() {
+inline constexpr auto BestIntType() {
   if constexpr (N % sizeof(uint64_t) == 0) {
     return uint64_t{};
   } else if constexpr (N % sizeof(uint32_t) == 0) {

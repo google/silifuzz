@@ -30,14 +30,13 @@
 namespace silifuzz {
 
 namespace serialize_internal {
-
-constexpr size_t kHeaderSize = 8;
+inline constexpr size_t kHeaderSize = 8;
 
 template <typename T>
 constexpr size_t SerializedSizeMax();
 
 template <>
-constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
+inline constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
   // Note that the legacy serialization format is larger because it encodes
   // every field as a 64-bit integer and also contains an extra field.
   // 216 vs 8 + 176.
@@ -45,17 +44,17 @@ constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
 }
 
 template <>
-constexpr size_t SerializedSizeMax<FPRegSet<X86_64>>() {
+inline constexpr size_t SerializedSizeMax<FPRegSet<X86_64>>() {
   return kHeaderSize + sizeof(FPRegSet<X86_64>);
 }
 
 template <>
-constexpr size_t SerializedSizeMax<GRegSet<AArch64>>() {
+inline constexpr size_t SerializedSizeMax<GRegSet<AArch64>>() {
   return kHeaderSize + sizeof(GRegSet<AArch64>);
 }
 
 template <>
-constexpr size_t SerializedSizeMax<FPRegSet<AArch64>>() {
+inline constexpr size_t SerializedSizeMax<FPRegSet<AArch64>>() {
   return kHeaderSize + sizeof(FPRegSet<AArch64>);
 }
 

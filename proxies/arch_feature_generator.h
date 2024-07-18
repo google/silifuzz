@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_PROXIES_ARCH_FEATURE_GENERATOR_H_
 #define THIRD_PARTY_SILIFUZZ_PROXIES_ARCH_FEATURE_GENERATOR_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -65,7 +67,8 @@ EmitToggleBitFeatures(uint64_t zero_one_domain, uint64_t one_zero_domain,
 // sense of the instruction. This isn't considered a hard failure since
 // disassemblers may be buggy, but any coverage related to the instruction ID
 // will be lost for this particular instruction.
-constexpr uint32_t kInvalidInstructionId = std::numeric_limits<uint32_t>::max();
+inline constexpr uint32_t kInvalidInstructionId =
+    std::numeric_limits<uint32_t>::max();
 
 // A class that takes information derived from tracing an instruction snippet
 // and turns it into user features to guide Centipede's search for interesting

@@ -22,7 +22,7 @@
 
 namespace silifuzz {
 
-constexpr size_t kPageSize = 0x1000;
+inline constexpr size_t kPageSize = 0x1000;
 
 constexpr bool IsPageAligned(uintptr_t value, uintptr_t page_size = kPageSize) {
   return (value & (page_size - 1)) == 0;

@@ -79,7 +79,7 @@ class TextProtoPrinter {
  private:
   // Maximum number of bytes a single "bytes" field value can consume in our
   // buf_. This is 4k with at most 4 bytes per char due to escaping.
-  constexpr static int kMaxBytesFieldCapacity = 4096 * 4 + 1;
+  static constexpr int kMaxBytesFieldCapacity = 4096 * 4 + 1;
 
   // Variadic print helper.
   template <typename Arg1, typename... Args>
