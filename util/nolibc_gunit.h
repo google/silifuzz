@@ -40,6 +40,10 @@
     return 0;                       \
   }
 
+#define GTEST_SKIP()        \
+  LOG_INFO("Test skipped"); \
+  return;
+
 #else  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
 #define NOLIBC_TEST_MAIN(run_tests)

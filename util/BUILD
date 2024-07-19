@@ -37,6 +37,13 @@ DISABLE_ARM_TAGS = [
     "not_run:arm",
 ]
 
+DISABLE_X86_TAGS = [
+    "not_build:haswell",
+    "not_build:k8",
+    "not_run:haswell",
+    "not_run:k8",
+]
+
 bzl_library(
     name = "nolibc_bzl",
     srcs = ["nolibc.bzl"],
@@ -1292,5 +1299,37 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@com_google_absl//absl/status",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library_plus_nolibc(
+    name = "sve",
+    hdrs = select({
+        "@silifuzz//build_defs/platform:aarch64": ["aarch64/sve.h"],
+        "@silifuzz//build_defs/platform:x86_64": [],
+    }),
+    deps = [
+        ":checks",
+        ":itoa",
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "sve_test",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": ["aarch64/sve_test.cc"],
+        "@silifuzz//build_defs/platform:x86_64": [],
+    }),
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    target_compatible_with = [
+        "//third_party/bazel_platforms/cpu:arm64",
+    ],
+    deps = [
+        ":checks",
+        ":itoa",
+        ":nolibc_gunit",
+        ":sve",
     ],
 )
