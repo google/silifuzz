@@ -608,6 +608,7 @@ cc_library_plus_nolibc(
     libc_deps = [
         "@com_google_googletest//:gtest",
     ],
+    deps = [":checks"],
 )
 
 cc_binary_nolibc(

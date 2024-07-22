@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_NOLIBC_GUNIT_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_NOLIBC_GUNIT_H_
 // Utilities for building no libc gunit test.
+#include "./util/checks.h"  // IWYU pragma: export
 
 #if defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
