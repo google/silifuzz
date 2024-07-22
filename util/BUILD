@@ -1319,7 +1319,7 @@ cc_test_plus_nolibc(
     name = "sve_test",
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": ["aarch64/sve_test.cc"],
-        "@silifuzz//build_defs/platform:x86_64": [],
+        "@silifuzz//build_defs/platform:x86_64": ["x86_64/sve_noop_test.cc"],
     }),
     libc_deps = [
         "@com_google_googletest//:gtest_main",
