@@ -1323,9 +1323,6 @@ cc_test_plus_nolibc(
     libc_deps = [
         "@com_google_googletest//:gtest_main",
     ],
-    target_compatible_with = [
-        "//third_party/bazel_platforms/cpu:arm64",
-    ],
     deps = [
         ":checks",
         ":itoa",
