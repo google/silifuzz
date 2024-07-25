@@ -111,6 +111,8 @@ microarchitecture or stepping. SiliFuzz has identified the following bugs:
 *   [CVE-2021-26339](https://www.amd.com/en/corporate/product-security/bulletin/amd-sb-1028)
 *   [Erratum #1386](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/revision-guides/56323-PUB_1_01.pdf)
 *   [Erratum #1468](https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/revision-guides/56323-PUB_1_01.pdf)
+*   [Erratum #3442699 for ARM Neoverse V2](https://developer.arm.com/documentation/SDEN-2332927/900)
+*   [Erratum #3213672 for ARM Cortex-X3](https://developer.arm.com/documentation/SDEN-2055130/1400)
 
 ### Defects
 
@@ -133,8 +135,9 @@ paper
 
 ## Related projects
 
-*   [Centipede](https://github.com/google/fuzztest/blob/main/centipede/README.md) is a fuzzing engine
-    developed at Google for fuzzing large and slow targets like CPU emulators.
+*   [Centipede](https://github.com/google/fuzztest/blob/main/centipede/README.md)
+    is a fuzzing engine developed at Google for fuzzing large and slow targets
+    like CPU emulators.
 
 ## Prework
 
@@ -153,8 +156,9 @@ cd "${SILIFUZZ_BIN_DIR}"
 
 NOTE: You can use a Docker container to avoid polluting the host system: `docker
 run -it --tty --security-opt seccomp=unconfined --mount
-type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian:bookworm /bin/bash -c "cd /app &&
-./install_build_dependencies.sh && bazel build ... && bazel test ..."`
+type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian:bookworm /bin/bash -c
+"cd /app && ./install_build_dependencies.sh && bazel build ... && bazel test
+..."`
 
 ### Prework (fuzzing Unicorn target)
 
@@ -179,9 +183,11 @@ documentation on how to efficiently run the fuzzing engine.
 
 ### Using pre-generated corpus
 
-You can download Centipede corpus files that have been generated using the instructions
-above [here](https://storage.googleapis.com/silifuzz/corpus-unicorn-20221212.tar.bz2).
-The data can be processed by `simple_fix_tool` or used to seed future fuzzing runs.
+You can download Centipede corpus files that have been generated using the
+instructions above
+[here](https://storage.googleapis.com/silifuzz/corpus-unicorn-20221212.tar.bz2).
+The data can be processed by `simple_fix_tool` or used to seed future fuzzing
+runs.
 
 ## Tools
 
@@ -207,14 +213,15 @@ The
 [fuzz_filter_tool](https://github.com/google/silifuzz/blob/main/tools/fuzz_filter_tool.cc)
 converts raw instructions into Snap-compatible Snapshots. It returns 0 when the
 conversion is possible and 1 otherwise. This interface is compatible with
-Centipede [input_filter](https://github.com/google/fuzztest/blob/main/centipede/environment.cc)
+Centipede
+[input_filter](https://github.com/google/fuzztest/blob/main/centipede/environment.cc)
 
 ```
 fuzz_filter_tool raw_input_sequence
 ```
 
-The `raw_input_sequence` file contains raw instructions which will be
-converted into the Snapshot format using
+The `raw_input_sequence` file contains raw instructions which will be converted
+into the Snapshot format using
 [InstructionsToSnapshot](https://github.com/google/silifuzz/blob/main/common/raw_insns_util.h)
 
 Sample usage:
@@ -408,8 +415,8 @@ $ ./runner/reading_runner_main_nolibc \
 
 ### How to scan all cores of a CPU
 
-The orchestrator will cycle through all the shards listed in the file passed
-in `--shard_list_file` argument.
+The orchestrator will cycle through all the shards listed in the file passed in
+`--shard_list_file` argument.
 
 ```shell
 $ ls -1 /tmp/wd/runnable-corpus.* > /tmp/shard_list
@@ -420,4 +427,5 @@ $ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
      --shard_list_file=/tmp/shard_list
 ```
 
-NOTE: The orchestrator can also load XZ-compressed corpus shards from files ending with `.xz`
+NOTE: The orchestrator can also load XZ-compressed corpus shards from files
+ending with `.xz`
