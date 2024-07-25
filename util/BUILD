@@ -1087,13 +1087,12 @@ cc_test_plus_nolibc(
 )
 
 cc_library_plus_nolibc(
-    name = "x86_extension_registers",
-    # We need to use select to prevent x86 code from being compiled on ARM.
-    # cc_XX_plus_nolibc rules do not support select() in dependencies. We use select()
-    # here to avoid x86 code being compiled for ARM.
+    name = "extension_registers",
     srcs =
         select({
-            "@silifuzz//build_defs/platform:aarch64": [],
+            "@silifuzz//build_defs/platform:aarch64": [
+                "aarch64/sve.S",
+            ],
             "@silifuzz//build_defs/platform:x86_64": [
                 "x86_64/opmask.S",
                 "x86_64/xmm.S",
@@ -1102,26 +1101,37 @@ cc_library_plus_nolibc(
             ],
         }),
     hdrs = select({
-        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/extension_registers.h",
+        ],
         "@silifuzz//build_defs/platform:x86_64": [
             "x86_64/extension_registers.h",
         ],
     }),
 )
 
+# TODO(sarahjkim): Update to cc_test_plus_nolibc in next CL.
 cc_test(
-    name = "x86_extension_registers_test",
-    srcs = [
-        "x86_64/extension_registers_test.cc",
-        "x86_64/extension_registers_test_helpers.S",
-        "x86_64/extension_registers_test_helpers.h",
-    ],
+    name = "extension_registers_test",
+    srcs =
+        select({
+            "@silifuzz//build_defs/platform:aarch64": [
+                "aarch64/extension_registers_test.cc",
+            ],
+            "@silifuzz//build_defs/platform:x86_64": [
+                "x86_64/extension_registers_test.cc",
+                "x86_64/extension_registers_test_helpers.S",
+                "x86_64/extension_registers_test_helpers.h",
+            ],
+        }),
     # We don't want calls in test helpers to go through PLTs.
     # The dynamic linker may clobber some extention registers.
     linkstatic = True,
     deps = [
         ":cpu_features",
-        ":x86_extension_registers",  # buildcleaner: keep
+        ":extension_registers",
+        ":reg_group_io",
+        ":sve",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -1213,10 +1223,11 @@ cc_library_plus_nolibc(
         ":checks",
         ":cpu_features",
         ":crc32c",
+        ":extension_registers",
         ":reg_checksum",
         ":reg_group_bits",
         ":reg_group_set",
-        ":x86_extension_registers",  # buildcleaner: keep
+        ":sve",
     ],
 )
 
@@ -1240,12 +1251,12 @@ cc_test_plus_nolibc(
         ":checks",
         ":cpu_features",
         ":crc32c",
+        ":extension_registers",
         ":nolibc_gunit",
         ":reg_checksum",
         ":reg_group_io",
         ":reg_group_set",
         ":reg_groups",
-        ":x86_extension_registers",  # buildcleaner: keep
     ],
 )
 

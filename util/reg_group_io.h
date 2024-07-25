@@ -20,7 +20,9 @@
 // so locking is normally not required.  If it is ever used in a multi-threaded
 // environment, access needs to be controlled by a lock. Currently this
 // is only used for computing register checksums.
-#ifdef __x86_64__
+#if defined(__aarch64__)
+#include "./util/aarch64/sve.h"
+#elif defined(__x86_64__)
 #include <x86intrin.h>
 #endif
 
@@ -31,6 +33,7 @@ namespace silifuzz {
 
 // A buffer of storing register groups contents. This is only used on the
 // host architecture.
+// TODO: b/355239537 - De-templatize this struct.
 template <typename Arch>
 struct RegisterGroupIOBuffer;
 
@@ -41,9 +44,19 @@ struct RegisterGroupIOBuffer;
 
 template <>
 struct RegisterGroupIOBuffer<AArch64> {
-  // Currently we do not use this on AArch64.  So this only contains
-  // registers groups information.
+  // Register_groups describes which of the following components are active.
+  //   SVE: z (vector), p (predicate), ffr (first fault register)
+  // Groups not listed above are not supported yet and ignored.
   RegisterGroupSet<AArch64> register_groups;
+  // Documentation for the LDR (predicate) and STR (predicate) instructions
+  // indicates that loading/storing the predicate registers from memory
+  // addresses with 2-byte alignment may be more efficient.
+  uint8_t ffr[kSvePRegMaxSizeBytes] __attribute__((aligned(2)));
+  uint8_t p[kSveNumPReg * kSvePRegMaxSizeBytes] __attribute__((aligned(2)));
+  // Documentation for the LDR (vector) and STR (vector) instructions indicates
+  // that loading/storing the Z registers from memory addresses with 16-byte
+  // alignment may be more efficient.
+  uint8_t z[kSveNumZReg * kSveZRegMaxSizeBytes] __attribute__((aligned(16)));
 };
 
 // RegisterGroupIOBuffer is used by assembly code, which needs to know struct
@@ -51,6 +64,12 @@ struct RegisterGroupIOBuffer<AArch64> {
 // here that offsets are correct.
 static_assert(REGISTER_GROUP_IO_BUFFER_REGISTER_GROUPS_OFFSET ==
               offsetof(RegisterGroupIOBuffer<AArch64>, register_groups));
+static_assert(REGISTER_GROUP_IO_BUFFER_FFR_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, ffr));
+static_assert(REGISTER_GROUP_IO_BUFFER_P_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, p));
+static_assert(REGISTER_GROUP_IO_BUFFER_Z_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, z));
 #elif defined(__x86_64__)
 #include "./util/x86_64/reg_group_io_buffer_offsets.h"
 
