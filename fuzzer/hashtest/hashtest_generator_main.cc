@@ -31,6 +31,7 @@
 #include "./fuzzer/hashtest/prefilter.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_instruction.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
@@ -74,66 +75,6 @@ xed_iform_enum_t GetIForm(const uint8_t* bytes, size_t len, bool dump = false) {
   }
 
   return xed_decoded_inst_get_iform_enum(&decoded);
-}
-
-constexpr unsigned int kLoopIndex = 8;
-
-// Mark which registers are: 1) temporary values, 2) entropy values, and 3)
-// should not be used when generating tests.
-void InitRegisterLayout(xed_chip_enum_t chip, RegisterPool& rpool) {
-  rpool.vec_width = ChipVectorRegisterWidth(chip);
-  rpool.mask_width = ChipMaskRegisterWidth(chip);
-
-  // GP registers.
-  const unsigned int stack_index = XedRegToRegisterID(XED_REG_RSP).index;
-  for (int i = 0; i < rpool.tmp.gp.size(); ++i) {
-    if (i == kLoopIndex) {
-      // Iteration reg.
-    } else if (i == stack_index) {
-      // Stack pointer.
-    } else if (i >= 9 && i < 16) {
-      // Use higher registers for entropy since the lower registers may be fixed
-      // read/write targets for some instructions.
-      rpool.entropy.gp[i] = true;
-    } else {
-      rpool.tmp.gp[i] = true;
-    }
-  }
-
-  // Vector registers.
-  // TODO(ncbray): when is this 16 registers vs. 32?
-  for (int i = 0; i < rpool.tmp.vec.size(); ++i) {
-    // Entropy needs to be initializable by Silifuzz.
-    if (i >= 8 && i < 16) {
-      // Use higher registers for entropy since the XMM0 may be a fixed
-      // read/write target for some instructions.
-      rpool.entropy.vec[i] = true;
-    } else if (i >= 16) {
-      // Extended registers.
-    } else {
-      rpool.tmp.vec[i] = true;
-    }
-  }
-
-  // Mask registers.
-  for (int i = 0; i < rpool.tmp.mask.size(); ++i) {
-    if (i >= 4 && i < 8) {
-      // k0 cannot be an entropy register because it has a special meaning when
-      // used as a write mask.
-      rpool.entropy.mask[i] = true;
-    } else {
-      rpool.tmp.mask[i] = true;
-    }
-  }
-
-  // MMX registers.
-  for (int i = 0; i < rpool.tmp.mmx.size(); ++i) {
-    if (i >= 4 && i < 8) {
-      rpool.entropy.mmx[i] = true;
-    } else {
-      rpool.tmp.mmx[i] = true;
-    }
-  }
 }
 
 // A set of instructions we can use for generating tests, grouped by which
@@ -367,9 +308,9 @@ int ToolMain(std::vector<char*> positional_args) {
   std::cout << "No effect:         " << ipool.no_effect.size() << "\n";
   std::cout << "Flag manipulation: " << ipool.flag_manipulation.size() << "\n";
   std::cout << "Compare:           " << ipool.compare.size() << "\n";
-  std::cout << "GReg:              " << ipool.greg.size() << "\n";
-  std::cout << "VReg:              " << ipool.vreg.size() << "\n";
-  std::cout << "MReg:              " << ipool.mreg.size() << "\n";
+  std::cout << "GPReg:             " << ipool.greg.size() << "\n";
+  std::cout << "VecReg:            " << ipool.vreg.size() << "\n";
+  std::cout << "MaskReg:           " << ipool.mreg.size() << "\n";
   std::cout << "MMXReg:            " << ipool.mmxreg.size() << "\n";
 
   return 0;

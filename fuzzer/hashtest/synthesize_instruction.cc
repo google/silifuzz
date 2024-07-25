@@ -25,6 +25,7 @@
 #include "./fuzzer/hashtest/debugging.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/xed_operand_util.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
@@ -92,28 +93,6 @@ unsigned int HandleOperand(RegisterBank bank, Rng& rng, std::bitset<N>& tmp,
 }
 
 }  // namespace
-
-// TODO(ncbray): support "high byte" iforms. Unfortunately these can only target
-// AH, BH, CH, and DH so this looks very similar to supporting fixed registers.
-xed_encoder_operand_t GPRegOperand(unsigned int index, size_t width) {
-  return xed_reg(RegisterIDToXedReg(
-      RegisterID{.bank = RegisterBank::kGP, .index = index}, width));
-}
-
-xed_encoder_operand_t VecRegOperand(unsigned int index, size_t width) {
-  return xed_reg(RegisterIDToXedReg(
-      RegisterID{.bank = RegisterBank::kVec, .index = index}, width));
-}
-
-xed_encoder_operand_t MaskRegOperand(unsigned int index) {
-  CHECK_LT(index, 8);
-  return xed_reg(static_cast<xed_reg_enum_t>(XED_REG_MASK_FIRST + index));
-}
-
-xed_encoder_operand_t MMXRegOperand(unsigned int index) {
-  CHECK_LT(index, 8);
-  return xed_reg(static_cast<xed_reg_enum_t>(XED_REG_MMX_FIRST + index));
-}
 
 [[nodiscard]] bool SynthesizeTestInstruction(
     const InstructionCandidate& candidate, RegisterPool& rpool, Rng& rng,

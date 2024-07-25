@@ -23,6 +23,7 @@ cc_library(
         "debugging.cc",
         "prefilter.cc",
         "register_info.cc",
+        "synthesize_base.cc",
         "synthesize_instruction.cc",
         "xed_operand_util.cc",
     ],
@@ -32,6 +33,7 @@ cc_library(
         "prefilter.h",
         "rand_util.h",
         "register_info.h",
+        "synthesize_base.h",
         "synthesize_instruction.h",
         "weighted_choose_one.h",
         "xed_operand_util.h",
@@ -40,6 +42,7 @@ cc_library(
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:checks",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/strings:string_view",
         "@libxed//:xed",
     ],
 )
