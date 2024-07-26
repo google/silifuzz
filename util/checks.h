@@ -158,6 +158,22 @@ const bool DEBUG_MODE = true;
 const bool DEBUG_MODE = false;
 #endif  // defined(NDEBUG)
 
+#define CHECK_LOG(condition, log) CHECK(condition) << (log);
+#define CHECK_EQ_LOG(x, y, log) CHECK_EQ(x, y) << (log);
+#define CHECK_NE_LOG(x, y, log) CHECK_NE(x, y) << (log);
+#define CHECK_LE_LOG(x, y, log) CHECK_LE(x, y) << (log);
+#define CHECK_LT_LOG(x, y, log) CHECK_LT(x, y) << (log);
+#define CHECK_GE_LOG(x, y, log) CHECK_GE(x, y) << (log);
+#define CHECK_GT_LOG(x, y, log) CHECK_GT(x, y) << (log);
+
+#define DCHECK_LOG(condition, log) DCHECK(condition) << (log);
+#define DCHECK_EQ_LOG(x, y, log) DCHECK_EQ(x, y) << (log);
+#define DCHECK_NE_LOG(x, y, log) DCHECK_NE(x, y) << (log);
+#define DCHECK_LE_LOG(x, y, log) DCHECK_LE(x, y) << (log);
+#define DCHECK_LT_LOG(x, y, log) DCHECK_LT(x, y) << (log);
+#define DCHECK_GE_LOG(x, y, log) DCHECK_GE(x, y) << (log);
+#define DCHECK_GT_LOG(x, y, log) DCHECK_GT(x, y) << (log);
+
 #else  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
 // Define simple implementations of CHECK*, DCHECK* (and DEBUG_MODE)
@@ -172,12 +188,33 @@ const bool DEBUG_MODE = false;
                                           "Check failed: " #condition);      \
   }
 
+#define CHECK_LOG(condition, log)                    \
+  while (!(condition)) {                             \
+    SILIFUZZ_CHECKS_INTERNAL_BASENAME;               \
+    ::silifuzz::checks_internal::LogFatal(           \
+        silifuzz_checks_internal_basename, __LINE__, \
+        "Check failed: " #condition " ", log);       \
+  }
+
 #define CHECK_EQ(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, ==, y)
 #define CHECK_NE(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, !=, y)
 #define CHECK_LE(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, <=, y)
 #define CHECK_LT(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, <, y)
 #define CHECK_GE(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, >=, y)
 #define CHECK_GT(x, y) SILIFUZZ_CHECKS_INTERNAL_CHECK_OP(x, >, y)
+
+#define CHECK_EQ_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, ==, y, log)
+#define CHECK_NE_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, !=, y, log)
+#define CHECK_LE_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, <=, y, log)
+#define CHECK_LT_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, <, y, log)
+#define CHECK_GE_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, >=, y, log)
+#define CHECK_GT_LOG(x, y, log) \
+  SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, >, y, log)
 
 #ifndef NDEBUG
 
@@ -189,6 +226,14 @@ const bool DEBUG_MODE = true;
 #define DCHECK_LT(x, y) CHECK_LT(x, y)
 #define DCHECK_GE(x, y) CHECK_GE(x, y)
 #define DCHECK_GT(x, y) CHECK_GT(x, y)
+
+#define DCHECK_LOG(condition, log) CHECK_LOG(condition, log)
+#define DCHECK_EQ_LOG(x, y, log) CHECK_EQ_LOG(x, y, log)
+#define DCHECK_NE_LOG(x, y, log) CHECK_NE_LOG(x, y, log)
+#define DCHECK_LE_LOG(x, y, log) CHECK_LE_LOG(x, y, log)
+#define DCHECK_LT_LOG(x, y, log) CHECK_LT_LOG(x, y, log)
+#define DCHECK_GE_LOG(x, y, log) CHECK_GE_LOG(x, y, log)
+#define DCHECK_GT_LOG(x, y, log) CHECK_GT_LOG(x, y, log)
 
 #else  // defined(NDEBUG)
 
@@ -202,6 +247,14 @@ const bool DEBUG_MODE = false;
 #define DCHECK_LT(x, y) DCHECK(true)
 #define DCHECK_GE(x, y) DCHECK(true)
 #define DCHECK_GT(x, y) DCHECK(true)
+
+#define DCHECK_LOG(condition, log) DCHECK(true)
+#define DCHECK_EQ_LOG(x, y, log) DCHECK(true)
+#define DCHECK_NE_LOG(x, y, log) DCHECK(true)
+#define DCHECK_LE_LOG(x, y, log) DCHECK(true)
+#define DCHECK_LT_LOG(x, y, log) DCHECK(true)
+#define DCHECK_GE_LOG(x, y, log) DCHECK(true)
+#define DCHECK_GT_LOG(x, y, log) DCHECK(true)
 
 #endif  // defined(NDEBUG)
 
@@ -458,6 +511,15 @@ inline ABSL_MUST_USE_RESULT T CheckAndReturn(const char* file, int line,
     ::silifuzz::checks_internal::LogFatal(silifuzz_checks_internal_basename,   \
                                           __LINE__,                            \
                                           "Check failed: " #x " " #op " " #y); \
+  }
+
+// Modified version that adds a custom log when the check fails.
+#define SILIFUZZ_CHECKS_INTERNAL_CHECK_OP_LOG(x, op, y, log) \
+  while (!((x)op(y))) {                                      \
+    SILIFUZZ_CHECKS_INTERNAL_BASENAME;                       \
+    ::silifuzz::checks_internal::LogFatal(                   \
+        silifuzz_checks_internal_basename, __LINE__,         \
+        "Check failed: " #x " " #op " " #y " ", log);        \
   }
 
 // LogError() overloads implement LOG_ERROR(...) macro.
