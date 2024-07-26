@@ -41,8 +41,14 @@
     return 0;                       \
   }
 
-#define GTEST_SKIP()        \
-  LOG_INFO("Test skipped"); \
+// Nolibc version of GTEST_SKIP.
+#define SILIFUZZ_TEST_SKIP() \
+  LOG_INFO("Test skipped");  \
+  return;
+
+// Modified version that adds a custom log when skipping the test.
+#define SILIFUZZ_TEST_SKIP_LOG(...)      \
+  LOG_INFO("Test skipped", __VA_ARGS__); \
   return;
 
 #else  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
@@ -51,6 +57,9 @@
 
 // include normal gunit.h if we are using regular libc
 #include "gtest/gtest.h"
+
+#define SILIFUZZ_TEST_SKIP() GTEST_SKIP()
+#define SILIFUZZ_TEST_SKIP_LOG(...) GTEST_SKIP() << __VA_ARGS__
 
 #endif  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 

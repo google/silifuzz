@@ -14,9 +14,8 @@
 
 #include "./util/aarch64/extension_registers.h"
 
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
 #include "./util/aarch64/sve.h"
+#include "./util/nolibc_gunit.h"
 #include "./util/reg_group_io.h"
 
 namespace silifuzz {
@@ -40,7 +39,7 @@ void SeedBuffer(RegisterGroupIOBuffer<AArch64> &buf) {
 
 TEST(AArch64ExtensionRegistersTest, StoreAndLoadZRegisters) {
   if (!SveIsSupported()) {
-    GTEST_SKIP();
+    SILIFUZZ_TEST_SKIP();
   }
 
   RegisterGroupIOBuffer<AArch64> original_buf;
@@ -87,22 +86,21 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadZRegisters) {
   size_t expected_populated_size = SveGetCurrentVectorLength() * kSveNumZReg;
   size_t expected_empty_size =
       sizeof buf_after_seeding.z - expected_populated_size;
-  EXPECT_GT(expected_populated_size, 0);
+  CHECK_GT(expected_populated_size, 0);
 
-  EXPECT_EQ(memcmp(buf_after_seeding.z, seed_buf.z, expected_populated_size),
-            0);
-  EXPECT_EQ(memcmp(buf_after_seeding.z + expected_populated_size, empty_buf.z,
-                   expected_empty_size),
-            0);
-  EXPECT_NE(memcmp(buf_after_seeding.z, empty_buf.z, sizeof empty_buf.z), 0);
+  CHECK_EQ(memcmp(buf_after_seeding.z, seed_buf.z, expected_populated_size), 0);
+  CHECK_EQ(memcmp(buf_after_seeding.z + expected_populated_size, empty_buf.z,
+                  expected_empty_size),
+           0);
+  CHECK_NE(memcmp(buf_after_seeding.z, empty_buf.z, sizeof empty_buf.z), 0);
 
   // Check that the Z registers were cleared successfully.
-  EXPECT_EQ(memcmp(buf_after_clearing.z, empty_buf.z, sizeof empty_buf.z), 0);
+  CHECK_EQ(memcmp(buf_after_clearing.z, empty_buf.z, sizeof empty_buf.z), 0);
 }
 
 TEST(AArch64ExtensionRegistersTest, StoreAndLoadPRegisters) {
   if (!SveIsSupported()) {
-    GTEST_SKIP();
+    SILIFUZZ_TEST_SKIP();
   }
 
   RegisterGroupIOBuffer<AArch64> original_buf;
@@ -145,22 +143,21 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadPRegisters) {
   size_t expected_populated_size = SveGetPredicateLength() * kSveNumPReg;
   size_t expected_empty_size =
       sizeof buf_after_seeding.p - expected_populated_size;
-  EXPECT_GT(expected_populated_size, 0);
+  CHECK_GT(expected_populated_size, 0);
 
-  EXPECT_EQ(memcmp(buf_after_seeding.p, seed_buf.p, expected_populated_size),
-            0);
-  EXPECT_EQ(memcmp(buf_after_seeding.p + expected_populated_size, empty_buf.p,
-                   expected_empty_size),
-            0);
-  EXPECT_NE(memcmp(buf_after_seeding.p, empty_buf.p, sizeof empty_buf.p), 0);
+  CHECK_EQ(memcmp(buf_after_seeding.p, seed_buf.p, expected_populated_size), 0);
+  CHECK_EQ(memcmp(buf_after_seeding.p + expected_populated_size, empty_buf.p,
+                  expected_empty_size),
+           0);
+  CHECK_NE(memcmp(buf_after_seeding.p, empty_buf.p, sizeof empty_buf.p), 0);
 
   // Clear the p registers and check that they were indeed cleared.
-  EXPECT_EQ(memcmp(buf_after_clearing.p, empty_buf.p, sizeof empty_buf.p), 0);
+  CHECK_EQ(memcmp(buf_after_clearing.p, empty_buf.p, sizeof empty_buf.p), 0);
 }
 
 TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister) {
   if (!SveIsSupported()) {
-    GTEST_SKIP();
+    SILIFUZZ_TEST_SKIP();
   }
 
   RegisterGroupIOBuffer<AArch64> original_buf;
@@ -203,20 +200,28 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister) {
   size_t expected_populated_size = SveGetPredicateLength();
   size_t expected_empty_size =
       sizeof buf_after_seeding.ffr - expected_populated_size;
-  EXPECT_GT(expected_populated_size, 0);
+  CHECK_GT(expected_populated_size, 0);
 
-  EXPECT_EQ(
-      memcmp(buf_after_seeding.ffr, seed_buf.ffr, expected_populated_size), 0);
-  EXPECT_EQ(memcmp(buf_after_seeding.ffr + expected_populated_size,
-                   empty_buf.ffr, expected_empty_size),
-            0);
-  EXPECT_NE(memcmp(buf_after_seeding.ffr, empty_buf.ffr, sizeof empty_buf.ffr),
-            0);
+  CHECK_EQ(memcmp(buf_after_seeding.ffr, seed_buf.ffr, expected_populated_size),
+           0);
+  CHECK_EQ(memcmp(buf_after_seeding.ffr + expected_populated_size,
+                  empty_buf.ffr, expected_empty_size),
+           0);
+  CHECK_NE(memcmp(buf_after_seeding.ffr, empty_buf.ffr, sizeof empty_buf.ffr),
+           0);
 
   // Clear the p registers and check that they were indeed cleared.
-  EXPECT_EQ(memcmp(buf_after_clearing.ffr, empty_buf.ffr, sizeof empty_buf.ffr),
-            0);
+  CHECK_EQ(memcmp(buf_after_clearing.ffr, empty_buf.ffr, sizeof empty_buf.ffr),
+           0);
 }
 
 }  // namespace
 }  // namespace silifuzz
+
+// ========================================================================= //
+
+NOLIBC_TEST_MAIN({
+  RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadZRegisters);
+  RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadPRegisters);
+  RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister);
+})

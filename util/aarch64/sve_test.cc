@@ -25,7 +25,7 @@ namespace {
 
 TEST(SveTest, ValidSveRegisterLengths) {
   if (!SveIsSupported()) {
-    GTEST_SKIP();
+    SILIFUZZ_TEST_SKIP();
   }
   size_t z_len = SveGetCurrentVectorLength();
   LOG_INFO("SVE Z register length in bytes: ", IntStr(z_len));
@@ -40,7 +40,7 @@ TEST(SveTest, ValidSveRegisterLengths) {
 
 TEST(SveTest, SetSveVectorLength) {
   if (!SveIsSupported()) {
-    GTEST_SKIP();
+    SILIFUZZ_TEST_SKIP();
   }
   size_t original_z_len = SveGetCurrentVectorLength();
 

@@ -1110,8 +1110,7 @@ cc_library_plus_nolibc(
     }),
 )
 
-# TODO(sarahjkim): Update to cc_test_plus_nolibc in next CL.
-cc_test(
+cc_test_plus_nolibc(
     name = "extension_registers_test",
     srcs =
         select({
@@ -1124,15 +1123,20 @@ cc_test(
                 "x86_64/extension_registers_test_helpers.h",
             ],
         }),
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
     # We don't want calls in test helpers to go through PLTs.
     # The dynamic linker may clobber some extention registers.
     linkstatic = True,
     deps = [
         ":cpu_features",
         ":extension_registers",
+        ":itoa",
+        ":nolibc_gunit",
         ":reg_group_io",
+        ":strcat",
         ":sve",
-        "@com_google_googletest//:gtest_main",
     ],
 )
 

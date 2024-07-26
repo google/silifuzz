@@ -16,8 +16,10 @@
 
 #include <cstring>
 
-#include "gtest/gtest.h"
 #include "./util/cpu_features.h"
+#include "./util/itoa.h"
+#include "./util/nolibc_gunit.h"
+#include "./util/strcat.h"
 #include "./util/x86_64/extension_registers_test_helpers.h"
 
 namespace silifuzz {
@@ -68,7 +70,7 @@ void XYZMMSaveTestImpl() {
   memset(output, 0xff, sizeof(output));
   helper(output);
   for (size_t i = 0; i < TypeInfo::kNumElements; ++i) {
-    EXPECT_EQ(output[i][0], i) << "mismatch at index " << i;
+    CHECK_EQ_LOG(output[i][0], i, StrCat({"mismatch at index ", IntStr(i)}));
   }
 }
 
@@ -79,7 +81,7 @@ void OpmaskSaveTestImpl() {
   memset(output, 0xff, sizeof(output));
   helper(output);
   for (size_t i = 0; i < TypeInfo::kNumElements; ++i) {
-    EXPECT_EQ(output[i], i) << "mismatch at index " << i;
+    CHECK_EQ_LOG(output[i], i, StrCat({"mismatch at index ", IntStr(i)}));
   }
 }
 
@@ -96,8 +98,8 @@ void RoundTripTestImpl() {
   memset(output, 0, sizeof(output));
   helper(input, output);
   for (size_t i = 0; i < TypeInfo::kNumElements; ++i) {
-    EXPECT_EQ(memcmp(&input[i], &output[i], sizeof(input[i])), 0)
-        << "mismatch at index " << i;
+    CHECK_EQ_LOG(memcmp(&input[i], &output[i], sizeof(input[i])), 0,
+                 StrCat({"mismatch at index ", IntStr(i)}));
   }
 }
 
@@ -113,80 +115,80 @@ void ClearTestImpl() {
   memset(empty, 0, sizeof(empty));
   helper(input, output);
   for (size_t i = 0; i < TypeInfo::kNumElements; ++i) {
-    EXPECT_EQ(memcmp(&empty[i], &output[i], sizeof(empty[i])), 0)
-        << "mismatch at index " << i;
+    CHECK_EQ_LOG(memcmp(&empty[i], &output[i], sizeof(empty[i])), 0,
+                 StrCat({"mismatch at index ", IntStr(i)}));
   }
 }
 
-TEST(ExtenstionRegistrs, XMMSave) {
+TEST(ExtensionRegisters, XMMSave) {
   if (!HasX86CPUFeature(X86CPUFeatures::kSSE))
-    GTEST_SKIP() << "SSE not supported";
+    SILIFUZZ_TEST_SKIP_LOG("SSE not supported");
   XYZMMSaveTestImpl<XMMTypeInfo, XMMSaveTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, XMMRoundTrip) {
+TEST(ExtensionRegisters, XMMRoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kSSE))
-    GTEST_SKIP() << "SSE not supported";
+    SILIFUZZ_TEST_SKIP_LOG("SSE not supported");
   RoundTripTestImpl<XMMTypeInfo, XMMRoundTripTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, XMMClear) {
+TEST(ExtensionRegisters, XMMClear) {
   if (!HasX86CPUFeature(X86CPUFeatures::kSSE))
-    GTEST_SKIP() << "SSE not supported";
+    SILIFUZZ_TEST_SKIP_LOG("SSE not supported");
   ClearTestImpl<XMMTypeInfo, XMMClearTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, YMMSave) {
+TEST(ExtensionRegisters, YMMSave) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX))
-    GTEST_SKIP() << "AVX not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX not supported");
   XYZMMSaveTestImpl<YMMTypeInfo, YMMSaveTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, YMMRoundTrip) {
+TEST(ExtensionRegisters, YMMRoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX))
-    GTEST_SKIP() << "AVX not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX not supported");
   RoundTripTestImpl<YMMTypeInfo, YMMRoundTripTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, YMMClear) {
+TEST(ExtensionRegisters, YMMClear) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX))
-    GTEST_SKIP() << "AVX not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX not supported");
   ClearTestImpl<YMMTypeInfo, YMMClearTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, ZMMSave) {
+TEST(ExtensionRegisters, ZMMSave) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   XYZMMSaveTestImpl<ZMMTypeInfo, ZMMSaveTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, ZMMRoundTrip) {
+TEST(ExtensionRegisters, ZMMRoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   RoundTripTestImpl<ZMMTypeInfo, ZMMRoundTripTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, ZMMClear) {
+TEST(ExtensionRegisters, ZMMClear) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   ClearTestImpl<ZMMTypeInfo, ZMMClearTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, Opmask16Save) {
+TEST(ExtensionRegisters, Opmask16Save) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   OpmaskSaveTestImpl<Opmask16TypeInfo, Opmask16SaveTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, Opmask64ave) {
+TEST(ExtensionRegisters, Opmask64ave) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512BW))
-    GTEST_SKIP() << "AVX-512BW not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512BW not supported");
   OpmaskSaveTestImpl<Opmask64TypeInfo, Opmask64SaveTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, Opmask16RoundTrip) {
+TEST(ExtensionRegisters, Opmask16RoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   constexpr size_t kNumElements = 8;
   uint64_t input[kNumElements], output[kNumElements];
   FillPattern(reinterpret_cast<uint8_t*>(input), sizeof(input));
@@ -194,28 +196,48 @@ TEST(ExtenstionRegistrs, Opmask16RoundTrip) {
   Opmask16RoundTripTestHelper(input, output);
   for (size_t i = 0; i < kNumElements; ++i) {
     // 16-bit opmasks are saved as uint64_t with upper 48 bits cleared.
-    EXPECT_EQ(input[i] & 0xffff, output[i]) << "mismatch at index " << i;
+    CHECK_EQ_LOG(input[i] & 0xffff, output[i],
+                 StrCat({"mismatch at index ", IntStr(i)}));
   }
 }
 
-TEST(ExtenstionRegistrs, Opmask64RoundTrip) {
+TEST(ExtensionRegisters, Opmask64RoundTrip) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512BW))
-    GTEST_SKIP() << "AVX-512BW not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512BW not supported");
   RoundTripTestImpl<Opmask64TypeInfo, Opmask64RoundTripTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, Opmask16Clear) {
+TEST(ExtensionRegisters, Opmask16Clear) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512F))
-    GTEST_SKIP() << "AVX-512F not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512F not supported");
   ClearTestImpl<Opmask16TypeInfo, Opmask16ClearTestHelper>();
 }
 
-TEST(ExtenstionRegistrs, Opmask64Clear) {
+TEST(ExtensionRegisters, Opmask64Clear) {
   if (!HasX86CPUFeature(X86CPUFeatures::kAVX512BW))
-    GTEST_SKIP() << "AVX-512BW not supported";
+    SILIFUZZ_TEST_SKIP_LOG("AVX-512BW not supported");
   ClearTestImpl<Opmask64TypeInfo, Opmask64ClearTestHelper>();
 }
 
 }  // namespace
-
 }  // namespace silifuzz
+
+// ========================================================================= //
+
+NOLIBC_TEST_MAIN({
+  RUN_TEST(ExtensionRegisters, XMMSave);
+  RUN_TEST(ExtensionRegisters, XMMRoundTrip);
+  RUN_TEST(ExtensionRegisters, XMMClear);
+  RUN_TEST(ExtensionRegisters, YMMSave);
+  RUN_TEST(ExtensionRegisters, YMMRoundTrip);
+  RUN_TEST(ExtensionRegisters, YMMClear);
+  RUN_TEST(ExtensionRegisters, ZMMSave);
+  RUN_TEST(ExtensionRegisters, ZMMRoundTrip);
+  RUN_TEST(ExtensionRegisters, ZMMClear);
+  RUN_TEST(ExtensionRegisters, Opmask16Save);
+  RUN_TEST(ExtensionRegisters, Opmask64ave);
+  RUN_TEST(ExtensionRegisters, Opmask16RoundTrip);
+  RUN_TEST(ExtensionRegisters, Opmask64RoundTrip);
+  RUN_TEST(ExtensionRegisters, Opmask16Clear);
+  RUN_TEST(ExtensionRegisters, Opmask64Clear);
+})
