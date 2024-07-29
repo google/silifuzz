@@ -25,6 +25,7 @@ cc_library(
         "register_info.cc",
         "synthesize_base.cc",
         "synthesize_instruction.cc",
+        "synthesize_shuffle.cc",
         "xed_operand_util.cc",
     ],
     hdrs = [
@@ -35,6 +36,7 @@ cc_library(
         "register_info.h",
         "synthesize_base.h",
         "synthesize_instruction.h",
+        "synthesize_shuffle.h",
         "weighted_choose_one.h",
         "xed_operand_util.h",
     ],
