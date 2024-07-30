@@ -224,6 +224,7 @@ std::vector<Snapshot> MakeSnapshotsFromBlobs(
 
   // Start workers.
   std::vector<std::thread> workers;
+  workers.reserve(num_workers);
   for (size_t i = 0; i < num_workers; ++i) {
     workers.emplace_back(FixToolWorker, std::ref(worker_args[i]));
   }
