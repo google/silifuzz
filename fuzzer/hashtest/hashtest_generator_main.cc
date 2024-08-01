@@ -20,12 +20,18 @@
 #include <iomanip>
 #include <iostream>
 #include <random>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+#include "./common/snapshot.h"
+#include "./common/snapshot_file_util.h"
+#include "./common/snapshot_printer.h"
 #include "./fuzzer/hashtest/candidate.h"
 #include "./fuzzer/hashtest/debugging.h"
 #include "./fuzzer/hashtest/prefilter.h"
@@ -33,10 +39,13 @@
 #include "./fuzzer/hashtest/register_info.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_instruction.h"
+#include "./fuzzer/hashtest/synthesize_snapshot.h"
+#include "./fuzzer/hashtest/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
 #include "./util/enum_flag_types.h"
 #include "./util/itoa.h"
+#include "./util/line_printer.h"
 #include "./util/platform.h"
 
 extern "C" {
@@ -45,6 +54,10 @@ extern "C" {
 
 ABSL_FLAG(silifuzz::PlatformId, platform, silifuzz::PlatformId::kUndefined,
           "Platform to target.");
+
+ABSL_FLAG(bool, make, false, "Should the Snapshot be made on this machine?");
+ABSL_FLAG(size_t, n, 1, "Number of tests to generate.");
+ABSL_FLAG(std::string, outdir, "", "Output directory to write tests to.");
 
 namespace silifuzz {
 
@@ -76,38 +89,6 @@ xed_iform_enum_t GetIForm(const uint8_t* bytes, size_t len, bool dump = false) {
 
   return xed_decoded_inst_get_iform_enum(&decoded);
 }
-
-// A set of instructions we can use for generating tests, grouped by which
-// register bank they affect.
-struct InstructionPool {
-  std::vector<InstructionCandidate> no_effect;
-  std::vector<InstructionCandidate> flag_manipulation;
-  std::vector<InstructionCandidate> compare;
-  std::vector<InstructionCandidate> greg;
-  std::vector<InstructionCandidate> vreg;
-  std::vector<InstructionCandidate> mreg;
-  std::vector<InstructionCandidate> mmxreg;
-
-  void Add(const InstructionCandidate& candidate) {
-    if (candidate.reg_written.gp) {
-      greg.push_back(candidate);
-    } else if (candidate.reg_written.vec) {
-      vreg.push_back(candidate);
-    } else if (candidate.reg_written.mask) {
-      mreg.push_back(candidate);
-    } else if (candidate.reg_written.mmx) {
-      mmxreg.push_back(candidate);
-    } else if (candidate.fixed_reg.written.flags) {
-      if (candidate.reg_read.Total() > 0) {
-        compare.push_back(candidate);
-      } else {
-        flag_manipulation.push_back(candidate);
-      }
-    } else {
-      no_effect.push_back(candidate);
-    }
-  }
-};
 
 enum class EncodeResult {
   kOK,
@@ -218,6 +199,43 @@ bool TryToEncode(Rng& rng, xed_chip_enum_t chip,
   return iform_matches;
 }
 
+absl::Status SynthesizeSnapshots(Rng& rng, xed_chip_enum_t chip,
+                                 const InstructionPool& ipool) {
+  // If we aren't writing the snapshots to disk, we print them out so they can
+  // be inspected. The FP registers matter, so make sure they are printed out.
+  LinePrinter line_printer(LinePrinter::StdOutPrinter);
+  SnapshotPrinter::Options options = SnapshotPrinter::DefaultOptions();
+  options.fp_regs_mode = SnapshotPrinter::kAllFPRegs;
+  SnapshotPrinter printer(&line_printer, options);
+
+  // How many snapshots to generate.
+  size_t n = absl::GetFlag(FLAGS_n);
+
+  // It can be useful to make the snapshots as they are generated.
+  // 1) it verifies that the snapshots are valid.
+  // 2) it creates an end state that can be inspected.
+  // But this may not always be possible, for example if you are generating for
+  // a mircoarch that supports instructions the host does not.
+  // Making also significantly slows down the test generation process.
+  bool make = absl::GetFlag(FLAGS_make);
+
+  // Where the snapshots should be written.
+  std::string outdir = absl::GetFlag(FLAGS_outdir);
+
+  for (size_t i = 0; i < n; ++i) {
+    ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
+                               SynthesizeTestSnapshot(rng, chip, ipool, make));
+    if (!outdir.empty()) {
+      std::string outfile = absl::StrCat(outdir, "/", snapshot.id(), ".pb");
+      line_printer.Line(absl::StrCat("Writing ", outfile));
+      RETURN_IF_NOT_OK(WriteSnapshotToFile(snapshot, outfile));
+    } else {
+      printer.Print(snapshot);
+    }
+  }
+  return absl::OkStatus();
+}
+
 int ToolMain(std::vector<char*> positional_args) {
   // Initialize XED.
   xed_tables_init();
@@ -316,6 +334,8 @@ int ToolMain(std::vector<char*> positional_args) {
   std::cout << "VecReg:            " << ipool.vreg.size() << "\n";
   std::cout << "MaskReg:           " << ipool.mreg.size() << "\n";
   std::cout << "MMXReg:            " << ipool.mmxreg.size() << "\n";
+
+  CHECK_STATUS(SynthesizeSnapshots(rng, chip, ipool));
 
   return 0;
 }

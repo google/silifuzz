@@ -69,17 +69,39 @@ cc_binary(
     name = "hashtest_generator",
     srcs = [
         "hashtest_generator_main.cc",
+        "synthesize_snapshot.cc",
+        "synthesize_snapshot.h",
     ],
     deps = [
         ":hashtest_generator_lib",
+        "@silifuzz//common:raw_insns_util",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//common:snapshot_file_util",
+        "@silifuzz//common:snapshot_printer",
         "@silifuzz//instruction:xed_util",
+        "@silifuzz//runner:make_snapshot",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag_types",
         "@silifuzz//util:itoa",
+        "@silifuzz//util:line_printer",
         "@silifuzz//util:platform",
+        "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
         "@libxed//:xed",
+    ],
+)
+
+sh_test(
+    name = "hashtest_generator_integration_test",
+    srcs = ["hashtest_generator_integration_test.sh"],
+    data = [
+        ":hashtest_generator",
     ],
 )
