@@ -51,27 +51,31 @@ void InitRegisterLayout(xed_chip_enum_t chip, RegisterPool& rpool) {
 
   // Vector registers.
   // TODO(ncbray): when is this 16 registers vs. 32?
-  for (int i = 0; i < rpool.tmp.vec.size(); ++i) {
-    // Entropy needs to be initializable by Silifuzz.
-    if (i >= 8 && i < 16) {
-      // Use higher registers for entropy since the XMM0 may be a fixed
-      // read/write target for some instructions.
-      rpool.entropy.vec[i] = true;
-    } else if (i >= 16) {
-      // Extended registers.
-    } else {
-      rpool.tmp.vec[i] = true;
+  if (rpool.vec_width > 0) {
+    for (int i = 0; i < rpool.tmp.vec.size(); ++i) {
+      // Entropy needs to be initializable by Silifuzz.
+      if (i >= 8 && i < 16) {
+        // Use higher registers for entropy since the XMM0 may be a fixed
+        // read/write target for some instructions.
+        rpool.entropy.vec[i] = true;
+      } else if (i >= 16) {
+        // Extended registers.
+      } else {
+        rpool.tmp.vec[i] = true;
+      }
     }
   }
 
   // Mask registers.
-  for (int i = 0; i < rpool.tmp.mask.size(); ++i) {
-    if (i >= 4 && i < 8) {
-      // k0 cannot be an entropy register because it has a special meaning when
-      // used as a write mask.
-      rpool.entropy.mask[i] = true;
-    } else {
-      rpool.tmp.mask[i] = true;
+  if (rpool.mask_width > 0) {
+    for (int i = 0; i < rpool.tmp.mask.size(); ++i) {
+      if (i >= 4 && i < 8) {
+        // k0 cannot be an entropy register because it has a special meaning
+        // when used as a write mask.
+        rpool.entropy.mask[i] = true;
+      } else {
+        rpool.tmp.mask[i] = true;
+      }
     }
   }
 

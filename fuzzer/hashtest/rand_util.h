@@ -44,6 +44,7 @@ void SometimesSwap(Rng& rng, T& a, T& b) {
 // Return a random element in an iterable range.
 template <typename Rng, typename Iter>
 auto& ChooseRandomElement(Rng& rng, Iter begin, Iter end) {
+  CHECK_GT(std::distance(begin, end), 0);
   std::uniform_int_distribution<size_t> dist(0, std::distance(begin, end) - 1);
   std::advance(begin, dist(rng));
   return *begin;

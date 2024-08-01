@@ -132,8 +132,12 @@ EncodeResult TryToEncodeWidth(Rng& rng, xed_chip_enum_t chip,
 
     // Simulate register pressure from dead registers.
     PopRandomBit(rng, rpool.entropy.gp);
-    PopRandomBit(rng, rpool.entropy.vec);
-    PopRandomBit(rng, rpool.entropy.mask);
+    if (rpool.vec_width > 0) {
+      PopRandomBit(rng, rpool.entropy.vec);
+    }
+    if (rpool.mask_width > 0) {
+      PopRandomBit(rng, rpool.entropy.mask);
+    }
     PopRandomBit(rng, rpool.entropy.mmx);
     // TODO(ncbray): reserve mix register to simulate register pressure.
 
