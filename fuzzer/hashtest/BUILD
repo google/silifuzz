@@ -21,6 +21,7 @@ cc_library(
     srcs = [
         "candidate.cc",
         "debugging.cc",
+        "instruction_pool.cc",
         "prefilter.cc",
         "register_info.cc",
         "synthesize_base.cc",
@@ -32,6 +33,7 @@ cc_library(
     hdrs = [
         "candidate.h",
         "debugging.h",
+        "instruction_pool.h",
         "prefilter.h",
         "rand_util.h",
         "register_info.h",

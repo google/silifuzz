@@ -15,57 +15,12 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
 
-#include <cstddef>
 #include <cstdint>
-#include <vector>
 
-#include "./fuzzer/hashtest/candidate.h"
-#include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 
 namespace silifuzz {
-
-// A set of instructions we can use for generating tests, grouped by which
-// register bank they affect.
-struct InstructionPool {
-  // x86 instructions will write to, at most, one register bank.
-  // Some instructions may also write to the flags register.
-
-  // Instruction does not appear to read or write registers.
-  std::vector<InstructionCandidate> no_effect;
-  // Instruction sets the flag bits but does not read from a register bank.
-  std::vector<InstructionCandidate> flag_manipulation;
-  // Instruction sets flags and reads from a register bank.
-  std::vector<InstructionCandidate> compare;
-  // Instructions writes to the GP register bank, may also write flags.
-  std::vector<InstructionCandidate> greg;
-  // Instructions writes to the vector register bank.
-  std::vector<InstructionCandidate> vreg;
-  // Instructions writes to the mask register bank.
-  std::vector<InstructionCandidate> mreg;
-  // Instructions writes to the x87/MMX register bank.
-  std::vector<InstructionCandidate> mmxreg;
-
-  void Add(const InstructionCandidate& candidate) {
-    if (candidate.reg_written.gp) {
-      greg.push_back(candidate);
-    } else if (candidate.reg_written.vec) {
-      vreg.push_back(candidate);
-    } else if (candidate.reg_written.mask) {
-      mreg.push_back(candidate);
-    } else if (candidate.reg_written.mmx) {
-      mmxreg.push_back(candidate);
-    } else if (candidate.fixed_reg.written.flags) {
-      if (candidate.reg_read.Total() > 0) {
-        compare.push_back(candidate);
-      } else {
-        flag_manipulation.push_back(candidate);
-      }
-    } else {
-      no_effect.push_back(candidate);
-    }
-  }
-};
 
 // Generate a single iteration of a randomized hash function.
 // A single iteration will update all of the entropy registers.
