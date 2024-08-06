@@ -208,20 +208,31 @@ unsigned int HandleOperand(RegisterBank bank, Rng& rng, std::bitset<N>& tmp,
         DieBecauseOperand(instruction, operand);
       }
     } else if (OperandIsImmediate(operand)) {
-      // Note: IMM1 only used for memory ops?
-      CHECK_EQ(xed_operand_name(operand), XED_OPERAND_IMM0);
+      uint64_t value;
+      size_t width;
       if (OperandIsExplicit(operand)) {
         // Note: XED appears to truncate out-of-range immediates, so we don't
         // bother doing it here.
         // TODO(ncbray): bias towards "interesting" intermediates such as 0, 1,
         // -1, etc?
-        builder.AddOperands(
-            xed_simm0(rng(), OperandBitWidth(operand, effective_op_width)));
+        value = rng();
+        width = OperandBitWidth(operand, effective_op_width);
       } else if (OperandIsImplicit(operand)) {
         // Implicit immediates appear to always be 1?
-        builder.AddOperands(xed_simm0(1, 8));
+        value = 1;
+        width = 8;
       } else {
-        // A supressed immediate doesn't make sense?
+        // A suppressed immediate doesn't make sense?
+        DieBecauseOperand(instruction, operand);
+      }
+      if (xed_operand_name(operand) == XED_OPERAND_IMM0) {
+        builder.AddOperands(xed_imm0(value, width));
+      } else if (xed_operand_name(operand) == XED_OPERAND_IMM0SIGNED) {
+        builder.AddOperands(xed_simm0(value, width));
+      } else if (xed_operand_name(operand) == XED_OPERAND_IMM1) {
+        // Always an 8-bit immediate.
+        builder.AddOperands(xed_imm1(value));
+      } else {
         DieBecauseOperand(instruction, operand);
       }
     } else {

@@ -89,7 +89,12 @@ bool InstructionIsDeterministicInRunner(const xed_inst_t* instruction) {
       // Such instructions can and often do cause false positives.
       return false;
     case XED_ICLASS_SYSCALL:
+    case XED_ICLASS_SYSCALL_AMD:
     case XED_ICLASS_SYSENTER:
+    case XED_ICLASS_SYSEXIT:
+    case XED_ICLASS_SYSRET:
+    case XED_ICLASS_SYSRET64:
+    case XED_ICLASS_SYSRET_AMD:
     case XED_ICLASS_INT:
     case XED_ICLASS_INT1:
     case XED_ICLASS_INTO:

@@ -53,6 +53,12 @@ bool PrefilterOperands(const xed_inst_t* instruction) {
         break;
     }
 
+    // An address-sized operand implies this is a strangely-defined instruction
+    // that operates on memory, such as VMRUN and CLZERO.
+    if (xed_operand_width(operand) == XED_OPERAND_WIDTH_ASZ) {
+      return false;
+    }
+
     // Simplify things by not handling segment registers.
     if (OperandIsSegmentRegister(operand)) {
       return false;
@@ -102,7 +108,15 @@ bool PrefilterInstruction(const xed_inst_t* instruction) {
   }
 
   // Virtualization support.
-  if (category == XED_CATEGORY_VTX) {
+  if (category == XED_CATEGORY_VTX || extension == XED_EXTENSION_SVM) {
+    return false;
+  }
+
+  // Trailing bit manipulation is an AMD extension that does not appear to be
+  // supported on modern AMD chips. XED, however, believes it is. It was never
+  // supported on Intel chips.
+  // Solve this issue by unconditionally filtering out this extension.
+  if (extension == XED_EXTENSION_TBM) {
     return false;
   }
 
