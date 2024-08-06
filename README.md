@@ -265,6 +265,24 @@ is put into memory so the size of corpus that can be handled is limited by
 available memory of the host. Since end states are generated on the host, the
 resulting corpus is single architecture.
 
+### hashtest_generator
+
+Experimental: hash tests are randomized structured tests that push entropy into
+randomly generated instructions and capture the resulting outputs as efficiently
+as possible. This approach is based on the observation that a non-trivial
+percentage of defects can be detected by calling the right instruction with the
+right input. Hash tests aggressively target this simple class of defect to
+provide an experimental point of comparison for Silifuzz. Currently only x86_64
+is supported.
+
+If you want to generate, for example, 30k hash test snapshots containing
+instructions supported by Skylake processors in the `/tmp/hashtest` directory,
+you could run this command.
+
+```shell
+mkdir -p /tmp/hashtest && bazel run -c opt @silifuzz//fuzzer/hashtest:hashtest_generator -- --platform=intel-skylake -n 30000 --outdir /tmp/hashtest
+```
+
 ## Frequently asked questions
 
 The rest of the document is organized in a How-to manner with each question
