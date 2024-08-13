@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "./fuzzer/hashtest/candidate.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
 #include "./fuzzer/hashtest/synthesize_base.h"

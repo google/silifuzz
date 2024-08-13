@@ -17,6 +17,8 @@
 
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_instruction.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
 

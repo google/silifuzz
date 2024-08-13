@@ -21,6 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_shuffle.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
