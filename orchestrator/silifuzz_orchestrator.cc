@@ -31,6 +31,7 @@
 #include "absl/time/time.h"
 #include "./orchestrator/corpus_util.h"
 #include "./runner/driver/runner_driver.h"
+#include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 
 namespace silifuzz {

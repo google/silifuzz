@@ -20,6 +20,7 @@
 
 // Utility functions for the orchestrator to load corpora in shared memory.
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/cord.h"
 #include "absl/strings/string_view.h"
