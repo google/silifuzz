@@ -529,6 +529,9 @@ cc_library_plus_nolibc(
     # As a precaution disables builtins for some mem and string functions that are
     # defined by nolibc_main.cc  Otherwise we may run into an infinite recursion.
     copts = [
+        # TODO: b/359507086 - Figure out `extern "C" int main` and remove this.
+        "-Wno-error=main",
+        "-Wno-error=uninitialized",
         "-fno-builtin-memcmp",
         "-fno-builtin-bcmp",
         "-fno-builtin-memcpy",
