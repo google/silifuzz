@@ -68,6 +68,7 @@ TEST(RegisterGroupSet, ToggleAArch64Groups) {
   RegisterGroupSet<AArch64> reg_group_set;
   TOGGLE_GROUP(GPR);
   TOGGLE_GROUP(FPR);
+  TOGGLE_GROUP(SVE);
 }
 
 #undef TOGGLE_GROUP
@@ -95,6 +96,7 @@ TEST(RegisterGroupSet, AArch64BitEncoding) {
   RegisterGroupSet<AArch64> reg_group_set;
   VERIFY_ENCODING(GPR, AARCH64_REG_GROUP_GPR);
   VERIFY_ENCODING(FPR, AARCH64_REG_GROUP_FPR);
+  VERIFY_ENCODING(SVE, AARCH64_REG_GROUP_SVE);
 }
 
 #undef VERIFY_ENCODING

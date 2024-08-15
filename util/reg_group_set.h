@@ -168,6 +168,12 @@ class RegisterGroupSet<AArch64> {
     return SetBit(AARCH64_REG_GROUP_FPR, v);
   }
 
+  constexpr bool GetSVE() const { return GetBit(AARCH64_REG_GROUP_SVE); }
+
+  RegisterGroupSet<AArch64>& SetSVE(bool v) {
+    return SetBit(AARCH64_REG_GROUP_SVE, v);
+  }
+
   // Returns a bit mask representing this using AArch64 register group bits
   // defined in reg_group.bits.h
   constexpr uint64_t Serialize() const { return bits_; }
