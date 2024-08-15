@@ -116,11 +116,6 @@ class DecodedInsn {
     return xed_decoded_inst_number_of_memory_operands(&xed_insn_) != 0;
   }
 
-  // Tells if instruction is expensive. See InstructionIsExpensive() in
-  // xed_util.h for the definition of "expensive".
-  // REQUIRES: is_valid().
-  bool is_expensive() const;
-
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
   absl::string_view DebugString() const {

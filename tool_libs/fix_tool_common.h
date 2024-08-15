@@ -121,14 +121,6 @@ struct FixupSnapshotOptions {
   // If true, enforce fuzzing config. Snapshot with non-conforming memory
   // mappings are filtered.
   bool enforce_fuzzing_config = true;
-
-  // Limit of number of expensive instructions executed in a snapshot.
-  // If it is 0, no limit is enforced. Otherwise, a snapshot is filtered if
-  // number of expensive instructions reaches this limit. A value of 1 means
-  // no expensive instructions are allowed. Currently, only some x86
-  // instructions are considered expensive. Setting this on non-x86 platforms
-  // has no effect.
-  int expensive_instruction_count_limit = 0;
 };
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.

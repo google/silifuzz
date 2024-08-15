@@ -48,7 +48,6 @@ struct XedTest {
   bool is_io;
   bool is_sse;
   bool is_x87;
-  bool is_expensive;
 };
 
 std::vector<XedTest> MakeXedTests() {
@@ -113,13 +112,11 @@ std::vector<XedTest> MakeXedTests() {
           .text = "fcos ",
           .bytes = {0xd9, 0xff},
           .is_x87 = true,
-          .is_expensive = true,
       },
       {
           .text = "movnti qword ptr [rdi], rax",
           .bytes = {0x48, 0x0f, 0xc3, 0x07},
           .is_sse = true,
-          .is_expensive = true,
       },
   };
 }
@@ -156,8 +153,6 @@ TEST_F(XedUtilTest, InstructionPredicates) {
           << test.text;
       EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
       EXPECT_EQ(test.is_x87, InstructionIsX87(instruction)) << test.text;
-      EXPECT_EQ(test.is_expensive, InstructionIsExpensive(instruction))
-          << test.text;
     }
   }
 }

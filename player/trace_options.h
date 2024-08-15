@@ -55,11 +55,6 @@ class TraceOptions {
   // before the tracer stops it. 0 for unlimited.
   int instruction_count_limit = ArchDefaults<Host>::kInstructCountLimit;
 
-  // Maximum number of expensive instructions the snapshot is allowed to
-  // execute before the tracer stops.
-  int expensive_instruction_count_limit =
-      ArchDefaults<Host>::kExpensiveInstructCountLimit;
-
   // If true, tracer injects a signal when a locking instruction accesses
   // memory across a cache line boundary. This has no effect on non-x86
   // platforms.  This option is used to work around a performance issue on

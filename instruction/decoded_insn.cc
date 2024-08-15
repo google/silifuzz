@@ -172,11 +172,6 @@ absl::StatusOr<bool> DecodedInsn::may_have_split_lock(
   return offset + operand_size > l1_cache_line_size;
 }
 
-bool DecodedInsn::is_expensive() const {
-  DCHECK_STATUS(status_);
-  return InstructionIsExpensive(xed_decoded_inst_inst(&xed_insn_));
-}
-
 std::string DecodedInsn::mnemonic() const {
   DCHECK_STATUS(status_);
   xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
