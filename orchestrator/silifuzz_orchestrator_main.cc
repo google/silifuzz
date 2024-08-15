@@ -199,7 +199,9 @@ struct RuntimeMetadata {
 absl::StatusOr<RuntimeMetadata> LoadRuntimeMetadata() {
   std::string corpus_metadata_file = absl::GetFlag(FLAGS_corpus_metadata_file);
   proto::CorpusMetadata metadata;
-  RETURN_IF_NOT_OK(ReadProtoFromTextFile(corpus_metadata_file, &metadata));
+  RETURN_IF_NOT_OK_PLUS(
+      ReadProtoFromTextFile(corpus_metadata_file, &metadata),
+      "Corpus metadata file not found. Did you set --corpus_metadata_file: ");
   std::string version = absl::GetFlag(FLAGS_orchestrator_version);
   return RuntimeMetadata{metadata, version};
 }
