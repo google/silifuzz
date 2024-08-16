@@ -325,10 +325,9 @@ constexpr Subcommand subcommands[] = {
 };
 
 }  // namespace
-
 }  // namespace silifuzz
 
-extern "C" int main(int argc, char** argv) {
+int main(int argc, char** argv) {
   return silifuzz::SubcommandMain(
       argc, argv, "trace_tool",
       absl::Span<const silifuzz::Subcommand>(silifuzz::subcommands));
