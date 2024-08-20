@@ -337,6 +337,18 @@ void SynthesizeJnle(int32_t offset, InstructionBlock& block) {
   Emit(builder, block);
 }
 
+void SynthesizeReturn(InstructionBlock& block) {
+  InstructionBuilder builder(XED_ICLASS_RET_NEAR, 64U);
+  Emit(builder, block);
+}
+
+void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block) {
+  for (size_t i = 0; i < count; ++i) {
+    block.bytes.push_back(0xCC);
+    block.num_instructions++;
+  }
+}
+
 void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
                         const RegisterPool& rpool, InstructionBlock& block) {
   std::vector<TestRegisters> greg_schedule =

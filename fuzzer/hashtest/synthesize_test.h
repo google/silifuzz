@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
 
+#include <cstddef>
 #include <cstdint>
 
 #include "./fuzzer/hashtest/instruction_pool.h"
@@ -43,6 +44,12 @@ void SynthesizeGPRegDec(unsigned int dst, InstructionBlock& block);
 // `offset` is the branch offset from the _begining_ of the instruction, not the
 // end. This is different than how x86 encodes branch displacements.
 void SynthesizeJnle(int32_t offset, InstructionBlock& block);
+
+// Synthesize a return instruction.
+void SynthesizeReturn(InstructionBlock& block);
+
+// Synthesize `count` breakpoint traps. Useful for padding executable data.
+void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block);
 
 }  // namespace silifuzz
 
