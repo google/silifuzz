@@ -103,7 +103,7 @@ bool PrefilterInstruction(const xed_inst_t* instruction) {
 
   // SGX is unlikely to be enabled, and if it was we wouldn't want to deal with
   // these instructions.
-  if (extension == XED_EXTENSION_SGX) {
+  if (category == XED_CATEGORY_SGX) {
     return false;
   }
 
