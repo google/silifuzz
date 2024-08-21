@@ -164,6 +164,7 @@ enum PlatformId {
 
   INTEL_GRANITERAPIDS = 41;
   AMD_SIENA = 42;
+  ARM_NEOVERSE_V2 = 43;
 }
 
 // Describes a specific endstate of executing a snapshot.

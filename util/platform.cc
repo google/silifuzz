@@ -40,6 +40,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAmdSiena:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
+    case PlatformId::kArmNeoverseV2:
     case PlatformId::kAmpereOne:
       return ArchitectureId::kAArch64;
     case PlatformId::kUndefined:

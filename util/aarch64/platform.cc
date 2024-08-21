@@ -25,6 +25,10 @@ namespace silifuzz {
 
 namespace {
 
+absl::StatusOr<PlatformId> DistinguishNeoverseV2() {
+  return PlatformId::kArmNeoverseV2;
+}
+
 uint64_t GetMidr() {
   uint64_t midr;
   // The kernel will trap and emulate access to MIDR_EL1.
@@ -46,6 +50,15 @@ PlatformId DoCurrentPlatformId() {
     switch (part_number) {
       case 0xd0c:
         return PlatformId::kArmNeoverseN1;
+      case 0xd4f: {
+        auto soc_platform_id = DistinguishNeoverseV2();
+        if (soc_platform_id.ok()) {
+          return soc_platform_id.value();
+        }
+        LOG_ERROR("Failed to determine NeoverseV2-based CPU: ",
+                  soc_platform_id.status());
+        return PlatformId::kUndefined;
+      }
       default:
         LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
         return PlatformId::kUndefined;
@@ -55,7 +68,7 @@ PlatformId DoCurrentPlatformId() {
     if (part_number == 0xac3) {
       return PlatformId::kAmpereOne;
     } else {
-      LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
+      LOG_ERROR("Unknown Ampere part number: ", HexStr(part_number));
       return PlatformId::kUndefined;
     }
   } else {

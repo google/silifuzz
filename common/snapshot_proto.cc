@@ -130,6 +130,9 @@ static_assert(ToInt(PlatformId::kAmdSiena) ==
               ToInt(proto::PlatformId::AMD_SIENA));
 static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
               ToInt(proto::PlatformId::AMD_RYZEN_V3000));
+static_assert(ToInt(PlatformId::kArmNeoverseV2) ==
+              ToInt(proto::PlatformId::ARM_NEOVERSE_V2));
+
 static_assert(ToInt(kMaxPlatformId) < 64);
 
 // ========================================================================= //
