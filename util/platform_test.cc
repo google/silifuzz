@@ -15,12 +15,11 @@
 #include "./util/platform.h"
 
 #include <string>
-#include <type_traits>
 
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_replace.h"
-#include "google/protobuf/generated_enum_reflection.h"
 #include "./proto/snapshot.pb.h"
 #include "./util/arch.h"
 #include "./util/itoa.h"
@@ -28,8 +27,6 @@
 namespace silifuzz {
 
 namespace {
-
-using google::protobuf::GetEnumDescriptor;
 
 // A quick test to catch when new platforms get added to prod.
 // If this test becomes flaky then a new entry should be added to the PlatformId
@@ -46,16 +43,29 @@ TEST(PlatformTest, NoGaps) {
   ASSERT_STREQ(EnumStr(PlatformId::kNonExistent), "NON-EXISTENT-PLATFORM");
 }
 
+TEST(PlatformTest, PlatformArchitecture) {
+  for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
+    if (proto::PlatformId_IsValid(i)) {
+      const std::string& enum_name = proto::PlatformId_Name(i);
+      if (absl::StrContains(enum_name, "RESERVED") ||
+          static_cast<PlatformId>(i) == PlatformId::kUndefined) {
+        continue;
+      }
+      ArchitectureId arch = PlatformArchitecture(static_cast<PlatformId>(i));
+      EXPECT_TRUE(arch == ArchitectureId::kX86_64 ||
+                  arch == ArchitectureId::kAArch64)
+          << "Platform " << enum_name << " doesn't map to a valid architecture";
+    }
+  }
+}
+
 TEST(PlatformTest, PlatformNameMatchesEnum) {
-  static_assert(std::is_enum<proto::PlatformId>::value,
-                "PlatformId is not an enum");
-  for (int i = 0; i < sizeof(proto::PlatformId) * 8; ++i) {
-    if (auto f = GetEnumDescriptor<proto::PlatformId>()->FindValueByNumber(i);
-        f != nullptr) {
+  for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
+    if (proto::PlatformId_IsValid(i)) {
       std::string internal_name = absl::StrReplaceAll(
           absl::AsciiStrToUpper(EnumStr(static_cast<PlatformId>(i))),
           {{"-", "_"}});
-      EXPECT_EQ(internal_name, f->name());
+      EXPECT_EQ(internal_name, proto::PlatformId_Name(i));
     }
   }
 }

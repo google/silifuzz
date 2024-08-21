@@ -133,7 +133,8 @@ static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
 static_assert(ToInt(PlatformId::kArmNeoverseV2) ==
               ToInt(proto::PlatformId::ARM_NEOVERSE_V2));
 
-static_assert(ToInt(kMaxPlatformId) < 64);
+static_assert(proto::PlatformId_MAX < 64,
+              "PlatformId_MAX is too large to fit in EndState::platforms");
 
 // ========================================================================= //
 
