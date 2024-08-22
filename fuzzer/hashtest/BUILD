@@ -16,6 +16,11 @@ licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
 
+DISABLE_ARM_TAGS = [
+    "not_build:arm",
+    "not_run:arm",
+]
+
 cc_library(
     name = "hashtest_generator_lib",
     srcs = [
@@ -105,5 +110,34 @@ sh_test(
     srcs = ["hashtest_generator_integration_test.sh"],
     data = [
         ":hashtest_generator",
+    ],
+)
+
+cc_library(
+    name = "hashtest_runner_lib",
+    srcs = [
+        "hashtest_runner.cc",
+        "hashtest_runner_widgits.S",
+    ],
+    hdrs = [
+        "hashtest_runner.h",
+        "hashtest_runner_widgits.h",
+    ],
+    deps = [
+        ":hashtest_generator_lib",
+        "@com_google_absl//absl/log:check",
+    ],
+)
+
+cc_test(
+    name = "hashtest_runner_test",
+    srcs = [
+        "hashtest_runner_test.cc",
+    ],
+    deps = [
+        ":hashtest_runner_lib",
+        "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:platform",
+        "@com_google_googletest//:gtest_main",
     ],
 )
