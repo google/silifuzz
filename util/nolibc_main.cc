@@ -40,7 +40,7 @@ static const Elf64_auxv_t* aux_vector;
 // Environment.
 static char** envp;
 
-extern "C" int main(int argc, char** argv, char** envp);
+int main(int argc, char** argv, char** envp);
 
 // Process initialization and termination. This is called by assembly function
 // _start().
