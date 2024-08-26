@@ -88,12 +88,6 @@ class RunnerDriver {
     // Returns the contained PlayerResult object.
     // REQUIRES !success()
     // PROVIDES player_result.actual_end_state().has_value() == true
-    PlayerResult& player_result() {
-      CHECK(!success());
-      return *player_result_;
-    }
-
-    // const version of the above.
     const PlayerResult& player_result() const {
       CHECK(!success());
       return *player_result_;
