@@ -575,6 +575,9 @@ RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
   // Verify register checksum if there is one in snap.
   if (!snap.end_state_register_checksum.register_groups.Empty() &&
       snap.end_state_register_checksum != end_spot.register_checksum) {
+    VLOG_INFO(1, "Register checksum mismatch: ",
+              HexStr(snap.end_state_register_checksum.checksum), " vs ",
+              HexStr(end_spot.register_checksum.checksum));
     return RunSnapOutcome::kRegisterStateMismatch;
   }
 

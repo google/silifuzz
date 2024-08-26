@@ -243,6 +243,9 @@ cc_test_nolibc(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
+        "@silifuzz//util:reg_group_io",
+        "@silifuzz//util:reg_group_set",
+        "@silifuzz//util:reg_groups",
     ],
 )
 

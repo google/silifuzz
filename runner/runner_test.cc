@@ -27,6 +27,9 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/nolibc_gunit.h"
+#include "./util/reg_group_io.h"
+#include "./util/reg_group_set.h"
+#include "./util/reg_groups.h"
 
 namespace silifuzz {
 
@@ -85,6 +88,40 @@ TEST(Runner, SkipEndStateCheck) {
   CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
 }
 
+// If there are no register groups to collect, test that we skip comparing the
+// checksum.
+TEST(Runner, EmptyRegisterChecksumGroupsSkipMismatch) {
+  // The snap does not start off with a checksum.
+  Snap<Host> snap = GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  CHECK(snap.end_state_register_checksum.register_groups.Empty());
+  snap.end_state_register_checksum.checksum = 0xfeedface;
+
+  RunSnapResult result;
+  RunSnap(snap, RunnerMainOptions::Default(), result);
+  CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
+}
+
+// If there are register groups to collect, test that we can detect checksum
+// mismatches.
+TEST(Runner, RegisterChecksumMismatch) {
+  InitRegisterGroupIO();
+  RegisterGroupSet<Host> groups = GetCurrentPlatformChecksumRegisterGroups();
+  snap_exit_register_group_io_buffer.register_groups = groups;
+  if (groups.Empty()) {
+    SILIFUZZ_TEST_SKIP();
+  }
+
+  // The snap does not start off with a checksum. Add checksum groups to it so
+  // that there is a mismatch with the result of running the snap.
+  Snap<Host> modified_snap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  modified_snap.end_state_register_checksum.register_groups = groups;
+
+  RunSnapResult result;
+  RunSnap(modified_snap, RunnerMainOptions::Default(), result);
+  CHECK_EQ(result.outcome, RunSnapOutcome::kRegisterStateMismatch);
+}
+
 // Initializes the test environment. Loads and maps the corpus, then drops into
 // the seccomp sandbox.
 void InitTestEnv() {
@@ -108,4 +145,6 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(Runner, RegsMismatch);
   RUN_TEST(Runner, MemoryMismatch);
   RUN_TEST(Runner, SkipEndStateCheck);
+  RUN_TEST(Runner, EmptyRegisterChecksumGroupsSkipMismatch);
+  RUN_TEST(Runner, RegisterChecksumMismatch);
 })
