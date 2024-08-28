@@ -125,7 +125,12 @@ cc_library(
     ],
     deps = [
         ":hashtest_generator_lib",
+        "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:page_util",
+        "@cityhash",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -135,9 +140,11 @@ cc_test(
         "hashtest_runner_test.cc",
     ],
     deps = [
+        ":hashtest_generator_lib",
         ":hashtest_runner_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
+        "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],
 )

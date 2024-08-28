@@ -16,9 +16,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/synthesize_base.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
 
@@ -103,6 +107,44 @@ TEST(Runner, Run256) {
   // Test with two different bit patterns.
   SmokeTest(2, kVectorWidth);
   SmokeTest(3, kVectorWidth);
+}
+
+TEST(Runner, EndToEnd) {
+  InitXedIfNeeded();
+  xed_chip_enum_t chip = PlatformIdToChip(CurrentPlatformId());
+  if (chip == XED_CHIP_INVALID) {
+    GTEST_SKIP() << "Unsupported chip.";
+  }
+
+  Rng rng(0);
+
+  const RunConfig config = {
+      .test =
+          {
+              .vector_width = ChipVectorRegisterWidth(chip),
+              .num_iterations = 1,
+          },
+      .batch_size = 1,
+      .num_repeat = 1,
+  };
+
+  InstructionPool ipool{};
+  GenerateInstructionPool(rng, chip, ipool, false);
+  Corpus corpus = SynthesizeCorpus(rng, chip, ipool, 1, false);
+
+  std::vector<Input> inputs;
+  inputs.resize(1);
+  RandomizeEntropyBuffer(GetSeed(rng), inputs[0].entropy);
+
+  std::vector<EndState> end_states;
+  end_states.resize(corpus.tests.size() * inputs.size());
+  ComputeEndStates(corpus.tests, config.test, inputs,
+                   absl::MakeSpan(end_states));
+
+  ResultReporter result;
+  RunTests(corpus.tests, inputs, end_states, config, 0, result);
+
+  EXPECT_EQ(result.hits.size(), 0);
 }
 
 }  // namespace
