@@ -145,7 +145,12 @@ Corpus SynthesizeCorpus(Rng& rng, xed_chip_enum_t chip,
 
 void ResultReporter::ReportHit(size_t test_index, const Test& test,
                                size_t input_index, const Input& input) {
-  hits.emplace_back(test_index, test.seed, input_index, input.seed);
+  hits.push_back({
+      .test_index = test_index,
+      .test_seed = test.seed,
+      .input_index = input_index,
+      .input_seed = input.seed,
+  });
 
   std::cout << "Hit " << FormatSeed(test.seed) << " / "
             << FormatSeed(input.seed) << "\n";
