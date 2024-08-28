@@ -148,3 +148,31 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_binary(
+    name = "hashtest_runner",
+    srcs = [
+        "hashtest_runner_main.cc",
+    ],
+    deps = [
+        ":hashtest_generator_lib",
+        ":hashtest_runner_lib",
+        "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:enum_flag_types",
+        "@silifuzz//util:itoa",
+        "@silifuzz//util:platform",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+sh_test(
+    name = "hashtest_runner_integration_test",
+    srcs = ["hashtest_runner_integration_test.sh"],
+    data = [
+        ":hashtest_runner",
+    ],
+)
