@@ -14,7 +14,6 @@
 
 #include "./orchestrator/result_collector.h"
 
-#include <sched.h>
 #include <stdint.h>
 #include <sys/resource.h>
 #include <unistd.h>
@@ -44,6 +43,7 @@
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/checks.h"
+#include "./util/cpu_id.h"
 #include "./util/hostname.h"
 #include "./util/itoa.h"
 
@@ -105,18 +105,8 @@ absl::StatusOr<proto::BinaryLogEntry> RunResultToSnapshotExecutionResult(
 
 // Returns the number of CPUs available according to sched_getaffinity.
 int NumCpus() {
-  cpu_set_t all_cpus;
-  CPU_ZERO(&all_cpus);
   int num_cpus = 0;
-  bool success = sched_getaffinity(0, sizeof(all_cpus), &all_cpus) == 0;
-  if (!success) {
-    LOG_FATAL("Cannot get current CPU affinity mask: ", ErrnoStr(errno));
-  }
-  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-    if (CPU_ISSET(cpu, &all_cpus)) {
-      num_cpus++;
-    }
-  }
+  ForEachAvailableCPU([&](int cpu) { num_cpus++; });
   return num_cpus;
 }
 

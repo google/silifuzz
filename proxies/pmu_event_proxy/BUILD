@@ -142,6 +142,7 @@ cc_test(
     deps = [
         ":perf_event_buffer",
         ":perf_event_records",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util/testing:status_macros",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/random",

@@ -78,6 +78,7 @@
 #include "./proto/corpus_metadata.pb.h"
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
+#include "./util/cpu_id.h"
 #include "./util/itoa.h"
 #include "./util/tool_util.h"
 
@@ -135,20 +136,7 @@ namespace {
 // Lists all available CPUs according to sched_getaffinity(2).
 std::vector<int> AvailableCpus() {
   std::vector<int> available_cpus;
-  cpu_set_t all_cpus;
-  CPU_ZERO(&all_cpus);
-  bool success =
-      sched_getaffinity(0 /* this thread */, sizeof(all_cpus), &all_cpus) == 0;
-  if (!success) {
-    LOG_FATAL("Cannot get current CPU affinity mask: ", ErrnoStr(errno));
-  }
-
-  // Find all usable CPU.
-  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-    if (CPU_ISSET(cpu, &all_cpus)) {
-      available_cpus.push_back(cpu);
-    }
-  }
+  ForEachAvailableCPU([&](int cpu) { available_cpus.push_back(cpu); });
   CHECK(!available_cpus.empty());
   return available_cpus;
 }

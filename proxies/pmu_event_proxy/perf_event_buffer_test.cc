@@ -16,7 +16,6 @@
 
 #include <linux/hw_breakpoint.h> /* Definition of HW_* constants */
 #include <linux/perf_event.h>
-#include <sched.h>
 #include <sys/select.h>
 #include <unistd.h>
 
@@ -40,6 +39,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./proxies/pmu_event_proxy/perf_event_records.h"
+#include "./util/cpu_id.h"
 #include "./util/testing/status_macros.h"
 #include "external/libpfm4/include/perfmon/pfmlib.h"
 #include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
@@ -47,30 +47,16 @@ namespace silifuzz {
 namespace {
 
 void BindToARandomCPU() {
-  cpu_set_t cpu_set;
-  const pid_t pid = getpid();
-  if (sched_getaffinity(pid, sizeof(cpu_set_t), &cpu_set) != 0) {
-    LOG(ERROR) << "sched_getaffinity failed: " << strerror(errno);
-    return;
-  }
   std::vector<int> cpus;
-  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
-    if (CPU_ISSET(cpu, &cpu_set)) {
-      cpus.push_back(cpu);
-    }
-  }
+  ForEachAvailableCPU([&](int cpu) { cpus.push_back(cpu); });
   if (cpus.empty()) {
     LOG(ERROR) << "No CPU found";
     return;
   }
   size_t index = absl::Uniform<size_t>(absl::BitGen(), 0, cpus.size());
   int cpu = cpus[index];
-  cpu_set_t single;
-  CPU_ZERO(&single);
-  CPU_SET(cpu, &single);
-
-  if (sched_setaffinity(pid, sizeof(single), &single) < 0) {
-    LOG(ERROR) << "sched_setaffinity failed: " << strerror(errno);
+  if (SetCPUAffinity(cpu) != 0) {
+    LOG(ERROR) << "SetCPUAffinity failed: " << strerror(errno);
   }
 }
 

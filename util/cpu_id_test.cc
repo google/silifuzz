@@ -36,24 +36,21 @@ double RecordConsistency(int (*callback)(), int expected) {
 }
 
 TEST(CPUId, BasicTest) {
-  cpu_set_t all_cpus;
-  ASSERT_EQ(sched_getaffinity(0, sizeof(all_cpus), &all_cpus), 0);
-
   double normal_consistency_sum = 0;
   double nosys_consistency_sum = 0;
   int num_trials = 0;
 
-  for (int i = 0; i < CPU_SETSIZE; i++) {
-    if (CPU_ISSET(i, &all_cpus)) {
-      if (SetCPUAffinity(i) != 0) {
-        LOG_ERROR("Cannot bind to CPU ", IntStr(i));
-        continue;
-      }
-      normal_consistency_sum += RecordConsistency(&GetCPUId, i);
-      nosys_consistency_sum += RecordConsistency(&GetCPUIdNoSyscall, i);
-      num_trials += 1;
+  ForEachAvailableCPU([&](int cpu) {
+    if (SetCPUAffinity(cpu) != 0) {
+      LOG_ERROR("Cannot bind to CPU ", IntStr(cpu));
+      return;
     }
-  }
+    normal_consistency_sum += RecordConsistency(&GetCPUId, cpu);
+    nosys_consistency_sum += RecordConsistency(&GetCPUIdNoSyscall, cpu);
+    num_trials += 1;
+  });
+
+  EXPECT_GE(num_trials, 0);
 
   // This is chosen empirically to keep failure rate below 1 in 10000.
   constexpr double kAcceptableErrorRate = 0.10;

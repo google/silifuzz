@@ -847,6 +847,7 @@ cc_library_plus_nolibc(
     ],
     deps = [
         ":checks",
+        ":itoa",
         ":x86_cpuid",
     ],
 )
