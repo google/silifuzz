@@ -1176,7 +1176,11 @@ cc_library_plus_nolibc(
     name = "reg_groups",
     srcs =
         select({
-            "@silifuzz//build_defs/platform:aarch64": ["aarch64/reg_groups.cc"],
+            "@silifuzz//build_defs/platform:aarch64": [
+                "aarch64/reg_group_io_buffer_offsets.h",
+                "aarch64/reg_groups.cc",
+                "aarch64/save_register_groups_to_buffer.S",
+            ],
             "@silifuzz//build_defs/platform:x86_64": ["x86_64/reg_groups.cc"],
         }),
     hdrs = ["reg_groups.h"],
@@ -1185,6 +1189,7 @@ cc_library_plus_nolibc(
     deps = [
         ":arch",
         ":cpu_features",
+        ":extension_registers",
         ":reg_group_set",
     ],
 )
@@ -1214,6 +1219,7 @@ cc_library_plus_nolibc(
         "@silifuzz//build_defs/platform:aarch64": [
             "aarch64/reg_group_io.cc",
             "aarch64/reg_group_io_buffer_offsets.h",
+            "aarch64/save_register_groups_to_buffer.S",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "x86_64/reg_group_io.cc",

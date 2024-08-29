@@ -20,18 +20,33 @@
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
 #include "./util/reg_groups.h"
+
 namespace silifuzz {
 namespace {
 
-// Currently we do not do checksumming on AArch64. This test just that.
-// We get the expected empty value.
-TEST(RegisterGroupIO, GetRegisterGroupChecksum) {
-  RegisterGroupSet<AArch64> checksum_register_group =
-      GetCurrentPlatformChecksumRegisterGroups();
-  RegisterGroupIOBuffer<AArch64> buffer;
-  buffer.register_groups = checksum_register_group;
+// Seed buffer with non-zero elements.
+void SeedBuffer(RegisterGroupIOBuffer<AArch64> &buf) {
+  for (int ffr_byte = 0; ffr_byte < sizeof buf.ffr; ffr_byte++) {
+    buf.ffr[ffr_byte] = ffr_byte + 0xa0;
+  }
+  for (int p_byte = 0; p_byte < sizeof buf.p; p_byte++) {
+    buf.p[p_byte] = p_byte + 0xc0;
+  }
+  for (int z_byte = 0; z_byte < sizeof buf.z; z_byte++) {
+    buf.z[z_byte] = z_byte + 0xd0;
+  }
+}
 
-  // This should be a NOP
+// On hardware that does not support SVE, expect an empty checksum.
+TEST(RegisterGroupIO, GetRegisterGroupChecksumWithoutSVE) {
+  InitRegisterGroupIO();
+  RegisterGroupIOBuffer<AArch64> buffer;
+  buffer.register_groups = GetCurrentPlatformChecksumRegisterGroups();
+
+  if (buffer.register_groups.GetSVE()) {
+    SILIFUZZ_TEST_SKIP();
+  }
+
   SaveRegisterGroupsToBuffer(buffer);
 
   RegisterChecksum<AArch64> register_checksum =
@@ -40,9 +55,32 @@ TEST(RegisterGroupIO, GetRegisterGroupChecksum) {
   CHECK(register_checksum == empty_checksum);
 }
 
+TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE) {
+  InitRegisterGroupIO();
+  RegisterGroupIOBuffer<AArch64> buffer;
+  buffer.register_groups = GetCurrentPlatformChecksumRegisterGroups();
+
+  if (!buffer.register_groups.GetSVE()) {
+    SILIFUZZ_TEST_SKIP();
+  }
+
+  SeedBuffer(buffer);
+  RegisterChecksum<AArch64> seed_checksum = GetRegisterGroupsChecksum(buffer);
+  RegisterChecksum<AArch64> empty_checksum{};
+
+  SaveRegisterGroupsToBuffer(buffer);
+  RegisterChecksum<AArch64> register_checksum =
+      GetRegisterGroupsChecksum(buffer);
+  CHECK(register_checksum != seed_checksum);
+  CHECK(register_checksum != empty_checksum);
+}
+
 }  // namespace
 }  // namespace silifuzz
 
 // ========================================================================= //
 
-NOLIBC_TEST_MAIN({ RUN_TEST(RegisterGroupIO, GetRegisterGroupChecksum); })
+NOLIBC_TEST_MAIN({
+  RUN_TEST(RegisterGroupIO, GetRegisterGroupChecksumWithoutSVE);
+  RUN_TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE);
+})

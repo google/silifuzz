@@ -19,15 +19,22 @@
 
 namespace silifuzz {
 
+// Flag to tell if the CPU supports SVE with 128-bit z registers. Defined in
+// save_registers_groups_to_buffer and set by InitRegisterGroupIO.
+extern "C" bool reg_group_io_supports_sve;
+
 RegisterGroupSet<AArch64> GetCurrentPlatformRegisterGroups() {
   RegisterGroupSet<AArch64> groups;
-  groups.SetGPR(true).SetFPR(true);
+  groups.SetGPR(true).SetFPR(true).SetSVE(reg_group_io_supports_sve);
   return groups;
 }
 
-// No checksum currently on AArch64.
 RegisterGroupSet<AArch64> GetCurrentPlatformChecksumRegisterGroups() {
-  return {};
+  RegisterGroupSet<AArch64> groups = GetCurrentPlatformRegisterGroups();
+
+  // These are always recorded in snapshots and are not included in checksum.
+  groups.SetGPR(false).SetFPR(false);
+  return groups;
 }
 
 }  // namespace silifuzz

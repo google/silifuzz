@@ -104,7 +104,6 @@ TEST(Runner, EmptyRegisterChecksumGroupsSkipMismatch) {
 // If there are register groups to collect, test that we can detect checksum
 // mismatches.
 TEST(Runner, RegisterChecksumMismatch) {
-  InitRegisterGroupIO();
   RegisterGroupSet<Host> groups = GetCurrentPlatformChecksumRegisterGroups();
   snap_exit_register_group_io_buffer.register_groups = groups;
   if (groups.Empty()) {
@@ -122,11 +121,25 @@ TEST(Runner, RegisterChecksumMismatch) {
   CHECK_EQ(result.outcome, RunSnapOutcome::kRegisterStateMismatch);
 }
 
+// Test that we skip comparing register group checksums if the result and snap
+// have different register group sets.
+TEST(Runner, RegisterChecksumMismatchWithDifferentRegisterGroups) {
+  Snap<Host> modified_snap =
+      GetSnapRunnerTestSnap(TestSnapshot::kEndsAsExpected);
+  modified_snap.end_state_register_checksum.register_groups.SetGPR(true);
+  modified_snap.end_state_register_checksum.checksum = 0xfeedface;
+
+  RunSnapResult result;
+  RunSnap(modified_snap, RunnerMainOptions::Default(), result);
+  CHECK_EQ(result.outcome, RunSnapOutcome::kAsExpected);
+}
+
 // Initializes the test environment. Loads and maps the corpus, then drops into
 // the seccomp sandbox.
 void InitTestEnv() {
   const char* corpus_file = getenv("TEST_CORPUS");
   CHECK_NE(corpus_file, nullptr);
+  InitRegisterGroupIO();
   kSnapRunnerTestCorpus = LoadCorpus(corpus_file, true, nullptr);
   InitSnapExit(&SnapExitImpl);
   MapCorpus(*kSnapRunnerTestCorpus, -1, nullptr);
@@ -147,4 +160,5 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(Runner, SkipEndStateCheck);
   RUN_TEST(Runner, EmptyRegisterChecksumGroupsSkipMismatch);
   RUN_TEST(Runner, RegisterChecksumMismatch);
+  RUN_TEST(Runner, RegisterChecksumMismatchWithDifferentRegisterGroups);
 })

@@ -572,8 +572,12 @@ RunSnapOutcome EndSpotToOutcome(const Snap<Host>& snap,
       !MemEqT(*end_spot.fpregs, *snap.end_state_registers.fpregs)) {
     return RunSnapOutcome::kRegisterStateMismatch;
   }
-  // Verify register checksum if there is one in snap.
-  if (!snap.end_state_register_checksum.register_groups.Empty() &&
+  // Verify register checksum if there is one in the snap and it references the
+  // same register groups.
+  RegisterChecksum<Host> snap_checksum = snap.end_state_register_checksum;
+  if (!snap_checksum.register_groups.Empty() &&
+      snap_checksum.register_groups ==
+          end_spot.register_checksum.register_groups &&
       snap.end_state_register_checksum != end_spot.register_checksum) {
     VLOG_INFO(1, "Register checksum mismatch: ",
               HexStr(snap.end_state_register_checksum.checksum), " vs ",

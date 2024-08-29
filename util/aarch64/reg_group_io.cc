@@ -14,25 +14,39 @@
 
 #include "./util/reg_group_io.h"
 
+#include "./util/aarch64/sve.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/crc32c.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
 
-// Currently register checksum is not needed/implemented on AArch64.
-// So these are NOPs.
-
 namespace silifuzz {
 
-void InitRegisterGroupIO() {}
+// Flag to tell if the CPU supports SVE. Defined in
+// save_registers_groups_to_buffer and set by InitRegisterGroupIO.
+extern "C" unsigned char reg_group_io_supports_sve;
 
-void SaveRegisterGroupsToBuffer(RegisterGroupIOBuffer<AArch64>& buffer) {}
+void InitRegisterGroupIO() { reg_group_io_supports_sve = SveIsSupported(); }
 
 RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
     const RegisterGroupIOBuffer<AArch64>& buffer) {
-  // Checksumming is not supported on AArch64 for now.
-  CHECK(buffer.register_groups.Empty());
-  return {};
+  uint32_t crc = 0;
+  RegisterChecksum<AArch64> register_checksum;
+
+  const RegisterGroupSet<AArch64>& groups = buffer.register_groups;
+  if (groups.GetSVE()) {
+    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.ffr),
+                 sizeof(buffer.ffr));
+    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.p),
+                 sizeof(buffer.p));
+    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.z),
+                 sizeof(buffer.z));
+    register_checksum.register_groups.SetSVE(true);
+  }
+
+  register_checksum.checksum = crc;
+  return register_checksum;
 }
 
 }  // namespace silifuzz
