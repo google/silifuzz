@@ -27,7 +27,7 @@ namespace silifuzz {
 
 // Flag to tell if AVX512 opmasks are 64-bit or not.  This is defined in
 // save_registers_groups_to_buffer and set by InitRegisterGroupIO.
-extern "C" bool reg_group_io_opmask_is_64_bit;
+extern "C" unsigned char reg_group_io_opmask_is_64_bit;
 
 void InitRegisterGroupIO() {
   // SaveRegisterGroupsToBuffer() needs to tell if AVX512BW is supported.
