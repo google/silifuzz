@@ -149,6 +149,32 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "parallel_worker_pool",
+    srcs = [
+        "parallel_worker_pool.cc",
+    ],
+    hdrs = [
+        "parallel_worker_pool.h",
+    ],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_test(
+    name = "parallel_worker_pool_test",
+    srcs = [
+        "parallel_worker_pool_test.cc",
+    ],
+    deps = [
+        ":parallel_worker_pool",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_binary(
     name = "hashtest_runner",
     srcs = [
