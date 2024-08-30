@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
@@ -166,6 +167,8 @@ size_t ReconcileEndStates(absl::Span<EndState> end_state,
 
 // All the information we want to remember about each hit.
 struct Hit {
+  // CPU the hit occurred on.
+  int cpu;
   // A unique identifier in the range [0, num_tests_generated) where
   // num_tests_generated is the total number of tests generated during this
   // invocation of the runner. (Each test has a unique index.)
@@ -183,13 +186,15 @@ struct Hit {
 
 // An interface for reporting the results of test execution.
 struct ResultReporter {
-  void ReportHit(size_t test_index, const Test& test, size_t input_index,
-                 const Input& input);
+  void ReportHit(int cpu, size_t test_index, const Test& test,
+                 size_t input_index, const Input& input);
 
   // It's usually much more compact to collect each hit rather than keep
   // per-test statistics. We can always recreate those statistics later from the
   // hits.
   std::vector<Hit> hits;
+
+  absl::Mutex mutex;
 };
 
 // The configuration for running multiple tests.

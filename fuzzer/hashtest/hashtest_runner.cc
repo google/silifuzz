@@ -29,6 +29,7 @@
 
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "third_party/cityhash/city.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
@@ -36,6 +37,7 @@
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
 #include "./instruction/xed_util.h"
+#include "./util/cpu_id.h"
 #include "./util/page_util.h"
 
 namespace silifuzz {
@@ -143,16 +145,19 @@ Corpus SynthesizeCorpus(Rng& rng, xed_chip_enum_t chip,
   };
 }
 
-void ResultReporter::ReportHit(size_t test_index, const Test& test,
+void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
                                size_t input_index, const Input& input) {
+  absl::MutexLock lock(&mutex);
+
   hits.push_back({
+      .cpu = cpu,
       .test_index = test_index,
       .test_seed = test.seed,
       .input_index = input_index,
       .input_seed = input.seed,
   });
 
-  std::cout << "Hit " << FormatSeed(test.seed) << " / "
+  std::cout << "CPU " << cpu << " hit " << FormatSeed(test.seed) << " / "
             << FormatSeed(input.seed) << "\n";
 }
 
@@ -234,7 +239,7 @@ void RunTest(size_t test_index, const Test& test, const TestConfig& config,
   bool ok = expected.hash == EntropyBufferHash(actual, config.vector_width);
 
   if (!ok) {
-    result.ReportHit(test_index, test, input_index, input);
+    result.ReportHit(GetCPUId(), test_index, test, input_index, input);
   }
 }
 
@@ -256,10 +261,7 @@ void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
           continue;
         }
         size_t test_index = test_offset + t;
-        if (r == 0 && i == 0 && test_index % 1000 == 0) {
-          std::cout << "Test " << test_index << " / " << FormatSeed(test.seed)
-                    << "\n";
-        }
+        // TODO(ncbray): display a heartbeat, of some sort.
         RunTest(test_index, test, config.test, i, input, expected, result);
       }
     }

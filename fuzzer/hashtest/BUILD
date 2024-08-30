@@ -126,10 +126,12 @@ cc_library(
     deps = [
         ":hashtest_generator_lib",
         "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util:page_util",
         "@cityhash",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
     ],
 )
@@ -183,7 +185,9 @@ cc_binary(
     deps = [
         ":hashtest_generator_lib",
         ":hashtest_runner_lib",
+        ":parallel_worker_pool",
         "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util:enum_flag_types",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",

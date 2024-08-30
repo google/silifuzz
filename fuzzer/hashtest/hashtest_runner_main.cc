@@ -29,8 +29,10 @@
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./instruction/xed_util.h"
+#include "./util/cpu_id.h"
 #include "./util/enum_flag_types.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
@@ -66,26 +68,116 @@ std::vector<Input> GenerateInputs(Rng& rng, size_t num_inputs) {
   return inputs;
 }
 
+// A list of tests to compute end states for.
+struct EndStateSubtask {
+  absl::Span<const Test> tests;
+  absl::Span<EndState> end_states;
+};
+
+// Three lists of tests to compute end states for.
+struct EndStateTask {
+  absl::Span<const Input> inputs;
+  EndStateSubtask subtask0;
+  EndStateSubtask subtask1;
+  EndStateSubtask subtask2;
+};
+
+struct TestPartition {
+  // The first test included in the partition.
+  size_t offset;
+  // The number of tests in the partition.
+  size_t size;
+};
+
+// Divide the tests into `num_workers` groups and returns the `index`-th group
+// of tests.
+TestPartition GetParition(int index, size_t num_tests, size_t num_workers) {
+  CHECK_LT(index, num_workers);
+  size_t remainder = num_tests % num_workers;
+  size_t tests_in_chunk = num_tests / num_workers;
+  if (index < remainder) {
+    // The first `remainder` partitions have `tests_in_chunk` + 1 tests.
+    return TestPartition{
+        .offset = index * (tests_in_chunk + 1),
+        .size = tests_in_chunk + 1,
+    };
+  } else {
+    // The rest of the partitions have `tests_in_chunk` tests.
+    return TestPartition{
+        .offset = index * tests_in_chunk + remainder,
+        .size = tests_in_chunk,
+    };
+  }
+}
+
+EndStateSubtask MakeSubtask(int index, size_t num_inputs, size_t num_workers,
+                            absl::Span<const Test> tests,
+                            absl::Span<EndState> end_states) {
+  TestPartition partition = GetParition(index, tests.size(), num_workers);
+
+  return {
+      .tests = tests.subspan(partition.offset, partition.size),
+      .end_states = absl::MakeSpan(end_states)
+                        .subspan(partition.offset * num_inputs,
+                                 partition.size * num_inputs),
+  };
+}
+
 // For each test and input, compute an end state.
 // We compute each end state 3x, and choose an end state that occurred more than
 // once. If all the end states are different, the end state is marked as bad and
 // that test+input combination will be skipped when running tests.
 // In the future we will compute end states on different CPUs to reduce the
 // chance of the same data corruption occurring multiple times.
-std::vector<EndState> DetermineEndStates(const absl::Span<const Test> tests,
+std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
+                                         const absl::Span<const Test> tests,
                                          const TestConfig& config,
                                          const absl::Span<const Input> inputs) {
   const size_t num_end_state = tests.size() * inputs.size();
 
+  // Redundant sets of end states.
   std::vector<EndState> end_states(num_end_state);
   std::vector<EndState> compare1(num_end_state);
   std::vector<EndState> compare2(num_end_state);
 
-  ComputeEndStates(tests, config, inputs, absl::MakeSpan(end_states));
-  ComputeEndStates(tests, config, inputs, absl::MakeSpan(compare1));
-  ComputeEndStates(tests, config, inputs, absl::MakeSpan(compare2));
+  size_t num_workers = workers.NumWorkers();
 
-  ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
+  // Partition work.
+  std::vector<EndStateTask> tasks(num_workers);
+  for (size_t i = 0; i < num_workers; ++i) {
+    EndStateTask& task = tasks[i];
+    task.inputs = inputs;
+
+    // For each of the redundant set of end states, compute a different
+    // partition on this core.
+    // Generating end states is pretty fast. The reason we're doing it on
+    // multiple cores is to try and ensure (to the greatest extent possible)
+    // that different cores are computing each redudnant version of the end
+    // state. This makes it unlikely that the same SDC will corrupt the end
+    // state twice. In cases where we are running on fewer than three cores,
+    // some of the redundant end states will be computed on the same core.
+    task.subtask0 = MakeSubtask(i, inputs.size(), num_workers, tests,
+                                absl::MakeSpan(end_states));
+    task.subtask1 = MakeSubtask((i + 1) % num_workers, inputs.size(),
+                                num_workers, tests, absl::MakeSpan(compare1));
+    task.subtask2 = MakeSubtask((i + 2) % num_workers, inputs.size(),
+                                num_workers, tests, absl::MakeSpan(compare2));
+  }
+
+  // Execute.
+  workers.DoWork(tasks, [&](EndStateTask& task) {
+    ComputeEndStates(task.subtask0.tests, config, task.inputs,
+                     task.subtask0.end_states);
+    ComputeEndStates(task.subtask1.tests, config, task.inputs,
+                     task.subtask1.end_states);
+    ComputeEndStates(task.subtask2.tests, config, task.inputs,
+                     task.subtask2.end_states);
+  });
+
+  // Try to guess which end states are correct, based on the redundancy.
+  size_t bad =
+      ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
+  std::cout << "Failed to reconcile " << bad << " end states." << "\n";
 
   return end_states;
 }
@@ -145,6 +237,18 @@ int TestMain(std::vector<char*> positional_args) {
   InstructionPool ipool{};
   GenerateInstructionPool(rng, chip, ipool, verbose);
 
+  std::vector<int> cpu_list;
+  ForEachAvailableCPU([&](int cpu) { cpu_list.push_back(cpu); });
+  std::cout << "\n";
+  std::cout << "Num threads: " << cpu_list.size() << "\n";
+  CHECK_GT(cpu_list.size(), 0);
+
+  // Create a pool of worker threads.
+  ParallelWorkerPool workers(cpu_list.size());
+
+  // Bind each worker thread to one of the available CPUs.
+  workers.DoWork(cpu_list, [](int cpu) { SetCPUAffinity(cpu); });
+
   absl::Duration code_gen_time;
   absl::Duration end_state_gen_time;
   absl::Duration test_time;
@@ -184,7 +288,7 @@ int TestMain(std::vector<char*> positional_args) {
     std::cout << "Generating end states" << "\n";
     begin = absl::Now();
     std::vector<EndState> end_states =
-        DetermineEndStates(corpus.tests, config.test, inputs);
+        DetermineEndStates(workers, corpus.tests, config.test, inputs);
     end_state_gen_time += absl::Now() - begin;
     std::cout << "End state size: "
               << (end_states.size() * sizeof(end_states[0]) / (1024 * 1024))
@@ -192,7 +296,11 @@ int TestMain(std::vector<char*> positional_args) {
 
     // Run test corpus.
     begin = absl::Now();
-    RunTests(corpus.tests, inputs, end_states, config, c * num_tests, result);
+    // HACK: currently we don't have any per-thread state, so we're passing in
+    // the cpu id. In a future change, real per-thread state will be added.
+    workers.DoWork(cpu_list, [&](int cpu) {
+      RunTests(corpus.tests, inputs, end_states, config, c * num_tests, result);
+    });
     test_time += absl::Now() - begin;
 
     // Count how many times each test hit.
@@ -220,7 +328,7 @@ int TestMain(std::vector<char*> positional_args) {
         if (hit_count[t] > 0) {
           test_hits += 1;
         }
-        test_instance_run += times_test_has_run;
+        test_instance_run += times_test_has_run * workers.NumWorkers();
       }
     }
   }
