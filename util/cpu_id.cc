@@ -19,9 +19,9 @@
 
 #include <atomic>
 #include <cerrno>
-#include <climits>
 
 #include "third_party/lss/lss/linux_syscall_support.h"
+#include "./util/checks.h"
 
 namespace silifuzz {
 
@@ -44,19 +44,18 @@ int GetCPUIdUsingSyscall() {
 }
 
 int SetCPUAffinity(int cpu_id) {
-  // Linux kernel API uses unsigned long type.
-  constexpr size_t kULongBits =
-      CHAR_BIT * sizeof(unsigned long);  // NOLINT(runtime/int)
-  constexpr size_t kCPUSetSizeInLongs =
-      (CPU_SETSIZE + kULongBits - 1) / kULongBits;
-  unsigned long cpu_set[kCPUSetSizeInLongs] = {};  // NOLINT(runtime/int)
+  CpuSet cpu_set;
+  CHECK_LT(cpu_id, kMaxCpus);
+  CPU_ZERO_S(kCpuSetBytes, cpu_set.data());
+  CPU_SET_S(cpu_id, kCpuSetBytes, cpu_set.data());
 
-  const size_t idx = cpu_id / kULongBits;
-  const int bit = cpu_id % kULongBits;
-  cpu_set[idx] |= static_cast<unsigned long>(1) << bit;
-  if (sys_sched_setaffinity(0, sizeof(cpu_set), cpu_set)) {
+  // NOLINTBEGIN(runtime/int)
+  if (sys_sched_setaffinity(0, kCpuSetBytes,
+                            reinterpret_cast<unsigned long*>(cpu_set.data()))) {
     return errno;
   }
+  // NOLINTEND(runtime/int)
+
   // Remember the CPU affinity setting so we can give an approximate answer to
   // GetCPUIdNoSyscall.
   cpu_affinity_plus_one.store(cpu_id + 1, std::memory_order_relaxed);
