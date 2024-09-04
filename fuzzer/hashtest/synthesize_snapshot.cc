@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
@@ -25,6 +26,7 @@
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_shuffle.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
+#include "./fuzzer/hashtest/version.h"
 #include "./runner/make_snapshot.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -162,8 +164,10 @@ absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
                              InstructionsToSnapshot(view, ucontext));
   // Note: the Snapshot ID doesn't encapsulate the initial register state.
   snapshot.set_id(id);
-  snapshot.set_metadata(Snapshot::Metadata(
-      Snapshot::Metadata::Origin::kUseString, "HashTestV1.1"));
+  snapshot.set_metadata(
+      Snapshot::Metadata(Snapshot::Metadata::Origin::kUseString,
+                         absl::StrCat("HashTestV", kHashTestVersionMajor, ".",
+                                      kHashTestVersionMinor)));
 
   if (make) {
     return MakeSnapshot(snapshot, MakingConfig::Default());

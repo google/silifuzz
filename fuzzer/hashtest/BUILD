@@ -46,6 +46,7 @@ cc_library(
         "synthesize_instruction.h",
         "synthesize_shuffle.h",
         "synthesize_test.h",
+        "version.h",
         "weighted_choose_one.h",
         "xed_operand_util.h",
     ],

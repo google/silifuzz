@@ -31,6 +31,7 @@
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/version.h"
 #include "./instruction/xed_util.h"
 #include "./util/cpu_id.h"
 #include "./util/enum_flag_types.h"
@@ -185,6 +186,9 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
 int TestMain(std::vector<char*> positional_args) {
   InitXedIfNeeded();
 
+  std::cout << "Version: " << kHashTestVersionMajor << "."
+            << kHashTestVersionMinor << "." << kHashTestVersionPatch << "\n";
+
   // Alow the platform to be overridden.
   PlatformId platform = absl::GetFlag(FLAGS_platform);
   if (platform == PlatformId::kUndefined) {
@@ -264,7 +268,6 @@ int TestMain(std::vector<char*> positional_args) {
   ResultReporter result;
   absl::Time begin;
 
-  std::cout << "\n";
   for (size_t c = 0; c < num_corpora; ++c) {
     RunConfig config = {
         .test =
@@ -277,6 +280,7 @@ int TestMain(std::vector<char*> positional_args) {
     };
 
     // Generate tests corpus.
+    std::cout << "\n";
     std::cout << "Generating " << num_tests << " tests" << "\n";
     begin = absl::Now();
 
@@ -337,6 +341,7 @@ int TestMain(std::vector<char*> positional_args) {
               << " MB" << "\n";
 
     // Run test corpus.
+    std::cout << "Running tests" << "\n";
     begin = absl::Now();
     // HACK: currently we don't have any per-thread state, so we're passing in
     // the cpu id. In a future change, real per-thread state will be added.
