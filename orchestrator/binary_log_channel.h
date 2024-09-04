@@ -15,11 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_LOG_CHANNEL_H_
 #define THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_LOG_CHANNEL_H_
 
-#include <string>
-
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
@@ -68,12 +65,6 @@ class BinaryLogProducer {
   // In particular if the consumer closed its end of channel already before we
   // write to the channel, an OutOfRangeError("EOC") status is reported.
   absl::Status Send(const proto::BinaryLogEntry& entry);
-
-  // Helpers to send different types of messages.
-
-  // Send a message containing 'result' via log channel.
-  absl::Status SendSnapshotExecutionResult(
-      const proto::SnapshotExecutionResult& result);
 
  private:
   // File descriptor of the log channel.

@@ -110,13 +110,6 @@ absl::Status BinaryLogProducer::Send(const proto::BinaryLogEntry& entry) {
   return absl::OkStatus();
 }
 
-absl::Status BinaryLogProducer::SendSnapshotExecutionResult(
-    const proto::SnapshotExecutionResult& result) {
-  proto::BinaryLogEntry entry;
-  *entry.mutable_snapshot_execution_result() = result;
-  return Send(entry);
-}
-
 BinaryLogConsumer::BinaryLogConsumer(int fd, bool take_ownership)
     : fd_(fd), take_ownership_(take_ownership) {
   // We need a blocking file descriptor.
