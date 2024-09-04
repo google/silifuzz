@@ -45,7 +45,6 @@
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
 #include "./util/hostname.h"
-#include "./util/itoa.h"
 
 ABSL_FLAG(bool, enable_v1_compat_logging, false, "Enable V1-style logging");
 
