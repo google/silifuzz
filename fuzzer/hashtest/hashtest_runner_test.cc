@@ -130,7 +130,12 @@ TEST(Runner, EndToEnd) {
 
   InstructionPool ipool{};
   GenerateInstructionPool(rng, chip, ipool, false);
-  Corpus corpus = SynthesizeCorpus(rng, chip, ipool, 1, false);
+
+  Corpus corpus = AllocateCorpus(rng, 1);
+  size_t used = SynthesizeTests(
+      absl::MakeSpan(corpus.tests),
+      reinterpret_cast<uint8_t *>(corpus.mapping.Ptr()), chip, ipool);
+  FinalizeCorpus(corpus, used);
 
   std::vector<Input> inputs;
   inputs.resize(1);

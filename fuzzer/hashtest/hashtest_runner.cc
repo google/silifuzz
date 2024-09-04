@@ -101,48 +101,49 @@ void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
   SynthesizeBreakpointTraps(16 + padding, body);
 }
 
-Corpus SynthesizeCorpus(Rng& rng, xed_chip_enum_t chip,
-                        const InstructionPool& ipool, size_t num_tests,
-                        bool verbose) {
-  constexpr size_t kMaxTestBytes = 1024;
+Corpus AllocateCorpus(Rng& rng, size_t num_tests) {
   size_t mapping_size = RoundUpToPageAlignment(kMaxTestBytes * num_tests);
   void* ptr = mmap(0, mapping_size, PROT_READ | PROT_WRITE,
                    MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  // TODO check result.
+  // TODO(ncbray): handle error gracefully.
+  CHECK_NE(ptr, MAP_FAILED);
 
   std::vector<Test> tests(num_tests);
-
-  size_t offset = 0;
   for (size_t i = 0; i < num_tests; ++i) {
-    InstructionBlock body{};
-    uint64_t seed = GetSeed(rng);
-    SynthesizeTest(seed, chip, ipool, body);
-
-    // Copy the test into the mapping.
-    void* test_addr = reinterpret_cast<uint8_t*>(ptr) + offset;
-    size_t test_size = body.bytes.size();
-    CHECK_LE(test_size, kMaxTestBytes);
-    memcpy(test_addr, body.bytes.data(), test_size);
-    offset += test_size;
-
-    if (verbose) {
-      DumpTest(reinterpret_cast<uint64_t>(test_addr), body);
-    }
-
-    tests[i] = {
-        .seed = seed,
-        .code = test_addr,
-    };
+    // Initialize the test seeds now to prevent partitioning or parallelization
+    // from affecting the outcome of test generation.
+    tests[i].seed = GetSeed(rng);
   }
-
-  // Make read-only executable.
-  mprotect(ptr, mapping_size, PROT_READ | PROT_EXEC);
 
   return Corpus{
       .tests = std::move(tests),
-      .mapping =
-          MemoryMapping(ptr, mapping_size, RoundUpToPageAlignment(offset)),
+      .mapping = MemoryMapping(ptr, mapping_size, 0),
   };
+}
+
+size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
+                       xed_chip_enum_t chip, const InstructionPool& ipool) {
+  size_t offset = 0;
+  for (Test& test : tests) {
+    InstructionBlock body{};
+    SynthesizeTest(test.seed, chip, ipool, body);
+
+    // Copy the test into the mapping.
+    test.code = code_buffer + offset;
+    size_t test_size = body.bytes.size();
+    CHECK_LE(test_size, kMaxTestBytes);
+    memcpy(test.code, body.bytes.data(), test_size);
+    offset += test_size;
+  }
+  return offset;
+}
+
+void FinalizeCorpus(Corpus& corpus, size_t used_size) {
+  // Make test memory read-only and executable.
+  // TODO(ncbray): handle error gracefully.
+  CHECK_EQ(0, mprotect(corpus.mapping.Ptr(), corpus.mapping.AllocatedSize(),
+                       PROT_READ | PROT_EXEC));
+  corpus.mapping.SetUsedSize(used_size);
 }
 
 void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,

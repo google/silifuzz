@@ -101,7 +101,12 @@ class MemoryMapping {
   MemoryMapping(const MemoryMapping&&) = default;
   MemoryMapping& operator=(const MemoryMapping&&) = default;
 
-  size_t MemoryUse() { return used_size_; }
+  void* Ptr() const { return ptr_; }
+
+  size_t AllocatedSize() const { return allocated_size_; }
+
+  void SetUsedSize(size_t used) { used_size_ = used; }
+  size_t UsedSize() const { return used_size_; }
 
  private:
   void* ptr_;
@@ -115,14 +120,25 @@ struct Corpus {
   MemoryMapping mapping;
 
   size_t MemoryUse() {
-    return sizeof(Corpus) + tests.size() * sizeof(Test) + mapping.MemoryUse();
+    return sizeof(Corpus) + tests.size() * sizeof(Test) + mapping.UsedSize();
   }
 };
 
-// Synthesize a corpus of random tests.
-Corpus SynthesizeCorpus(Rng& rng, xed_chip_enum_t chip,
-                        const InstructionPool& ipool, size_t num_tests,
-                        bool verbose);
+// We allocate this amount of executable memory per test.
+constexpr inline size_t kMaxTestBytes = 1024;
+
+// Created a corpus of the specified size and generate the test seeds.
+Corpus AllocateCorpus(Rng& rng, size_t num_tests);
+
+// Synthesize the code for each test into `code_buffer`.
+// `code_buffer` must be at least `tests`.size() * kMaxTestsBytes bytes large.
+// Assumes each test already has a valid seed.
+// Returns the amount of memory used by the generated tests.
+size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
+                       xed_chip_enum_t chip, const InstructionPool& ipool);
+
+// Do the final steps to make the corpus useable.
+void FinalizeCorpus(Corpus& corpus, size_t used_size);
 
 // The configuration for running a single test.
 struct TestConfig {
