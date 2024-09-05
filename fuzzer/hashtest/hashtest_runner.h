@@ -213,6 +213,11 @@ struct ResultReporter {
   absl::Mutex mutex;
 };
 
+struct ThreadStats {
+  size_t num_run;
+  size_t num_failed;
+};
+
 // The configuration for running multiple tests.
 struct RunConfig {
   // How should the test be run?
@@ -232,7 +237,7 @@ struct RunConfig {
 // `config`.
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ResultReporter& result);
+              size_t test_offset, ThreadStats& stats, ResultReporter& result);
 
 // Internal function, exported for testing.
 void RunHashTest(void* test, const TestConfig& config,

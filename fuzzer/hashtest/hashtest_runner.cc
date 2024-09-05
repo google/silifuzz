@@ -231,22 +231,24 @@ size_t ReconcileEndStates(absl::Span<EndState> end_state,
 
 void RunTest(size_t test_index, const Test& test, const TestConfig& config,
              size_t input_index, const Input& input, const EndState& expected,
-             ResultReporter& result) {
+             ThreadStats& stats, ResultReporter& result) {
   // Run the test.
   EntropyBuffer actual;
   RunHashTest(test.code, config, input.entropy, actual);
+  ++stats.num_run;
 
   // Compare the end state.
   bool ok = expected.hash == EntropyBufferHash(actual, config.vector_width);
 
   if (!ok) {
+    ++stats.num_failed;
     result.ReportHit(GetCPUId(), test_index, test, input_index, input);
   }
 }
 
 void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ResultReporter& result) {
+              size_t test_offset, ThreadStats& stats, ResultReporter& result) {
   // Repeat the batch.
   for (size_t r = 0; r < config.num_repeat; ++r) {
     // Sweep through each input.
@@ -263,7 +265,8 @@ void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
         }
         size_t test_index = test_offset + t;
         // TODO(ncbray): display a heartbeat, of some sort.
-        RunTest(test_index, test, config.test, i, input, expected, result);
+        RunTest(test_index, test, config.test, i, input, expected, stats,
+                result);
       }
     }
   }
@@ -271,12 +274,12 @@ void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
 
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ResultReporter& result) {
+              size_t test_offset, ThreadStats& stats, ResultReporter& result) {
   for (size_t g = 0; g < tests.size(); g += config.batch_size) {
     size_t batch_size = std::min(config.batch_size, tests.size() - g);
     RunBatch(tests.subspan(g, batch_size), inputs,
              end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
-             config, test_offset + g, result);
+             config, test_offset + g, stats, result);
   }
 }
 

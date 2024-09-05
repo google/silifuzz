@@ -146,9 +146,12 @@ TEST(Runner, EndToEnd) {
   ComputeEndStates(corpus.tests, config.test, inputs,
                    absl::MakeSpan(end_states));
 
+  ThreadStats stats{};
   ResultReporter result;
-  RunTests(corpus.tests, inputs, end_states, config, 0, result);
+  RunTests(corpus.tests, inputs, end_states, config, 0, stats, result);
 
+  EXPECT_EQ(stats.num_run, 1);
+  EXPECT_EQ(stats.num_failed, 0);
   EXPECT_EQ(result.hits.size(), 0);
 }
 

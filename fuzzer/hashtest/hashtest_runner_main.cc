@@ -21,6 +21,7 @@
 #include <random>
 #include <vector>
 
+#include "absl/container/btree_map.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
@@ -256,10 +257,7 @@ int TestMain(std::vector<char*> positional_args) {
   absl::Duration code_gen_time;
   absl::Duration end_state_gen_time;
   absl::Duration test_time;
-  size_t test_instance_run = 0;
-  size_t test_instance_hit = 0;
   size_t tests_run = 0;
-  size_t test_hits = 0;
 
   // Generating input entropy can be somewhat expensive, so amortize it across
   // all the tests.
@@ -268,6 +266,7 @@ int TestMain(std::vector<char*> positional_args) {
   ResultReporter result;
   absl::Time begin;
 
+  std::vector<ThreadStats> stats(workers.NumWorkers());
   for (size_t c = 0; c < num_corpora; ++c) {
     RunConfig config = {
         .test =
@@ -345,37 +344,52 @@ int TestMain(std::vector<char*> positional_args) {
     begin = absl::Now();
     // HACK: currently we don't have any per-thread state, so we're passing in
     // the cpu id. In a future change, real per-thread state will be added.
-    workers.DoWork(cpu_list, [&](int cpu) {
-      RunTests(corpus.tests, inputs, end_states, config, c * num_tests, result);
+    workers.DoWork(stats, [&](ThreadStats& s) {
+      RunTests(corpus.tests, inputs, end_states, config, c * num_tests, s,
+               result);
     });
     test_time += absl::Now() - begin;
+    tests_run += corpus.tests.size();
+  }
 
-    // Count how many times each test hit.
-    // TODO(ncbray): use unordered_map for sparseness.
-    std::vector<size_t> hit_count(corpus.tests.size());
-    for (const Hit& hit : result.hits) {
-      hit_count[hit.test_index]++;
-    }
-    test_instance_hit += result.hits.size();
-    result.hits.clear();
+  // Aggregate thread stats.
+  size_t test_instance_run = 0;
+  size_t test_instance_hit = 0;
+  for (const ThreadStats& s : stats) {
+    test_instance_run += s.num_run;
+    test_instance_hit += s.num_failed;
+  }
 
-    for (size_t t = 0; t < corpus.tests.size(); ++t) {
-      // We may have failed to determine an end state and skipped the test,
-      // which means we need to count the tests we did run rather than doing a
-      // simple multiplication.
-      size_t times_test_has_run = 0;
-      for (size_t i = 0; i < inputs.size(); ++i) {
-        if (!end_states[t * inputs.size() + i].CouldNotBeComputed()) {
-          times_test_has_run += num_repeat;
+  // Aggregate hits.
+  // Count how many times each test seed hit.
+  absl::btree_map<uint64_t, size_t> test_hit_counts;
+  // Group hits by CPU, then by test seed, then by input seed.
+  // This allows us to display which tests are hitting on which CPU, how hard
+  // they are hitting, and how sensitive they are to starting with a particular
+  // initial state.
+  absl::btree_map<int,
+                  absl::btree_map<uint64_t, absl::btree_map<uint64_t, size_t>>>
+      hit_counts;
+  for (const Hit& hit : result.hits) {
+    ++test_hit_counts[hit.test_seed];
+    ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
+  }
+
+  if (!hit_counts.empty()) {
+    std::cout << "\n";
+    std::cout << "Hits / " << hit_counts.size() << "\n";
+    for (const auto& [cpu, test_hits] : hit_counts) {
+      std::cout << "\n";
+      std::cout << "CPU " << cpu << " / " << test_hits.size() << "\n";
+      for (const auto& [test_seed, input_hits] : test_hits) {
+        size_t inputs = 0;
+        size_t test_input_hits = 0;
+        for (const auto& [input_seed, count] : input_hits) {
+          inputs += 1;
+          test_input_hits += count;
         }
-      }
-      // Collect stats.
-      if (times_test_has_run > 0) {
-        tests_run += 1;
-        if (hit_count[t] > 0) {
-          test_hits += 1;
-        }
-        test_instance_run += times_test_has_run * workers.NumWorkers();
+        std::cout << "  " << FormatSeed(test_seed) << " / " << inputs << " / "
+                  << test_input_hits << "\n";
       }
     }
   }
@@ -386,8 +400,11 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << code_gen_time << " generating code" << "\n";
   std::cout << end_state_gen_time << " generating end states" << "\n";
   std::cout << test_time << " testing" << "\n";
-  std::cout << num_corpora * num_tests << " tests" << "\n";
+  std::cout << tests_run << " tests" << "\n";
   std::cout << test_instance_run << " runs" << "\n";
+  std::cout << (test_instance_run * num_iterations /
+                (absl::ToDoubleSeconds(test_time) * workers.NumWorkers()))
+            << " iterations per second per core" << "\n";
   std::cout << test_instance_hit << " hits" << "\n";
   std::cout << (test_instance_hit / absl::ToDoubleSeconds(test_time))
             << " per second hit rate" << "\n";
@@ -396,7 +413,8 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << (1e9 * test_instance_hit /
                 (double)(test_instance_run * num_iterations))
             << " per billion iteration hit rate" << "\n";
-  std::cout << (test_hits / (double)tests_run) << " per test hit rate" << "\n";
+  std::cout << (test_hit_counts.size() / (double)tests_run)
+            << " per test hit rate" << "\n";
 
   return test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
