@@ -360,6 +360,24 @@ class OrchestratorTest(absltest.TestCase):
     # value.
     # self.assertTrue(session_summary.resource_usage.HasField('max_rss_kb'))
 
+  def test_binary_logging_bad_fd(self):
+    (err_log, returncode) = self.run_orchestrator(
+        ['snap_fail'],
+        extra_args=[
+            '--sequential_mode',
+            '--log_session_summary_probability=1',
+            '--binary_log_fd=10000',
+        ],
+    )
+    self.assertEqual(returncode, 1)
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            'Binary logging failed',
+            'Bad file descriptor',
+        ],
+    )
+
   def test_rlimit_fsize(self):
     (err_log, returncode) = self.run_orchestrator(
         ['long_output'], extra_args=['--sequential_mode']

@@ -33,7 +33,6 @@ cc_binary(
         "@silifuzz//runner/driver:runner_options",
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
-        "@silifuzz//util:itoa",
         "@silifuzz//util:tool_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",

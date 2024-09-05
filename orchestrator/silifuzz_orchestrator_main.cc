@@ -38,7 +38,6 @@
 //
 // Assumption: Runner closes stdin.
 
-#include <errno.h>
 #include <sched.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -79,7 +78,6 @@
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
-#include "./util/itoa.h"
 #include "./util/tool_util.h"
 
 ABSL_FLAG(absl::Duration, duration, absl::InfiniteDuration(),
@@ -195,8 +193,10 @@ absl::StatusOr<RuntimeMetadata> LoadRuntimeMetadata() {
 }
 
 bool SessionLoggingEnabled() {
-  static bool enabled = absl::Uniform(absl::BitGen{}, 0, 1.0) <=
-                        absl::GetFlag(FLAGS_log_session_summary_probability);
+  static bool enabled =
+      absl::Uniform(absl::BitGen{}, 0, 1.0) <=
+          absl::GetFlag(FLAGS_log_session_summary_probability) &&
+      absl::GetFlag(FLAGS_binary_log_fd) >= 0;
   return enabled;
 }
 
@@ -275,7 +275,8 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
     if (absl::Status s = result_collector.LogSessionStart(
             runtime_meta->corpus_metadata, runtime_meta->orchestrator_version);
         !s.ok()) {
-      LOG_ERROR(s.message());
+      LOG_ERROR("Binary logging failed: ", s.message());
+      return EXIT_FAILURE;
     }
   }
 
