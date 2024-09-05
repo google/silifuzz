@@ -159,8 +159,8 @@ TEST(UContextTest, Consistency) {
 
   // Check that the stack pointer seems reasonable.
   EXPECT_EQ(uc1.gregs.sp, uc2.gregs.sp);
-  // ASAN breaks this relationship.
-#if !defined(ADDRESS_SANITIZER)
+  // ASan and HWASan breaks this relationship.
+#if !defined(ADDRESS_SANITIZER) && !defined(HWADDRESS_SANITIZER)
   uint64_t sp_estimate = reinterpret_cast<uint64_t>(&uc1);
   EXPECT_LT(uc1.gregs.sp, sp_estimate);
   EXPECT_GT(uc1.gregs.sp, sp_estimate - pointer_slop);
