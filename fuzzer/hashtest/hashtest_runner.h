@@ -22,6 +22,8 @@
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
@@ -202,6 +204,13 @@ struct Hit {
 
 // An interface for reporting the results of test execution.
 struct ResultReporter {
+  ResultReporter(absl::Duration update_period = absl::Seconds(10))
+      : update_period(update_period),
+        next_update(absl::Now() + update_period) {}
+  // Called periodically to produce a heartbeat.
+  void CheckIn();
+
+  // Called for every hit.
   void ReportHit(int cpu, size_t test_index, const Test& test,
                  size_t input_index, const Input& input);
 
@@ -211,6 +220,8 @@ struct ResultReporter {
   std::vector<Hit> hits;
 
   absl::Mutex mutex;
+  absl::Duration update_period;
+  absl::Time next_update;
 };
 
 struct ThreadStats {

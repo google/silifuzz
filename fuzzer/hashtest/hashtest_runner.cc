@@ -30,6 +30,8 @@
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "third_party/cityhash/city.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
@@ -146,6 +148,15 @@ void FinalizeCorpus(Corpus& corpus, size_t used_size) {
   corpus.mapping.SetUsedSize(used_size);
 }
 
+void ResultReporter::CheckIn() {
+  absl::MutexLock lock(&mutex);
+  absl::Time now = absl::Now();
+  if (now >= next_update) {
+    std::cout << hits.size() << " hits" << "\n";
+    next_update = now + update_period;
+  }
+}
+
 void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
                                size_t input_index, const Input& input) {
   absl::MutexLock lock(&mutex);
@@ -157,9 +168,6 @@ void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
       .input_index = input_index,
       .input_seed = input.seed,
   });
-
-  std::cout << "CPU " << cpu << " hit " << FormatSeed(test.seed) << " / "
-            << FormatSeed(input.seed) << "\n";
 }
 
 void RunHashTest(void* test, const TestConfig& config,
@@ -264,9 +272,14 @@ void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
           continue;
         }
         size_t test_index = test_offset + t;
-        // TODO(ncbray): display a heartbeat, of some sort.
         RunTest(test_index, test, config.test, i, input, expected, stats,
                 result);
+        // This should occur ~2.5 times a second.
+        // We want to check in often enough so that we have a timely heat beat,
+        // but not so often that it creates lock contention.
+        if (stats.num_run % 100000 == 0) {
+          result.CheckIn();
+        }
       }
     }
   }

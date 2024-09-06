@@ -264,7 +264,6 @@ int TestMain(std::vector<char*> positional_args) {
   std::vector<Input> inputs = GenerateInputs(input_rng, num_inputs);
 
   ResultReporter result;
-  absl::Time begin;
 
   std::vector<ThreadStats> stats(workers.NumWorkers());
   for (size_t c = 0; c < num_corpora; ++c) {
@@ -281,7 +280,7 @@ int TestMain(std::vector<char*> positional_args) {
     // Generate tests corpus.
     std::cout << "\n";
     std::cout << "Generating " << num_tests << " tests" << "\n";
-    begin = absl::Now();
+    absl::Time begin = absl::Now();
 
     // Allocate the corpus.
     Corpus corpus = AllocateCorpus(rng, num_tests);
