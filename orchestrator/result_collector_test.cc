@@ -17,8 +17,8 @@
 #include <unistd.h>
 
 #include "gtest/gtest.h"
+#include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
-#include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
@@ -26,18 +26,25 @@
 #include "./util/testing/status_macros.h"
 
 namespace silifuzz {
+
+class RunResultPeer {
+ public:
+  static RunnerDriver::RunResult SnapshotFailed(absl::string_view snapshot_id) {
+    RunnerDriver::PlayerResult result = {
+        .outcome = PlaybackOutcome::kExecutionMisbehave};
+    return RunnerDriver::RunResult(
+        RunnerDriver::ExecutionResult::SnapshotFailed(snapshot_id), result, {},
+        snapshot_id);
+  }
+};
+
 namespace {
-
-using snapshot_types::PlaybackOutcome;
-
 TEST(ResultCollector, Simple) {
   ResultCollector collector(-1, absl::Now(), {});
   collector(RunnerDriver::RunResult::Successful({}));
   ASSERT_EQ(collector.summary().play_count, 1);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 0);
-  RunnerDriver::PlayerResult result = {
-      .outcome = PlaybackOutcome::kExecutionMisbehave};
-  collector(RunnerDriver::RunResult(result, {}, "snap_id"));
+  collector(RunResultPeer::SnapshotFailed("snap_id"));
   ASSERT_EQ(collector.summary().play_count, 2);
   ASSERT_EQ(collector.summary().num_failed_snapshots, 1);
 }
@@ -48,9 +55,7 @@ TEST(ResultCollector, BinaryLogging) {
   {
     ResultCollector collector(pipefd[1], absl::Now(), {});
     collector(RunnerDriver::RunResult::Successful({}));
-    RunnerDriver::PlayerResult result = {
-        .outcome = PlaybackOutcome::kExecutionMisbehave};
-    collector(RunnerDriver::RunResult(result, {}, "snap_id"));
+    collector(RunResultPeer::SnapshotFailed("snap_id"));
     // Let collector go out of scope which closes the write end of the pipe.
     // This way the Receive() below does not block if logging misbehaves.
   }

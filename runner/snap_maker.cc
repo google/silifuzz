@@ -135,17 +135,17 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
-  ASSIGN_OR_RETURN_IF_NOT_OK(RunnerDriver::RunResult record_result,
-                             recorder.MakeOne(snapified.id(), 0, opts_.cpu));
+  RunnerDriver::RunResult record_result =
+      recorder.MakeOne(snapified.id(), 0, opts_.cpu);
   if (record_result.success()) {
     RETURN_IF_NOT_OK(snapified.IsComplete());
     return snapified;
   }
-  if (!record_result.player_result().actual_end_state.has_value()) {
+  if (!record_result.failed_player_result().actual_end_state.has_value()) {
     return absl::InternalError("The runner didn't report actual_end_state");
   }
   Snapshot::EndState actual_end_state =
-      *record_result.player_result().actual_end_state;
+      *record_result.failed_player_result().actual_end_state;
   actual_end_state.set_platforms({CurrentPlatformId()});
   snapified.set_expected_end_states({});
   // TODO(ksteuck): [as-needed] The runner machinery already supports signal
@@ -205,16 +205,14 @@ absl::Status SnapMaker::VerifyPlaysDeterministically(
   // Current code plays the snapshot several times with ASLR enabled which
   // takes care of vDSO mappings and stack but the runner code itself is
   // always placed at the fixed address (--image-base linker arg).
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      RunnerDriver::RunResult verify_result,
-      driver.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts,
-                                 opts_.cpu));
+  RunnerDriver::RunResult verify_result = driver.VerifyOneRepeatedly(
+      snapified.id(), opts_.num_verify_attempts, opts_.cpu);
   if (!verify_result.success()) {
     if (VLOG_IS_ON(1)) {
       LinePrinter lp(LinePrinter::StdErrPrinter);
       SnapshotPrinter printer(&lp);
       printer.PrintActualEndState(
-          snapified, *verify_result.player_result().actual_end_state);
+          snapified, *verify_result.failed_player_result().actual_end_state);
     }
     return absl::InternalError("Verify() failed, non-deterministic snapshot?");
   }
@@ -316,10 +314,9 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     // mappings.
     const int runner_max_pages_to_add =
         opts_.compatibility_mode ? 0 : opts_.max_pages_to_add;
-    ASSIGN_OR_RETURN_IF_NOT_OK(
-        RunnerDriver::RunResult make_result,
-        runner_driver.MakeOne(snapshot->id(), runner_max_pages_to_add,
-                              opts_.cpu));
+
+    RunnerDriver::RunResult make_result = runner_driver.MakeOne(
+        snapshot->id(), runner_max_pages_to_add, opts_.cpu);
     if (make_result.success()) {
       // In practice this can happen if the snapshot hits just the right
       // sequence of instructions to call _exit(0) either by jumping into
@@ -328,16 +325,21 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
           absl::StrCat("Unlikely: snapshot ", snapshot->id(),
                        " had an undefined end state yet ran successfully"));
     }
+    if (make_result.execution_result().code !=
+        RunnerDriver::ExecutionResult::Code::kSnapshotFailed) {
+      return absl::InternalError(absl::StrCat(
+          "Runner failed: ", make_result.execution_result().DebugString()));
+    }
     if (!opts_.compatibility_mode) {
       ASSIGN_OR_RETURN_IF_NOT_OK(
           Snapshot::MemoryMappingList memory_mapping_list,
-          DataMappingDelta(*snapshot,
-                           *make_result.player_result().actual_end_state));
+          DataMappingDelta(
+              *snapshot, *make_result.failed_player_result().actual_end_state));
       RETURN_IF_NOT_OK(AddMemoryMappings(snapshot, memory_mapping_list));
     }
     const Snapshot::Endpoint& ep =
-        make_result.player_result().actual_end_state->endpoint();
-    switch (make_result.player_result().outcome) {
+        make_result.failed_player_result().actual_end_state->endpoint();
+    switch (make_result.failed_player_result().outcome) {
       case PlaybackOutcome::kAsExpected:
         return absl::InternalError(
             absl::StrCat("Impossible: snapshot ", snapshot->id(),
@@ -393,7 +395,7 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
       case PlaybackOutcome::kPlatformMismatch:
         return absl::InternalError(
             absl::StrCat("Unsupported outcome ",
-                         EnumStr(make_result.player_result().outcome)));
+                         EnumStr(make_result.failed_player_result().outcome)));
     }
   }
 }

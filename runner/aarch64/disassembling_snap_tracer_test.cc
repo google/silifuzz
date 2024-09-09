@@ -61,11 +61,8 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
   auto snapshot =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   ASSERT_TRUE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 4);
@@ -79,14 +76,12 @@ TEST(DisassemblingSnapTracer, TraceSigill) {
   RunnerDriver driver = HelperDriver();
   auto snapshot = MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigIll);
   DisassemblingSnapTracer tracer(snapshot);
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   ASSERT_FALSE(result.success());
-  ASSERT_TRUE(result.player_result().actual_end_state->endpoint().sig_num() ==
-              SigNum::kSigIll);
+  ASSERT_TRUE(
+      result.failed_player_result().actual_end_state->endpoint().sig_num() ==
+      SigNum::kSigIll);
 }
 
 TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
@@ -95,11 +90,9 @@ TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
   constexpr size_t kNumIterations = 3;
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(snapshot.id(),
-                      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
-                      kNumIterations));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
+      kNumIterations);
   ASSERT_TRUE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 4 * kNumIterations);

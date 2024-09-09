@@ -102,9 +102,20 @@ int main(int argc, char** argv) {
     } else if (cmd == "snap_fail") {
       LogHumanReadable("snap_fail: %s\n", "my_snap");
       fprintf(stdout,
-              "snapshot_id:'my_snap' player_result:{ outcome:3 cpu_id:1 "
-              "actual_end_state:{ endpoint:{ instruction_address:0x6595e5c4025 "
-              "} registers: { gregs: '' fpregs: '' } } }");
+              R"pb(
+                execution_result: { code: SNAPSHOT_FAILED }
+                failed_snapshot_execution: {
+                  snapshot_id: 'my_snap'
+                  player_result: {
+                    outcome: REGISTER_STATE_MISMATCH
+                    cpu_id: 1
+                    actual_end_state: {
+                      endpoint: { instruction_address: 0x6595e5c4025 }
+                      registers: { gregs: '' fpregs: '' }
+                    }
+                  }
+                }
+              )pb");
       fflush(stdout);
       return 1;
     } else if (cmd == "print_first_snap_id") {
@@ -117,6 +128,40 @@ int main(int argc, char** argv) {
       sigaction(SIGALRM, &sigact, nullptr);
     } else if (cmd == "sleep100") {
       sleep(100);
+    } else if (cmd == "checksum_mismatch") {
+      LogHumanReadable("checksum_mismatch");
+      fprintf(stdout,
+              R"pb(
+                failed_snapshot_execution: {
+                  snapshot_id: 'my_snap'
+                  player_result: {
+                    outcome: REGISTER_STATE_MISMATCH
+                    cpu_id: 1
+                    actual_end_state: {
+                      endpoint: { instruction_address: 0x6595e5c4025 }
+                      registers: { gregs: '' fpregs: '' }
+                    }
+                  }
+                }
+                postfailure_checksum_status: MISMATCH
+                execution_result: { code: SNAPSHOT_FAILED }
+              )pb");
+      fflush(stdout);
+      return 1;
+    } else if (cmd == "no_execution_result") {
+      LogHumanReadable("no_execution_result");
+      fprintf(stdout, R"pb()pb");
+      fflush(stdout);
+      return 1;
+    } else if (cmd == "mmap_failed") {
+      LogHumanReadable("mmap_failed");
+      fprintf(
+          stdout,
+          R"pb(
+            execution_result: { code: MMAP_FAILED msg: 'failed to map memory' }
+          )pb");
+      fflush(stdout);
+      return 1;
     } else {
       if (print_first_snap_id) {
         silifuzz::PrintFirstSnapId(argv[i]);

@@ -98,7 +98,7 @@ class Endpoint final {
   using SigCause = snapshot_types::SigCause;
   using enum snapshot_types::SigCause;
 
-  // Enpoint that is the first occurrence of reaching the instruction_address.
+  // Endpoint that is the first occurrence of reaching the instruction_address.
   // I.e. type() == kInstruction.
   explicit Endpoint(Address instruction_address);
 
@@ -252,6 +252,25 @@ enum class MakerStopReason {
   // Snapshot caused a signal that didn't fall into any of the more specific
   // buckets above (e.g. a SIGSEGV X86Exceptions::X86_TRAP_OF).
   kSignal,
+};
+
+// Status codes for runner execution.
+// Parallels RunnerOutput::ExecutionResult::StatusCode proto.
+enum class RunnerExecutionStatusCode {
+  kInternalError = 0,
+  kOk = 1,
+  kUnhandledSignal = 2,
+  kMmapFailed = 3,
+  kOverlappingMappings = 4,
+  kInitialChecksumMismatch = 5,
+  kSnapshotFailed = 6,
+};
+
+// Parallels RunnerOutput::ExecutionResult::ChecksumStatus proto.
+enum class RunnerPostfailureChecksumStatus {
+  kNotChecked = 0,
+  kMatch = 1,
+  kMismatch = 2,
 };
 
 }  // namespace snapshot_types

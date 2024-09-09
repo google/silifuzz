@@ -26,6 +26,7 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./proto/snapshot.pb.h"
+#include "./proto/snapshot_execution_result.pb.h"
 #include "./util/checks.h"
 #include "./util/misc_util.h"
 #include "./util/platform.h"
@@ -132,6 +133,41 @@ static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
               ToInt(proto::PlatformId::AMD_RYZEN_V3000));
 static_assert(ToInt(PlatformId::kArmNeoverseV2) ==
               ToInt(proto::PlatformId::ARM_NEOVERSE_V2));
+
+static_assert(ToInt(snapshot_types::RunnerExecutionStatusCode::kOk) ==
+              ToInt(proto::RunnerOutput::ExecutionResult::OK));
+static_assert(
+    ToInt(snapshot_types::RunnerExecutionStatusCode::kInternalError) ==
+    ToInt(proto::RunnerOutput::ExecutionResult::INTERNAL_ERROR));
+static_assert(
+    ToInt(snapshot_types::RunnerExecutionStatusCode::kUnhandledSignal) ==
+    ToInt(proto::RunnerOutput::ExecutionResult::UNHANDLED_SIGNAL));
+static_assert(ToInt(snapshot_types::RunnerExecutionStatusCode::kMmapFailed) ==
+              ToInt(proto::RunnerOutput::ExecutionResult::MMAP_FAILED));
+static_assert(
+    ToInt(snapshot_types::RunnerExecutionStatusCode::kOverlappingMappings) ==
+    ToInt(proto::RunnerOutput::ExecutionResult::OVERLAPPING_MAPPINGS));
+static_assert(
+    ToInt(
+        snapshot_types::RunnerExecutionStatusCode::kInitialChecksumMismatch) ==
+    ToInt(proto::RunnerOutput::ExecutionResult::INITIAL_CHECKSUM_MISMATCH));
+static_assert(
+    ToInt(snapshot_types::RunnerExecutionStatusCode::kSnapshotFailed) ==
+    ToInt(proto::RunnerOutput::ExecutionResult::SNAPSHOT_FAILED));
+
+static_assert(
+    ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kNotChecked) ==
+    ToInt(proto::RunnerOutput::ChecksumStatus::
+              RunnerOutput_ChecksumStatus_NOT_CHECKED));
+
+static_assert(ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kMatch) ==
+              ToInt(proto::RunnerOutput::ChecksumStatus::
+                        RunnerOutput_ChecksumStatus_MATCH));
+
+static_assert(
+    ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kMismatch) ==
+    ToInt(proto::RunnerOutput::ChecksumStatus::
+              RunnerOutput_ChecksumStatus_MISMATCH));
 
 static_assert(proto::PlatformId_MAX < 64,
               "PlatformId_MAX is too large to fit in EndState::platforms");

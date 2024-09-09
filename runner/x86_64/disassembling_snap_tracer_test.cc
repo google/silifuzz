@@ -22,7 +22,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/functional/bind_front.h"
-#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/snapshot_enums.h"
@@ -33,13 +32,10 @@
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./util/arch.h"
 #include "./util/data_dependency.h"
-#include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
 
-using silifuzz::testing::StatusIs;
 using snapshot_types::SigNum;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
@@ -62,11 +58,8 @@ TEST(DisassemblingSnapTracer, TraceAsExpected) {
   auto snapshot =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   ASSERT_TRUE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 2);
@@ -79,14 +72,12 @@ TEST(DisassemblingSnapTracer, TraceSigill) {
   RunnerDriver driver = HelperDriver();
   auto snapshot = MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kSigIll);
   DisassemblingSnapTracer tracer(snapshot);
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   ASSERT_FALSE(result.success());
-  ASSERT_TRUE(result.player_result().actual_end_state->endpoint().sig_num() ==
-              SigNum::kSigIll);
+  ASSERT_TRUE(
+      result.failed_player_result().actual_end_state->endpoint().sig_num() ==
+      SigNum::kSigIll);
 }
 
 TEST(DisassemblingSnapTracer, TraceNonDeterministic) {
@@ -96,7 +87,7 @@ TEST(DisassemblingSnapTracer, TraceNonDeterministic) {
   DisassemblingSnapTracer tracer(snapshot);
   auto result = driver.TraceOne(
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
-  ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_FALSE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.early_termination_reason,
             "Non-deterministic insn CPUID");
@@ -109,11 +100,8 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   TraceOptions options = TraceOptions::Default();
   options.x86_filter_split_lock = false;
   DisassemblingSnapTracer tracer(snapshot, options);
-  ASSERT_OK_AND_ASSIGN(
-      const auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  const auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   EXPECT_FALSE(result.success());  // We don't have the correct endstate.
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 5);
@@ -129,7 +117,7 @@ TEST(DisassemblingSnapTracer, TraceSplitLock) {
   const auto result2 = driver.TraceOne(
       snapshot.id(),
       absl::bind_front(&DisassemblingSnapTracer::Step, &split_lock_tracer));
-  EXPECT_THAT(result2, StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_FALSE(result2.success());
   const auto& trace_result2 = split_lock_tracer.trace_result();
   EXPECT_EQ(trace_result2.early_termination_reason, "Split-lock insn INC_LOCK");
 }
@@ -142,11 +130,8 @@ TEST(DisassemblingSnapTracer, TraceVSyscallRegionAccess) {
   TraceOptions options = TraceOptions::Default();
   options.x86_filter_vsyscall_region_access = false;
   DisassemblingSnapTracer tracer(snapshot, options);
-  ASSERT_OK_AND_ASSIGN(
-      const auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  const auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   EXPECT_FALSE(result.success());  // We don't have the correct endstate.
   const auto& trace_result = tracer.trace_result();
   // We may execute either 1 or 3 instruction depending on whether kernel
@@ -172,7 +157,7 @@ TEST(DisassemblingSnapTracer, TraceVSyscallRegionAccess) {
   const auto result2 = driver.TraceOne(
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step,
                                       &vsyscall_region_access_tracer));
-  EXPECT_THAT(result2, StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_FALSE(result2.success());
   const auto& trace_result2 = vsyscall_region_access_tracer.trace_result();
   EXPECT_EQ(trace_result2.instructions_executed, 2);
   EXPECT_THAT(trace_result2.disassembly,
@@ -188,11 +173,9 @@ TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer tracer(snapshot);
   constexpr size_t kNumIterations = 3;
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      driver.TraceOne(snapshot.id(),
-                      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
-                      kNumIterations));
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer),
+      kNumIterations);
   ASSERT_TRUE(result.success());
   const auto& trace_result = tracer.trace_result();
   EXPECT_EQ(trace_result.instructions_executed, 2 * kNumIterations);
@@ -211,11 +194,8 @@ TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {
   TraceOptions options = TraceOptions::Default();
   options.filter_memory_access = false;
   DisassemblingSnapTracer tracer(snapshot, options);
-  ASSERT_OK_AND_ASSIGN(
-      const auto result,
-      driver.TraceOne(
-          snapshot.id(),
-          absl::bind_front(&DisassemblingSnapTracer::Step, &tracer)));
+  const auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   // The test snapshot does not have a matching memory state.
   EXPECT_FALSE(result.success());
   const auto& trace_result = tracer.trace_result();
@@ -230,7 +210,7 @@ TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {
   const auto result_with_filter = driver.TraceOne(
       snapshot.id(),
       absl::bind_front(&DisassemblingSnapTracer::Step, &tracer_with_filter));
-  EXPECT_THAT(result_with_filter, StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_FALSE(result_with_filter.success());
   const auto& trace_result_with_filter = tracer_with_filter.trace_result();
   EXPECT_EQ(trace_result_with_filter.instructions_executed, 1);
   EXPECT_THAT(trace_result_with_filter.disassembly,
@@ -244,11 +224,10 @@ TEST(DisassemblingSnapTracer, TraceX86FilterMemoryAccess) {
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   DisassemblingSnapTracer ends_as_expected_tracer(ends_as_expected_snapshot,
                                                   options);
-  ASSERT_OK_AND_ASSIGN(
-      const auto ends_as_expected_result,
+  const auto ends_as_expected_result =
       driver.TraceOne(ends_as_expected_snapshot.id(),
                       absl::bind_front(&DisassemblingSnapTracer::Step,
-                                       &ends_as_expected_tracer)));
+                                       &ends_as_expected_tracer));
   EXPECT_TRUE(ends_as_expected_result.success());
   const auto& ends_as_expected_trace_result =
       ends_as_expected_tracer.trace_result();

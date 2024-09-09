@@ -121,6 +121,8 @@ namespace {
 
 using snapshot_types::Endpoint;
 using snapshot_types::EndpointType;
+using snapshot_types::RunnerExecutionStatusCode;
+using snapshot_types::RunnerPostfailureChecksumStatus;
 
 // Number of data pages mapped by SIGSEGV handler during snap making.
 // This is incremented every time a new data page is discovered during making.
@@ -134,6 +136,29 @@ size_t max_pages_to_add = 0;
 constexpr size_t kMaxAddedPageAddresses = 20;
 
 uint64_t added_page_addresses[kMaxAddedPageAddresses];
+
+// Logs RunnerOutput::ExecutionResult-formatted message to stdout. Every code
+// path that exits the runner (either via _exit() or LOG_FATAL) should call this
+// function.
+void LogExecutionResult(RunnerExecutionStatusCode status_code,
+                        const char* message = nullptr) {
+  TextProtoPrinter runner_output;
+  {
+    auto runtime_failure_m = runner_output.Message("execution_result");
+    runtime_failure_m->Int("code", static_cast<int>(status_code));
+    if (message != nullptr) {
+      runtime_failure_m->String("msg", message);
+    }
+  }
+  LogToStdout(runner_output.c_str());
+}
+
+void LogPostfailureChecksumStatus(RunnerPostfailureChecksumStatus status_code) {
+  TextProtoPrinter runner_output;
+  runner_output.Int("postfailure_checksum_status",
+                    static_cast<uint64_t>(status_code));
+  LogToStdout(runner_output.c_str());
+}
 
 constexpr int kInitialMappingProtection = PROT_READ | PROT_WRITE;
 
@@ -228,6 +253,8 @@ void SigAction(int signal, siginfo_t* siginfo, void* uc) {
   }
   // A signal occurred while executing the runner code. Most likely indicates
   // a bug in the runner or a signal from the environment (keyboard, RLIMIT).
+  LogExecutionResult(RunnerExecutionStatusCode::kUnhandledSignal,
+                     SignalNameStr(signal));
   ASS_LOG_FATAL("Unhandled signal ", SignalNameStr(signal));
   __builtin_unreachable();
 }
@@ -255,10 +282,12 @@ void SetupMemoryBytes(const SnapMemoryBytes& memory_bytes) {
 
 void CheckFixedMmapOK(void* mapped_address, void* target_address) {
   if (mapped_address == MAP_FAILED) {
+    LogExecutionResult(RunnerExecutionStatusCode::kMmapFailed);
     LOG_FATAL("mmap(", HexStr(AsInt(target_address)),
               ") failed: ", ErrnoStr(errno));
   }
   if (mapped_address != target_address) {
+    LogExecutionResult(RunnerExecutionStatusCode::kMmapFailed);
     LOG_FATAL("mmap failed: got ", HexStr(AsInt(mapped_address)), " want ",
               HexStr(AsInt(target_address)));
   }
@@ -471,6 +500,7 @@ void MapCorpus(const SnapCorpus<Host>& corpus, int corpus_fd,
     // conflicting snaps found here.
     if (SnapOverlapsWithProcMapsEntries(*snap, proc_maps_entries,
                                         num_proc_maps_entries)) {
+      LogExecutionResult(RunnerExecutionStatusCode::kOverlappingMappings);
       LOG_FATAL("Cannot handle overlapping mappings");
     }
     // If any of these memory mappings overlap, the mapping earlier in this list
@@ -555,6 +585,7 @@ void VerifyChecksums(const SnapCorpus<Host>& corpus) {
     ok &= VerifySnapChecksums(*snap);
   }
   if (!ok) {
+    LogExecutionResult(RunnerExecutionStatusCode::kInitialChecksumMismatch);
     LOG_FATAL("Checksum mismatch");
   }
 }
@@ -673,11 +704,14 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
       run_result.end_spot.Log();
     }
   }
-  // The root message is proto.SnapshotExecutionResult
-  TextProtoPrinter snapshot_execution_result;
+
+  // The root message is proto.RunnerOutput
+  TextProtoPrinter runner_output;
   {
-    snapshot_execution_result.String("snapshot_id", snap.id);
-    auto player_result = snapshot_execution_result.Message("player_result");
+    auto failed_snapshot_execution_m =
+        runner_output.Message("failed_snapshot_execution");
+    failed_snapshot_execution_m->String("snapshot_id", snap.id);
+    auto player_result = failed_snapshot_execution_m->Message("player_result");
     // actual_end_state is a text representation of silifuzz.proto.EndState.
     // There is no in-memory format to represent EndState in the runner, the
     // the memory state is read directly from the corresponding live mappings.
@@ -731,7 +765,7 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
       memory_bytes_m->Bytes("byte_values", start_address, kPageSize);
     }
   }
-  LogToStdout(snapshot_execution_result.c_str());
+  LogToStdout(runner_output.c_str());
 }
 
 const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
@@ -808,9 +842,11 @@ int MakerMain(const RunnerMainOptions& options) {
 
   LogSnapRunResult(snap, options, run_result);
   if (run_result.outcome != RunSnapOutcome::kAsExpected) {
+    LogExecutionResult(RunnerExecutionStatusCode::kSnapshotFailed);
     return EXIT_FAILURE;
   }
 
+  LogExecutionResult(RunnerExecutionStatusCode::kOk);
   return EXIT_SUCCESS;
 }
 
@@ -860,14 +896,20 @@ int RunnerMain(const RunnerMainOptions& options) {
         // have gone seriously wrong.
         if (VerifySnapChecksums(snap)) {
           // Print a positive message so we know it completed.
-          LOG_ERROR("Snap checksums verified");
+          LOG_INFO("Snap checksums verified");
+          LogPostfailureChecksumStatus(RunnerPostfailureChecksumStatus::kMatch);
+        } else {
+          LogPostfailureChecksumStatus(
+              RunnerPostfailureChecksumStatus::kMismatch);
         }
+        LogExecutionResult(RunnerExecutionStatusCode::kSnapshotFailed);
         return EXIT_FAILURE;
       }
       previous_snap_id = snap.id;
     }
   }
 
+  LogExecutionResult(RunnerExecutionStatusCode::kOk);
   return EXIT_SUCCESS;
 }
 
@@ -888,11 +930,12 @@ int RunnerMainSequential(const RunnerMainOptions& options) {
     RunSnap(snap, options, run_result);
     if (run_result.outcome != RunSnapOutcome::kAsExpected) {
       LogSnapRunResult(snap, options, run_result);
+      LogExecutionResult(RunnerExecutionStatusCode::kSnapshotFailed);
       LOG_ERROR("Id = ", snap.id, " Iteration #", IntStr(i));
       return EXIT_FAILURE;
     }
   }
-
+  LogExecutionResult(RunnerExecutionStatusCode::kOk);
   return EXIT_SUCCESS;
 }
 

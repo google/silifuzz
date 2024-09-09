@@ -44,7 +44,8 @@ class OrchestratorTest(absltest.TestCase):
     super(OrchestratorTest, cls).setUpClass()
     corpus_paths = [_ENDS_AS_EXPECTED_CORPUS_PATH, _RUNAWAY_CORPUS_PATH]
     for i, original_path in enumerate(corpus_paths):
-      contents = open(original_path, 'rb').read()
+      with open(original_path, 'rb') as f:
+        contents = f.read()
       # Compress one corpus only. The orchestrator can load
       # both corpora with and without compression.
       is_compressed = i > 0
@@ -217,7 +218,9 @@ class OrchestratorTest(absltest.TestCase):
     (err_log, returncode) = self.run_orchestrator(
         ['snap_fail'], extra_args=['--enable_v1_compat_logging']
     )
-    self.assertEqual(returncode, 1)
+    self.assertEqual(
+        returncode, 1, msg='Expected EXIT_FAILURE ' + '\n'.join(err_log)
+    )
     latest_entry = self._parse_v1_log(err_log)
     self.assertGreater(
         int(latest_entry['issues_detected']),
@@ -287,8 +290,47 @@ class OrchestratorTest(absltest.TestCase):
         err_log,
         [
             'corpus: ends_as_expected_corpus',
-            'error: Runner killed by signal 14',
+            'Runner killed by signal 14',
             'exit_status: internal_error',
+        ],
+    )
+
+  def test_checksum_mismatch(self):
+    (err_log, returncode) = self.run_orchestrator(['checksum_mismatch'])
+    self.assertEqual(
+        returncode, 1, msg='Expected EXIT_FAILURE ' + '\n'.join(err_log)
+    )
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            'Snapshot checksum mismatch',
+        ],
+    )
+
+  def test_no_execution_result(self):
+    (err_log, returncode) = self.run_orchestrator(['no_execution_result'])
+    self.assertEqual(returncode, 0)
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            'Missing required execution_result',
+        ],
+    )
+
+  def test_mmap_failed(self):
+    (err_log, returncode) = self.run_orchestrator(['mmap_failed'])
+    self.assertEqual(
+        returncode,
+        0,
+        msg=(
+            'Expected no failure from the orchestrator if the runner fails to'
+            ' map memory'
+        ),
+    )
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            'failed to map memory',
         ],
     )
 

@@ -22,7 +22,6 @@
 
 #include "absl/base/log_severity.h"
 #include "absl/log/check.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -38,16 +37,17 @@ namespace silifuzz {
 
 namespace {
 // Returns a string representation of StatusOr<RunResult>.
-std::string RunResultToDebugString(
-    const absl::StatusOr<RunnerDriver::RunResult> &run_result_or) {
-  if (run_result_or.ok()) {
-    if (run_result_or->success()) {
-      return "ok";
-    } else {
+std::string RunResultToDebugString(const RunnerDriver::RunResult &run_result) {
+  if (run_result.success()) {
+    return "ok";
+  }
+  switch (run_result.execution_result().code) {
+    case RunnerDriver::ExecutionResult::Code::kInternalError:
+      return "internal_error";
+    case RunnerDriver::ExecutionResult::Code::kSnapshotFailed:
       return "snap_fail";
-    }
-  } else {
-    return "internal_error";
+    default:
+      return "unknown";
   }
 }
 }  // namespace
@@ -173,22 +173,25 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
     const InMemoryShard &shard = args.corpora->shards[shard_idx];
     RunnerDriver driver =
         RunnerDriver::ReadingRunner(args.runner, shard.file_path, shard.name);
-    absl::StatusOr<RunnerDriver::RunResult> run_result_or =
-        driver.Run(runner_options);
+    RunnerDriver::RunResult run_result = driver.Run(runner_options);
 
     absl::Duration elapsed_time = absl::Now() - start_time;
 
     std::string log_msg = absl::StrCat(
         "T", args.thread_idx, " cpu: ", args.runner_options.cpu(),
         " corpus: ", shard.name, " time: ", absl::ToInt64Seconds(elapsed_time),
-        " exit_status: ", RunResultToDebugString(run_result_or));
-    if (!run_result_or.ok()) {
-      LOG_ERROR(log_msg, " error: ", run_result_or.status().message());
+        " exit_status: ", RunResultToDebugString(run_result));
+    if (!run_result.execution_result().ok()) {
+      LOG_ERROR(log_msg, " ", run_result.execution_result().DebugString());
+      if (run_result.postfailure_checksum_status() ==
+          RunnerPostfailureChecksumStatus::kMismatch) {
+        LOG_ERROR("Snapshot checksum mismatch");
+      }
     } else {
       VLOG_INFO(0, log_msg);
     }
 
-    if (!ctx->OfferRunResult(std::move(run_result_or))) {
+    if (!ctx->OfferRunResult(std::move(run_result))) {
       LOG_ERROR(
           "T", args.thread_idx,
           " Result processing queue is stuck, some results won't be logged");

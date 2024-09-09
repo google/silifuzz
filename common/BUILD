@@ -179,6 +179,7 @@ cc_library(
         ":snapshot_enums",
         ":snapshot_types",
         "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//proto:snapshot_execution_result_cc_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:platform",

@@ -34,6 +34,10 @@ message SnapshotExecutionResult {
   optional PlayerResult player_result = 2;
 
   // Time when this result was recorded.
+  // NOTE that this field must be preserved for compatibility with older
+  // text-formatted results.
+  // TODO(ksteuck): Revisit once the old data has gone beyond the analysis
+  // horizon (Q2 2025-ish).
   optional google.protobuf.Timestamp time = 3 [deprecated = true];
 }
 

@@ -21,8 +21,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/status/status.h"
-#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "./common/proxy_config.h"
@@ -49,7 +47,6 @@
 namespace silifuzz {
 namespace {
 
-using ::silifuzz::testing::StatusIs;
 using snapshot_types::PlaybackOutcome;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
@@ -58,7 +55,7 @@ using ::testing::Not;
 // Runs the given `snap` and returns the execution result.
 //
 // NOTE: Assumes that the snap is already built into the test helper binary.
-absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
+RunnerDriver::RunResult RunOneSnap(
     TestSnapshot test_snap_type,
     absl::Duration timeout = absl::InfiniteDuration()) {
   RunnerDriver driver = RunnerDriver::ReadingRunner(
@@ -72,22 +69,23 @@ absl::StatusOr<RunnerDriver::RunResult> RunOneSnap(
 }
 
 TEST(RunnerTest, AsExpectedSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kEndsAsExpected));
+  auto result = RunOneSnap(TestSnapshot::kEndsAsExpected);
   ASSERT_TRUE(result.success());
 }
 
 TEST(RunnerTest, RegisterMismatchSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kRegsMismatch));
+  auto result = RunOneSnap(TestSnapshot::kRegsMismatch);
   ASSERT_FALSE(result.success());
-  EXPECT_EQ(result.player_result().outcome,
+  EXPECT_EQ(result.failed_player_result().outcome,
             PlaybackOutcome::kRegisterStateMismatch);
 }
 
 TEST(RunnerTest, MemoryMismatchSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kMemoryMismatch));
+  auto result = RunOneSnap(TestSnapshot::kMemoryMismatch);
   ASSERT_FALSE(result.success());
-  EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kMemoryMismatch);
-  const auto& end_state = *result.player_result().actual_end_state;
+  EXPECT_EQ(result.failed_player_result().outcome,
+            PlaybackOutcome::kMemoryMismatch);
+  const auto& end_state = *result.failed_player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
 
   Snapshot memoryMismatchSnap =
@@ -99,13 +97,12 @@ TEST(RunnerTest, MemoryMismatchSnap) {
 }
 
 TEST(RunnerTest, SigSegvSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result,
-                       RunOneSnap(TestSnapshot::kSigSegvReadFixable));
+  auto result = RunOneSnap(TestSnapshot::kSigSegvReadFixable);
   ASSERT_FALSE(result.success());
-  EXPECT_EQ(result.player_result().outcome,
+  EXPECT_EQ(result.failed_player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
   const Snapshot::EndState& end_state =
-      *result.player_result().actual_end_state;
+      *result.failed_player_result().actual_end_state;
   EXPECT_THAT(end_state.memory_bytes(), Not(IsEmpty()));
   const snapshot_types::Endpoint& ep = end_state.endpoint();
   // sig_address and sig_instruction_address addresses are snapshot-dependent
@@ -126,17 +123,17 @@ TEST(RunnerTest, SigSegvSnap) {
 
 TEST(RunnerTest, SyscallSnap) {
   auto result = RunOneSnap(TestSnapshot::kSyscall);
-  ASSERT_THAT(result,
-              StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
+  ASSERT_FALSE(result.success());
+  ASSERT_THAT(result.execution_result().message, HasSubstr("syscall"));
 }
 
 TEST(RunnerTest, BreakpointSnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kBreakpoint));
+  auto result = RunOneSnap(TestSnapshot::kBreakpoint);
   ASSERT_FALSE(result.success());
-  EXPECT_EQ(result.player_result().outcome,
+  EXPECT_EQ(result.failed_player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
   const snapshot_types::Endpoint& ep =
-      result.player_result().actual_end_state->endpoint();
+      result.failed_player_result().actual_end_state->endpoint();
   Snapshot breakpointSnap =
       MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kBreakpoint);
   GRegSet<Host> gregs;
@@ -155,14 +152,14 @@ TEST(RunnerTest, BreakpointSnap) {
 }
 
 TEST(RunnerTest, RunawaySnap) {
-  ASSERT_OK_AND_ASSIGN(auto result, RunOneSnap(TestSnapshot::kRunaway));
+  auto result = RunOneSnap(TestSnapshot::kRunaway);
   ASSERT_FALSE(result.success());
-  EXPECT_EQ(result.player_result().outcome, PlaybackOutcome::kExecutionRunaway);
+  EXPECT_EQ(result.failed_player_result().outcome,
+            PlaybackOutcome::kExecutionRunaway);
 }
 
 TEST(RunnerTest, Deadline) {
-  ASSERT_OK_AND_ASSIGN(auto result,
-                       RunOneSnap(TestSnapshot::kRunaway, absl::Seconds(2)));
+  auto result = RunOneSnap(TestSnapshot::kRunaway, absl::Seconds(2));
   ASSERT_TRUE(result.success());
 }
 
@@ -180,9 +177,9 @@ TEST(RunnerTest, EmptyCorpus) {
   RunnerDriver driver = RunnerDriver::ReadingRunner(
       RunnerLocation(), path, "", [&path] { unlink(path.c_str()); });
   auto opts = RunnerOptions::Default();
-  ASSERT_OK(driver.Run(opts));
+  ASSERT_TRUE(driver.Run(opts).success());
   opts.set_sequential_mode(true);
-  ASSERT_OK(driver.Run(opts));
+  ASSERT_TRUE(driver.Run(opts).success());
 }
 
 TEST(RunnerTest, UnknownFlags) {
@@ -200,8 +197,10 @@ TEST(RunnerTest, UnknownFlags) {
       RunnerLocation(), path, "", [&path] { unlink(path.c_str()); });
   RunnerOptions opts = RunnerOptions::PlayOptions("<bogus>");
   opts.set_extra_argv({"--foobar=1"});
-  absl::StatusOr<RunnerDriver::RunResult> result = driver.Run(opts);
-  ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument));
+  RunnerDriver::RunResult result = driver.Run(opts);
+  ASSERT_FALSE(result.success());
+  ASSERT_EQ(result.execution_result().code,
+            RunnerDriver::ExecutionResult::Code::kInternalError);
 }
 
 }  // namespace

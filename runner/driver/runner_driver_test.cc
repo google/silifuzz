@@ -20,9 +20,7 @@
 #include <cstdint>
 #include <filesystem>  // NOLINT
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "./common/harness_tracer.h"
 #include "./common/proxy_config.h"
@@ -36,15 +34,12 @@
 #include "./util/itoa.h"
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 namespace {
-using silifuzz::testing::StatusIs;
 using snapshot_types::PlaybackOutcome;
-using ::testing::HasSubstr;
 
 RunnerDriver HelperDriver() {
   return RunnerDriver::ReadingRunner(
@@ -53,54 +48,46 @@ RunnerDriver HelperDriver() {
 
 TEST(RunnerDriver, BasicRun) {
   RunnerDriver driver = HelperDriver();
-  auto run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kEndsAsExpected));
-  ASSERT_OK(run_result_or);
-  ASSERT_TRUE(run_result_or->success());
+  auto run_result = driver.PlayOne(EnumStr(TestSnapshot::kEndsAsExpected));
+  ASSERT_TRUE(run_result.success());
   // Check the rusage looks somewhat reasonable.
-  EXPECT_GE(run_result_or->rusage().ru_maxrss, 4);
-
-  run_result_or = driver.PlayOne(EnumStr(TestSnapshot::kSyscall));
-  ASSERT_THAT(run_result_or,
-              StatusIs(absl::StatusCode::kInternal, HasSubstr("syscall")));
+  EXPECT_GE(run_result.rusage().ru_maxrss, 4);
 }
 
 TEST(RunnerDriver, BasicMake) {
   RunnerDriver driver = HelperDriver();
-  auto make_result_or = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvRead));
-  ASSERT_OK(make_result_or);
-  ASSERT_FALSE(make_result_or->success());
-  ASSERT_EQ(make_result_or->player_result().outcome,
+  auto make_result = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvRead));
+  ASSERT_FALSE(make_result.success());
+  ASSERT_EQ(make_result.failed_player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
-  ASSERT_EQ(make_result_or->snapshot_id(), EnumStr(TestSnapshot::kSigSegvRead));
+  ASSERT_EQ(make_result.failed_snapshot_id(),
+            EnumStr(TestSnapshot::kSigSegvRead));
 }
 
 TEST(RunnerDriver, MaxPageToAddOption) {
   RunnerDriver driver = HelperDriver();
-  auto make_result_or =
-      driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
-                     /*max_pages_to_add=*/0);
-  ASSERT_OK(make_result_or);
-  ASSERT_FALSE(make_result_or->success());
-  ASSERT_EQ(make_result_or->player_result().outcome,
+  auto make_result = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
+                                    /*max_pages_to_add=*/0);
+  ASSERT_FALSE(make_result.success());
+  ASSERT_EQ(make_result.failed_player_result().outcome,
             PlaybackOutcome::kExecutionMisbehave);
-  ASSERT_EQ(make_result_or->snapshot_id(),
+  ASSERT_EQ(make_result.failed_snapshot_id(),
             EnumStr(TestSnapshot::kSigSegvReadFixable));
 
   // Make again with runner adding pages automatically.
-  make_result_or = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
-                                  /*max_pages_to_add=*/1);
-  ASSERT_OK(make_result_or);
-  ASSERT_FALSE(make_result_or->success());
+  make_result = driver.MakeOne(EnumStr(TestSnapshot::kSigSegvReadFixable),
+                               /*max_pages_to_add=*/1);
+  ASSERT_FALSE(make_result.success());
   // The snapshot should complete with a register mismatch instead of
   // a SEGV fault.
-  ASSERT_EQ(make_result_or->player_result().outcome,
+  ASSERT_EQ(make_result.failed_player_result().outcome,
             PlaybackOutcome::kRegisterStateMismatch);
-  ASSERT_EQ(make_result_or->snapshot_id(),
+  ASSERT_EQ(make_result.failed_snapshot_id(),
             EnumStr(TestSnapshot::kSigSegvReadFixable));
 
-  ASSERT_TRUE(make_result_or->player_result().actual_end_state.has_value());
+  ASSERT_TRUE(make_result.failed_player_result().actual_end_state.has_value());
   Snapshot::EndState end_state =
-      make_result_or->player_result().actual_end_state.value();
+      make_result.failed_player_result().actual_end_state.value();
 
   // We should find memory bytes not in the original memory mapping.
   Snapshot snapshot =
@@ -138,11 +125,10 @@ TEST(RunnerDriver, BasicTrace) {
   };
   auto trace_result_or =
       driver.TraceOne(EnumStr(TestSnapshot::kEndsAsExpected), cb);
-  ASSERT_OK(trace_result_or);
-  ASSERT_TRUE(trace_result_or->success());
+  ASSERT_TRUE(trace_result_or.success());
   ASSERT_TRUE(hit_initial_snap_rip);
   // Check the rusage looks somewhat reasonable.
-  EXPECT_GE(trace_result_or->rusage().ru_maxrss, 4);
+  EXPECT_GE(trace_result_or.rusage().ru_maxrss, 4);
 }
 
 TEST(RunnerDriver, Cleanup) {

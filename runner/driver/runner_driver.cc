@@ -51,45 +51,49 @@
 
 namespace silifuzz {
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::PlayOne(
-    absl::string_view snap_id, int cpu) const {
+RunnerDriver::RunResult RunnerDriver::PlayOne(absl::string_view snap_id,
+                                              int cpu) const {
   CHECK(!snap_id.empty());
   return RunImpl(RunnerOptions::PlayOptions(snap_id, cpu), snap_id);
 }
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::MakeOne(
-    absl::string_view snap_id, size_t max_pages_to_add, int cpu) const {
+RunnerDriver::RunResult RunnerDriver::MakeOne(absl::string_view snap_id,
+                                              size_t max_pages_to_add,
+                                              int cpu) const {
   CHECK(!snap_id.empty());
   return RunImpl(RunnerOptions::MakeOptions(snap_id, max_pages_to_add, cpu),
                  snap_id);
 }
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::TraceOne(
-    absl::string_view snap_id, HarnessTracer::Callback cb,
-    size_t num_iterations, int cpu) const {
+RunnerDriver::RunResult RunnerDriver::TraceOne(absl::string_view snap_id,
+                                               HarnessTracer::Callback cb,
+                                               size_t num_iterations,
+                                               int cpu) const {
   CHECK(!snap_id.empty());
   return RunImpl(RunnerOptions::TraceOptions(snap_id, num_iterations, cpu),
                  snap_id, cb);
 }
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::VerifyOneRepeatedly(
+RunnerDriver::RunResult RunnerDriver::VerifyOneRepeatedly(
     absl::string_view snap_id, int num_attempts, int cpu) const {
   CHECK(!snap_id.empty());
   auto opts = RunnerOptions::VerifyOptions(snap_id, cpu);
   for (int i = 0; i < num_attempts - 1; ++i) {
-    RETURN_IF_NOT_OK(RunImpl(opts, snap_id).status());
+    if (auto result = RunImpl(opts, snap_id); !result.success()) {
+      return result;
+    }
   }
   return RunImpl(opts, snap_id);
 }
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::Run(
+RunnerDriver::RunResult RunnerDriver::Run(
     const RunnerOptions& runner_options) const {
   return RunImpl(runner_options);
 }
 
 // Generic entry point for all methods that need to execute the runner binary
 // and handle its output.
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
+RunnerDriver::RunResult RunnerDriver::RunImpl(
     const RunnerOptions& runner_options, absl::string_view snap_id,
     std::optional<HarnessTracer::Callback> trace_cb) const {
   std::vector<std::string> argv = {binary_path_};
@@ -135,7 +139,9 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
   }
 
   Subprocess runner_proc(options);
-  RETURN_IF_NOT_OK(runner_proc.Start(argv));
+  if (auto s = runner_proc.Start(argv); !s.ok()) {
+    return RunResult::InternalError(s.message());
+  }
 
   std::unique_ptr<HarnessTracer> tracer = nullptr;
   if (trace_cb.has_value()) {
@@ -158,11 +164,11 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::RunImpl(
   return HandleRunnerOutput(runner_stdout, info, snap_id);
 }
 
-absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
+RunnerDriver::RunResult RunnerDriver::HandleRunnerOutput(
     absl::string_view runner_stdout, const ProcessInfo& info,
     absl::string_view snapshot_id) const {
   VLOG_INFO(3, absl::StrCat("Snapshot [", snapshot_id,
-                            "] runner exit status = ", HexStr(info.status)));
+                            "] runner exit status = ", info.status));
   if (WIFSIGNALED(info.status)) {
     int sig_num = WTERMSIG(info.status);
     if (sig_num == SIGINT) {
@@ -172,9 +178,9 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
     }
     if (sig_num == SIGSYS) {
       // The process died with SIGSYS because an unexpected syscall was made.
-      return absl::InternalError("Snapshot made a syscall");
+      return RunResult::InternalError("Snapshot made a syscall");
     }
-    return absl::InternalError(
+    return RunResult::InternalError(
         absl::StrCat("Runner killed by signal ", sig_num));
   }
   if (WIFEXITED(info.status)) {
@@ -196,32 +202,50 @@ absl::StatusOr<RunnerDriver::RunResult> RunnerDriver::HandleRunnerOutput(
       return RunResult::Successful(info.rusage);
     }
     google::protobuf::TextFormat::Parser parser;
-    proto::SnapshotExecutionResult exec_result_proto;
-    if (!parser.ParseFromString(runner_stdout, &exec_result_proto)) {
-      return absl::InternalError(
-          absl::StrCat("couldn't parse [", runner_stdout,
-                       "] as proto::SnapshotExecutionResult. Exit status = ",
-                       HexStr(info.status)));
+    proto::RunnerOutput runner_output_proto;
+    if (!parser.ParseFromString(runner_stdout, &runner_output_proto)) {
+      return RunResult::InternalError(absl::StrCat(
+          "couldn't parse [", runner_stdout,
+          "] as proto::RunnerOutput. Exit status = ", info.status));
     }
+
+    if (!runner_output_proto.has_execution_result()) {
+      return RunResult::InternalError("Missing required execution_result");
+    }
+    ExecutionResult execution_result = ExecutionResult{
+        .code = static_cast<ExecutionResult::Code>(
+            runner_output_proto.execution_result().code()),
+        .message = runner_output_proto.execution_result().msg(),
+    };
+
+    if (!runner_output_proto.has_failed_snapshot_execution()) {
+      return RunResult::FromExecutionResult(execution_result, info.rusage);
+    }
+
+    const proto::SnapshotExecutionResult& exec_result_proto =
+        runner_output_proto.failed_snapshot_execution();
     if (!snapshot_id.empty() &&
         exec_result_proto.snapshot_id() != snapshot_id) {
-      // This catches all runner crashes due to mmap errors etc.
-      return absl::InternalError(absl::StrCat(
+      return RunResult::InternalError(absl::StrCat(
           "Runner misbehaved: got id [", exec_result_proto.snapshot_id(),
           "] expected ", snapshot_id, ". Exit status = ", info.status));
     }
-    absl::StatusOr<PlayerResult> player_result_or =
+    absl::StatusOr<PlayerResult> player_result =
         PlayerResultProto::FromProto(exec_result_proto.player_result());
-    RETURN_IF_NOT_OK_PLUS(player_result_or.status(),
-                          "PlayerResultProto::FromProto: ");
-    if (!player_result_or->actual_end_state.has_value()) {
-      return absl::InternalError(
+    if (!player_result.status().ok()) {
+      return RunResult::InternalError(absl::StrCat(
+          "PlayerResultProto::FromProto: ", player_result.status().message()));
+    }
+    if (!player_result->actual_end_state.has_value()) {
+      return RunResult::InternalError(
           absl::StrCat(exec_result_proto, " has no actual_end_state"));
     }
-    return RunResult(*player_result_or, info.rusage,
-                     exec_result_proto.snapshot_id());
+    return RunResult(execution_result, *player_result, info.rusage,
+                     exec_result_proto.snapshot_id(),
+                     static_cast<RunnerPostfailureChecksumStatus>(
+                         runner_output_proto.postfailure_checksum_status()));
   }
-  return absl::InternalError(
+  return RunResult::InternalError(
       absl::StrCat("Unknown runner exit status ", info.status));
 }
 
@@ -242,8 +266,8 @@ absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
     memfd_name.resize(kMaxNameLength);
   }
 
-  // Allocate an anonymous memfile, copy the relocatable buffer contents there,
-  // then seal the file to prevent any future writes.
+  // Allocate an anonymous memfile, copy the relocatable buffer contents
+  // there, then seal the file to prevent any future writes.
   // TODO(ksteuck): [impl] We can also augment GenerateRelocatableSnaps() API
   // to take a buffer parameter and avoid the extra copy.
   int memfd = memfd_create(memfd_name.c_str(),
@@ -272,8 +296,8 @@ absl::StatusOr<RunnerDriver> RunnerDriverFromSnapshot(
   // memory.
   // Possible alternatives to this are:
   //  * /proc/self/fd/$memfd (remove MDF_CLOEXEC above) -- the runner will
-  //    access its own FD corresponding to the same in-mem file. This will leak
-  //    details of RunnerDriver implementation.
+  //    access its own FD corresponding to the same in-mem file. This will
+  //    leak details of RunnerDriver implementation.
   //  * pass an extra --fd=$memfd to the runner or implement fd:// schema in
   //    the runner. This option requires runner changes and introduces added
   //    complexity around determining the file size.

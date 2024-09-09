@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
@@ -38,6 +39,9 @@ namespace silifuzz {
 
 using snapshot_types::PlaybackOutcome;
 using snapshot_types::PlaybackResult;
+using snapshot_types::RunnerPostfailureChecksumStatus;
+
+class RunResultPeer;
 
 // RunnerDriver wraps a SiliFuzz runner (aka v2 player) binary and provides
 // helpers to Play()/Make()/Trace() individual snapshots contained in the
@@ -46,12 +50,30 @@ using snapshot_types::PlaybackResult;
 // This class is thread-compatible.
 class RunnerDriver {
  public:
+  struct ExecutionResult {
+    using Code = snapshot_types::RunnerExecutionStatusCode;
+    Code code;
+    std::string message;
+
+    bool ok() const { return code == Code::kOk; }
+    static ExecutionResult OkResult() { return ExecutionResult{Code::kOk, ""}; }
+    static ExecutionResult InternalError(absl::string_view message) {
+      return ExecutionResult{Code::kInternalError, std::string(message)};
+    }
+    static ExecutionResult SnapshotFailed(absl::string_view message) {
+      return ExecutionResult{Code::kSnapshotFailed, std::string(message)};
+    }
+
+    std::string DebugString() const {
+      return absl::StrCat("ExecutionResult {code:", code, " error:", message,
+                          "}");
+    }
+  };
   using PlayerResult = PlaybackResult<Snapshot::EndState>;
+
   // Represents result of the runner binary invocation. Contains a success bit
   // and an optional PlayerResult representing the result of Snap playback.
   //
-  // TODO(ksteuck): [as-needed] Finer-grained error codes needed to handle
-  // conditions like "unmappable memory page" or "memory page conflict".
   // TODO(ksteuck): [as-needed] While the runner provides a way to tell if
   // an unexpected syscall was made, this class does not model that state and
   // relies on higher-level StatusOr to capture the fact. If finer-grained
@@ -59,19 +81,19 @@ class RunnerDriver {
   // side + some handling logic here.
   class RunResult {
    public:
-    // Constructs a new RunResult from the given `player_result`. The success()
-    // value is determined by player_result.outcome == kAsExpected.
-    explicit RunResult(const PlayerResult& player_result,
-                       const struct rusage& rusage,
-                       absl::string_view snapshot_id = "")
-        : success_(player_result.outcome == PlaybackOutcome::kAsExpected),
-          player_result_(player_result),
-          snapshot_id_(snapshot_id),
-          rusage_(rusage) {}
-
     // Construct a success()-ful RunResult with no attached player_result.
     static RunResult Successful(const struct rusage& rusage) {
-      return RunResult(true, rusage);
+      return RunResult(ExecutionResult::OkResult(), std::nullopt, rusage);
+    }
+
+    static RunResult FromExecutionResult(
+        const ExecutionResult& execution_result, const struct rusage& rusage) {
+      return RunResult(execution_result, std::nullopt, rusage);
+    }
+
+    static RunResult InternalError(absl::string_view error_message) {
+      return RunResult(ExecutionResult::InternalError(error_message),
+                       std::nullopt, {});
     }
 
     // Tests if the execution was successful.
@@ -80,27 +102,54 @@ class RunnerDriver {
     // Snapshot ID if there's any associated with the current Result.
     // REQUIRES: !success()
     // Only populated if the runner process reported the snapshot id.
-    const std::string& snapshot_id() const {
+    const std::string& failed_snapshot_id() const {
       CHECK(!success());
       return snapshot_id_;
     }
 
+    bool has_failed_player_result() const { return player_result_.has_value(); }
+
     // Returns the contained PlayerResult object.
-    // REQUIRES !success()
+    // REQUIRES has_failed_player_result() == true.
     // PROVIDES player_result.actual_end_state().has_value() == true
-    const PlayerResult& player_result() const {
-      CHECK(!success());
+    const PlayerResult& failed_player_result() const {
+      CHECK(has_failed_player_result());
       return *player_result_;
     }
 
     // Information about the resource usage of the run.
     const struct rusage& rusage() const { return rusage_; }
 
+    // Returns the contained ExecutionResult object.
+    const ExecutionResult& execution_result() const {
+      return execution_result_;
+    }
+
+    // Returns the status of the post-failure checksum validation.
+    // REQUIRES !success()
+    RunnerPostfailureChecksumStatus postfailure_checksum_status() const {
+      CHECK(!success());
+      return postfailure_checksum_status_;
+    }
+
    private:
-    // Constructs a new RunResult with the given success status and no
-    // associated `player_result`.
-    explicit RunResult(bool success, const struct rusage& rusage)
-        : success_(success), player_result_(std::nullopt), rusage_(rusage) {}
+    RunResult(const ExecutionResult& execution_result,
+              const std::optional<PlayerResult>& player_result,
+              const struct rusage& rusage, absl::string_view snapshot_id = "",
+              RunnerPostfailureChecksumStatus postfailure_checksum_status =
+                  RunnerPostfailureChecksumStatus::kNotChecked)
+        : success_(execution_result.ok()),
+          player_result_(player_result),
+          snapshot_id_(snapshot_id),
+          rusage_(rusage),
+          execution_result_(execution_result),
+          postfailure_checksum_status_(postfailure_checksum_status) {
+      // Cross check that overall execution result matches player outcome.
+      CHECK_EQ(execution_result.ok(), success_);
+    }
+
+    friend class RunnerDriver;
+    friend class RunResultPeer;
 
     // Was the execution successful.
     bool success_;
@@ -112,6 +161,10 @@ class RunnerDriver {
     std::string snapshot_id_;
 
     struct rusage rusage_;
+
+    ExecutionResult execution_result_;
+
+    RunnerPostfailureChecksumStatus postfailure_checksum_status_;
   };
 
   // Creates a RunnerDriver for a binary with baked-in corpus.
@@ -142,45 +195,38 @@ class RunnerDriver {
 
   // Runs `snap_id` in play mode.
   // REQUIRES snap_id is not empty.
-  absl::StatusOr<RunResult> PlayOne(absl::string_view snap_id,
-                                    int cpu = kAnyCPUId) const;
+  RunResult PlayOne(absl::string_view snap_id, int cpu = kAnyCPUId) const;
 
   // Runs `snap_id` in make mode (see comments in runner.cc).
   // During making, up to 'max_pages_to_add' pages are added to the snapshot.
   // Making fails if more pages are required. If 'max_pages_to_add' is 0,
   // the runner does not add any new page and the caller of the runner driver
   // need to add necessary pages in the making process.
-  absl::StatusOr<RunResult> MakeOne(absl::string_view snap_id,
-                                    size_t max_pages_to_add = 0,
-                                    int cpu = kAnyCPUId) const;
+  RunResult MakeOne(absl::string_view snap_id, size_t max_pages_to_add = 0,
+                    int cpu = kAnyCPUId) const;
 
   // Traces `snap_id` in single-step mode and invokes the provided callback for
   // every instruction of the snapshot. This runs the snapshot `num_iterations`
   // times.
-  absl::StatusOr<RunResult> TraceOne(absl::string_view snap_id,
-                                     HarnessTracer::Callback cb,
-                                     size_t num_iterations = 1,
-                                     int cpu = kAnyCPUId) const;
+  RunResult TraceOne(absl::string_view snap_id, HarnessTracer::Callback cb,
+                     size_t num_iterations = 1, int cpu = kAnyCPUId) const;
 
   // Ensures that `snap_id` replays deterministically.
   // REQUIRES snap_id is not empty.
-  absl::StatusOr<RunResult> VerifyOneRepeatedly(absl::string_view snap_id,
-                                                int num_attempts,
-                                                int cpu = kAnyCPUId) const;
+  RunResult VerifyOneRepeatedly(absl::string_view snap_id, int num_attempts,
+                                int cpu = kAnyCPUId) const;
 
   // Runs the runner binary with the provided runner_options.
   //
   // Unlike the *One() family of methods above this is a more generic way of
   // calling the binary that is intended for screening.
-  absl::StatusOr<RunResult> Run(const RunnerOptions& runner_options) const;
+  RunResult Run(const RunnerOptions& runner_options) const;
 
  private:
   // Wraps the binary at `binary_path`. When `corpus_path` not empty, it will
   // be passed as the last argument to the binary.
-  explicit RunnerDriver(absl::string_view binary_path,
-                        absl::string_view corpus_path,
-                        absl::string_view corpus_name,
-                        std::function<void()> cleanup)
+  RunnerDriver(absl::string_view binary_path, absl::string_view corpus_path,
+               absl::string_view corpus_name, std::function<void()> cleanup)
       : binary_path_(binary_path),
         corpus_path_(corpus_path),
         corpus_name_(corpus_name),
@@ -207,13 +253,13 @@ class RunnerDriver {
     kFailure = 1,
     kTimeout = 2,
   };
-  absl::StatusOr<RunResult> RunImpl(
+  RunResult RunImpl(
       const RunnerOptions& runner_options, absl::string_view snap_id = "",
       std::optional<HarnessTracer::Callback> trace_cb = std::nullopt) const;
 
-  absl::StatusOr<RunResult> HandleRunnerOutput(
-      absl::string_view runner_stdout, const ProcessInfo& info,
-      absl::string_view snapshot_id = "") const;
+  RunResult HandleRunnerOutput(absl::string_view runner_stdout,
+                               const ProcessInfo& info,
+                               absl::string_view snapshot_id = "") const;
 
   // C-tor parameters.
   std::string binary_path_;

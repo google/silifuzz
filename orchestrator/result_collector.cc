@@ -90,9 +90,9 @@ absl::StatusOr<proto::BinaryLogEntry> RunResultToSnapshotExecutionResult(
   proto::BinaryLogEntry entry;
   proto::SnapshotExecutionResult *snapshot_execution_result =
       entry.mutable_snapshot_execution_result();
-  snapshot_execution_result->set_snapshot_id(run_result.snapshot_id());
+  snapshot_execution_result->set_snapshot_id(run_result.failed_snapshot_id());
   RETURN_IF_NOT_OK(PlayerResultProto::ToProto(
-      run_result.player_result(),
+      run_result.failed_player_result(),
       *snapshot_execution_result->mutable_player_result()));
 
   snapshot_execution_result->set_hostname(std::string(ShortHostname()));
@@ -123,8 +123,8 @@ void LogV1SingleSnapFailure(const RunnerDriver::RunResult &run_result) {
       absl::GetFlag(FLAGS_enable_v1_compat_logging);
   if (!enable_v1_compat_logging) return;
   std::cerr << "Silifuzz detected issue on CPU "
-            << run_result.player_result().cpu_id << " running snapshot "
-            << run_result.snapshot_id() << '\n';
+            << run_result.failed_player_result().cpu_id << " running snapshot "
+            << run_result.failed_snapshot_id() << std::endl;
 }
 
 // Logs V1-style summary e.g.
@@ -151,7 +151,7 @@ void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
             << ", snapshot_execution_errors = 0"
             << ", runaway_count = " << summary.num_runaway_snapshots
             << ", max_rss_kb = " << max_rss_kb
-            << ", had_checker_misconfigurations = false}" << '\n';
+            << ", had_checker_misconfigurations = false}" << std::endl;
 }
 
 }  // namespace
@@ -175,23 +175,33 @@ bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
   max_rss_kb_ = std::max(max_rss_kb_, MaxRunnerRssSizeBytes(getpid()) / 1024);
   bool should_stop = false;
   if (!result.success()) {
-    if (result.player_result().outcome ==
-        snapshot_types::PlaybackOutcome::kExecutionRunaway) {
-      summary_.num_runaway_snapshots++;
-      if (!options_.report_runaways_as_errors) return false;
+    if (!result.execution_result().ok()) {
+      // TODO(ksteuck) Report the error to `binary_log_producer_`.
+      VLOG_INFO(1, result.execution_result().DebugString());
     }
-    ++summary_.num_failed_snapshots;
-    LogV1SingleSnapFailure(result);
-    absl::StatusOr<proto::BinaryLogEntry> entry_or =
-        RunResultToSnapshotExecutionResult(result, absl::Now(), session_id_);
-    if (entry_or.ok()) {
-      if (binary_log_producer_) {
-        if (absl::Status s = binary_log_producer_->Send(*entry_or); !s.ok()) {
-          LOG_ERROR(s.message());
-        }
+    if (result.has_failed_player_result()) {
+      // Currently, only explicitly failed snapshots count towards the overall
+      // failure status.
+      // TODO(ksteuck) Consider what non-successful execution_result codes
+      // should be considered as failures.
+      if (result.failed_player_result().outcome ==
+          snapshot_types::PlaybackOutcome::kExecutionRunaway) {
+        summary_.num_runaway_snapshots++;
+        if (!options_.report_runaways_as_errors) return false;
       }
-    } else {
-      LOG_ERROR(entry_or.status().message());
+      ++summary_.num_failed_snapshots;
+      LogV1SingleSnapFailure(result);
+      absl::StatusOr<proto::BinaryLogEntry> entry =
+          RunResultToSnapshotExecutionResult(result, absl::Now(), session_id_);
+      if (entry.ok()) {
+        if (binary_log_producer_) {
+          if (absl::Status s = binary_log_producer_->Send(*entry); !s.ok()) {
+            LOG_ERROR(s.message());
+          }
+        }
+      } else {
+        LOG_ERROR(entry.status().message());
+      }
     }
     should_stop = (--options_.fail_after_n_errors <= 0);
   }

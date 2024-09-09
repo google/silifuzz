@@ -428,23 +428,18 @@ bool SnapToolMain(std::vector<char*>& args) {
       line_printer.Line("Could not play snapshot: ",
                         runner_or.status().ToString());
     }
-    auto result_or = runner_or->PlayOne(snapshot.id());
-    if (!result_or.ok()) {
-      line_printer.Line("Could not play snapshot: ",
-                        result_or.status().ToString());
-      return false;
-    }
-    if (result_or->success()) {
+    auto result = runner_or->PlayOne(snapshot.id());
+    if (result.success()) {
       line_printer.Line("Snapshot played successfully.");
       return true;
     } else {
-      RunnerDriver::PlayerResult player_result = result_or->player_result();
+      const RunnerDriver::PlayerResult& player_result =
+          result.failed_player_result();
       line_printer.Line("Snapshot played with outcome = ",
                         EnumStr(player_result.outcome));
       line_printer.Line("Actual end state reached:");
       SnapshotPrinter printer(&line_printer);
-      printer.PrintActualEndState(snapshot,
-                                  *result_or->player_result().actual_end_state);
+      printer.PrintActualEndState(snapshot, *player_result.actual_end_state);
       return false;
     }
   } else if (command == "make") {
