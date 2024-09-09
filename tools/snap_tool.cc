@@ -233,10 +233,10 @@ absl::Status Trace(const Snapshot& snapshot, PlatformId platform_id,
   // If there's an existing (possibly, legacy) snapshot with non-deterministic
   // instructions just trace it.
   trace_options.filter_non_deterministic_insn = false;
-  DisassemblingSnapTracer tracer(snapshot, trace_options);
+  DisassemblingSnapTracer tracer(snapified, trace_options);
   auto trace_fn = absl::bind_front(&DisassemblingSnapTracer::Step, &tracer);
   absl::StatusOr<RunnerDriver::RunResult> trace_result =
-      runner.TraceOne(snapshot.id(), trace_fn);
+      runner.TraceOne(snapified.id(), trace_fn);
   DisassemblingSnapTracer::TraceResult trace_data = tracer.trace_result();
   for (const std::string& s : trace_data.disassembly) {
     line_printer->Line(s);
