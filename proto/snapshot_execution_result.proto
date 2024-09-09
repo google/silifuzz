@@ -36,3 +36,58 @@ message SnapshotExecutionResult {
   // Time when this result was recorded.
   optional google.protobuf.Timestamp time = 3 [deprecated = true];
 }
+
+// RunnerOutput represents the result of a single runner execution.
+message RunnerOutput {
+  // Overall execution result.
+  message ExecutionResult {
+    enum StatusCode {
+      INTERNAL_ERROR = 0;
+
+      // Runner executed successfully.
+      OK = 1;
+
+      // Runner crashed due to an unhandled signal.
+      UNHANDLED_SIGNAL = 2;
+
+      // Runner failed to mmap a memory mapping.
+      MMAP_FAILED = 3;
+
+      // Runner detected overlapping memory mappings.
+      OVERLAPPING_MAPPINGS = 4;
+
+      // Runner detected a checksum mismatch before running any tests.
+      INITIAL_CHECKSUM_MISMATCH = 5;
+
+      // One of the snapshots failed to execute. Inspect
+      // `failed_snapshot_execution` for details.
+      SNAPSHOT_FAILED = 6;
+    }
+
+    // Status code for this execution. Semantically required.
+    optional StatusCode code = 1;
+
+    // An optional human-readable message.
+    optional string msg = 2;
+  }
+  // Semantically required.
+  optional ExecutionResult execution_result = 1;
+
+  // An optional failed snapshot execution result.
+  optional SnapshotExecutionResult failed_snapshot_execution = 2;
+
+  enum ChecksumStatus {
+    // No checksum was present in the snapshot or the checksum was not
+    // computed.
+    NOT_CHECKED = 0;
+
+    // The checksum matched.
+    MATCH = 1;
+
+    // The checksum did not match.
+    MISMATCH = 2;
+  }
+
+  // Memory checksum status after the snapshot failed (if any).
+  optional ChecksumStatus postfailure_checksum_status = 3;
+}
