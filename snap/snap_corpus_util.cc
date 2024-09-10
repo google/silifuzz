@@ -48,7 +48,9 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
 
   VLOG_INFO(1, "Loading corpus from ", filename);
   int fd = open(filename, O_RDONLY);
-  CHECK_NE(fd, -1);
+  if (fd == -1) {
+    LOG_FATAL("Failed to open corpus file ", filename, ": ", ErrnoStr(errno));
+  }
   // Use lseek() instead of stat() to find file size as stat() is not
   // present in nolibc.
   off_t file_size = lseek(fd, 0, SEEK_END);
@@ -64,7 +66,9 @@ MmappedMemoryPtr<const SnapCorpus<Arch>> LoadCorpusFromFile(
   SnapRelocatorError error;
   MmappedMemoryPtr<const SnapCorpus<Arch>> corpus =
       SnapRelocator<Arch>::RelocateCorpus(std::move(mapped), verify, &error);
-  CHECK(error == SnapRelocatorError::kOk);
+  if (error != SnapRelocatorError::kOk) {
+    LOG_FATAL("Failed to relocate corpus code=", IntStr(ToInt(error)));
+  }
   VLOG_INFO(1, "Corpus size (snapshots) ", IntStr(corpus->snaps.size));
 
   // Return the fd if it was requested.

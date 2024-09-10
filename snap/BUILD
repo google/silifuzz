@@ -72,6 +72,7 @@ cc_library_plus_nolibc(
         ":snap_checksum",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@silifuzz//util:misc_util",
         "@silifuzz//util:mmapped_memory_ptr",
     ],
 )

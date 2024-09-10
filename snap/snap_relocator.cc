@@ -23,6 +23,7 @@
 #include "./snap/snap_checksum.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/misc_util.h"  // IWYU pragma: keep
 #include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
@@ -82,10 +83,14 @@ RelocationIterator(SnapArray<T>&) -> RelocationIterator<T>;
 }  // namespace
 
 // Similar to RETURN_IF_NOT_OK() but for SnapRelocator::Error.
-#define RETURN_IF_RELOCATION_FAILED(exp)                \
-  do {                                                  \
-    const SnapRelocatorError error = (exp);             \
-    if (error != SnapRelocatorError::kOk) return error; \
+#define RETURN_IF_RELOCATION_FAILED(exp)         \
+  do {                                           \
+    const SnapRelocatorError error = (exp);      \
+    if (error != SnapRelocatorError::kOk) {      \
+      VLOG_INFO(0, "Relocation failed: " #exp,   \
+                " code=", IntStr(ToInt(error))); \
+      return error;                              \
+    }                                            \
   } while (0)
 
 template <typename Arch>
