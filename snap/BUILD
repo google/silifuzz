@@ -165,6 +165,7 @@ cc_library_plus_nolibc(
     deps = [
         ":snap",
         ":snap_relocator",
+        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",

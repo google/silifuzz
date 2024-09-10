@@ -19,15 +19,18 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstdio>
 #include <memory>
 #include <utility>
 
 #include "./snap/snap.h"
 #include "./snap/snap_relocator.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/misc_util.h"
+#include "./util/mmapped_memory_ptr.h"
 
 namespace silifuzz {
 
@@ -83,7 +86,9 @@ LoadCorpusFromFile<AArch64>(const char* filename, bool preload, bool verify,
 ArchitectureId CorpusFileArchitecture(const char* filename) {
   ArchitectureId arch = ArchitectureId::kUndefined;
   int fd = open(filename, O_RDONLY);
-  CHECK_NE(fd, -1);
+  if (fd == -1) {
+    LOG_FATAL("Failed to open corpus file ", filename, ": ", ErrnoStr(errno));
+  }
 
   SnapCorpusHeader header;
   int bytes_read = read(fd, &header, sizeof(header));
