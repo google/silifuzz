@@ -21,5 +21,6 @@ RUNNER="${TEST_SRCDIR}/silifuzz/fuzzer/hashtest/hashtest_runner"
 readonly RUNNER
 
 ${RUNNER} --seed 123 --tests 10000 --inputs 5 --repeat 5
+${RUNNER} --seed 123 --tests 10000 --inputs 5 --repeat 5 --time 1s
 
 echo "PASS"

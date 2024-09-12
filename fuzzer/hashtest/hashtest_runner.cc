@@ -155,6 +155,9 @@ void ResultReporter::CheckIn() {
     std::cout << hits.size() << " hits" << "\n";
     next_update = now + update_period;
   }
+  if (now >= testing_deadline) {
+    SetShouldHalt();
+  }
 }
 
 void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
@@ -254,7 +257,7 @@ void RunTest(size_t test_index, const Test& test, const TestConfig& config,
   }
 }
 
-void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
+bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
               size_t test_offset, ThreadStats& stats, ResultReporter& result) {
   // Repeat the batch.
@@ -280,9 +283,13 @@ void RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
         if (stats.num_run % 100000 == 0) {
           result.CheckIn();
         }
+        if (result.ShouldHalt()) {
+          return false;
+        }
       }
     }
   }
+  return true;
 }
 
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
@@ -290,9 +297,13 @@ void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               size_t test_offset, ThreadStats& stats, ResultReporter& result) {
   for (size_t g = 0; g < tests.size(); g += config.batch_size) {
     size_t batch_size = std::min(config.batch_size, tests.size() - g);
-    RunBatch(tests.subspan(g, batch_size), inputs,
-             end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
-             config, test_offset + g, stats, result);
+    bool keep_running = RunBatch(
+        tests.subspan(g, batch_size), inputs,
+        end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
+        config, test_offset + g, stats, result);
+    if (!keep_running) {
+      return;
+    }
   }
 }
 

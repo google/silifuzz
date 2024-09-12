@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <optional>
 #include <random>
 #include <vector>
@@ -52,6 +53,9 @@ ABSL_FLAG(size_t, iterations, 100,
           "Number of internal iterations for each test.");
 ABSL_FLAG(std::optional<uint64_t>, seed, std::nullopt,
           "Fixed seed to use for random number generation.");
+ABSL_FLAG(std::optional<absl::Duration>, time, std::nullopt,
+          "Time limit for testing. For example: 1m30s. If specified, will "
+          "generate and test corpora until the time limit is hit.");
 
 ABSL_FLAG(bool, verbose, false, "Print additional debugging information.");
 
@@ -185,6 +189,8 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
 }
 
 int TestMain(std::vector<char*> positional_args) {
+  absl::Time test_started = absl::Now();
+
   InitXedIfNeeded();
 
   std::cout << "Version: " << kHashTestVersionMajor << "."
@@ -264,6 +270,12 @@ int TestMain(std::vector<char*> positional_args) {
   std::vector<Input> inputs = GenerateInputs(input_rng, num_inputs);
 
   ResultReporter result;
+
+  std::optional<absl::Duration> maybe_time = absl::GetFlag(FLAGS_time);
+  if (maybe_time.has_value()) {
+    result.testing_deadline = test_started + maybe_time.value();
+    num_corpora = std::numeric_limits<typeof(num_corpora)>::max();
+  }
 
   std::vector<ThreadStats> stats(workers.NumWorkers());
   for (size_t c = 0; c < num_corpora; ++c) {
@@ -349,6 +361,10 @@ int TestMain(std::vector<char*> positional_args) {
     });
     test_time += absl::Now() - begin;
     tests_run += corpus.tests.size();
+
+    if (result.ShouldHalt()) {
+      break;
+    }
   }
 
   // Aggregate thread stats.

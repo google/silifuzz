@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_HASHTEST_RUNNER_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_HASHTEST_RUNNER_H_
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <random>
@@ -206,13 +207,23 @@ struct Hit {
 struct ResultReporter {
   ResultReporter(absl::Duration update_period = absl::Seconds(10))
       : update_period(update_period),
-        next_update(absl::Now() + update_period) {}
+        next_update(absl::Now() + update_period),
+        testing_deadline(absl::InfiniteFuture()),
+        should_halt(false) {}
   // Called periodically to produce a heartbeat.
   void CheckIn();
 
   // Called for every hit.
   void ReportHit(int cpu, size_t test_index, const Test& test,
                  size_t input_index, const Input& input);
+
+  inline void SetShouldHalt() {
+    return should_halt.store(true, std::memory_order_relaxed);
+  }
+
+  inline bool ShouldHalt() const {
+    return should_halt.load(std::memory_order_relaxed);
+  }
 
   // It's usually much more compact to collect each hit rather than keep
   // per-test statistics. We can always recreate those statistics later from the
@@ -222,6 +233,13 @@ struct ResultReporter {
   absl::Mutex mutex;
   absl::Duration update_period;
   absl::Time next_update;
+
+  // The time at which we should interrupt testing and exit.
+  absl::Time testing_deadline;
+
+  // A flag that indicates if we should stop running tests.
+  // TODO(ncbray): ensure this value is on a relatively immutable cache line.
+  std::atomic<bool> should_halt;
 };
 
 struct ThreadStats {
