@@ -274,7 +274,7 @@ int TestMain(std::vector<char*> positional_args) {
   std::optional<absl::Duration> maybe_time = absl::GetFlag(FLAGS_time);
   if (maybe_time.has_value()) {
     result.testing_deadline = test_started + maybe_time.value();
-    num_corpora = std::numeric_limits<typeof(num_corpora)>::max();
+    num_corpora = std::numeric_limits<size_t>::max();
   }
 
   std::vector<ThreadStats> stats(workers.NumWorkers());
