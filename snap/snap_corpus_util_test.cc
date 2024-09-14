@@ -22,15 +22,15 @@
 #include "gtest/gtest.h"
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_test_enum.h"
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/gen/snap_generator.h"
 #include "./snap/testing/snap_test_snapshots.h"
-#include "./snap/testing/snap_test_types.h"
+#include "./util/arch.h"
 #include "./util/file_util.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
-#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {

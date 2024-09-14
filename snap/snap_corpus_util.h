@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_SNAP_SNAP_CORPUS_UTIL_H_
 
 #include "./snap/snap.h"
+#include "./util/arch.h"
 #include "./util/mmapped_memory_ptr.h"
 
 // Library for handling relocatable snap corpus.
