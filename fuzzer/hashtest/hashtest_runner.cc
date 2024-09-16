@@ -152,7 +152,7 @@ void ResultReporter::CheckIn() {
   absl::MutexLock lock(&mutex);
   absl::Time now = absl::Now();
   if (now >= next_update) {
-    std::cout << hits.size() << " hits" << "\n";
+    std::cout << hits.size() << " hits" << std::endl;
     next_update = now + update_period;
   }
   if (now >= testing_deadline) {

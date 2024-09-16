@@ -183,7 +183,7 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
   // Try to guess which end states are correct, based on the redundancy.
   size_t bad =
       ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
-  std::cout << "Failed to reconcile " << bad << " end states." << "\n";
+  std::cout << "Failed to reconcile " << bad << " end states." << std::endl;
 
   return end_states;
 }
@@ -194,7 +194,8 @@ int TestMain(std::vector<char*> positional_args) {
   InitXedIfNeeded();
 
   std::cout << "Version: " << kHashTestVersionMajor << "."
-            << kHashTestVersionMinor << "." << kHashTestVersionPatch << "\n";
+            << kHashTestVersionMinor << "." << kHashTestVersionPatch
+            << std::endl;
 
   // Alow the platform to be overridden.
   PlatformId platform = absl::GetFlag(FLAGS_platform);
@@ -206,11 +207,11 @@ int TestMain(std::vector<char*> positional_args) {
   QCHECK_NE(chip, XED_CHIP_INVALID)
       << "Unsupported platform: " << EnumStr(platform);
 
-  std::cout << "Platform: " << EnumStr(platform) << "\n";
+  std::cout << "Platform: " << EnumStr(platform) << std::endl;
 
   size_t vector_width = ChipVectorRegisterWidth(chip);
-  std::cout << "Vector width: " << vector_width << "\n";
-  std::cout << "Mask width: " << ChipMaskRegisterWidth(chip) << "\n";
+  std::cout << "Vector width: " << vector_width << std::endl;
+  std::cout << "Mask width: " << ChipMaskRegisterWidth(chip) << std::endl;
 
   size_t num_corpora = absl::GetFlag(FLAGS_corpora);
   size_t num_tests = absl::GetFlag(FLAGS_tests);
@@ -225,17 +226,17 @@ int TestMain(std::vector<char*> positional_args) {
   std::random_device hardware_rng{};
   uint64_t seed = maybe_seed.value_or(GetSeed(hardware_rng));
 
-  std::cout << "\n";
-  std::cout << "Corpora: " << num_corpora << "\n";
-  std::cout << "Tests: " << num_tests << "\n";
-  std::cout << "Batch size: " << batch_size << "\n";
-  std::cout << "Inputs: " << num_inputs << "\n";
-  std::cout << "Repeat: " << num_repeat << "\n";
-  std::cout << "Iterations: " << num_iterations << "\n";
+  std::cout << std::endl;
+  std::cout << "Corpora: " << num_corpora << std::endl;
+  std::cout << "Tests: " << num_tests << std::endl;
+  std::cout << "Batch size: " << batch_size << std::endl;
+  std::cout << "Inputs: " << num_inputs << std::endl;
+  std::cout << "Repeat: " << num_repeat << std::endl;
+  std::cout << "Iterations: " << num_iterations << std::endl;
 
   // Display seed so that we can recreate this run later, if needed.
-  std::cout << "\n";
-  std::cout << "Seed: " << FormatSeed(seed) << "\n";
+  std::cout << std::endl;
+  std::cout << "Seed: " << FormatSeed(seed) << std::endl;
 
   // Create separate test and input RNGs so that we can get predictable
   // sequences, given a fixed seed. If we don't do this, small changes to the
@@ -250,8 +251,8 @@ int TestMain(std::vector<char*> positional_args) {
 
   std::vector<int> cpu_list;
   ForEachAvailableCPU([&](int cpu) { cpu_list.push_back(cpu); });
-  std::cout << "\n";
-  std::cout << "Num threads: " << cpu_list.size() << "\n";
+  std::cout << std::endl;
+  std::cout << "Num threads: " << cpu_list.size() << std::endl;
   CHECK_GT(cpu_list.size(), 0);
 
   // Create a pool of worker threads.
@@ -290,8 +291,8 @@ int TestMain(std::vector<char*> positional_args) {
     };
 
     // Generate tests corpus.
-    std::cout << "\n";
-    std::cout << "Generating " << num_tests << " tests" << "\n";
+    std::cout << std::endl;
+    std::cout << "Generating " << num_tests << " tests" << std::endl;
     absl::Time begin = absl::Now();
 
     // Allocate the corpus.
@@ -338,20 +339,20 @@ int TestMain(std::vector<char*> positional_args) {
 
     code_gen_time += absl::Now() - begin;
     std::cout << "Corpus size: " << (corpus.MemoryUse() / (1024 * 1024))
-              << " MB" << "\n";
+              << " MB" << std::endl;
 
     // Generate test+input end states.
-    std::cout << "Generating end states" << "\n";
+    std::cout << "Generating end states" << std::endl;
     begin = absl::Now();
     std::vector<EndState> end_states =
         DetermineEndStates(workers, corpus.tests, config.test, inputs);
     end_state_gen_time += absl::Now() - begin;
     std::cout << "End state size: "
               << (end_states.size() * sizeof(end_states[0]) / (1024 * 1024))
-              << " MB" << "\n";
+              << " MB" << std::endl;
 
     // Run test corpus.
-    std::cout << "Running tests" << "\n";
+    std::cout << "Running tests" << std::endl;
     begin = absl::Now();
     // HACK: currently we don't have any per-thread state, so we're passing in
     // the cpu id. In a future change, real per-thread state will be added.
@@ -391,11 +392,11 @@ int TestMain(std::vector<char*> positional_args) {
   }
 
   if (!hit_counts.empty()) {
-    std::cout << "\n";
-    std::cout << "Hits / " << hit_counts.size() << "\n";
+    std::cout << std::endl;
+    std::cout << "Hits / " << hit_counts.size() << std::endl;
     for (const auto& [cpu, test_hits] : hit_counts) {
-      std::cout << "\n";
-      std::cout << "CPU " << cpu << " / " << test_hits.size() << "\n";
+      std::cout << std::endl;
+      std::cout << "CPU " << cpu << " / " << test_hits.size() << std::endl;
       for (const auto& [test_seed, input_hits] : test_hits) {
         size_t inputs = 0;
         size_t test_input_hits = 0;
@@ -404,32 +405,32 @@ int TestMain(std::vector<char*> positional_args) {
           test_input_hits += count;
         }
         std::cout << "  " << FormatSeed(test_seed) << " / " << inputs << " / "
-                  << test_input_hits << "\n";
+                  << test_input_hits << std::endl;
       }
     }
   }
 
   // Print stats.
-  std::cout << "\n";
-  std::cout << "Stats" << "\n";
-  std::cout << code_gen_time << " generating code" << "\n";
-  std::cout << end_state_gen_time << " generating end states" << "\n";
-  std::cout << test_time << " testing" << "\n";
-  std::cout << tests_run << " tests" << "\n";
-  std::cout << test_instance_run << " runs" << "\n";
+  std::cout << std::endl;
+  std::cout << "Stats" << std::endl;
+  std::cout << code_gen_time << " generating code" << std::endl;
+  std::cout << end_state_gen_time << " generating end states" << std::endl;
+  std::cout << test_time << " testing" << std::endl;
+  std::cout << tests_run << " tests" << std::endl;
+  std::cout << test_instance_run << " runs" << std::endl;
   std::cout << (test_instance_run * num_iterations /
                 (absl::ToDoubleSeconds(test_time) * workers.NumWorkers()))
-            << " iterations per second per core" << "\n";
-  std::cout << test_instance_hit << " hits" << "\n";
+            << " iterations per second per core" << std::endl;
+  std::cout << test_instance_hit << " hits" << std::endl;
   std::cout << (test_instance_hit / absl::ToDoubleSeconds(test_time))
-            << " per second hit rate" << "\n";
+            << " per second hit rate" << std::endl;
   std::cout << (test_instance_hit / (double)test_instance_run)
-            << " per run hit rate" << "\n";
+            << " per run hit rate" << std::endl;
   std::cout << (1e9 * test_instance_hit /
                 (double)(test_instance_run * num_iterations))
-            << " per billion iteration hit rate" << "\n";
+            << " per billion iteration hit rate" << std::endl;
   std::cout << (test_hit_counts.size() / (double)tests_run)
-            << " per test hit rate" << "\n";
+            << " per test hit rate" << std::endl;
 
   return test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
