@@ -205,9 +205,12 @@ struct Hit {
 
 // An interface for reporting the results of test execution.
 struct ResultReporter {
-  ResultReporter(absl::Duration update_period = absl::Seconds(10))
-      : update_period(update_period),
-        next_update(absl::Now() + update_period),
+  ResultReporter(absl::Time test_started,
+                 absl::Duration update_period = absl::Seconds(10))
+      : num_hits_reported(0),
+        test_started(test_started),
+        update_period(update_period),
+        next_update(test_started + update_period),
         testing_deadline(absl::InfiniteFuture()),
         should_halt(false) {}
   // Called periodically to produce a heartbeat.
@@ -225,12 +228,15 @@ struct ResultReporter {
     return should_halt.load(std::memory_order_relaxed);
   }
 
+  absl::Mutex mutex;
+
   // It's usually much more compact to collect each hit rather than keep
   // per-test statistics. We can always recreate those statistics later from the
   // hits.
   std::vector<Hit> hits;
+  size_t num_hits_reported;
 
-  absl::Mutex mutex;
+  absl::Time test_started;
   absl::Duration update_period;
   absl::Time next_update;
 

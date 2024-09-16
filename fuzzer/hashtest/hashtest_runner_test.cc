@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/time/clock.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
@@ -147,7 +148,7 @@ TEST(Runner, EndToEnd) {
                    absl::MakeSpan(end_states));
 
   ThreadStats stats{};
-  ResultReporter result;
+  ResultReporter result(absl::Now());
   RunTests(corpus.tests, inputs, end_states, config, 0, stats, result);
 
   EXPECT_EQ(stats.num_run, 1);

@@ -148,6 +148,7 @@ cc_test(
         ":hashtest_runner_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
+        "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest_main",
     ],

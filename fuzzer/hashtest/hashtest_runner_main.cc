@@ -190,6 +190,10 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
 
 int TestMain(std::vector<char*> positional_args) {
   absl::Time test_started = absl::Now();
+  std::cout << "Time started: " << test_started << std::endl;
+  std::cout << "Start timestamp: " << absl::ToUnixMillis(test_started)
+            << std::endl;
+  std::cout << std::endl;
 
   InitXedIfNeeded();
 
@@ -270,7 +274,7 @@ int TestMain(std::vector<char*> positional_args) {
   // all the tests.
   std::vector<Input> inputs = GenerateInputs(input_rng, num_inputs);
 
-  ResultReporter result;
+  ResultReporter result(test_started);
 
   std::optional<absl::Duration> maybe_time = absl::GetFlag(FLAGS_time);
   if (maybe_time.has_value()) {
@@ -410,12 +414,15 @@ int TestMain(std::vector<char*> positional_args) {
     }
   }
 
+  absl::Time test_ended = absl::Now();
+
   // Print stats.
   std::cout << std::endl;
   std::cout << "Stats" << std::endl;
   std::cout << code_gen_time << " generating code" << std::endl;
   std::cout << end_state_gen_time << " generating end states" << std::endl;
   std::cout << test_time << " testing" << std::endl;
+  std::cout << (test_ended - test_started) << " total" << std::endl;
   std::cout << tests_run << " tests" << std::endl;
   std::cout << test_instance_run << " runs" << std::endl;
   std::cout << (test_instance_run * num_iterations /
@@ -431,6 +438,11 @@ int TestMain(std::vector<char*> positional_args) {
             << " per billion iteration hit rate" << std::endl;
   std::cout << (test_hit_counts.size() / (double)tests_run)
             << " per test hit rate" << std::endl;
+
+  std::cout << std::endl;
+  std::cout << "Time ended: " << test_ended << std::endl;
+  std::cout << "End timestamp: " << absl::ToUnixMillis(test_started)
+            << std::endl;
 
   return test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
