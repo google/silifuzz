@@ -250,6 +250,25 @@ bool IsCandidate(const xed_inst_t* instruction,
     }
   }
 
+  // Instructions like ENCODEKEY128 can write to multiple register banks.
+  // Currently we do not support these kind of instructions.
+  int num_output_banks = 0;
+  if (candidate.reg_written.gp) {
+    num_output_banks++;
+  }
+  if (candidate.reg_written.vec) {
+    num_output_banks++;
+  }
+  if (candidate.reg_written.mask) {
+    num_output_banks++;
+  }
+  if (candidate.reg_written.mmx) {
+    num_output_banks++;
+  }
+  if (num_output_banks > 1) {
+    return false;
+  }
+
   return true;
 }
 
