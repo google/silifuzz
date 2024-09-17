@@ -45,7 +45,6 @@
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
-#include "./util/itoa.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/subprocess.h"
 

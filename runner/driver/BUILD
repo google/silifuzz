@@ -47,7 +47,6 @@ cc_library(
         "@silifuzz//util:byte_io",
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
-        "@silifuzz//util:itoa",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:subprocess",
         "@com_google_absl//absl/log",
