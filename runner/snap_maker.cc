@@ -141,7 +141,8 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
     RETURN_IF_NOT_OK(snapified.IsComplete());
     return snapified;
   }
-  if (!record_result.failed_player_result().actual_end_state.has_value()) {
+  if (!record_result.has_failed_player_result() ||
+      !record_result.failed_player_result().actual_end_state.has_value()) {
     return absl::InternalError("The runner didn't report actual_end_state");
   }
   Snapshot::EndState actual_end_state =
