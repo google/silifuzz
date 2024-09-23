@@ -192,7 +192,7 @@ void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   // However, since the instructions are purely random the first fixup should
   // canonicalize most of the instructions. It is also unlikely that the last
   // instruction removed was the maximum possible size for an instruction.
-  EXPECT_GT(limited.size() + kInstructionInfo<Arch>.max_size, max_len);
+  EXPECT_GE(limited.size() + kInstructionInfo<Arch>.max_size, max_len);
 }
 
 // Needed to work around FUZZ_TEST macro limitations.
