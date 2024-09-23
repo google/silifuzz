@@ -1179,7 +1179,7 @@ cc_library_plus_nolibc(
             "@silifuzz//build_defs/platform:aarch64": [
                 "aarch64/reg_group_io_buffer_offsets.h",
                 "aarch64/reg_groups.cc",
-                "aarch64/save_register_groups_to_buffer.S",
+                "aarch64/sve_supported.S",
             ],
             "@silifuzz//build_defs/platform:x86_64": ["x86_64/reg_groups.cc"],
         }),
@@ -1220,6 +1220,7 @@ cc_library_plus_nolibc(
             "aarch64/reg_group_io.cc",
             "aarch64/reg_group_io_buffer_offsets.h",
             "aarch64/save_register_groups_to_buffer.S",
+            "aarch64/sve_supported.S",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "x86_64/reg_group_io.cc",

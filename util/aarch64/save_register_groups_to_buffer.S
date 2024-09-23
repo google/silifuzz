@@ -61,14 +61,3 @@ Exit:
         ldp     x19, x30, [sp], #16
         ret
         .size   SaveRegisterGroupsToBuffer, .-SaveRegisterGroupsToBuffer
-
-        .bss
-// Flag to tell if SVE is supported.
-        .align  1
-        .globl  reg_group_io_supports_sve
-        .type   reg_group_io_supports_sve, @object
-        .size   reg_group_io_supports_sve, 1
-reg_group_io_supports_sve:
-        .zero   1
-
-        .section        .note.GNU-stack,"",@progbits
