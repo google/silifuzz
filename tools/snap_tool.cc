@@ -464,7 +464,7 @@ bool SnapToolMain(std::vector<char*>& args) {
       return false;
     }
 
-    line_printer.Line("Re-made snapshot succefully.");
+    line_printer.Line("Re-made snapshot successfully.");
     OutputSnapshotOrDie(std::move(recorded_snapshot).value(),
                         OutputPath(snapshot_file), &line_printer);
   } else if (command == "generate_corpus") {
