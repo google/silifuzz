@@ -19,8 +19,7 @@
 #include <cstdint>
 #include <cstring>
 
-#include "./util/checks.h"
-#include "./util/itoa.h"
+#include "./util/arch.h"
 #include "./util/ucontext/simple_serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 
