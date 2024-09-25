@@ -16,15 +16,32 @@
 
 #include <signal.h>
 
+#include <cstdint>
+
 #include "gtest/gtest.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
+
+#if defined(HWADDRESS_SANITIZER)
+// This is defined if hwasan is enabled.
+extern "C" __attribute__((weak)) void __hwasan_handle_longjmp(const void* sp);
+#endif
 
 namespace silifuzz {
 
 FatalSignalHandler* FatalSignalHandler::current_handler_;
 
-FatalSignalHandler::FatalSignalHandler(int signal) : signal_(signal), old_({}) {
+FatalSignalHandler::FatalSignalHandler(int signal)
+    : signal_(signal), old_({}), saved_context_view_(saved_context_) {
+  // Turn off alternate signal stack in case we are running under HWASAN.
+  // __hwasan_handle_longjmp() cannot handle split stacks.
+  stack_t stack{
+      .ss_sp = 0,
+      .ss_flags = SS_DISABLE,
+      .ss_size = 0,
+  };
+  EXPECT_EQ(sigaltstack(&stack, &old_stack_), 0);
+
   struct sigaction action = {};
   action.sa_sigaction = SigAction;
   action.sa_flags = SA_SIGINFO | SA_NODEFER;
@@ -33,6 +50,7 @@ FatalSignalHandler::FatalSignalHandler(int signal) : signal_(signal), old_({}) {
 
 FatalSignalHandler::~FatalSignalHandler() {
   EXPECT_EQ(sigaction(signal_, &old_, nullptr), 0);
+  EXPECT_EQ(sigaltstack(&old_stack_, nullptr), 0);
 }
 
 bool FatalSignalHandler::CaptureSignal(void (*f)(uint64_t), uint64_t arg,
@@ -64,12 +82,20 @@ bool FatalSignalHandler::CaptureSignal(void (*f)(uint64_t), uint64_t arg,
   return success;
 }
 
-void FatalSignalHandler::HandleSignal(int signal, siginfo_t* siginfo,
-                                      ucontext_t* uc) {
+__attribute__((no_sanitize("memtag"))) void FatalSignalHandler::HandleSignal(
+    int signal, siginfo_t* siginfo, ucontext_t* uc) {
   *siginfo_result_ = *siginfo;
   *uc_result_ = *uc;
   SaveExtraSignalRegs(extra_result_);
-  RestoreUContext(&saved_context_);
+#if defined(HWADDRESS_SANITIZER)
+  // If hwasan is enabled, we need to untag the region between the old and the
+  // new stack pointer.
+  const uint8_t* dst_sp =
+      reinterpret_cast<const uint8_t*>(saved_context_.gregs.GetStackPointer());
+  __hwasan_handle_longjmp(dst_sp);
+
+#endif
+  RestoreUContextView(saved_context_view_);
 }
 
 void FatalSignalHandler::SigAction(int signal, siginfo_t* siginfo, void* uc) {

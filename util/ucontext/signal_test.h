@@ -53,8 +53,16 @@ class FatalSignalHandler {
   // The signal handler state before we hooked it.
   struct sigaction old_;
 
+  // The signal stack setting before we hooked it.
+  stack_t old_stack_;
+
   // The context before we tried to trigger the signal handler.
   UContext<Host> saved_context_;
+
+  // A view of the context above. We need to use a view explicitly to make this
+  // hwasan compatible because RestoreUContext() is a wrapper and it accesses
+  // the stack after we untagged the stack before restoring the context.
+  UContextView<Host> saved_context_view_;
 
   // Pointers to where we should capture the result of the signal handler.
   siginfo_t* siginfo_result_;
