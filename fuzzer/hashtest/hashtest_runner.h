@@ -22,8 +22,8 @@
 #include <string>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
@@ -57,6 +57,9 @@ inline constexpr size_t kEntropyBytes512 =
 inline constexpr size_t kEntropyBytes256 =
     (kVecEntropyRegs * 256 + kGPEntropyRegs * 64 + kMMXEntropyRegs * 64) / 8;
 
+inline constexpr size_t kEntropyBytes128 =
+    (kVecEntropyRegs * 128 + kGPEntropyRegs * 64 + kMMXEntropyRegs * 64) / 8;
+
 // A buffer for holding the initial or final state of a test.
 // The number of bytes used depends on the microarch.
 struct EntropyBuffer {
@@ -64,7 +67,16 @@ struct EntropyBuffer {
   uint8_t bytes[kEntropyBytes512] __attribute__((aligned(64)));
 
   size_t NumBytes(size_t vector_width) const {
-    return vector_width == 512 ? kEntropyBytes512 : kEntropyBytes256;
+    switch (vector_width) {
+      case 512:
+        return kEntropyBytes512;
+      case 256:
+        return kEntropyBytes256;
+      case 128:
+        return kEntropyBytes128;
+      default:
+        LOG(FATAL) << "Unsupported vector width: " << vector_width;
+    }
   }
 };
 

@@ -130,6 +130,7 @@ cc_library(
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:page_util",
         "@cityhash",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",

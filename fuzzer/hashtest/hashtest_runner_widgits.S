@@ -319,3 +319,142 @@ RunHashTest256:
 
   .cfi_endproc
   .size RunHashTest256, . - RunHashTest256
+
+
+  .global RunHashTest128
+  .type RunHashTest128, @function
+RunHashTest128:
+  .cfi_startproc
+
+  // Set the frame pointer
+  push   %rbp
+  mov    %rsp, %rbp
+
+  // Save callee saved registers
+  push %rbx
+  push %r12
+  push %r13
+  push %r14
+  push %r15
+
+  // Save output buffer
+  push %rcx
+
+  // arg0 / RDI: pointer to the test function
+  // arg1 / RSI: number of iterations
+  // arg2 / RDX: input entropy
+  // arg3 / RCX: output entropy
+
+  // TODO(ncbray): why do we need to clear the TMP registers?
+  // The fact that the SSE instructions preserve the upper bits shouldn't be a
+  // problem in this case, the register values seem to matter for some other
+  // reason, possibly because the test generator doesn't understand the register
+  // is being read for some instruction?
+  pxor  %xmm0, %xmm0
+  pxor  %xmm1, %xmm1
+  pxor  %xmm2, %xmm2
+  pxor  %xmm3, %xmm3
+  pxor  %xmm4, %xmm4
+  pxor  %xmm5, %xmm5
+  pxor  %xmm6, %xmm6
+  pxor  %xmm7, %xmm7
+
+  // Load the vector entropy
+  vmovdqa 0x00(%rdx), %xmm8
+  vmovdqa 0x10(%rdx), %xmm9
+  vmovdqa 0x20(%rdx), %xmm10
+  vmovdqa 0x30(%rdx), %xmm11
+  vmovdqa 0x40(%rdx), %xmm12
+  vmovdqa 0x50(%rdx), %xmm13
+  vmovdqa 0x60(%rdx), %xmm14
+  vmovdqa 0x70(%rdx), %xmm15
+  add $0x80, %rdx
+
+  // Load the MMX entropy
+  mov 0x00(%rdx), %mm4
+  mov 0x08(%rdx), %mm5
+  mov 0x10(%rdx), %mm6
+  mov 0x18(%rdx), %mm7
+  add $0x20, %rdx
+
+  // Load the GP entropy
+  mov 0x00(%rdx), %r9
+  mov 0x08(%rdx), %r10
+  mov 0x10(%rdx), %r11
+  mov 0x18(%rdx), %r12
+  mov 0x20(%rdx), %r13
+  mov 0x28(%rdx), %r14
+  mov 0x30(%rdx), %r15
+  add $0x38, %rdx
+
+  // Set the number of iterations
+  mov %rsi, %r8
+
+  // Clear the GP TMP registers
+  // This is needed because 8/16-bit register writes do not zero the upper bits
+  // of a GP register. The HashTest generator currently does not understand this
+  // means that a 8/16-bit write effectively "reads" from the output. It is
+  // unclear if the generator should be fixed, however, as this doesn't affect
+  // determinisim if the registers are cleared first.
+  // RDI is also affected, but we know its value will be constant (the address
+  // of the test funciton).
+  xor %rax, %rax
+  xor %rcx, %rcx
+  xor %rdx, %rdx
+  xor %rbx, %rbx
+  xor %rbp, %rbp
+  xor %rsi, %rsi
+
+  // Init flags
+  test %al, %al
+
+  // Invoke the test
+  // TODO(ncbray): this leaves RDI dirty, should it need to be cleared?
+  call *%rdi
+
+  // Recover output buffer
+  pop %rcx
+
+  // Save the vector entropy
+  vmovdqa %xmm8, 0x00(%rcx)
+  vmovdqa %xmm9, 0x10(%rcx)
+  vmovdqa %xmm10, 0x20(%rcx)
+  vmovdqa %xmm11, 0x30(%rcx)
+  vmovdqa %xmm12, 0x40(%rcx)
+  vmovdqa %xmm13, 0x50(%rcx)
+  vmovdqa %xmm14, 0x60(%rcx)
+  vmovdqa %xmm15, 0x70(%rcx)
+  add $0x80, %rcx
+
+  // Store the MMX entropy
+  mov %mm4, 0x00(%rcx)
+  mov %mm5, 0x08(%rcx)
+  mov %mm6, 0x10(%rcx)
+  mov %mm7, 0x18(%rcx)
+  add $0x20, %rcx
+
+  // Save the GP entropy
+  mov %r9, 0x00(%rcx)
+  mov %r10, 0x08(%rcx)
+  mov %r11, 0x10(%rcx)
+  mov %r12, 0x18(%rcx)
+  mov %r13, 0x20(%rcx)
+  mov %r14, 0x28(%rcx)
+  mov %r15, 0x30(%rcx)
+  add $0x38, %rcx
+
+  // Restore callee saved registers
+  pop %r15
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rbx
+
+  // Restore the frame pointer
+  pop    %rbp
+
+  // Return
+  ret
+
+  .cfi_endproc
+  .size RunHashTest128, . - RunHashTest128

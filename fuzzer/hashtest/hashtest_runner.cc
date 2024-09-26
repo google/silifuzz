@@ -181,6 +181,8 @@ void RunHashTest(void* test, const TestConfig& config,
     RunHashTest512(test, config.num_iterations, &input, &output);
   } else if (config.vector_width == 256) {
     RunHashTest256(test, config.num_iterations, &input, &output);
+  } else if (config.vector_width == 128) {
+    RunHashTest128(test, config.num_iterations, &input, &output);
   } else {
     CHECK(false) << "Unsupported vector width: " << config.vector_width;
   }

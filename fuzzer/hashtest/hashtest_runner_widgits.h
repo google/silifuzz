@@ -21,7 +21,7 @@ namespace silifuzz {
 
 struct EntropyBuffer;
 
-// Run a test on a CPU that supports AVX-512.
+// Run a test on a CPU that supports at least AVX-512.
 // `test` is a pointer to executable memory containing a hash test. This test
 // will be entered with a "call" and exit back to the caller. The test will
 // expect the registers state to be initialized in a specific way (not the
@@ -35,8 +35,13 @@ extern "C" void RunHashTest512(void* test, size_t num_iterations,
                                const EntropyBuffer* input,
                                EntropyBuffer* output);
 
-// Run a test on a CPU that supports AVX2.
+// Run a test on a CPU that supports at least AVX2.
 extern "C" void RunHashTest256(void* test, size_t num_iterations,
+                               const EntropyBuffer* input,
+                               EntropyBuffer* output);
+
+// Run a test on a CPU that supports at least SSE2.
+extern "C" void RunHashTest128(void* test, size_t num_iterations,
                                const EntropyBuffer* input,
                                EntropyBuffer* output);
 

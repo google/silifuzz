@@ -110,6 +110,17 @@ TEST(Runner, Run256) {
   SmokeTest(3, kVectorWidth);
 }
 
+TEST(Runner, Run128) {
+  constexpr size_t kVectorWidth = 128;
+  if (CurrentVectorWidth() < kVectorWidth) {
+    GTEST_SKIP() << "Chip does not support this vector width.";
+  }
+
+  // Test with two different bit patterns.
+  SmokeTest(4, kVectorWidth);
+  SmokeTest(5, kVectorWidth);
+}
+
 TEST(Runner, EndToEnd) {
   InitXedIfNeeded();
   xed_chip_enum_t chip = PlatformIdToChip(CurrentPlatformId());
