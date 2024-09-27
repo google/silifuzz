@@ -28,7 +28,7 @@ struct InstructionFilterConfig<X86_64> {};
 
 template <>
 struct InstructionFilterConfig<AArch64> {
-  bool sve_instructions_allowed = false;
+  bool sve_instructions_allowed = true;
   bool load_store_instructions_allowed = true;
 };
 
