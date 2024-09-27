@@ -22,6 +22,9 @@
 
   .text
 
+  // Enable assembling of SVE instructions.
+  .arch_extension sve
+
 // Initialize greg to a unique value that will detect truncation.
 .macro pattern_init_greg i
   mov x\i, #\i
@@ -236,5 +239,47 @@ CaptureStack:
   bl RESTORE_UCONTEXT_VIEW
 
   .size   CaptureStack, .-CaptureStack
+
+
+  // Populate the checksummed registers with junk (in x1) then restore the
+  // provided context (in x0).
+  // This lets us check whether or not the checksummed registers are properly
+  // cleared by RestoreUContext.
+  .p2align 2
+  .globl  PopulateSveRegistersThenRestoreUContext
+  .type   PopulateSveRegistersThenRestoreUContext, @function
+PopulateSveRegistersThenRestoreUContext:
+  // Populate some SVE registers with junk.
+  add z0.d, z0.d, #0x12
+  add z13.d, z13.d, #34
+  add z27.d, z27.d, #56
+  add z31.d, z31.d, #78
+  ldr p1, [x1]
+  ldr p14, [x1]
+  wrffr p1.b
+
+  // Restore the context provided in x0.
+  bl RESTORE_UCONTEXT_VIEW
+
+  .size   PopulateSveRegistersThenRestoreUContext, .-PopulateSveRegistersThenRestoreUContext
+
+
+  // Save the checksummed registers to the buffer provided in x0 then restore
+  // the context provided in x1.
+  .p2align 2
+  .globl  SaveRegisterGroupsThenRestoreUContext
+  .type   SaveRegisterGroupsThenRestoreUContext, @function
+SaveRegisterGroupsThenRestoreUContext:
+  // Save the ucontext as SaveRegisterGroupsToBuffer may clobber it.
+  str x1, [sp, #-16]!
+
+  bl SaveRegisterGroupsToBuffer
+
+  // Restore the context saved on the stack by moving it to x0.
+  ldr x1, [sp], #16
+  mov x0, x1
+  bl RESTORE_UCONTEXT_VIEW
+
+  .size   SaveRegisterGroupsThenRestoreUContext, .-SaveRegisterGroupsThenRestoreUContext
 
   .section        .note.GNU-stack,"",@progbits

@@ -26,9 +26,11 @@
 #include "./runner/endspot.h"
 #include "./runner/runner_main_options.h"
 #include "./snap/exit_sequence.h"
+#include "./util/aarch64/sve.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/nolibc_gunit.h"
+#include "./util/reg_groups.h"
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
@@ -41,6 +43,11 @@ uint32_t kBasicSnap[] = {
 };
 
 TEST(SnapRunnerUtil, BasicTest) {
+  // Initialize register checksumming.
+  InitRegisterGroupIO();
+  snap_exit_register_group_io_buffer.register_groups =
+      GetCurrentPlatformChecksumRegisterGroups();
+
   InitSnapExit(&SnapExitImpl);
 
   const size_t kPageSize = getpagesize();
@@ -75,6 +82,12 @@ TEST(SnapRunnerUtil, BasicTest) {
   // Initialize the general purpose registers with a pattern.
   for (int i = 0; i < std::size(execution_context.gregs.x); ++i) {
     execution_context.gregs.x[i] = 0xabcd + i;
+  }
+
+  // Initialize the floating point registers with a pattern. Note: These
+  // registers are shared with the bottom 128-bits of the z registers.
+  for (int i = 0; i < std::size(execution_context.fpregs.v); ++i) {
+    execution_context.fpregs.v[i] = 0xface + i;
   }
 
   // Point to the allocated code and stack pages.
@@ -130,6 +143,33 @@ TEST(SnapRunnerUtil, BasicTest) {
                                            sizeof(exit_sequence_stack_bytes)),
              exit_sequence_stack_bytes, sizeof(exit_sequence_stack_bytes)),
       0);
+
+  // Check register group IO buffer after snap exit.
+  RegisterGroupIOBuffer<AArch64> expected_buffer{};
+  if (SveIsSupported()) {
+    expected_buffer.register_groups.SetSVE(true);
+    size_t z_vl = SveGetCurrentVectorLength();
+
+    // The bottom 128-bits of the z registers are shared with their
+    // corresponding floating point registers, so we should expect the contents
+    // to match the set pattern.
+    for (int i = 0; i < std::size(execution_context.fpregs.v); ++i) {
+      memcpy(&expected_buffer.z[i * z_vl], &execution_context.fpregs.v[i],
+             sizeof(execution_context.fpregs.v[i]));
+    }
+  }
+
+  CHECK_EQ(snap_exit_register_group_io_buffer.register_groups.Serialize(),
+           expected_buffer.register_groups.Serialize());
+  CHECK_EQ(memcmp(&snap_exit_register_group_io_buffer.ffr, &expected_buffer.ffr,
+                  sizeof(expected_buffer.ffr)),
+           0);
+  CHECK_EQ(memcmp(&snap_exit_register_group_io_buffer.p, &expected_buffer.p,
+                  sizeof(expected_buffer.p)),
+           0);
+  CHECK_EQ(memcmp(&snap_exit_register_group_io_buffer.z, &expected_buffer.z,
+                  sizeof(expected_buffer.z)),
+           0);
 }
 
 }  // namespace

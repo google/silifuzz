@@ -20,7 +20,7 @@
 namespace silifuzz {
 
 // Flag to tell if the CPU supports SVE with 128-bit z registers. Defined in
-// save_registers_groups_to_buffer and set by InitRegisterGroupIO.
+// sve_supported.S and set by InitRegisterGroupIO.
 extern "C" bool reg_group_io_supports_sve;
 
 RegisterGroupSet<AArch64> GetCurrentPlatformRegisterGroups() {

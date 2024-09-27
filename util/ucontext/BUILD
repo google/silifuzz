@@ -82,6 +82,7 @@ cc_library_plus_nolibc(
         # Either fix cc_library_plus_nolibc or abstract this into a CPU
         # independent target.
         "@silifuzz//util:avx",
+        "@silifuzz//util:reg_group_io",
     ],
 )
 
@@ -184,7 +185,10 @@ cc_test(
         "@com_google_absl//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:aarch64": [
+            "@silifuzz//util:reg_group_io",
+            "@silifuzz//util:sve",
+        ],
         "@silifuzz//build_defs/platform:x86_64": [
             ":ucontext_test_lib",
             "@silifuzz//util:logging_util",
@@ -222,7 +226,10 @@ cc_test(
         "@com_google_absl//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
-        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:aarch64": [
+            "@silifuzz//util:reg_group_io",
+            "@silifuzz//util:sve",
+        ],
         "@silifuzz//build_defs/platform:x86_64": [
             ":ucontext_no_syscalls_test_lib",
             "@silifuzz//util:logging_util",

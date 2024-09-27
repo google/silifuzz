@@ -115,6 +115,10 @@ void InitRegisterGroupIO();
 // for checksumming.
 extern "C" void SaveRegisterGroupsToBuffer(RegisterGroupIOBuffer<Host>& buffer);
 
+// Clears the registers that are not part of the ucontext and instead saved into
+// RegisterGroupIOBuffers. This function is used in RestoreUContext.
+extern "C" void ClearRegisterGroups();
+
 // Returns a RegisterChecksum struct using the contents 'buffer'.  The register
 // groups included in the checksum is controlled by buffer.register_groups.
 RegisterChecksum<Host> GetRegisterGroupsChecksum(

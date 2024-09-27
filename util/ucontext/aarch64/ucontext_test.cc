@@ -18,8 +18,10 @@
 #include <sys/mman.h>
 
 #include "gtest/gtest.h"
+#include "./util/aarch64/sve.h"
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 
 #ifdef UCONTEXT_NO_SYSCALLS
@@ -518,7 +520,7 @@ void CheckEntryStackBytes(const GRegSet<AArch64>& gregs, const uint8_t* stack) {
 }
 
 void CheckExitStackBytes(const GRegSet<AArch64>& gregs, const uint8_t* stack) {
-  constexpr size_t stack_bytes_used = 32;
+  constexpr size_t stack_bytes_used = 48;
   ASSERT_GE(kStackOffset, stack_bytes_used);
 
   for (size_t i = 0; i < kStackOffset - stack_bytes_used; i++) {
@@ -583,6 +585,55 @@ TEST(UContextTest, RestoreUContextStackBytes) {
 
   // CaptureStack => RestoreUContext(saved) => this function
   CheckExitStackBytes(saved.gregs, exit_stack);
+}
+
+extern "C" void PopulateSveRegistersThenRestoreUContext(
+    const UContextView<AArch64>& view, const uint64_t& junk);
+extern "C" void SaveRegisterGroupsThenRestoreUContext(
+    const RegisterGroupIOBuffer<AArch64>& buffer,
+    const UContextView<AArch64>& view);
+
+TEST(UContextTest, RestoreUContextClearsChecksummedRegisters) {
+  InitRegisterGroupIO();
+  if (!SveIsSupported()) {
+    GTEST_SKIP();
+  }
+
+  uint64_t junk = 0xfeedface;
+  UContext<AArch64> test;
+  UContextView<AArch64> test_view(test);
+  UContext<AArch64> mostly_empty{};
+  UContextView<AArch64> mostly_empty_view(mostly_empty);
+  TestStack stack;
+  RegisterGroupIOBuffer<AArch64> buffer{};
+  buffer.register_groups.SetSVE(true);
+
+  mostly_empty.gregs.pc =
+      reinterpret_cast<uint64_t>(&SaveRegisterGroupsThenRestoreUContext);
+  mostly_empty.gregs.sp = stack.offset_ptr(stack.size());
+  mostly_empty.gregs.x[0] = reinterpret_cast<uint64_t>(&buffer);
+  mostly_empty.gregs.x[1] = reinterpret_cast<uint64_t>(&test_view);
+
+  {
+    volatile unsigned int post_save_count = 0;
+    SignalBlocker blocker;
+
+    // Save the test ucontext so that we can get back.
+    SAVE_UCONTEXT(&test);
+    ZeroOutRegsPadding(&test);
+
+    post_save_count++;
+    if (post_save_count == 1) {
+      // Put junk in the SVE registers then restore a mostly empty ucontext for
+      // SaveRegisterGroupsThenRestoreUContext.
+      PopulateSveRegistersThenRestoreUContext(mostly_empty_view, junk);
+      __builtin_unreachable();
+    }
+  }
+
+  RegisterGroupIOBuffer<AArch64> expected_buffer{};
+  expected_buffer.register_groups.SetSVE(true);
+  ASSERT_EQ(memcmp(&buffer, &expected_buffer, sizeof(buffer)), 0);
 }
 
 }  // namespace

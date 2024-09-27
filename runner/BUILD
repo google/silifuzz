@@ -120,6 +120,8 @@ cc_test_nolibc(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:nolibc_gunit",
+        "@silifuzz//util:reg_groups",
+        "@silifuzz//util:sve",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
     ],

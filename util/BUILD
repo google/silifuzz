@@ -1217,6 +1217,7 @@ cc_library_plus_nolibc(
     name = "reg_group_io",
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [
+            "aarch64/clear_register_groups.S",
             "aarch64/reg_group_io.cc",
             "aarch64/reg_group_io_buffer_offsets.h",
             "aarch64/save_register_groups_to_buffer.S",

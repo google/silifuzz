@@ -22,6 +22,12 @@
   // Set x25 to point to FPRegs and x24 to point to GRegs.
   ldp x25, x24, [x0, #0]
 
+  // Clear additional registers (e.g. SVE) that do not need to be restored from
+  // ucontext. We do this before restoring the floating point registers because
+  // the bottom 128-bits of the SVE z registers are shared with their
+  // corresponding floating point registers.
+  bl ClearRegisterGroups
+
   // Restore the floating point data registers.
   ld1 {v0.2d, v1.2d, v2.2d, v3.2d}, [x25], #64
   ld1 {v4.2d, v5.2d, v6.2d, v7.2d}, [x25], #64

@@ -79,7 +79,8 @@ inline size_t SveGetPredicateLength() {
   return SveGetCurrentVectorLength() / kSvePRegSizeZRegFactor;
 }
 
-// Returns true if the hardware supports SVE.
+// Returns true if the hardware supports SVE. Makes a syscall, so cannot be
+// called after entering seccomp mode.
 inline bool SveIsSupported() { return SveGetCurrentVectorLength() > 0; }
 
 }  // namespace silifuzz
