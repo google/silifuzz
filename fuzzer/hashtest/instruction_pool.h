@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_INSTRUCTION_POOL_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_INSTRUCTION_POOL_H_
 
+#include <algorithm>
+#include <iterator>
 #include <vector>
 
 #include "./fuzzer/hashtest/candidate.h"
@@ -65,6 +67,28 @@ struct InstructionPool {
     } else {
       no_effect.push_back(candidate);
     }
+  }
+
+  // Returns a subset of the original InstructionPool with only the instructions
+  // that pass the predicate filter.
+  template <typename F>
+  InstructionPool Filter(F predicate) {
+    InstructionPool result;
+    std::copy_if(no_effect.begin(), no_effect.end(),
+                 std::back_inserter(result.no_effect), predicate);
+    std::copy_if(flag_manipulation.begin(), flag_manipulation.end(),
+                 std::back_inserter(result.flag_manipulation), predicate);
+    std::copy_if(compare.begin(), compare.end(),
+                 std::back_inserter(result.compare), predicate);
+    std::copy_if(greg.begin(), greg.end(), std::back_inserter(result.greg),
+                 predicate);
+    std::copy_if(vreg.begin(), vreg.end(), std::back_inserter(result.vreg),
+                 predicate);
+    std::copy_if(mreg.begin(), mreg.end(), std::back_inserter(result.mreg),
+                 predicate);
+    std::copy_if(mmxreg.begin(), mmxreg.end(),
+                 std::back_inserter(result.mmxreg), predicate);
+    return result;
   }
 };
 

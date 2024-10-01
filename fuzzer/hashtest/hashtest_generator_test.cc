@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
 #include "./fuzzer/hashtest/candidate.h"
+#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/prefilter.h"
 #include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/register_info.h"
@@ -486,6 +487,7 @@ TEST(XedOperandTest, TestAll) {
   // Temp buffer for FormatInstruction.
   char text[96];
 
+  InstructionPool ipool{};
   for (const auto& test : tests) {
     // Disassemble the bytes.
     xed_decoded_inst_t xedd;
@@ -618,7 +620,30 @@ TEST(XedOperandTest, TestAll) {
     EXPECT_EQ(result.zmm_count, test.result.zmm_count) << test.text;
 
     EXPECT_EQ(result.writemask_count, test.result.writemask_count) << test.text;
+
+    ipool.Add(candidate);
   }
+
+  EXPECT_EQ(ipool.no_effect.size(), 2);
+  EXPECT_EQ(ipool.flag_manipulation.size(), 0);
+  EXPECT_EQ(ipool.compare.size(), 0);
+  EXPECT_EQ(ipool.greg.size(), 3);
+  EXPECT_EQ(ipool.vreg.size(), 2);
+  EXPECT_EQ(ipool.mreg.size(), 1);
+  EXPECT_EQ(ipool.mmxreg.size(), 1);
+
+  ipool = ipool.Filter([](const InstructionCandidate& candidate) {
+    // Filter out 256 bit vector instructions (YMM registers).
+    return candidate.vector_width != 256;
+  });
+
+  EXPECT_EQ(ipool.no_effect.size(), 2);
+  EXPECT_EQ(ipool.flag_manipulation.size(), 0);
+  EXPECT_EQ(ipool.compare.size(), 0);
+  EXPECT_EQ(ipool.greg.size(), 3);
+  EXPECT_EQ(ipool.vreg.size(), 1);  // ymm filtered out.
+  EXPECT_EQ(ipool.mreg.size(), 1);
+  EXPECT_EQ(ipool.mmxreg.size(), 1);
 }
 
 TEST(SynthesizeShuffleTest, RandomPermutationMask) {
