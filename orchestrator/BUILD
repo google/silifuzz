@@ -24,6 +24,8 @@ package(default_visibility = ["//visibility:public"])
 cc_binary(
     name = "silifuzz_orchestrator_main",
     srcs = ["silifuzz_orchestrator_main.cc"],
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         ":corpus_util",
         ":orchestrator_util",

@@ -67,6 +67,8 @@ cc_binary(
 cc_binary(
     name = "silifuzz_platform_id",
     srcs = ["silifuzz_platform_id.cc"],
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         "@silifuzz//util:arch",
         "@silifuzz//util:cpu_features",
@@ -92,6 +94,8 @@ cc_library(
 cc_binary(
     name = "fuzz_filter_tool",
     srcs = ["fuzz_filter_tool_main.cc"],
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         ":fuzz_filter_tool_lib",
         "@silifuzz//util:checks",

@@ -181,6 +181,8 @@ cc_binary(
     srcs = [
         "trace_tool.cc",
     ],
+    features = ["fully_static_link"],
+    linkstatic = 1,
     deps = [
         ":analysis",
         ":execution_trace",
