@@ -12,16 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Main entry point for Snap runner binary.
+// Main entry point for Snap runner binary. Run as follows:
 //
-// SiliFuzz provides two ways to build this into a binary:
+//  reading_runner_main_nolibc corpus_file_name
 //
-// 1) BAKED IN MODE (//third_party/silifuzz/runner:runner_main_nolibc).
-//  Link with :default_snap_corpus and define kDefaultSnapCorpus to point to
-//  the actual Snap corpus. The corpus is usually produced by :snap_generator
-// 2) READING MODE (//third_party/silifuzz/runner:reading_runner_main_nolibc).
-//  Link with :loading_snap_corpus. Then pass the file name containing a
-//  relocatable corpus as a command line argument.
+// See  --help for more details.
+
 #include <unistd.h>
 
 #include <cstdlib>

@@ -61,11 +61,9 @@ different CPU microarchitectures it will have multiple expected end states.
 ##### Snap
 
 A Snap is an in-memory representation of a **Snapshot** that can be easily
-loaded and executed by the **Runner**. Snaps can be compiled in an executable
-program (also called *baked-in runner*) or loaded from disk by a *reading
-runner*. In the latter case the Snap on-disk format is essentially the same as
-the in-memory one except that native pointers are replaced with offsets. See
-this
+loaded and executed by the **Runner**. Snaps are typically loaded from disk by a
+*reading runner*. The Snap on-disk format is essentially the same as the
+in-memory one except that native pointers are replaced with offsets. See this
 [header](https://github.com/google/silifuzz/blob/main/snap/gen/relocatable_snap_generator.h)
 for details. This format is often referred to as *relocatable*. Each Snap
 contains exactly one expected end state i.e. Snaps are
@@ -85,19 +83,8 @@ accumulate and report any failures produced by the individual runner processes.
 
 ## Supported platforms and microarchitectures
 
-We have extensively tested SiliFuzz on the following `x86_64` microarchitectures
-running recent Linux kernels:
-
-*   `intel-skylake / intel-cascadelake`
-*   `intel-haswell / intel-broadwell`
-*   `intel-ivybridge`
-*   `amd-rome`
-*   `amd-milan`
-
-Other `x86_64` microarchitectures should work, too, as long as there is the
-compiler and OS support for them.
-
-We are actively working on `AArch64` support.
+See [this file](https://github.com/google/silifuzz/blob/main/util/platform.h) for the
+list of supported microarchitectures.
 
 ## Trophies
 

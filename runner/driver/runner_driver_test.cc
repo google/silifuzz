@@ -137,9 +137,9 @@ TEST(RunnerDriver, Cleanup) {
   ASSERT_TRUE(std::filesystem::exists(*tmp_binary));
   bool file_removed = false;
   {
-    RunnerDriver driver = RunnerDriver::BakedRunner(*tmp_binary, [&] {
-      file_removed = std::filesystem::remove(*tmp_binary);
-    });
+    RunnerDriver driver = RunnerDriver::ReadingRunner(
+        *tmp_binary, "<bogus>", "<bogus>",
+        [&] { file_removed = std::filesystem::remove(*tmp_binary); });
   }
   ASSERT_TRUE(file_removed);
   ASSERT_FALSE(std::filesystem::exists(*tmp_binary));

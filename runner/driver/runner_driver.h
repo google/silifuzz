@@ -167,13 +167,6 @@ class RunnerDriver {
     RunnerPostfailureChecksumStatus postfailure_checksum_status_;
   };
 
-  // Creates a RunnerDriver for a binary with baked-in corpus.
-  // The `cleanup` callback will be invoked upon destruction.
-  static RunnerDriver BakedRunner(absl::string_view binary_path,
-                                  std::function<void()> cleanup = {}) {
-    return RunnerDriver(binary_path, "", "", cleanup);
-  }
-
   // Creates a RunnerDriver for a binary that reads corpus from `corpus_path`.
   // The runner will display the corpus name as `corpus_name`. If `corpus_name`
   // is empty, it will use `corpus_path` instead. This allows us to pass a
