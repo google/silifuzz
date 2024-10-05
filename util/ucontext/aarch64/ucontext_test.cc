@@ -415,8 +415,11 @@ TEST(UContextTest, SaveThenRestore) {
     expected.gregs.tpidrro = saved.gregs.tpidrro;
 
     // Run twice, the first time checking for using too much stack, the second
-    // time checking for stack underflow.
-    expected.gregs.sp = stack.offset_ptr(run_num ? stack.size() : 8 * 6);
+    // time checking for stack underflow. RestoreUContext() is a wrapper to the
+    // asm function RestoreUContextFromView(). The wrapper's stack usage is
+    // different than normal when sanitizers are enabled. The second stack size
+    // below is slightly bumped up to account for that.
+    expected.gregs.sp = stack.offset_ptr(run_num ? stack.size() : 8 * 8);
 
     // A big prime number to help create a pseudo-random pattern in fpregs.
     constexpr __uint128_t P =
