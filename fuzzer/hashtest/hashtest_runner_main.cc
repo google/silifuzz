@@ -27,6 +27,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -38,6 +39,7 @@
 #include "./instruction/xed_util.h"
 #include "./util/cpu_id.h"
 #include "./util/enum_flag_types.h"
+#include "./util/hostname.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
 
@@ -352,9 +354,13 @@ int TestMain(std::vector<char*> positional_args) {
 
   InitXedIfNeeded();
 
-  std::cout << "Version: " << kHashTestVersionMajor << "."
-            << kHashTestVersionMinor << "." << kHashTestVersionPatch
-            << std::endl;
+  std::string hostname(ShortHostname());
+  std::string version =
+      absl::StrCat(kHashTestVersionMajor, ".", kHashTestVersionMinor, ".",
+                   kHashTestVersionPatch);
+
+  std::cout << "Host: " << hostname << std::endl;
+  std::cout << "Version: " << version << std::endl;
 
   // Alow the platform to be overridden.
   PlatformId platform = absl::GetFlag(FLAGS_platform);
@@ -369,8 +375,9 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << "Platform: " << EnumStr(platform) << std::endl;
 
   size_t vector_width = ChipVectorRegisterWidth(chip);
+  size_t mask_width = ChipMaskRegisterWidth(chip);
   std::cout << "Vector width: " << vector_width << std::endl;
-  std::cout << "Mask width: " << ChipMaskRegisterWidth(chip) << std::endl;
+  std::cout << "Mask width: " << mask_width << std::endl;
 
   size_t num_corpora = absl::GetFlag(FLAGS_corpora);
   size_t num_tests = absl::GetFlag(FLAGS_tests);
@@ -505,8 +512,7 @@ int TestMain(std::vector<char*> positional_args) {
             << " per test hit rate" << std::endl;
   std::cout << "Total time: " << (test_ended - test_started) << std::endl;
   std::cout << "Time ended: " << test_ended << std::endl;
-  std::cout << "End timestamp: " << absl::ToUnixMillis(test_started)
-            << std::endl;
+  std::cout << "End timestamp: " << absl::ToUnixMillis(test_ended) << std::endl;
 
   return corpus_stats.test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
