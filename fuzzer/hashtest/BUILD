@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_python//python:py_test.bzl", "py_test")
+
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -123,6 +125,7 @@ cc_library(
     hdrs = [
         "hashtest_runner.h",
         "hashtest_runner_widgits.h",
+        "json.h",
     ],
     deps = [
         ":hashtest_generator_lib",
@@ -206,10 +209,14 @@ cc_binary(
     ],
 )
 
-sh_test(
+py_test(
     name = "hashtest_runner_integration_test",
-    srcs = ["hashtest_runner_integration_test.sh"],
+    size = "medium",
+    srcs = ["hashtest_runner_integration_test.py"],
     data = [
         ":hashtest_runner",
+    ],
+    deps = [
+        "@absl_py//absl/testing:absltest",
     ],
 )

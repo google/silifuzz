@@ -33,6 +33,7 @@
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/version.h"
@@ -320,6 +321,49 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
   corpus_stats.distinct_tests += corpus.tests.size();
 }
 
+void FormatTestConfigJSON(const TestConfig& test_config, JSONFormatter& out) {
+  out.Object([&] {
+    out.Field("vector_width", test_config.vector_width);
+    out.Field("num_iterations", test_config.num_iterations);
+  });
+}
+
+void FormatRunConfigJSON(const RunConfig& run_config, JSONFormatter& out) {
+  out.Object([&] {
+    out.Field("test");
+    FormatTestConfigJSON(run_config.test, out);
+    out.Field("batch_size", run_config.batch_size);
+    out.Field("num_repeat", run_config.num_repeat);
+  });
+}
+
+void FormatCorpusConfigJSON(const CorpusConfig& corpus_config,
+                            JSONFormatter& out) {
+  out.Object([&] {
+    out.Field("name", corpus_config.name);
+    out.Field("chip", xed_chip_enum_t2str(corpus_config.chip));
+    out.Field("num_tests", corpus_config.num_tests);
+    out.Field("num_inputs", corpus_config.inputs.size());
+    out.Field("run_config");
+    FormatRunConfigJSON(corpus_config.run_config, out);
+  });
+}
+
+void FormatCorpusStatsJSON(const CorpusStats& corpus_stats,
+                           JSONFormatter& out) {
+  out.Object([&] {
+    out.Field("code_gen_time",
+              absl::ToDoubleSeconds(corpus_stats.code_gen_time));
+    out.Field("end_state_gen_time",
+              absl::ToDoubleSeconds(corpus_stats.end_state_gen_time));
+    out.Field("test_time", absl::ToDoubleSeconds(corpus_stats.test_time));
+    out.Field("distinct_tests", corpus_stats.distinct_tests);
+    out.Field("test_instance_run", corpus_stats.test_instance_run);
+    out.Field("test_iteration_run", corpus_stats.test_iteration_run);
+    out.Field("test_instance_hit", corpus_stats.test_instance_hit);
+  });
+}
+
 void PrintCorpusStats(const std::string& name, const CorpusStats& corpus_stats,
                       size_t num_workers) {
   std::cout << std::endl;
@@ -513,6 +557,46 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << "Total time: " << (test_ended - test_started) << std::endl;
   std::cout << "Time ended: " << test_ended << std::endl;
   std::cout << "End timestamp: " << absl::ToUnixMillis(test_ended) << std::endl;
+
+  // Print machine readable stats.
+  std::cout << std::endl;
+  std::cout << "BEGIN_JSON" << std::endl;
+  JSONFormatter out(std::cout);
+  out.Object([&] {
+    // Host information.
+    out.Field("hostname", hostname);
+    out.Field("platform", EnumStr(platform));
+    out.Field("vector_width", vector_width);
+    out.Field("mask_width", mask_width);
+
+    // Information about this run.
+    out.Field("version", version);
+    out.Field("seed", seed);
+    out.Field("threads", workers.NumWorkers());
+    out.Field("test_started", absl::ToUnixMillis(test_started));
+    out.Field("test_ended", absl::ToUnixMillis(test_ended));
+
+    out.Field("variants").List([&] {
+      out.Object([&] {
+        out.Field("config");
+        FormatCorpusConfigJSON(corpus_config, out);
+        out.Field("stats");
+        FormatCorpusStatsJSON(corpus_stats, out);
+      });
+    });
+
+    // TODO(ncbray): aggregate stats when there is more than one.
+    out.Field("stats");
+    FormatCorpusStatsJSON(corpus_stats, out);
+
+    out.Field("cpus_hit").List([&] {
+      for (const auto& [cpu, _] : hit_counts) {
+        out.Value(cpu);
+      }
+    });
+  });
+  std::cout << std::endl;
+  std::cout << "END_JSON" << std::endl;
 
   return corpus_stats.test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }

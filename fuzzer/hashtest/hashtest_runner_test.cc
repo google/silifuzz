@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <sstream>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -23,6 +24,7 @@
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
@@ -165,6 +167,54 @@ TEST(Runner, EndToEnd) {
   EXPECT_EQ(stats.num_run, 1);
   EXPECT_EQ(stats.num_failed, 0);
   EXPECT_EQ(result.hits.size(), 0);
+}
+
+TEST(JSON, String) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.Value("str");
+  EXPECT_EQ(buffer.str(), R"("str")");
+}
+
+TEST(JSON, EscapedString) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.Value("\\\n\t\r\"");
+  EXPECT_EQ(buffer.str(), R"("\\\n\t\r\"")");
+}
+
+TEST(JSON, Numeric) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.List([&] {
+    out.Value(1U).Value(2UL).Value(3).Value(4L).Value(5.6f).Value(7.8);
+  });
+  EXPECT_EQ(buffer.str(), R"([1,2,3,4,5.6,7.8])");
+}
+
+TEST(JSON, List) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.List([&] { out.List([] {}).List([] {}).List([] {}); });
+  EXPECT_EQ(buffer.str(), R"([[],[],[]])");
+}
+
+TEST(JSON, Object) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.Object([&] {
+    out.Field("a").Object([] {});
+    out.Field("b").Object([] {});
+    out.Field("c").Object([] {});
+  });
+  EXPECT_EQ(buffer.str(), R"({"a":{},"b":{},"c":{}})");
+}
+
+TEST(JSON, Heterogeneous) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  out.Object([&] { out.Field("a", 1).Field("b", "two"); });
+  EXPECT_EQ(buffer.str(), R"({"a":1,"b":"two"})");
 }
 
 }  // namespace
