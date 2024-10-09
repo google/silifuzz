@@ -197,6 +197,9 @@ struct CorpusConfig {
   // A human readable name used to identify this corpus.
   std::string name;
 
+  // A list of strings identifying what experiments are active.
+  std::vector<std::string> tags;
+
   // The chip to generate tests for.
   xed_chip_enum_t chip;
   // The instructions to use when generating tests.
@@ -352,6 +355,7 @@ void FormatCorpusConfigJSON(const CorpusConfig& corpus_config,
                             JSONFormatter& out) {
   out.Object([&] {
     out.Field("name", corpus_config.name);
+    out.Field("tags", corpus_config.tags);
     out.Field("chip", xed_chip_enum_t2str(corpus_config.chip));
     out.Field("num_tests", corpus_config.num_tests);
     out.Field("num_inputs", corpus_config.inputs.size());
@@ -488,6 +492,7 @@ int TestMain(std::vector<char*> positional_args) {
 
   const CorpusConfig default_corpus_config = {
       .name = "default",
+      .tags = {},
       .chip = chip,
       .instruction_pool = &ipool,
       .num_tests = num_tests,

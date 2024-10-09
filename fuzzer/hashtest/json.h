@@ -17,6 +17,7 @@
 
 #include <ostream>
 #include <type_traits>
+#include <vector>
 
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
@@ -50,6 +51,16 @@ class JSONFormatter {
   JSONFormatter& Value(const T& value) {
     PrintCommaIfNeeded();
     Format(value);
+    return *this;
+  }
+
+  template <typename T>
+  JSONFormatter& Value(const std::vector<T>& value) {
+    List([&] {
+      for (const T& child : value) {
+        Value(child);
+      }
+    });
     return *this;
   }
 

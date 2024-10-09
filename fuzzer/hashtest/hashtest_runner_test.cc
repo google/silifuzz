@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -197,6 +198,14 @@ TEST(JSON, List) {
   JSONFormatter out(buffer);
   out.List([&] { out.List([] {}).List([] {}).List([] {}); });
   EXPECT_EQ(buffer.str(), R"([[],[],[]])");
+}
+
+TEST(JSON, Vector) {
+  std::stringstream buffer;
+  JSONFormatter out(buffer);
+  std::vector<std::string> list{"a", "b", "c"};
+  out.Value(list);
+  EXPECT_EQ(buffer.str(), R"(["a","b","c"])");
 }
 
 TEST(JSON, Object) {
