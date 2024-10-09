@@ -72,7 +72,7 @@ struct InstructionPool {
   // Returns a subset of the original InstructionPool with only the instructions
   // that pass the predicate filter.
   template <typename F>
-  InstructionPool Filter(F predicate) {
+  InstructionPool Filter(F predicate) const {
     InstructionPool result;
     std::copy_if(no_effect.begin(), no_effect.end(),
                  std::back_inserter(result.no_effect), predicate);

@@ -31,6 +31,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "./fuzzer/hashtest/candidate.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/json.h"
@@ -511,6 +512,17 @@ int TestMain(std::vector<char*> positional_args) {
 
   std::vector<CorpusConfig> corpus_config;
   corpus_config.push_back(default_corpus_config);
+
+  const InstructionPool ipool_no_128 =
+      ipool.Filter([](const InstructionCandidate& candidate) {
+        return candidate.vector_width != 128;
+      });
+
+  CorpusConfig filtered_corpus_config = default_corpus_config;
+  filtered_corpus_config.name = "-vec128";
+  filtered_corpus_config.tags = {"-vec128"};
+  filtered_corpus_config.instruction_pool = &ipool_no_128;
+  corpus_config.push_back(filtered_corpus_config);
 
   ResultReporter result(test_started);
 
