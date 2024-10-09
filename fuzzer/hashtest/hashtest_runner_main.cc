@@ -201,7 +201,7 @@ struct CorpusConfig {
   xed_chip_enum_t chip;
   // The instructions to use when generating tests.
   // Held by reference to avoid copying.
-  const InstructionPool& instruction_pool;
+  const InstructionPool* instruction_pool;
   // The number of tests to generate.
   size_t num_tests;
 
@@ -229,6 +229,17 @@ struct CorpusStats {
   size_t test_iteration_run;
   // The number of tests that did not produce the expected end state.
   size_t test_instance_hit;
+
+  CorpusStats& operator+=(const CorpusStats& other) {
+    code_gen_time += other.code_gen_time;
+    end_state_gen_time += other.end_state_gen_time;
+    test_time += other.test_time;
+    distinct_tests += other.distinct_tests;
+    test_instance_run += other.test_instance_run;
+    test_iteration_run += other.test_iteration_run;
+    test_instance_hit += other.test_instance_hit;
+    return *this;
+  }
 };
 
 void RunTestCorpus(size_t test_index, Rng& test_rng,
@@ -274,7 +285,7 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
   workers.DoWork(tasks, [&](SynthesizeTestsTask& task) {
     task.used =
         SynthesizeTests(task.tests, task.code_buffer, corpus_config.chip,
-                        corpus_config.instruction_pool);
+                        *corpus_config.instruction_pool);
   });
 
   // Calculate the amount of memory used.
@@ -475,10 +486,10 @@ int TestMain(std::vector<char*> positional_args) {
   // all the tests.
   std::vector<Input> inputs = GenerateInputs(input_rng, num_inputs);
 
-  const CorpusConfig corpus_config = {
+  const CorpusConfig default_corpus_config = {
       .name = "default",
       .chip = chip,
-      .instruction_pool = ipool,
+      .instruction_pool = &ipool,
       .num_tests = num_tests,
       .inputs = inputs,
       .run_config =
@@ -493,6 +504,9 @@ int TestMain(std::vector<char*> positional_args) {
           },
   };
 
+  std::vector<CorpusConfig> corpus_config;
+  corpus_config.push_back(default_corpus_config);
+
   ResultReporter result(test_started);
 
   std::optional<absl::Duration> maybe_time = absl::GetFlag(FLAGS_time);
@@ -502,11 +516,13 @@ int TestMain(std::vector<char*> positional_args) {
   }
 
   size_t test_index = 0;
-  CorpusStats corpus_stats{};
+  std::vector<CorpusStats> corpus_stats(corpus_config.size());
+  size_t current_variant = 0;
   for (size_t c = 0; c < num_corpora; ++c) {
-    RunTestCorpus(test_index, test_rng, workers, corpus_config, corpus_stats,
-                  result);
-    test_index += corpus_config.num_tests;
+    RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
+                  corpus_stats[current_variant], result);
+    test_index += corpus_config[current_variant].num_tests;
+    current_variant = (current_variant + 1) % corpus_config.size();
     if (result.ShouldHalt()) {
       break;
     }
@@ -549,10 +565,16 @@ int TestMain(std::vector<char*> positional_args) {
   absl::Time test_ended = absl::Now();
 
   // Print stats.
-  PrintCorpusStats(corpus_config.name, corpus_stats, workers.NumWorkers());
+  CorpusStats all_stats{};
+  for (size_t i = 0; i < corpus_config.size(); ++i) {
+    PrintCorpusStats(corpus_config[i].name, corpus_stats[i],
+                     workers.NumWorkers());
+    all_stats += corpus_stats[i];
+  }
+  PrintCorpusStats("all", all_stats, workers.NumWorkers());
 
   std::cout << std::endl;
-  std::cout << (test_hit_counts.size() / (double)corpus_stats.distinct_tests)
+  std::cout << (test_hit_counts.size() / (double)all_stats.distinct_tests)
             << " per test hit rate" << std::endl;
   std::cout << "Total time: " << (test_ended - test_started) << std::endl;
   std::cout << "Time ended: " << test_ended << std::endl;
@@ -577,17 +599,19 @@ int TestMain(std::vector<char*> positional_args) {
     out.Field("test_ended", absl::ToUnixMillis(test_ended));
 
     out.Field("variants").List([&] {
-      out.Object([&] {
-        out.Field("config");
-        FormatCorpusConfigJSON(corpus_config, out);
-        out.Field("stats");
-        FormatCorpusStatsJSON(corpus_stats, out);
-      });
+      for (size_t i = 0; i < corpus_config.size(); ++i) {
+        out.Object([&] {
+          out.Field("config");
+          FormatCorpusConfigJSON(corpus_config[i], out);
+          out.Field("stats");
+          FormatCorpusStatsJSON(corpus_stats[i], out);
+        });
+      }
     });
 
     // TODO(ncbray): aggregate stats when there is more than one.
     out.Field("stats");
-    FormatCorpusStatsJSON(corpus_stats, out);
+    FormatCorpusStatsJSON(all_stats, out);
 
     out.Field("cpus_hit").List([&] {
       for (const auto& [cpu, _] : hit_counts) {
@@ -598,7 +622,7 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << std::endl;
   std::cout << "END_JSON" << std::endl;
 
-  return corpus_stats.test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+  return all_stats.test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 }  // namespace
