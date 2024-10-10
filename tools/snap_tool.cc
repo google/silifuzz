@@ -458,6 +458,7 @@ bool SnapToolMain(std::vector<char*>& args) {
     }
     MakingConfig config = MakingConfig::Default();
     config.runner_path = RunnerLocationForSnapTool();
+    config.enforce_fuzzing_config = false;
     absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot, config);
     if (!recorded_snapshot.ok()) {
       line_printer.Line(recorded_snapshot.status().ToString());
