@@ -188,7 +188,9 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
   // Try to guess which end states are correct, based on the redundancy.
   size_t bad =
       ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
-  std::cout << "Failed to reconcile " << bad << " end states." << std::endl;
+  if (bad > 0) {
+    std::cout << "Failed to reconcile " << bad << " end states." << std::endl;
+  }
 
   return end_states;
 }
