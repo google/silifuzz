@@ -28,6 +28,7 @@
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_join.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
@@ -218,6 +219,13 @@ struct CorpusConfig {
   // How the tests should be run.
   RunConfig run_config;
 };
+
+std::string TagsToName(const std::vector<std::string>& tags) {
+  if (tags.empty()) {
+    return "default";
+  }
+  return absl::StrJoin(tags, ":");
+}
 
 // The results of running a corpus.
 struct CorpusStats {
@@ -527,6 +535,15 @@ int TestMain(std::vector<char*> positional_args) {
   filtered_corpus_config.tags = {"-vec128"};
   filtered_corpus_config.instruction_pool = &ipool_no_128;
   corpus_config.push_back(filtered_corpus_config);
+
+  // Name the corpus based on the tags.
+  for (CorpusConfig& config : corpus_config) {
+    config.name = TagsToName(config.tags);
+  }
+
+  // Run the experiments in a random order to avoid creating sampling bias when
+  // we halt testing at a specific time.
+  std::shuffle(corpus_config.begin(), corpus_config.end(), rng);
 
   ResultReporter result(test_started);
 
