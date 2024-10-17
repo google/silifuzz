@@ -22,6 +22,7 @@
 
 #include "gtest/gtest.h"
 #include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
@@ -163,9 +164,10 @@ TEST(Runner, EndToEnd) {
 
   ThreadStats stats{};
   ResultReporter result(absl::Now());
-  RunTests(corpus.tests, inputs, end_states, config, 0, stats, result);
+  absl::Duration testing_time = absl::Seconds(1);
+  RunTests(corpus.tests, inputs, end_states, config, 0, testing_time, stats,
+           result);
 
-  EXPECT_EQ(stats.num_run, 1);
   EXPECT_EQ(stats.num_failed, 0);
   EXPECT_EQ(result.hits.size(), 0);
 }
@@ -224,6 +226,43 @@ TEST(JSON, Heterogeneous) {
   JSONFormatter out(buffer);
   out.Object([&] { out.Field("a", 1).Field("b", "two"); });
   EXPECT_EQ(buffer.str(), R"({"a":1,"b":"two"})");
+}
+
+TEST(TimeEstimator, Basic) {
+  TimeEstimator est{};
+  absl::Time now = absl::Now();
+  absl::Time deadline = now + absl::Seconds(3);
+  est.Reset(now, deadline);
+  EXPECT_FALSE(est.ShouldUpdate());
+
+  // Simulate the artificial passage of time.
+
+  constexpr size_t kRunPerSecond = 10000;
+
+  est.num_run += kRunPerSecond;
+  now += absl::Seconds(1);
+  EXPECT_TRUE(est.ShouldUpdate());
+  est.Update(now, deadline);
+  EXPECT_EQ(est.tests_per_second, kRunPerSecond);
+  EXPECT_EQ(est.num_run_target, kRunPerSecond * (1 + kUpdateInterval));
+  EXPECT_FALSE(est.ShouldUpdate());
+
+  est.num_run += kRunPerSecond;
+  now += absl::Seconds(1);
+  EXPECT_TRUE(est.ShouldUpdate());
+  est.Update(now, deadline);
+  EXPECT_EQ(est.tests_per_second, kRunPerSecond);
+  EXPECT_EQ(est.num_run_target, kRunPerSecond * (2 + kUpdateInterval));
+  EXPECT_FALSE(est.ShouldUpdate());
+
+  est.num_run += kRunPerSecond;
+  now += absl::Seconds(1);
+  EXPECT_TRUE(est.ShouldUpdate());
+  est.Update(now, deadline);
+  EXPECT_EQ(est.tests_per_second, kRunPerSecond);
+  // The run target should have been affected by the deadline.
+  EXPECT_GE(est.num_run_target, kRunPerSecond * 3);
+  EXPECT_LT(est.num_run_target, kRunPerSecond * (3 + kUpdateInterval));
 }
 
 }  // namespace

@@ -148,17 +148,13 @@ void FinalizeCorpus(Corpus& corpus, size_t used_size) {
   corpus.mapping.SetUsedSize(used_size);
 }
 
-void ResultReporter::CheckIn() {
+void ResultReporter::CheckIn(absl::Time now) {
   absl::MutexLock lock(&mutex);
-  absl::Time now = absl::Now();
   if (now >= next_update) {
     std::cout << (hits.size() - num_hits_reported) << " hits @ "
               << (now - test_started) << std::endl;
     num_hits_reported = hits.size();
     next_update = now + update_period;
-  }
-  if (now >= testing_deadline) {
-    SetShouldHalt();
   }
 }
 
@@ -251,6 +247,7 @@ void RunTest(size_t test_index, const Test& test, const TestConfig& config,
   EntropyBuffer actual;
   RunHashTest(test.code, config, input.entropy, actual);
   ++stats.num_run;
+  ++stats.time_estimator.num_run;
 
   // Compare the end state.
   bool ok = expected.hash == EntropyBufferHash(actual, config.vector_width);
@@ -263,7 +260,8 @@ void RunTest(size_t test_index, const Test& test, const TestConfig& config,
 
 bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ThreadStats& stats, ResultReporter& result) {
+              size_t test_offset, absl::Time time_limit, ThreadStats& stats,
+              ResultReporter& result) {
   // Repeat the batch.
   for (size_t r = 0; r < config.num_repeat; ++r) {
     // Sweep through each input.
@@ -281,14 +279,21 @@ bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
         size_t test_index = test_offset + t;
         RunTest(test_index, test, config.test, i, input, expected, stats,
                 result);
-        // This should occur ~2.5 times a second.
-        // We want to check in often enough so that we have a timely heat beat,
-        // but not so often that it creates lock contention.
-        if (stats.num_run % 100000 == 0) {
-          result.CheckIn();
-        }
-        if (result.ShouldHalt()) {
-          return false;
+        // This should occur ~4 times a second.
+        // We're balancing a few things, here.
+        // First, reading the clock has overhead / may disrupt the
+        // microarchitectural state. Second, checking in with the result
+        // reporter acquires a lock that could be contended.
+        // On the other hand, we want to check in often enough so that we have a
+        // fairly accurate notion of when we should stop executing and also have
+        // a timely heat beat.
+        if (stats.time_estimator.ShouldUpdate()) {
+          absl::Time now = absl::Now();
+          stats.time_estimator.Update(now, time_limit);
+          result.CheckIn(now);
+          if (now >= time_limit) {
+            return false;
+          }
         }
       }
     }
@@ -298,15 +303,22 @@ bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
 
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ThreadStats& stats, ResultReporter& result) {
-  for (size_t g = 0; g < tests.size(); g += config.batch_size) {
-    size_t batch_size = std::min(config.batch_size, tests.size() - g);
-    bool keep_running = RunBatch(
-        tests.subspan(g, batch_size), inputs,
-        end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
-        config, test_offset + g, stats, result);
-    if (!keep_running) {
-      return;
+              size_t test_offset, absl::Duration testing_time,
+              ThreadStats& stats, ResultReporter& result) {
+  absl::Time begin_time = absl::Now();
+  absl::Time time_limit = begin_time + testing_time;
+  stats.time_estimator.Reset(begin_time, time_limit);
+  // Iterate until the time limit is reached.
+  while (true) {
+    // Sweep through the corpus in batches.
+    for (size_t g = 0; g < tests.size(); g += config.batch_size) {
+      size_t batch_size = std::min(config.batch_size, tests.size() - g);
+      if (!RunBatch(
+              tests.subspan(g, batch_size), inputs,
+              end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
+              config, test_offset + g, time_limit, stats, result)) {
+        return;
+      }
     }
   }
 }

@@ -15,6 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_HASHTEST_RUNNER_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_HASHTEST_RUNNER_H_
 
+#include <algorithm>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -222,23 +223,13 @@ struct ResultReporter {
       : num_hits_reported(0),
         test_started(test_started),
         update_period(update_period),
-        next_update(test_started + update_period),
-        testing_deadline(absl::InfiniteFuture()),
-        should_halt(false) {}
+        next_update(test_started + update_period) {}
   // Called periodically to produce a heartbeat.
-  void CheckIn();
+  void CheckIn(absl::Time now);
 
   // Called for every hit.
   void ReportHit(int cpu, size_t test_index, const Test& test,
                  size_t input_index, const Input& input);
-
-  inline void SetShouldHalt() {
-    return should_halt.store(true, std::memory_order_relaxed);
-  }
-
-  inline bool ShouldHalt() const {
-    return should_halt.load(std::memory_order_relaxed);
-  }
 
   absl::Mutex mutex;
 
@@ -251,18 +242,66 @@ struct ResultReporter {
   absl::Time test_started;
   absl::Duration update_period;
   absl::Time next_update;
+};
 
-  // The time at which we should interrupt testing and exit.
-  absl::Time testing_deadline;
+constexpr inline double kUpdateInterval = 0.35;
 
-  // A flag that indicates if we should stop running tests.
-  // TODO(ncbray): ensure this value is on a relatively immutable cache line.
-  std::atomic<bool> should_halt;
+struct TimeEstimator {
+  absl::Time start_time;
+  size_t num_run;
+  double tests_per_second = 0.0;
+  size_t num_run_target;
+
+  // Reset the stat collection, but do not clear the actual estimate.
+  // Periodically clearing the stat collection helps us adapt the estimate to
+  // changes in the machine's load, etc.
+  // Keeping the old estimate lets us start with a reasonable first estimate.
+  void Reset(absl::Time now, absl::Time time_limit) {
+    start_time = now;
+    num_run = 0;
+    UpdateRunTarget(now, time_limit);
+  }
+
+  // Have we run enough tests that we should check the current time and update
+  // the estimate?
+  bool ShouldUpdate() { return num_run >= num_run_target; }
+
+  // Update the estimate of how many tests we're running per second and
+  // calculate how many tests we should run before the next update.
+  void Update(absl::Time now, absl::Time time_limit) {
+    tests_per_second =
+        num_run / std::max(absl::ToDoubleSeconds(now - start_time), 0.000001);
+    UpdateRunTarget(now, time_limit);
+  }
+
+  // Approximately how many tests should be run to execute for the duration?
+  size_t EstimateNumTests(double duration) {
+    // Running a minimum of 100 tests ensures the estimator gets enough data to
+    // be reasonably accurate. It also helps deal with the cold start where
+    // tests_per_second is 0.
+    return static_cast<size_t>(std::max(tests_per_second * duration, 100.0));
+  }
+
+  // Set the number of tests runs at which we should check in and update the
+  // time estimator.
+  void UpdateRunTarget(absl::Time now, absl::Time time_limit) {
+    num_run_target = num_run + EstimateNumTests(std::min(
+                                   absl::ToDoubleSeconds(time_limit - now),
+                                   kUpdateInterval));
+  }
 };
 
 struct ThreadStats {
   size_t num_run;
   size_t num_failed;
+
+  // A short-term internal stat used to estimate how many tests are being
+  // executed per second. May fluctuate if the machine comes under load, etc.
+  // Stored in the ThreadStats struct so that subsequent corpus executions can
+  // start with an estimate.
+  // Note this estimate needs to be done per core because different cores can
+  // have different test execution rates for a variety of reasons.
+  TimeEstimator time_estimator;
 };
 
 // The configuration for running multiple tests.
@@ -284,7 +323,8 @@ struct RunConfig {
 // `config`.
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
-              size_t test_offset, ThreadStats& stats, ResultReporter& result);
+              size_t test_offset, absl::Duration testing_time,
+              ThreadStats& stats, ResultReporter& result);
 
 // Internal function, exported for testing.
 void RunHashTest(void* test, const TestConfig& config,

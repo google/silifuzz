@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <limits>
 #include <optional>
 #include <random>
 #include <string>
@@ -47,7 +47,6 @@
 
 ABSL_FLAG(silifuzz::PlatformId, platform, silifuzz::PlatformId::kUndefined,
           "Platform to generate tests for. Defaults to the current platform.");
-ABSL_FLAG(size_t, corpora, 1, "Number of test corpora to generate.");
 ABSL_FLAG(size_t, tests, 10000, "Number of tests in a copus.");
 ABSL_FLAG(size_t, batch, 10,
           "Number of different tests to run interleaved in a group.");
@@ -58,9 +57,11 @@ ABSL_FLAG(size_t, iterations, 100,
           "Number of internal iterations for each test.");
 ABSL_FLAG(std::optional<uint64_t>, seed, std::nullopt,
           "Fixed seed to use for random number generation.");
-ABSL_FLAG(std::optional<absl::Duration>, time, std::nullopt,
-          "Time limit for testing. For example: 1m30s. If specified, will "
-          "generate and test corpora until the time limit is hit.");
+ABSL_FLAG(absl::Duration, corpus_time, absl::Seconds(10),
+          "Time limit for generating and running a single corpus. For example: "
+          "1m30s.");
+ABSL_FLAG(absl::Duration, time, absl::Minutes(1),
+          "Total time limit for testing. For example: 1m30s.");
 
 ABSL_FLAG(bool, verbose, false, "Print additional debugging information.");
 
@@ -251,12 +252,12 @@ struct CorpusStats {
 void RunTestCorpus(size_t test_index, Rng& test_rng,
                    ParallelWorkerPool& workers,
                    const CorpusConfig& corpus_config, CorpusStats& corpus_stats,
-                   ResultReporter& result) {
+                   absl::Duration run_time, ResultReporter& result) {
   // Generate tests corpus.
   std::cout << std::endl;
   std::cout << "Generating " << corpus_config.num_tests << " tests / "
             << corpus_config.name << std::endl;
-  absl::Time begin = absl::Now();
+  absl::Time corpus_begin = absl::Now();
 
   // Allocate the corpus.
   Corpus corpus = AllocateCorpus(test_rng, corpus_config.num_tests);
@@ -303,28 +304,31 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
   // Finish generating the corpus.
   FinalizeCorpus(corpus, used);
 
-  corpus_stats.code_gen_time += absl::Now() - begin;
   std::cout << "Corpus size: " << (corpus.MemoryUse() / (1024 * 1024)) << " MB"
             << std::endl;
 
+  absl::Time end_state_begin = absl::Now();
+  corpus_stats.code_gen_time += end_state_begin - corpus_begin;
+
   // Generate test+input end states.
   std::cout << "Generating end states" << std::endl;
-  begin = absl::Now();
   std::vector<EndState> end_states =
       DetermineEndStates(workers, corpus.tests, corpus_config.run_config.test,
                          corpus_config.inputs);
-  corpus_stats.end_state_gen_time += absl::Now() - begin;
   std::cout << "End state size: "
             << (end_states.size() * sizeof(end_states[0]) / (1024 * 1024))
             << " MB" << std::endl;
 
+  absl::Time test_begin = absl::Now();
+  corpus_stats.end_state_gen_time += test_begin - end_state_begin;
+
   // Run test corpus.
   std::cout << "Running tests" << std::endl;
-  begin = absl::Now();
   std::vector<ThreadStats> stats(workers.NumWorkers());
+  absl::Duration testing_time = run_time - (test_begin - corpus_begin);
   workers.DoWork(stats, [&](ThreadStats& s) {
     RunTests(corpus.tests, corpus_config.inputs, end_states,
-             corpus_config.run_config, test_index, s, result);
+             corpus_config.run_config, test_index, testing_time, s, result);
   });
 
   // Aggregate thread stats.
@@ -334,7 +338,7 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
         s.num_run * corpus_config.run_config.test.num_iterations;
     corpus_stats.test_instance_hit += s.num_failed;
   }
-  corpus_stats.test_time += absl::Now() - begin;
+  corpus_stats.test_time += absl::Now() - test_begin;
   corpus_stats.distinct_tests += corpus.tests.size();
 }
 
@@ -441,7 +445,6 @@ int TestMain(std::vector<char*> positional_args) {
   std::cout << "Vector width: " << vector_width << std::endl;
   std::cout << "Mask width: " << mask_width << std::endl;
 
-  size_t num_corpora = absl::GetFlag(FLAGS_corpora);
   size_t num_tests = absl::GetFlag(FLAGS_tests);
   size_t num_inputs = absl::GetFlag(FLAGS_inputs);
   size_t num_repeat = absl::GetFlag(FLAGS_repeat);
@@ -455,7 +458,6 @@ int TestMain(std::vector<char*> positional_args) {
   uint64_t seed = maybe_seed.value_or(GetSeed(hardware_rng));
 
   std::cout << std::endl;
-  std::cout << "Corpora: " << num_corpora << std::endl;
   std::cout << "Tests: " << num_tests << std::endl;
   std::cout << "Batch size: " << batch_size << std::endl;
   std::cout << "Inputs: " << num_inputs << std::endl;
@@ -528,23 +530,25 @@ int TestMain(std::vector<char*> positional_args) {
 
   ResultReporter result(test_started);
 
-  std::optional<absl::Duration> maybe_time = absl::GetFlag(FLAGS_time);
-  if (maybe_time.has_value()) {
-    result.testing_deadline = test_started + maybe_time.value();
-    num_corpora = std::numeric_limits<size_t>::max();
-  }
+  absl::Duration testing_time = absl::GetFlag(FLAGS_time);
+  absl::Duration corpus_time = absl::GetFlag(FLAGS_corpus_time);
 
   size_t test_index = 0;
   std::vector<CorpusStats> corpus_stats(corpus_config.size());
   size_t current_variant = 0;
-  for (size_t c = 0; c < num_corpora; ++c) {
-    RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
-                  corpus_stats[current_variant], result);
-    test_index += corpus_config[current_variant].num_tests;
-    current_variant = (current_variant + 1) % corpus_config.size();
-    if (result.ShouldHalt()) {
+  while (true) {
+    absl::Time corpus_started = absl::Now();
+    absl::Duration testing_time_remaining =
+        testing_time - (corpus_started - test_started);
+    if (testing_time_remaining <= absl::ZeroDuration()) {
       break;
     }
+    absl::Duration clamped_corpus_time =
+        std::min(corpus_time, testing_time_remaining);
+    RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
+                  corpus_stats[current_variant], clamped_corpus_time, result);
+    test_index += corpus_config[current_variant].num_tests;
+    current_variant = (current_variant + 1) % corpus_config.size();
   }
 
   // Aggregate hits.
