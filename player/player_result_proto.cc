@@ -14,7 +14,6 @@
 
 #include "./player/player_result_proto.h"
 
-#include <cstdint>
 #include <optional>
 
 #include "absl/status/status.h"
