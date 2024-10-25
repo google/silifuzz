@@ -23,7 +23,7 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <csignal>
+#include <cstdio>
 #include <cstring>
 
 #include "third_party/lss/lss/linux_syscall_support.h"

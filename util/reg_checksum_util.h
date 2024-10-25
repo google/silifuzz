@@ -18,6 +18,8 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <string>
 
 #include "absl/status/status.h"

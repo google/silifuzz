@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <csignal>
-#include <cstring>
 
 #include "./util/checks.h"
 

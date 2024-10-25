@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include <cstdlib>  // std::abs()
-#include <string>
 
 #include "google/protobuf/duration.pb.h"
 #include "google/protobuf/timestamp.pb.h"

@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <cstdint>
+#include <cstddef>
 
 #include "third_party/lss/lss/linux_syscall_support.h"
 

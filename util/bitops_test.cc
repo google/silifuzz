@@ -14,6 +14,7 @@
 
 #include "./util/bitops.h"
 
+#include <cstddef>
 #include <cstdint>
 
 #include "gtest/gtest.h"

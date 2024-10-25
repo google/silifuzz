@@ -19,6 +19,8 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <cstdlib>
 #include <cstring>
 
 #include "./util/checks.h"
