@@ -16,7 +16,9 @@
 
 #include <sys/types.h>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
