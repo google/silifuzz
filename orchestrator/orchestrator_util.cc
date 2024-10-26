@@ -22,7 +22,6 @@
 #include <cstdio>
 #include <filesystem>  // NOLINT
 #include <fstream>
-#include <memory>
 #include <string>
 #include <system_error>  // NOLINT
 #include <vector>
