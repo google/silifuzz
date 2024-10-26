@@ -18,6 +18,7 @@
 // The bytes are converted into Snapshot using InstructionsToSnapshot() which
 // is the same as what our fuzzers and the fix pipeline use.
 
+#include <string>
 #include <vector>
 
 #include "absl/flags/parse.h"

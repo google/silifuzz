@@ -14,8 +14,6 @@
 
 #include "./tools/fuzz_filter_tool.h"
 
-#include <string>
-
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./runner/make_snapshot.h"
