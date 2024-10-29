@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <type_traits>
