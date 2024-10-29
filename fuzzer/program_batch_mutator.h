@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_FUZZER_PROGRAM_BATCH_MUTATOR_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <vector>
 
