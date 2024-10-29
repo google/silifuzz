@@ -15,6 +15,7 @@
 #include "./tracing/analysis.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 

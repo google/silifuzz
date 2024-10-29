@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_TRACING_ANALYSIS_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
 
