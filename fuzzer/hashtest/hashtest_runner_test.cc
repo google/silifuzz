@@ -14,6 +14,8 @@
 
 #include "./fuzzer/hashtest/hashtest_runner.h"
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <cstring>
 #include <sstream>
@@ -27,6 +29,7 @@
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/json.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
@@ -170,6 +173,27 @@ TEST(Runner, EndToEnd) {
 
   EXPECT_EQ(stats.num_failed, 0);
   EXPECT_EQ(result.hits.size(), 0);
+}
+
+TEST(MXCSR, GetSet) {
+  uint32_t old = GetMxcsr();
+
+  // Set the register to two different values and read it back.
+  // This proves the register can be modified, no matter the initial value.
+  const uint32_t target0 = kMXCSRMaskAll | kMXCSRFlushToZero;
+  SetMxcsr(target0);
+  uint32_t changed0 = GetMxcsr();
+
+  const uint32_t target1 = kMXCSRMaskAll | kMXCSRDenormalsAreZeros;
+  SetMxcsr(target1);
+  uint32_t changed1 = GetMxcsr();
+
+  SetMxcsr(old);
+  uint32_t restored = GetMxcsr();
+
+  EXPECT_EQ(changed0, target0);
+  EXPECT_EQ(changed1, target1);
+  EXPECT_EQ(restored, old);
 }
 
 TEST(JSON, String) {

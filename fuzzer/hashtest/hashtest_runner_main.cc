@@ -36,6 +36,7 @@
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/json.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/version.h"
@@ -301,6 +302,10 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
     task.used =
         SynthesizeTests(task.tests, task.code_buffer, corpus_config.chip,
                         *corpus_config.instruction_pool);
+
+    // Needs to be set on each worker thread.
+    // Affects end state generation and test running.
+    SetMxcsr(corpus_config.run_config.mxcsr);
   });
 
   // Calculate the amount of memory used.
@@ -363,6 +368,7 @@ void FormatRunConfigJSON(const RunConfig& run_config, JSONFormatter& out) {
     FormatTestConfigJSON(run_config.test, out);
     out.Field("batch_size", run_config.batch_size);
     out.Field("num_repeat", run_config.num_repeat);
+    out.Field("mxcsr", run_config.mxcsr);
   });
 }
 
@@ -519,22 +525,60 @@ int TestMain(std::vector<char*> positional_args) {
                   },
               .batch_size = batch_size,
               .num_repeat = num_repeat,
+              .mxcsr = kMXCSRMaskAll,
           },
   };
 
   std::vector<CorpusConfig> corpus_config;
-  corpus_config.push_back(default_corpus_config);
 
   const InstructionPool ipool_no_128 =
       ipool.Filter([](const InstructionCandidate& candidate) {
         return candidate.vector_width != 128;
       });
 
-  CorpusConfig filtered_corpus_config = default_corpus_config;
-  filtered_corpus_config.name = "-vec128";
-  filtered_corpus_config.tags = {"-vec128"};
-  filtered_corpus_config.instruction_pool = &ipool_no_128;
-  corpus_config.push_back(filtered_corpus_config);
+  for (uint32_t rounding_mode : {kMXCSRRoundNearest, kMXCSRRoundDown,
+                                 kMXCSRRoundUp, kMXCSRRoundTowardsZero}) {
+    for (bool flush_to_zero : {false, true}) {
+      for (bool denormals_are_zeros : {false, true}) {
+        CorpusConfig base = default_corpus_config;
+
+        uint32_t mxcsr = kMXCSRMaskAll;
+        mxcsr |= rounding_mode;
+        switch (rounding_mode) {
+          case kMXCSRRoundNearest:
+            base.tags.push_back("round_nearest");
+            break;
+          case kMXCSRRoundDown:
+            base.tags.push_back("round_down");
+            break;
+          case kMXCSRRoundUp:
+            base.tags.push_back("round_up");
+            break;
+          case kMXCSRRoundTowardsZero:
+            base.tags.push_back("round_towards_zero");
+            break;
+          default:
+            abort();
+        };
+        if (flush_to_zero) {
+          mxcsr |= kMXCSRFlushToZero;
+          base.tags.push_back("ftz");
+        }
+        if (denormals_are_zeros) {
+          mxcsr |= kMXCSRDenormalsAreZeros;
+          base.tags.push_back("daz");
+        }
+        base.run_config.mxcsr = mxcsr;
+        corpus_config.push_back(base);
+
+        CorpusConfig filtered_corpus_config = base;
+        filtered_corpus_config.name = "-vec128";
+        filtered_corpus_config.tags.push_back("-vec128");
+        filtered_corpus_config.instruction_pool = &ipool_no_128;
+        corpus_config.push_back(filtered_corpus_config);
+      }
+    }
+  }
 
   // Name the corpus based on the tags.
   for (CorpusConfig& config : corpus_config) {

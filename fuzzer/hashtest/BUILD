@@ -126,6 +126,7 @@ cc_library(
         "hashtest_runner.h",
         "hashtest_runner_widgits.h",
         "json.h",
+        "mxcsr.h",
     ],
     deps = [
         ":hashtest_generator_lib",

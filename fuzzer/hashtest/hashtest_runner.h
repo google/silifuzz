@@ -28,6 +28,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 
 namespace silifuzz {
@@ -314,6 +315,12 @@ struct RunConfig {
 
   // How many times should you run each test + input?
   size_t num_repeat;
+
+  // Currently we set the MXCSR once per corpus.
+  // It would be possible to set it per test, but this would potentially consume
+  // more memory and CPU cycles.
+  // TODO(ncbray): is modulating the MXCSR per test worth it?
+  uint32_t mxcsr = kMXCSRMaskAll;
 };
 
 // Run each test with each input, and check the end state.
