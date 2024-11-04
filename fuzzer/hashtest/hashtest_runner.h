@@ -243,6 +243,17 @@ struct ResultReporter {
   absl::Time test_started;
   absl::Duration update_period;
   absl::Time next_update;
+
+  // Should stop running tests earlier than we were otherwise planning to?
+  bool ShouldStopRunning();
+
+  // Some sort of asynchronous event has occurred. We should stop running tests.
+  void StopRunning();
+
+  // Implemented as an atomic rather than protected by the mutex so that we
+  // don't need to reason about what happens if we get an async signal while the
+  // mutex is being acquired, etc.
+  std::atomic<bool> stop_running = false;
 };
 
 constexpr inline double kUpdateInterval = 0.35;

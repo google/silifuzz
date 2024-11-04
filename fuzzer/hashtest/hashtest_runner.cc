@@ -17,6 +17,7 @@
 #include <sys/mman.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -146,6 +147,14 @@ void FinalizeCorpus(Corpus& corpus, size_t used_size) {
   CHECK_EQ(0, mprotect(corpus.mapping.Ptr(), corpus.mapping.AllocatedSize(),
                        PROT_READ | PROT_EXEC));
   corpus.mapping.SetUsedSize(used_size);
+}
+
+bool ResultReporter::ShouldStopRunning() {
+  return stop_running.load(std::memory_order_relaxed);
+}
+
+void ResultReporter::StopRunning() {
+  stop_running.store(true, std::memory_order_relaxed);
 }
 
 void ResultReporter::CheckIn(absl::Time now) {
@@ -291,6 +300,9 @@ bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
           absl::Time now = absl::Now();
           stats.time_estimator.Update(now, time_limit);
           result.CheckIn(now);
+          if (result.ShouldStopRunning()) {
+            return false;
+          }
           if (now >= time_limit) {
             return false;
           }

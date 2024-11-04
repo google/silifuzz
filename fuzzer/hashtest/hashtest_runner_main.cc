@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <signal.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -589,15 +591,22 @@ int TestMain(std::vector<char*> positional_args) {
   // we halt testing at a specific time.
   std::shuffle(corpus_config.begin(), corpus_config.end(), rng);
 
-  ResultReporter result(test_started);
+  // Static so the signal handler callback can access it.
+  static ResultReporter result(test_started);
 
   absl::Duration testing_time = absl::GetFlag(FLAGS_time);
   absl::Duration corpus_time = absl::GetFlag(FLAGS_corpus_time);
+
+  signal(SIGTERM, [](int) { result.StopRunning(); });
+  signal(SIGINT, [](int) { result.StopRunning(); });
 
   size_t test_index = 0;
   std::vector<CorpusStats> corpus_stats(corpus_config.size());
   size_t current_variant = 0;
   while (true) {
+    if (result.ShouldStopRunning()) {
+      break;
+    }
     absl::Time corpus_started = absl::Now();
     absl::Duration testing_time_remaining =
         testing_time - (corpus_started - test_started);
