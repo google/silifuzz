@@ -70,7 +70,7 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
           " size=", insn_or->length(), " ", insn_or->DebugString()));
       VLOG_INFO(1, trace_result_.disassembly.back());
     }
-    if (!insn_or->is_deterministic() &&
+    if (!insn_or->is_allowed_in_runner() &&
         options_.filter_non_deterministic_insn) {
       trace_result_.early_termination_reason =
           absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());

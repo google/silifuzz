@@ -74,9 +74,9 @@ DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
   if (!status_.ok()) LOG_ERROR(status_.message());
 }
 
-bool DecodedInsn::is_deterministic() const {
+bool DecodedInsn::is_allowed_in_runner() const {
   DCHECK_STATUS(status_);
-  return InstructionIsDeterministicInRunner(xed_decoded_inst_inst(&xed_insn_));
+  return InstructionIsAllowedInRunner(xed_decoded_inst_inst(&xed_insn_));
 }
 
 bool DecodedInsn::is_locking() const {

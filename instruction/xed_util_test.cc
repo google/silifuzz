@@ -144,7 +144,7 @@ TEST_F(XedUtilTest, InstructionPredicates) {
       }
       const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
       EXPECT_EQ(test.not_deterministic,
-                !InstructionIsDeterministicInRunner(instruction))
+                !InstructionIsAllowedInRunner(instruction))
           << test.text;
       EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(instruction))
           << test.text;

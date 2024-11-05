@@ -44,7 +44,7 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
 // are instructions that produce random numbers. A less obvious type of
 // instruction are instructions that depend on state the runner does not /
 // cannot control.
-bool InstructionIsDeterministicInRunner(const xed_inst_t* instruction);
+bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
 
 // Is this an unprivileged instruction? Useful for filtering instructions before
 // the run on hardware. Once they run on hardware, the answer should be obvious.

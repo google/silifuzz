@@ -79,7 +79,7 @@ bool PrefilterInstruction(const xed_inst_t* instruction) {
   // Instructions that are generally problematic for userspace tests.
   //
 
-  if (!InstructionIsDeterministicInRunner(instruction)) {
+  if (!InstructionIsAllowedInRunner(instruction)) {
     return false;
   }
   // Filter out privileged instructions.

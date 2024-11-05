@@ -58,14 +58,17 @@ class DecodedInsn {
   // disassembly engine.
   bool is_valid() const { return status_.ok(); }
 
-  // Tells if the instruction is deterministic.
+  // Tells if the instruction is allowed in the runner.
+  // Mostly used to filter out instructions that are not deterministic but in
+  // certain cases will also filter out instructions known to cause
+  // inconsistent behavior on different uarches.
   //
   // NOTE: the definition of "deterministic" is somewhat fuzzy in this context.
   // We consider an insn non-deterministic if its behavior depends on any state
   // that is not captured by the Snapshot data structure or whos behavior varies
   // across various production and corp platforms.
   // REQUIRES: is_valid().
-  bool is_deterministic() const;
+  bool is_allowed_in_runner() const;
 
   // Tells if the instruction locks memory. An instruction locks memory if
   // it 1) has at least 1 memory operand and

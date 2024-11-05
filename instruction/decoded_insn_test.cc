@@ -69,7 +69,7 @@ TEST(DecodedInsn, Nop) {
   DecodedInsn insn("\x90");
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "nop");
-  EXPECT_TRUE(insn.is_deterministic());
+  EXPECT_TRUE(insn.is_allowed_in_runner());
   EXPECT_FALSE(insn.is_locking());
   EXPECT_EQ(insn.length(), 1);
 }
@@ -78,7 +78,7 @@ TEST(DecodedInsn, CpuId) {
   DecodedInsn insn("\x0f\xa2");
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "cpuid");
-  EXPECT_FALSE(insn.is_deterministic());
+  EXPECT_FALSE(insn.is_allowed_in_runner());
   EXPECT_FALSE(insn.is_locking());
   EXPECT_EQ(insn.length(), 2);
 }
@@ -88,7 +88,7 @@ TEST(DecodedInsn, LockAdd) {
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
             "lock add dword ptr [rsp], 0x1");
-  EXPECT_TRUE(insn.is_deterministic());
+  EXPECT_TRUE(insn.is_allowed_in_runner());
   EXPECT_TRUE(insn.is_locking());
   EXPECT_EQ(insn.length(), 5);
 }
@@ -97,7 +97,7 @@ TEST(DecodedInsn, XchgbAhAl) {
   DecodedInsn insn("\x86\xc4");
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "xchg ah, al");
-  EXPECT_TRUE(insn.is_deterministic());
+  EXPECT_TRUE(insn.is_allowed_in_runner());
   EXPECT_FALSE(insn.is_locking());
   EXPECT_EQ(insn.length(), 2);
 }
@@ -107,7 +107,7 @@ TEST(DecodedInsn, XchgbEaxMem) {
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
             "xchg dword ptr [rsp], eax");
-  EXPECT_TRUE(insn.is_deterministic());
+  EXPECT_TRUE(insn.is_allowed_in_runner());
   EXPECT_TRUE(insn.is_locking());
   EXPECT_EQ(insn.length(), 3);
 }
