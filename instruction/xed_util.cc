@@ -150,6 +150,9 @@ bool InstructionIsAllowedInRunner(const xed_inst_t* instruction) {
     case XED_ICLASS_UMWAIT:
     case XED_ICLASS_UMONITOR:
       return false;
+    case XED_ICLASS_ENTER:
+      // Quick fix for b/377197728.
+      return false;
     default:
       return true;
   }
