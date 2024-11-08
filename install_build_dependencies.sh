@@ -36,5 +36,4 @@ echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
 apt update
 
 # Install dependencies.
-apt install --no-install-recommends -y git bazel-6.4.0 libssl-dev clang libclang-rt-dev lld python3 libpython3-stdlib
-ln -s -f /usr/bin/bazel-6.4.0 /usr/bin/bazel
+apt install --no-install-recommends -y git bazel libssl-dev clang libclang-rt-dev lld python3 libpython3-stdlib
