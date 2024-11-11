@@ -568,7 +568,6 @@ genrule(
     cmd = "cp \"$$($(CC) $(CC_FLAGS) --rtlib=compiler-rt -print-libgcc-file-name)\" \"$@\"",
     toolchains = [
         "@bazel_tools//tools/cpp:current_cc_toolchain",
-        "@bazel_tools//tools/cpp:cc_flags",
     ],
 )
 
