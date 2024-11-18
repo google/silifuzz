@@ -186,13 +186,9 @@ void MaxLenTest(uint64_t seed, const std::vector<uint8_t> &data) {
   // The program is under the limit.
   EXPECT_LE(limited.size(), max_len);
 
-  // The program is one instruction or less under the limit.
-  // Note: this test is a little shaky because re-canonicalization after
-  // limiting the length could drop the size more than expected.
-  // However, since the instructions are purely random the first fixup should
-  // canonicalize most of the instructions. It is also unlikely that the last
-  // instruction removed was the maximum possible size for an instruction.
-  EXPECT_GE(limited.size() + kInstructionInfo<Arch>.max_size, max_len);
+  // Note: determining the lower size limit a little shaky because
+  // re-canonicalization after limiting the length could drop the size more than
+  // expected.
 }
 
 // Needed to work around FUZZ_TEST macro limitations.
@@ -203,6 +199,14 @@ void MaxLenTest_X86_64(uint64_t seed, const std::vector<uint8_t> &data) {
 // Needed to work around FUZZ_TEST macro limitations.
 void MaxLenTest_AArch64(uint64_t seed, const std::vector<uint8_t> &data) {
   MaxLenTest<AArch64>(seed, data);
+}
+
+TEST(FuzzProgramMutator, MaxLenTest_X86_64Regression) {
+  MaxLenTest_X86_64(13567640900526968847ULL,
+                    fuzztest::ToByteArray(std::string(
+                        "\0059\030\000!\006Z\377gJggdIIIAIIIIIAp\360b\363}("
+                        "\031\033\001\313<\0033\361\021\000\263\000\000",
+                        42)));
 }
 
 TEST(FuzzProgramMutator,
