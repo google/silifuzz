@@ -157,17 +157,14 @@ static_assert(
 
 static_assert(
     ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kNotChecked) ==
-    ToInt(proto::RunnerOutput::ChecksumStatus::
-              RunnerOutput_ChecksumStatus_NOT_CHECKED));
+    ToInt(proto::ChecksumStatus::NOT_CHECKED));
 
 static_assert(ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kMatch) ==
-              ToInt(proto::RunnerOutput::ChecksumStatus::
-                        RunnerOutput_ChecksumStatus_MATCH));
+              ToInt(proto::ChecksumStatus::MATCH));
 
 static_assert(
     ToInt(snapshot_types::RunnerPostfailureChecksumStatus::kMismatch) ==
-    ToInt(proto::RunnerOutput::ChecksumStatus::
-              RunnerOutput_ChecksumStatus_MISMATCH));
+    ToInt(proto::ChecksumStatus::MISMATCH));
 
 static_assert(proto::PlatformId_MAX < 64,
               "PlatformId_MAX is too large to fit in EndState::platforms");

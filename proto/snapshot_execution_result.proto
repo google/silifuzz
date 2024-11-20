@@ -19,9 +19,24 @@ package silifuzz.proto;
 import "google/protobuf/timestamp.proto";
 import "proto/player_result.proto";
 
+// Memory checksum status after the snapshot failed (if any).
+message ChecksumStatus {
+  enum Enum {
+    // No checksum was present in the snapshot or the checksum was not
+    // computed.
+    NOT_CHECKED = 0;
+
+    // The checksum matched.
+    MATCH = 1;
+
+    // The checksum did not match.
+    MISMATCH = 2;
+  }
+}
+
 // A proto to store snapshot execution result identified by a snapshot ID
 // and a play result.
-// NextID: 5
+// NextID: 6
 message SnapshotExecutionResult {
   // ID of the snapshot.
   optional string snapshot_id = 1;  // semantically required.
@@ -39,6 +54,9 @@ message SnapshotExecutionResult {
   // TODO(ksteuck): Revisit once the old data has gone beyond the analysis
   // horizon (Q2 2025-ish).
   optional google.protobuf.Timestamp time = 3 [deprecated = true];
+
+  // Memory checksum status after the snapshot failed (if any).
+  optional ChecksumStatus.Enum postfailure_checksum_status = 5;
 }
 
 // RunnerOutput represents the result of a single runner execution.
@@ -80,18 +98,6 @@ message RunnerOutput {
   // An optional failed snapshot execution result.
   optional SnapshotExecutionResult failed_snapshot_execution = 2;
 
-  enum ChecksumStatus {
-    // No checksum was present in the snapshot or the checksum was not
-    // computed.
-    NOT_CHECKED = 0;
-
-    // The checksum matched.
-    MATCH = 1;
-
-    // The checksum did not match.
-    MISMATCH = 2;
-  }
-
   // Memory checksum status after the snapshot failed (if any).
-  optional ChecksumStatus postfailure_checksum_status = 3;
+  optional ChecksumStatus.Enum postfailure_checksum_status = 3;
 }

@@ -6,6 +6,7 @@ import re
 import struct
 import subprocess
 import time
+from typing import Iterator
 
 import absl.logging
 from absl.testing import absltest
@@ -123,11 +124,19 @@ class OrchestratorTest(absltest.TestCase):
       max_cpus: int = 1,
       multicorpus: bool = False,
       extra_args: list[str] = None,
-  ) -> (list[str], int):
+      scrape_binary_log: bool = False,
+  ) -> (list[str], int, Iterator[bpb2.BinaryLogEntry]):
     corpus_files = [self._FAKE_CORPUS[0]]
     if multicorpus:
       corpus_files.append(self._FAKE_CORPUS[1])
     shard_list_file = self.create_tempfile(content='\n'.join(corpus_files))
+
+    read_fd, write_fd = None, None
+    if scrape_binary_log:
+      (read_fd, write_fd) = os.pipe()
+      extra_args = extra_args or []
+      extra_args.extend(['--binary_log_fd', str(write_fd)])
+
     (err_log, returncode) = self._run(
         duration_sec=duration_sec,
         max_cpus=max_cpus,
@@ -135,10 +144,15 @@ class OrchestratorTest(absltest.TestCase):
         extra_args=extra_args,
         test_dummy_commands=test_dummy_commands,
     )
-    return (err_log, returncode)
+    bin_log = None
+    if scrape_binary_log:
+      os.close(write_fd)
+      bin_log = os.read(read_fd, 4096)
+      os.close(read_fd)
+    return (err_log, returncode, self._parse_binary_log(bin_log))
 
   def test_basic(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['short_output', 'short_loop'],
         duration_sec=10,
     )
@@ -149,7 +163,9 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_multicpu(self):
-    (err_log, returncode) = self.run_orchestrator(['short_output'], max_cpus=3)
+    (err_log, returncode, _) = self.run_orchestrator(
+        ['short_output'], max_cpus=3
+    )
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
         err_log,
@@ -163,7 +179,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_exit7(self):
-    (err_log, returncode) = self.run_orchestrator(['short_loop', 'exit7'])
+    (err_log, returncode, _) = self.run_orchestrator(['short_loop', 'exit7'])
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
         err_log,
@@ -174,7 +190,7 @@ class OrchestratorTest(absltest.TestCase):
 
   def test_timeout(self):
     # If you change --timeout=2 to something else, also change test_runner.cc.
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['--timeout=2', 'infinite_loop']
     )
     self.assertEqual(returncode, 0)
@@ -186,7 +202,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_sequential_mode(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         [], extra_args=['--sequential_mode'], multicorpus=True
     )
     self.assertEqual(returncode, 0)
@@ -200,7 +216,7 @@ class OrchestratorTest(absltest.TestCase):
 
   def test_multiple_corpora(self):
     # Check that the uncompressed contents of both fake corpora are present.
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['print_first_snap_id'],
         extra_args=['--sequential_mode'],
         multicorpus=True,
@@ -215,7 +231,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_snap_failure(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['snap_fail'], extra_args=['--enable_v1_compat_logging']
     )
     self.assertEqual(
@@ -255,7 +271,7 @@ class OrchestratorTest(absltest.TestCase):
     return r
 
   def test_failfast(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['snap_fail'],
         extra_args=['--enable_v1_compat_logging', '--fail_after_n_errors=2'],
     )
@@ -268,7 +284,7 @@ class OrchestratorTest(absltest.TestCase):
     self.assertGreaterEqual(int(latest_entry['issues_detected']), 2)
 
   def test_v1_logging(self):
-    (err_log, _) = self.run_orchestrator(
+    (err_log, _, _) = self.run_orchestrator(
         ['long_loop'],
         duration_sec=10,
         extra_args=['--enable_v1_compat_logging'],
@@ -284,7 +300,7 @@ class OrchestratorTest(absltest.TestCase):
     self.assertGreater(_parse_secs(latest_entry['user_time']), 0)
 
   def test_duration(self):
-    (err_log, returncode) = self.run_orchestrator(['sleep100'])
+    (err_log, returncode, _) = self.run_orchestrator(['sleep100'])
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
         err_log,
@@ -296,7 +312,13 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_checksum_mismatch(self):
-    (err_log, returncode) = self.run_orchestrator(['checksum_mismatch'])
+    (err_log, returncode, bin_log) = self.run_orchestrator(
+        ['checksum_mismatch'],
+        extra_args=[
+            '--sequential_mode',
+        ],
+        scrape_binary_log=True,
+    )
     self.assertEqual(
         returncode, 1, msg='Expected EXIT_FAILURE ' + '\n'.join(err_log)
     )
@@ -306,9 +328,23 @@ class OrchestratorTest(absltest.TestCase):
             'Snapshot checksum mismatch',
         ],
     )
+    snap_failure = None
+    for e in bin_log:
+      if e.HasField('snapshot_execution_result'):
+        snap_failure = e.snapshot_execution_result
+    self.assertIsNotNone(
+        snap_failure, msg='Expected a SnapshotExecutionResult'
+    )
+    # Mirrors the corresponding enum value in snapshot_enums.h without
+    # introducing a dependency on that file or the proto.
+    runner_postfailure_checksum_status_mismatch = 2
+    self.assertEqual(
+        snap_failure.postfailure_checksum_status,
+        runner_postfailure_checksum_status_mismatch,
+    )
 
   def test_no_execution_result(self):
-    (err_log, returncode) = self.run_orchestrator(['no_execution_result'])
+    (err_log, returncode, _) = self.run_orchestrator(['no_execution_result'])
     self.assertEqual(returncode, 0)
     self.assertStrSeqContainsAll(
         err_log,
@@ -318,7 +354,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_mmap_failed(self):
-    (err_log, returncode) = self.run_orchestrator(['mmap_failed'])
+    (err_log, returncode, _) = self.run_orchestrator(['mmap_failed'])
     self.assertEqual(
         returncode,
         0,
@@ -335,7 +371,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_watchdog(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['ignore_alarm', 'sleep100'],
         extra_args=['--watchdog_allowed_overrun=1s'],
     )
@@ -357,15 +393,13 @@ class OrchestratorTest(absltest.TestCase):
       data = data[8 + l :]
 
   def test_binary_logging(self):
-    (read_fd, write_fd) = os.pipe()
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, bin_log) = self.run_orchestrator(
         ['snap_fail'],
         extra_args=[
             '--sequential_mode',
             '--log_session_summary_probability=1',
-            '--binary_log_fd',
-            str(write_fd),
         ],
+        scrape_binary_log=True,
     )
     self.assertEqual(returncode, 1)
     self.assertStrSeqContainsAll(
@@ -375,13 +409,9 @@ class OrchestratorTest(absltest.TestCase):
             'exit_status: snap_fail',
         ],
     )
-    os.close(write_fd)
-    bin_log = os.read(read_fd, 4096)
-    os.close(read_fd)
-    self.assertLess(len(bin_log), 4096, msg='Binary log was likely truncated')
     session_summary = None
     session_start = None
-    for e in self._parse_binary_log(bin_log):
+    for e in bin_log:
       if e.HasField('session_summary'):
         self.assertIsNone(session_summary, msg='Expected exactly 1')
         session_summary = e.session_summary
@@ -403,7 +433,7 @@ class OrchestratorTest(absltest.TestCase):
     # self.assertTrue(session_summary.resource_usage.HasField('max_rss_kb'))
 
   def test_binary_logging_bad_fd(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['snap_fail'],
         extra_args=[
             '--sequential_mode',
@@ -421,7 +451,7 @@ class OrchestratorTest(absltest.TestCase):
     )
 
   def test_rlimit_fsize(self):
-    (err_log, returncode) = self.run_orchestrator(
+    (err_log, returncode, _) = self.run_orchestrator(
         ['long_output'], extra_args=['--sequential_mode']
     )
     self.assertEqual(returncode, 0)
@@ -456,7 +486,7 @@ class OrchestratorTest(absltest.TestCase):
     self.assertEqual(proc.returncode, 0)
 
   def test_aslr_off(self):
-    (err_log, returncode) = self.run_orchestrator(['print_main_address'])
+    (err_log, returncode, _) = self.run_orchestrator(['print_main_address'])
     self.assertEqual(returncode, 0)
     matching_lines = [x for x in err_log if x.startswith('main:')]
     # Verify there are at least 2 "main:$addr" lines the test dummy prints and

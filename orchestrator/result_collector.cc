@@ -94,6 +94,12 @@ absl::StatusOr<proto::BinaryLogEntry> RunResultToSnapshotExecutionResult(
   RETURN_IF_NOT_OK(PlayerResultProto::ToProto(
       run_result.failed_player_result(),
       *snapshot_execution_result->mutable_player_result()));
+  if (run_result.postfailure_checksum_status() !=
+      RunnerPostfailureChecksumStatus::kNotChecked) {
+    entry.mutable_snapshot_execution_result()->set_postfailure_checksum_status(
+        static_cast<proto::ChecksumStatus_Enum>(
+            run_result.postfailure_checksum_status()));
+  }
 
   snapshot_execution_result->set_hostname(std::string(ShortHostname()));
 
