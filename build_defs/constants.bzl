@@ -14,16 +14,6 @@
 
 """Shared constants."""
 
-# Formatted as silifuzz::PlatformId's ToString()
-SILIFUZZ_PLATFORMS = [
-    "intel-skylake",
-    "intel-haswell",
-    "intel-broadwell",
-    "intel-cascadelake",
-    "amd-rome",
-    "amd-milan",
-]
-
 # The base address of the runner.  This is abitrary. We expect this to be
 # unlikely to collide with snapshots due to the size of the user address space.
 # There is also a run time check in the runner to verify that no collision happens.
