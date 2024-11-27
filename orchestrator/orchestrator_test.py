@@ -506,27 +506,27 @@ class OrchestratorTest(parameterized.TestCase):
       ),
       dict(
           testcase_name='best_effort_capped',
-          memory_limit_mb=512 * 12 + 1,
+          memory_limit_mb=512 * 2 + 1,
           expected_return_code=0,
-          expected_cpus=12,
+          expected_cpus=2,
           expected_shards=1,
           max_cpus=16,
       ),
       dict(
           testcase_name='best_effort_capped_2',
-          memory_limit_mb=512 * 10 + 2,
+          memory_limit_mb=512 * 2 + 2,
           expected_return_code=0,
-          expected_cpus=10,
+          expected_cpus=2,
           expected_shards=2,
           max_cpus=0,
       ),
       dict(
           testcase_name='best_effort_not_capped',
-          memory_limit_mb=512 * 16 + 9999,
+          memory_limit_mb=512 * 2 + 9999,
           expected_return_code=0,
-          expected_cpus=16,
+          expected_cpus=2,
           expected_shards=2,
-          max_cpus=16,
+          max_cpus=2,
       ),
   )
   def test_best_effort(
@@ -547,13 +547,6 @@ class OrchestratorTest(parameterized.TestCase):
     if expected_return_code != 0:
       return
 
-    self.assertStrSeqContainsAll(
-        err_log,
-        [
-            f'We can schedule {expected_cpus}/' + r'\d+ runners',
-            f'we can fit {expected_shards} of 2',
-        ],
-    )
     # Verify that the number of CPUs assigned to threads is equal to the
     # number of total CPUs.
     scheduled_cpus = 0
@@ -568,6 +561,14 @@ class OrchestratorTest(parameterized.TestCase):
         total_cpus = int(m.group(1))
         continue
     self.assertEqual(total_cpus, scheduled_cpus)
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            f'We can schedule {min(expected_cpus, total_cpus)}/'
+            + r'\d+ runners',
+            f'we can fit {expected_shards} of 2',
+        ],
+    )
 
   def test_large_max_cpus_flag(self):
     (err_log, returncode, _) = self.run_orchestrator(
