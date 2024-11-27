@@ -43,6 +43,10 @@ struct RunnerThreadArgs {
   // All available corpora.
   const InMemoryCorpora *corpora = nullptr;
 
+  // CPUs to be scanned by this thread. When the vector is empty, the thread
+  // will stop immediately without doing any work.
+  std::vector<int> cpus;
+
   // Additional parameters passed to each runner binary.
   RunnerOptions runner_options = RunnerOptions::Default();
 };

@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 
@@ -32,7 +33,13 @@ struct Statm {
   uint64_t rss_bytes;
 };
 
-// Returns max RSS of the immediate childen of `pid` as reported by the
+// Represents the resources with which the orchestrator will run.
+struct OrchestratorResources {
+  uint64_t num_concurrent_runners;
+  std::vector<std::string> shards;
+};
+
+// Returns max RSS of the immediate children of `pid` as reported by the
 // corresponding /proc/pid/statm files. The `runner_name` specifies a string
 // that the executable path of the process must contain to be considered of
 // interest.
@@ -51,15 +58,15 @@ std::vector<pid_t> ListChildrenPids(pid_t pid);
 // containerized. Any cgroup limits won't be reflected in the result.
 absl::StatusOr<uint64_t> AvailableMemoryMb();
 
-// Caps the number of `shards` such that the entire process fits in the
-// supplied `memory_usage_limit_mb`. `max_cpus` is the number of runner
-// processes that will be run in parallel.
-// NOTE: This function relies on the shard size and a guessestimate of how much
-// memory (max) a runner can use. The caller may want to apply a fudge factor of
-// 0.8 to the limit value to reduce memory pressure.
-absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
-    const std::vector<std::string> &shards, int64_t memory_usage_limit_mb,
-    uint64_t max_cpus);
+// Caps the `resources` (number of shards and concurrent jobs) such that the
+// entire process fits in the supplied `memory_usage_limit_mb`. The capped
+// `resources` will be returned and modified in place. NOTE: This function
+// relies on the shard size and a guesstimate of how much memory (max) a runner
+// can use. The caller may want to apply a fudge factor of 0.8 to the limit
+// value to reduce memory pressure.
+absl::Status CapResourcesToMemLimit(
+    int64_t memory_usage_limit_mb,
+    OrchestratorResources& resources /* input/output */);
 
 }  // namespace silifuzz
 

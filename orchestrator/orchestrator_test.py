@@ -10,6 +10,7 @@ from typing import Iterator
 
 import absl.logging
 from absl.testing import absltest
+from absl.testing import parameterized
 
 from silifuzz.proto import binary_log_entry_pb2 as bpb2
 
@@ -36,7 +37,7 @@ _RUNAWAY_CORPUS_PATH = get_data_dependency(
 )
 
 
-class OrchestratorTest(absltest.TestCase):
+class OrchestratorTest(parameterized.TestCase):
   _FAKE_CORPUS: list[str] = []
   _CORPUS_METADATA_FILE: str = ''
 
@@ -493,6 +494,104 @@ class OrchestratorTest(absltest.TestCase):
     # they are all the same b/c ASLR is off.
     self.assertGreater(len(matching_lines), 1)
     self.assertSetEqual(set(matching_lines), {matching_lines[0]})
+
+  @parameterized.named_parameters(
+      dict(
+          testcase_name='best_effort_oom',
+          memory_limit_mb=512,
+          expected_return_code=1,
+          expected_cpus=None,
+          expected_shards=None,
+          max_cpus=16,
+      ),
+      dict(
+          testcase_name='best_effort_capped',
+          memory_limit_mb=512 * 12 + 1,
+          expected_return_code=0,
+          expected_cpus=12,
+          expected_shards=1,
+          max_cpus=16,
+      ),
+      dict(
+          testcase_name='best_effort_capped_2',
+          memory_limit_mb=512 * 10 + 2,
+          expected_return_code=0,
+          expected_cpus=10,
+          expected_shards=2,
+          max_cpus=0,
+      ),
+      dict(
+          testcase_name='best_effort_not_capped',
+          memory_limit_mb=512 * 16 + 9999,
+          expected_return_code=0,
+          expected_cpus=16,
+          expected_shards=2,
+          max_cpus=16,
+      ),
+  )
+  def test_best_effort(
+      self,
+      memory_limit_mb,
+      expected_return_code,
+      expected_cpus,
+      expected_shards,
+      max_cpus,
+  ):
+    (err_log, returncode, _) = self.run_orchestrator(
+        ['short_output', 'short_loop'],
+        max_cpus=max_cpus,
+        extra_args=[f'--limit_memory_usage_mb={memory_limit_mb}'],
+        multicorpus=True,
+    )
+    self.assertEqual(returncode, expected_return_code)
+    if expected_return_code != 0:
+      return
+
+    self.assertStrSeqContainsAll(
+        err_log,
+        [
+            f'We can schedule {expected_cpus}/' + r'\d+ runners',
+            f'we can fit {expected_shards} of 2',
+        ],
+    )
+    # Verify that the number of CPUs assigned to threads is equal to the
+    # number of total CPUs.
+    scheduled_cpus = 0
+    total_cpus = None
+    for line in err_log:
+      m = re.search(r'(\d+) CPUs are assigned to T\d+', line)
+      if m:
+        scheduled_cpus += int(m.group(1))
+        continue
+      m = re.search(r'AVAIL MEM:.+CPUS: (\d+)', line)
+      if m:
+        total_cpus = int(m.group(1))
+        continue
+    self.assertEqual(total_cpus, scheduled_cpus)
+
+  def test_large_max_cpus_flag(self):
+    (err_log, returncode, _) = self.run_orchestrator(
+        ['short_output', 'short_loop'],
+        max_cpus=10000,
+        extra_args=[f'--limit_memory_usage_mb={512 * 10000 + 3}'],
+        multicorpus=True,
+    )
+    self.assertEqual(returncode, 0)
+
+    # Verify that the number of CPUs assigned to threads is equal to the
+    # number of total CPUs.
+    scheduled_cpus = 0
+    total_cpus = None
+    for line in err_log:
+      m = re.search(r'(\d+) CPUs are assigned to T\d+', line)
+      if m:
+        scheduled_cpus += int(m.group(1))
+        continue
+      m = re.search(r'AVAIL MEM:.+CPUS: (\d+)', line)
+      if m:
+        total_cpus = int(m.group(1))
+        continue
+    self.assertEqual(total_cpus, scheduled_cpus)
 
 
 if __name__ == '__main__':

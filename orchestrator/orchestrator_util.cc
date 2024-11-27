@@ -57,7 +57,7 @@ std::vector<pid_t> ListChildrenPids(pid_t pid) {
       std::ifstream ifs;
       ifs.open(task.path() / "children");
       // This code ignores all I/O errors since the child processes exit
-      // asynchroniously.
+      // asynchronously.
       if (!ifs.good()) {
         continue;
       }
@@ -139,9 +139,8 @@ absl::StatusOr<uint64_t> AvailableMemoryMb() {
   return absl::NotFoundError("No MemAvailable entry in /proc/meminfo");
 }
 
-absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
-    const std::vector<std::string> &shards, int64_t memory_usage_limit_mb,
-    uint64_t max_cpus) {
+absl::Status CapResourcesToMemLimit(int64_t memory_usage_limit_mb,
+                                    OrchestratorResources &resources) {
   // How much memory a single runner uses. 512Mb works the current corpus but
   // ideally the value should be computed on the fly by either loading a single
   // shard into the runner or precomputing the value and recording it in the
@@ -151,18 +150,14 @@ absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
 
   int64_t memory_budget_mb = memory_usage_limit_mb;
   VLOG_INFO(0, "Initial mem budget is ", memory_budget_mb, "MB");
-  memory_budget_mb -= kSingleRunnerMemoryUsageMb * max_cpus;
-  if (memory_budget_mb <= 0) {
-    return absl::ResourceExhaustedError(absl::StrCat(
-        "Not enough memory to run ", max_cpus,
-        " runners with the given budget of ", memory_usage_limit_mb, "MB"));
-  }
   ASSIGN_OR_RETURN_IF_NOT_OK(
       uint64_t top_shard_size_mb, [&]() -> absl::StatusOr<uint64_t> {
         // Probe the top shard size. Works under the assumption that all shards
         // are equally sized.
+        // TODO(b/380883498): Shard size estimation can go wrong and need to be
+        // fixed.
         ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryCorpora top_shard,
-                                   LoadCorpora({shards[0]}));
+                                   LoadCorpora({resources.shards[0]}));
         off_t top_shard_size =
             lseek64(top_shard.shards[0].file_descriptor.borrow(), 0, SEEK_END);
         if (top_shard_size < 0) {
@@ -171,24 +166,44 @@ absl::StatusOr<std::vector<std::string>> CapShardsToMemLimit(
         // Round up to 1 meg.
         return std::max<uint64_t>(1, top_shard_size / (1024 * 1024));
       }());
-  int max_shards =
-      std::min<int>(shards.size(), memory_budget_mb / top_shard_size_mb);
-  if (max_shards <= 0) {
-    return absl::ResourceExhaustedError(absl::StrCat(
-        "Cannot load any shards given the remaining memory budget ",
-        memory_budget_mb, "MB. Shard size = ", top_shard_size_mb, "MB"));
-  }
 
+  const uint64_t max_num_runners = resources.num_concurrent_runners;
+  memory_budget_mb -=
+      top_shard_size_mb;  // Reserve memory for at least one shard.
+  if (memory_budget_mb <= 0) {
+    return absl::ResourceExhaustedError(absl::StrCat(
+        "Not enough memory to run a single runner with the given budget of ",
+        memory_usage_limit_mb, "MB"));
+  }
+  resources.num_concurrent_runners = std::min<uint64_t>(
+      max_num_runners, memory_budget_mb / kSingleRunnerMemoryUsageMb);
+  if (resources.num_concurrent_runners == 0) {
+    return absl::ResourceExhaustedError(absl::StrCat(
+        "Not enough memory to run ", resources.num_concurrent_runners,
+        " runners with the given budget of ", memory_usage_limit_mb, "MB"));
+  }
+  memory_budget_mb -=
+      kSingleRunnerMemoryUsageMb * resources.num_concurrent_runners;
+  VLOG_INFO(0, "We can schedule ", resources.num_concurrent_runners, "/",
+            max_num_runners, " runners of ", kSingleRunnerMemoryUsageMb,
+            "MB each with at least one shard of ", top_shard_size_mb, "MB");
+
+  const size_t total_shards = resources.shards.size();
+  memory_budget_mb +=
+      top_shard_size_mb;  // Add the reserved memory budget back.
+  int max_shards =
+      std::min<int>(total_shards, memory_budget_mb / top_shard_size_mb);
+  CHECK_GT(max_shards, 0);
   VLOG_INFO(0, "Shard 0 size is ", top_shard_size_mb,
             "MB. With the remaining budget of ", memory_budget_mb,
-            "MB we can fit ", max_shards, " of ", shards.size());
+            "MB we can fit ", max_shards, " of ", total_shards);
   memory_budget_mb -= top_shard_size_mb * max_shards;
   VLOG_INFO(0, "Total expected memory usage of SiliFuzz is ",
             memory_usage_limit_mb - memory_budget_mb, "MB");
-  std::vector<std::string> rv = shards;
-  std::shuffle(rv.begin(), rv.end(), absl::BitGen());
-  rv.resize(max_shards);
-  return rv;
+  std::shuffle(resources.shards.begin(), resources.shards.end(),
+               absl::BitGen());
+  resources.shards.resize(max_shards);
+  return absl::OkStatus();
 }
 
 }  // namespace silifuzz

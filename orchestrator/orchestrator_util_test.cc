@@ -16,7 +16,6 @@
 
 #include <unistd.h>
 
-#include <csignal>
 #include <string>
 #include <vector>
 
@@ -79,28 +78,90 @@ TEST(OrchestratorUtil, AvailableMemoryMb) {
   EXPECT_THAT(AvailableMemoryMb(), IsOkAndHolds(Gt(0)));
 }
 
-TEST(OrchestratorUtil, CapShardsToMemLimit) {
+TEST(OrchestratorUtil, CapShardsToMemLimitNotCapped1) {
   std::string shard =
       GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
   std::vector<std::string> shards{1, shard};
-  absl::StatusOr<std::vector<std::string>> capped_shards =
-      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
-  EXPECT_THAT(capped_shards, IsOkAndHolds(shards));
+  OrchestratorResources resources{.num_concurrent_runners = 1,
+                                  .shards = shards};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 + /* extra */ 10, resources);
+  EXPECT_OK(status);
+  EXPECT_EQ(resources.num_concurrent_runners, 1);
+  EXPECT_EQ(resources.shards, shards);
+}
 
-  shards.resize(10, shard);
-  capped_shards =
-      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
-  EXPECT_THAT(capped_shards, IsOkAndHolds(shards));
+TEST(OrchestratorUtil, CapShardsToMemLimitNotCapped2) {
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  std::vector<std::string> shards{10, shard};
+  OrchestratorResources resources{.num_concurrent_runners = 1,
+                                  .shards = shards};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 + /* extra */ 10, resources);
+  EXPECT_OK(status);
+  EXPECT_EQ(resources.num_concurrent_runners, 1);
+  EXPECT_EQ(resources.shards, shards);
+}
 
-  shards.resize(100, shard);
-  capped_shards =
-      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 10, 1);
-  EXPECT_THAT(capped_shards, IsOkAndHolds(SizeIs(10)));
+TEST(OrchestratorUtil, CapShardsToMemLimitShardsCapped) {
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  OrchestratorResources resources{
+      .num_concurrent_runners = 1,
+      .shards = std::vector<std::string>{100, shard}};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 + /* extra */ 10, resources);
+  EXPECT_OK(status);
+  EXPECT_EQ(resources.num_concurrent_runners, 1);
+  EXPECT_THAT(resources.shards, SizeIs(10));
+}
 
-  shards.resize(1, shard);
-  capped_shards =
-      CapShardsToMemLimit(shards, /* runner size */ 512 + /* extra */ 0, 1);
-  EXPECT_THAT(capped_shards, StatusIs(absl::StatusCode::kResourceExhausted));
+TEST(OrchestratorUtil, CapShardsToMemLimitResourcesExhausted1) {
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  OrchestratorResources resources{.num_concurrent_runners = 1,
+                                  .shards = std::vector<std::string>{1, shard}};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 + /* extra */ 0, resources);
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kResourceExhausted));
+}
+
+TEST(OrchestratorUtil, CapShardsToMemLimitResourcesExhausted2) {
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  OrchestratorResources resources{.num_concurrent_runners = 1,
+                                  .shards = std::vector<std::string>{1, shard}};
+  absl::Status status = CapResourcesToMemLimit(0, resources);
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kResourceExhausted));
+}
+
+TEST(OrchestratorUtil, CapShardsToMemLimitRunnersCapped) {
+  // Memory limit is reached, cap with best effort to 1 runner 1 shard.
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  std::vector<std::string> shards{1, shard};
+  OrchestratorResources resources{.num_concurrent_runners = 10,
+                                  .shards = shards};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 + /* extra */ 10, resources);
+  EXPECT_OK(status);
+  EXPECT_EQ(resources.num_concurrent_runners, 1);
+  EXPECT_EQ(resources.shards, shards);
+}
+
+TEST(OrchestratorUtil, CapShardsToMemLimitRunnersAndShardsCapped) {
+  // Memory limit is reached, cap with best effort to 11 runners 22 shards.
+  std::string shard =
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz");
+  OrchestratorResources resources{
+      .num_concurrent_runners = 100,
+      .shards = std::vector<std::string>{100, shard}};
+  absl::Status status = CapResourcesToMemLimit(
+      /* runner size */ 512 * 11 + /* extra */ 22, resources);
+  EXPECT_OK(status);
+  EXPECT_EQ(resources.num_concurrent_runners, 11);
+  EXPECT_THAT(resources.shards, SizeIs(22));
 }
 
 }  // namespace

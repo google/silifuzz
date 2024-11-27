@@ -152,13 +152,16 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
       args.corpora->shards.size(), args.runner_options.sequential_mode(),
       args.thread_idx);
 
-  while (!ctx->ShouldStop()) {
+  int iteration = 0;
+  for (iteration = 0; !ctx->ShouldStop() && !args.cpus.empty(); iteration++) {
     absl::Time start_time = absl::Now();
     absl::Duration time_budget = ctx->deadline() - start_time;
     if (time_budget <= absl::ZeroDuration()) {
       break;
     }
     RunnerOptions runner_options = args.runner_options;
+    int target_cpu = args.cpus[iteration % args.cpus.size()];
+    runner_options.set_cpu(target_cpu);
     runner_options.set_wall_time_budget(time_budget);
     VLOG_INFO(1, "T", args.thread_idx, " time budget ",
               absl::FormatDuration(time_budget));
@@ -178,8 +181,8 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
     absl::Duration elapsed_time = absl::Now() - start_time;
 
     std::string log_msg = absl::StrCat(
-        "T", args.thread_idx, " cpu: ", args.runner_options.cpu(),
-        " corpus: ", shard.name, " time: ", absl::ToInt64Seconds(elapsed_time),
+        "T", args.thread_idx, " cpu: ", target_cpu, " corpus: ", shard.name,
+        " time: ", absl::ToInt64Seconds(elapsed_time),
         " exit_status: ", RunResultToDebugString(run_result));
     if (!run_result.execution_result().ok()) {
       LOG_ERROR(log_msg, " ", run_result.execution_result().DebugString());
@@ -199,7 +202,8 @@ void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
   }
 
   ctx->Stop();
-  VLOG_INFO(0, "T", args.thread_idx, " stopped");
+  VLOG_INFO(0, "T", args.thread_idx, " stopped after ", iteration,
+            " iterations");
 }
 
 }  // namespace silifuzz

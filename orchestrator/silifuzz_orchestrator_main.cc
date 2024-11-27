@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <csignal>
 #include <cstddef>
 #include <cstdlib>
@@ -83,7 +84,8 @@
 ABSL_FLAG(absl::Duration, duration, absl::InfiniteDuration(),
           "Approximate duration.");
 ABSL_FLAG(size_t, max_cpus, 0,
-          "Number of concurrent jobs. When 0 (default) use all available CPUs");
+          "Number of concurrent jobs (subject to memory budget). When 0 "
+          "(default) use as many CPUs as possible.");
 ABSL_FLAG(absl::Duration, per_runner_cpu_time_budget, absl::Seconds(10),
           "Per-runner cpu time budget");
 ABSL_FLAG(absl::Duration, worker_thread_delay, absl::ZeroDuration(),
@@ -200,7 +202,7 @@ bool SessionLoggingEnabled() {
   return enabled;
 }
 
-int OrchestratorMain(const std::vector<std::string> &corpora,
+int OrchestratorMain(const OrchestratorResources &resources,
                      const std::string &runner,
                      const std::vector<std::string> &runner_extra_argv) {
   LOG_INFO("SiliFuzz Orchestrator started");
@@ -218,7 +220,7 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
   // File descriptors of the uncompressed corpora are kept open
   // until this struct goes out of scope.
   const absl::StatusOr<InMemoryCorpora> in_memory_corpora =
-      LoadCorpora(corpora);
+      LoadCorpora(resources.shards);
   if (!in_memory_corpora.ok()) {
     LOG_ERROR("Cannot load corpora: ", in_memory_corpora.status().message());
     return EXIT_FAILURE;
@@ -230,39 +232,38 @@ int OrchestratorMain(const std::vector<std::string> &corpora,
     return EXIT_FAILURE;
   }
 
-  size_t num_threads = absl::GetFlag(FLAGS_max_cpus);
   const absl::Duration runner_cpu_time_budget =
       absl::GetFlag(FLAGS_per_runner_cpu_time_budget);
   bool sequential_mode = absl::GetFlag(FLAGS_sequential_mode);
+  // Note that num_concurrent_runners should already be capped to the number of
+  // CPUs available.
+  uint64_t num_threads = resources.num_concurrent_runners;
   if (sequential_mode) {
     LOG_INFO("Running in sequential mode");
     num_threads = 1;
   }
   std::vector<RunnerThreadArgs> thread_args;
-  if (num_threads == 0) {
-    std::vector<int> cpus = AvailableCpus();
-    num_threads = cpus.size();
-    for (int cpu : cpus) {
-      RunnerOptions runner_options = RunnerOptions::Default();
-      runner_options.set_cpu(cpu)
-          .set_cpu_time_budget(runner_cpu_time_budget)
-          .set_extra_argv(runner_extra_argv);
-      thread_args.push_back({.thread_idx = cpu,
-                             .runner = runner,
-                             .corpora = &*in_memory_corpora,
-                             .runner_options = runner_options});
+  std::vector<int> cpus = AvailableCpus();
+  // Introduces the randomness in the order of CPUs to be scanned. This is to
+  // avoid the case where silifuzz only scans CPUs with lower IDs on machines
+  // with many cores and limited memory.
+  std::shuffle(cpus.begin(), cpus.end(), absl::BitGen());
+  for (int thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
+    RunnerOptions runner_options = RunnerOptions::Default();
+    runner_options.set_cpu_time_budget(runner_cpu_time_budget)
+        .set_sequential_mode(sequential_mode)
+        .set_extra_argv(runner_extra_argv);
+    std::vector<int> target_cpus;
+    for (int i = thread_idx; i < cpus.size(); i += num_threads) {
+      target_cpus.push_back(cpus[i]);
     }
-  } else {
-    for (int thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
-      RunnerOptions runner_options = RunnerOptions::Default();
-      runner_options.set_cpu_time_budget(runner_cpu_time_budget)
-          .set_sequential_mode(sequential_mode)
-          .set_extra_argv(runner_extra_argv);
-      thread_args.push_back({.thread_idx = thread_idx,
-                             .runner = runner,
-                             .corpora = &*in_memory_corpora,
-                             .runner_options = runner_options});
-    }
+    CHECK_GT(target_cpus.size(), 0);
+    VLOG_INFO(0, target_cpus.size(), " CPUs are assigned to T", thread_idx);
+    thread_args.push_back({.thread_idx = thread_idx,
+                           .runner = runner,
+                           .corpora = &*in_memory_corpora,
+                           .cpus = std::move(target_cpus),
+                           .runner_options = runner_options});
   }
 
   ResultCollector result_collector(
@@ -357,21 +358,28 @@ int main(int argc, char **argv) {
     std::cerr << "--runner must be set" << '\n';
     return EXIT_FAILURE;
   }
+  silifuzz::OrchestratorResources resources;
   // Load the corpus shard list.
   std::string shard_list_file = absl::GetFlag(FLAGS_shard_list_file);
   if (shard_list_file.empty()) {
     std::cerr << "--shard_list_file must be set" << '\n';
     return EXIT_FAILURE;
   }
-  std::vector<std::string> shards =
-      silifuzz::LoadShardFilenames(shard_list_file);
-  if (shards.empty()) {
+  resources.shards = silifuzz::LoadShardFilenames(shard_list_file);
+  if (resources.shards.empty()) {
     std::cerr
         << "At least one corpus file must be listed in the shard_file_list"
         << '\n';
     return EXIT_FAILURE;
   }
-  const int total_shards = shards.size();
+  const int total_shards = resources.shards.size();
+
+  uint64_t max_cpus = absl::GetFlag(FLAGS_max_cpus);
+  if (max_cpus == 0) {
+    max_cpus = silifuzz::AvailableCpus().size();
+  }
+  resources.num_concurrent_runners =
+      std::min<uint64_t>(silifuzz::AvailableCpus().size(), max_cpus);
 
   std::string limit_memory_usage_mb =
       absl::GetFlag(FLAGS_limit_memory_usage_mb);
@@ -391,18 +399,12 @@ int main(int argc, char **argv) {
       LOG_ERROR("Failed to parse: ", limit_memory_usage_mb);
       return EXIT_FAILURE;
     }
-    uint64_t max_cpus = absl::GetFlag(FLAGS_max_cpus);
-    if (max_cpus == 0) {
-      max_cpus = silifuzz::AvailableCpus().size();
-    }
-    absl::StatusOr<std::vector<std::string>> capped_shards =
-        silifuzz::CapShardsToMemLimit(shards, limit_memory_usage_mb_as_int,
-                                      max_cpus);
-    if (!capped_shards.ok()) {
-      LOG_ERROR(capped_shards.status().message());
+    absl::Status cap_resources_status = silifuzz::CapResourcesToMemLimit(
+        limit_memory_usage_mb_as_int, resources);
+    if (!cap_resources_status.ok()) {
+      LOG_ERROR(cap_resources_status.message());
       return EXIT_FAILURE;
     }
-    shards = std::move(*capped_shards);
   }
 
   std::vector<std::string> runner_extra_argv;
@@ -414,8 +416,9 @@ int main(int argc, char **argv) {
   }
 
   LOG_INFO("AVAIL MEM: ", silifuzz::AvailableMemoryMb().value_or(0),
-           " LOADABLE SHARDS: ", shards.size(), " TOTAL SHARDS: ", total_shards,
+           " LOADABLE SHARDS: ", resources.shards.size(),
+           " TOTAL SHARDS: ", total_shards,
            " CPUS: ", silifuzz::AvailableCpus().size());
 
-  return silifuzz::OrchestratorMain(shards, runner, runner_extra_argv);
+  return silifuzz::OrchestratorMain(resources, runner, runner_extra_argv);
 }
