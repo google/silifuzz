@@ -211,12 +211,11 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
       // Should be ZEN4?
       return XED_CHIP_AMD_FUTURE;
     case PlatformId::kIntelCoffeelake:
-      // TODO(ncbray): verify this is correct, although it fairly low priority.
       // In this era of Intel chips, different process nodes were given
       // different code names. XED does not have enums for these names, however.
       // A cursory investigation shows that Coffeelake should support the same
       // instructions as Skylake.
-      return XED_CHIP_SKYLAKE_SERVER;
+      return XED_CHIP_SKYLAKE;
     case PlatformId::kIntelAlderlake:
       return XED_CHIP_ALDER_LAKE;
     case PlatformId::kIntelEmeraldRapids:
