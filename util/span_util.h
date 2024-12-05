@@ -38,7 +38,7 @@ namespace silifuzz {
 // In order words, the spans cover exactly all the elements of `v` in
 // ascending order of positions. Any 2 vectors of the same size are divided
 // into `n` spans identically such that corresponding spans have the same size
-// and offset from the beginnging.
+// and offset from the beginning.
 //
 // The constness of the Span::value_type corresponds to the constness of
 // v. If v is a const vector, the Span value type is also const.

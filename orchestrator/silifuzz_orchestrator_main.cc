@@ -69,6 +69,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
+#include "absl/types/span.h"
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "./orchestrator/corpus_util.h"
@@ -79,6 +80,7 @@
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
+#include "./util/span_util.h"
 #include "./util/tool_util.h"
 
 ABSL_FLAG(absl::Duration, duration, absl::InfiniteDuration(),
@@ -248,22 +250,21 @@ int OrchestratorMain(const OrchestratorResources &resources,
   // avoid the case where silifuzz only scans CPUs with lower IDs on machines
   // with many cores and limited memory.
   std::shuffle(cpus.begin(), cpus.end(), absl::BitGen());
+  auto cpus_per_thread = PartitionEvenly(cpus, num_threads);
   for (int thread_idx = 0; thread_idx < num_threads; ++thread_idx) {
     RunnerOptions runner_options = RunnerOptions::Default();
     runner_options.set_cpu_time_budget(runner_cpu_time_budget)
         .set_sequential_mode(sequential_mode)
         .set_extra_argv(runner_extra_argv);
-    std::vector<int> target_cpus;
-    for (int i = thread_idx; i < cpus.size(); i += num_threads) {
-      target_cpus.push_back(cpus[i]);
-    }
+    absl::Span<int> target_cpus = cpus_per_thread[thread_idx];
     CHECK_GT(target_cpus.size(), 0);
     VLOG_INFO(0, target_cpus.size(), " CPUs are assigned to T", thread_idx);
-    thread_args.push_back({.thread_idx = thread_idx,
-                           .runner = runner,
-                           .corpora = &*in_memory_corpora,
-                           .cpus = std::move(target_cpus),
-                           .runner_options = runner_options});
+    thread_args.push_back(
+        {.thread_idx = thread_idx,
+         .runner = runner,
+         .corpora = &*in_memory_corpora,
+         .cpus = std::vector<int>(target_cpus.begin(), target_cpus.end()),
+         .runner_options = runner_options});
   }
 
   ResultCollector result_collector(
