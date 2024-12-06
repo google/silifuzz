@@ -14,7 +14,9 @@
 
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <optional>
 #include <random>
 #include <string>
 #include <vector>
@@ -48,6 +50,8 @@ ABSL_FLAG(bool, make, false, "Should the Snapshot be made on this machine?");
 ABSL_FLAG(bool, verbose, false, "Print additional debugging information.");
 ABSL_FLAG(size_t, n, 1, "Number of tests to generate.");
 ABSL_FLAG(std::string, outdir, "", "Output directory to write tests to.");
+ABSL_FLAG(std::optional<uint64_t>, seed, std::nullopt,
+          "Fixed seed to use for random number generation.");
 
 namespace silifuzz {
 
@@ -98,8 +102,11 @@ int ToolMain(std::vector<char*> positional_args) {
       << "Unsupported platform: " << EnumStr(platform);
 
   // Initialize the RNG.
-  std::random_device rd;
-  Rng rng(rd());
+  std::optional<uint64_t> maybe_seed = absl::GetFlag(FLAGS_seed);
+  std::random_device hardware_rng{};
+  uint64_t seed = maybe_seed.value_or(
+      std::uniform_int_distribution<uint64_t>()(hardware_rng));
+  Rng rng(seed);
 
   bool verbose = absl::GetFlag(FLAGS_verbose);
 

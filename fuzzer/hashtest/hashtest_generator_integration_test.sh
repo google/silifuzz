@@ -21,8 +21,8 @@ GENERATOR="${TEST_SRCDIR}/silifuzz/fuzzer/hashtest/hashtest_generator"
 readonly GENERATOR
 
 # Make sure we can generate snapshots for various x86 platforms.
-${GENERATOR} --platform=intel-broadwell -n 100
-${GENERATOR} --platform=intel-skylake -n 100
-${GENERATOR} --platform=intel-sapphirerapids -n 100
+${GENERATOR} --platform=intel-broadwell -n 100 --seed 1
+${GENERATOR} --platform=intel-skylake -n 100 --seed 2
+${GENERATOR} --platform=intel-sapphirerapids -n 100 --seed 3
 
 echo "PASS"
