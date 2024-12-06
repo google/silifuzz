@@ -64,8 +64,22 @@ uint64_t InstructionsToCodeAddress(const absl::string_view& code,
                                    uint64_t code_range_num_bytes,
                                    uint64_t granularity) {
   uint64_t hash = CityHash64(code.data(), code.size());
-  return HashToCodeAddress(hash, code_range_start_address, code_range_num_bytes,
-                           granularity);
+  for (uint64_t attempt = 1;; attempt++) {
+    uint64_t address = HashToCodeAddress(hash, code_range_start_address,
+                                         code_range_num_bytes, granularity);
+    // Unfortunately the snap exit address was put into the default code range.
+    // Any code that is put at kSnapExitAddress will later be filtered out by
+    // the making process. With the default address space configuration, this
+    // will occur 1 time in 512k.
+    // Work around this problem by perturbing the hash until we find a code
+    // address that isn't the snap exit address.
+    if (address != kSnapExitAddress) {
+      return address;
+    }
+    // Incorporate the attempt number into the rehashing to avoid a theoretical
+    // infinite loop due to a fixed point in the hash function.
+    hash = Hash128to64(uint128(hash, attempt));
+  }
 }
 
 template <typename Arch>
