@@ -54,11 +54,11 @@ struct MakingConfig {
   TraceOptions trace;
 
   // Config for when we are making a real Snapshot that we want to persist.
-  static MakingConfig Default();
+  static MakingConfig Default(absl::string_view runner_path);
 
   // Config for when we are making a snapshot and are willing to cut corners for
   // performance, such as running fewer iterations to verify determinism.
-  static MakingConfig Quick();
+  static MakingConfig Quick(absl::string_view runner_path);
 };
 
 // A high-level interface for making / remaking a Snapshot.

@@ -44,6 +44,7 @@
 #include "./proxies/pmu_event_proxy/pmu_events.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
+#include "./runner/runner_provider.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "external/libpfm4/include/perfmon/pfmlib.h"
@@ -411,7 +412,7 @@ PerfEventFuzzer::FuzzOneInput(const uint8_t* data, size_t size,
   // Make snapshot from instruction data and record the end state and memory
   // bytes. Also verify that this is a good snapshot that runs to completion
   // without problems.
-  MakingConfig config = MakingConfig::Quick();
+  MakingConfig config = MakingConfig::Quick(RunnerLocation());
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot made_snapshot,
                              MakeRawInstructions(wrapped_input, config));
 

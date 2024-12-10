@@ -90,6 +90,7 @@ cc_binary(
         "@silifuzz//common:snapshot_printer",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//runner:make_snapshot",
+        "@silifuzz//runner:runner_provider",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag_types",

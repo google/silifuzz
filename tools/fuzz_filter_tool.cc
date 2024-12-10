@@ -17,12 +17,15 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./runner/make_snapshot.h"
+#include "./runner/runner_provider.h"
 
 namespace silifuzz {
 
 // Kept as a separate function so that we can test this exact config.
 absl::Status FilterToolMain(absl::string_view raw_insns_bytes) {
-  return MakeRawInstructions(raw_insns_bytes, MakingConfig::Quick()).status();
+  return MakeRawInstructions(raw_insns_bytes,
+                             MakingConfig::Quick(RunnerLocation()))
+      .status();
 }
 
 }  // namespace silifuzz

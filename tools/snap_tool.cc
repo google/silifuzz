@@ -157,8 +157,7 @@ absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
   // Load the instructions.
   ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                              GetFileContents(filename));
-  MakingConfig config = MakingConfig::Default();
-  config.runner_path = RunnerLocationForSnapTool();
+  MakingConfig config = MakingConfig::Default(RunnerLocationForSnapTool());
   return MakeRawInstructions(instructions, config);
 }
 
@@ -456,8 +455,7 @@ bool SnapToolMain(std::vector<char*>& args) {
       }
       snapshot = std::move(edited).value();
     }
-    MakingConfig config = MakingConfig::Default();
-    config.runner_path = RunnerLocationForSnapTool();
+    MakingConfig config = MakingConfig::Default(RunnerLocationForSnapTool());
     config.enforce_fuzzing_config = false;
     absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot, config);
     if (!recorded_snapshot.ok()) {

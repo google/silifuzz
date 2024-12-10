@@ -40,6 +40,7 @@
 #include "./proxies/pmu_event_proxy/perf_event_buffer.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
+#include "./runner/runner_provider.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/testing/status_macros.h"
@@ -212,7 +213,7 @@ TEST(PerfEventFuzzer, BasicTest) {
 // snapshot execution when single-stepping is not done. The perf event fuzzer
 // makes this assumption.
 TEST(PerfEventFuzzer, CallbackCalledOnlyTwice) {
-  MakingConfig config = MakingConfig::Default();
+  MakingConfig config = MakingConfig::Default(RunnerLocation());
 
   Snapshot snapshot = CreateTestSnapshot<Host>(TestSnapshot::kEndsAsExpected);
   ASSERT_OK_AND_ASSIGN(snapshot, MakeSnapshot(snapshot, config));

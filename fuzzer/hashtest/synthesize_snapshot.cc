@@ -28,6 +28,7 @@
 #include "./fuzzer/hashtest/synthesize_test.h"
 #include "./fuzzer/hashtest/version.h"
 #include "./runner/make_snapshot.h"
+#include "./runner/runner_provider.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -170,7 +171,7 @@ absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
                                       kHashTestVersionMinor)));
 
   if (make) {
-    return MakeSnapshot(snapshot, MakingConfig::Default());
+    return MakeSnapshot(snapshot, MakingConfig::Default(RunnerLocation()));
   } else {
     return snapshot;
   }

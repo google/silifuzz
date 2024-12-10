@@ -14,6 +14,8 @@
 
 #include "./runner/make_snapshot.h"
 
+#include <string>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -23,7 +25,6 @@
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
 #include "./player/trace_options.h"
-#include "./runner/runner_provider.h"
 #include "./runner/snap_maker.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -31,15 +32,15 @@
 
 namespace silifuzz {
 
-MakingConfig MakingConfig::Default() {
+MakingConfig MakingConfig::Default(absl::string_view runner_path) {
   return {
-      .runner_path = RunnerLocation(),
+      .runner_path = std::string(runner_path),
       .trace = TraceOptions::Default(),
   };
 }
 
-MakingConfig MakingConfig::Quick() {
-  MakingConfig config = MakingConfig::Default();
+MakingConfig MakingConfig::Quick(absl::string_view runner_path) {
+  MakingConfig config = MakingConfig::Default(runner_path);
   config.num_verify_attempts = 1;
   return config;
 }

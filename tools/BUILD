@@ -86,6 +86,7 @@ cc_library(
     hdrs = ["fuzz_filter_tool.h"],
     deps = [
         "@silifuzz//runner:make_snapshot",
+        "@silifuzz//runner:runner_provider",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
