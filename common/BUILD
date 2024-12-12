@@ -369,7 +369,10 @@ cc_library(
     name = "raw_insns_util",
     srcs = ["raw_insns_util.cc"],
     hdrs = ["raw_insns_util.h"],
-    linkopts = ["-lcrypto"],
+    linkopts = [
+        "-lcrypto",
+        "-lzstd",
+    ],
     deps = [
         ":memory_perms",
         ":proxy_config",
