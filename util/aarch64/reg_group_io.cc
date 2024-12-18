@@ -16,18 +16,15 @@
 
 #include "./util/aarch64/sve.h"
 #include "./util/arch.h"
-#include "./util/checks.h"
 #include "./util/crc32c.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
 
 namespace silifuzz {
 
-// Flag to tell if the CPU supports SVE. Defined in
-// save_registers_groups_to_buffer and set by InitRegisterGroupIO.
-extern "C" unsigned char reg_group_io_supports_sve;
-
-void InitRegisterGroupIO() { reg_group_io_supports_sve = SveIsSupported(); }
+void InitRegisterGroupIO() {
+  SetSVEVectorWidthGlobal(SveGetCurrentVectorLength());
+}
 
 RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
     const RegisterGroupIOBuffer<AArch64>& buffer) {

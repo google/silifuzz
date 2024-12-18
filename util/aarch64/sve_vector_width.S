@@ -13,10 +13,10 @@
 // limitations under the License.
 
         .bss
-// Flag to tell if SVE is supported.
-        .align  1
-        .globl  reg_group_io_supports_sve
-        .type   reg_group_io_supports_sve, @object
-        .size   reg_group_io_supports_sve, 1
-reg_group_io_supports_sve:
-        .zero   1
+// Flag to store the vector width of SVE in bytes, or 0 if SVE is not supported.
+        .align  2
+        .globl  reg_group_io_sve_vector_width
+        .type   reg_group_io_sve_vector_width, @object
+        .size   reg_group_io_sve_vector_width, 2
+reg_group_io_sve_vector_width:
+        .zero   2

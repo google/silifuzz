@@ -41,6 +41,10 @@ inline constexpr size_t kSvePRegSizeZRegFactor = 8;
 inline constexpr size_t kSvePRegMaxSizeBytes =
     kSveZRegMaxSizeBytes / kSvePRegSizeZRegFactor;
 
+// Flag to store the vector width of SVE in bytes, or 0 if SVE is not supported.
+// Defined in sve_vector_width.S and set by InitRegisterGroupIO.
+extern "C" uint16_t reg_group_io_sve_vector_width;
+
 // Returns the length of the Z registers in bytes if SVE is supported. Returns
 // 0 if SVE is not supported.
 inline size_t SveGetCurrentVectorLength() {
@@ -82,6 +86,18 @@ inline size_t SveGetPredicateLength() {
 // Returns true if the hardware supports SVE. Makes a syscall, so cannot be
 // called after entering seccomp mode.
 inline bool SveIsSupported() { return SveGetCurrentVectorLength() > 0; }
+
+// Returns the vector width of SVE in bytes, or 0 if SVE is not supported. This
+// function only fetches the global variable and does not make a syscall.
+inline uint16_t GetSVEVectorWidthGlobal() {
+  return reg_group_io_sve_vector_width;
+}
+
+// Sets the vector width of SVE in bytes. This function only sets the global
+// variable and does not make a syscall.
+inline void SetSVEVectorWidthGlobal(uint16_t sve_vector_width) {
+  reg_group_io_sve_vector_width = sve_vector_width;
+}
 
 }  // namespace silifuzz
 

@@ -14,18 +14,15 @@
 
 #include "./util/reg_groups.h"
 
+#include "./util/aarch64/sve.h"
 #include "./util/arch.h"
 #include "./util/reg_group_set.h"
 
 namespace silifuzz {
 
-// Flag to tell if the CPU supports SVE with 128-bit z registers. Defined in
-// sve_supported.S and set by InitRegisterGroupIO.
-extern "C" bool reg_group_io_supports_sve;
-
 RegisterGroupSet<AArch64> GetCurrentPlatformRegisterGroups() {
   RegisterGroupSet<AArch64> groups;
-  groups.SetGPR(true).SetFPR(true).SetSVE(reg_group_io_supports_sve);
+  groups.SetGPR(true).SetFPR(true).SetSVE(GetSVEVectorWidthGlobal());
   return groups;
 }
 

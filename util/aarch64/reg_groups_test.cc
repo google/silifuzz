@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "./util/aarch64/sve.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
@@ -25,12 +26,8 @@
 namespace silifuzz {
 namespace {
 
-// Flag to tell if the CPU supports SVE. Defined in sve_supported.S and set by
-// InitRegisterGroupIO.
-extern "C" bool reg_group_io_supports_sve;
-
 TEST(RegisterGroups, CurrentPlatformRegisterGroupsWithoutSVE) {
-  reg_group_io_supports_sve = false;
+  SetSVEVectorWidthGlobal(0);
   RegisterGroupSet<AArch64> groups = GetCurrentPlatformRegisterGroups();
   RegisterGroupSet<AArch64> expected;
   expected.SetGPR(true).SetFPR(true);
@@ -38,11 +35,16 @@ TEST(RegisterGroups, CurrentPlatformRegisterGroupsWithoutSVE) {
 }
 
 TEST(RegisterGroups, CurrentPlatformRegisterGroupsWithSVE) {
-  reg_group_io_supports_sve = true;
+  SetSVEVectorWidthGlobal(16);
   RegisterGroupSet<AArch64> groups = GetCurrentPlatformRegisterGroups();
   RegisterGroupSet<AArch64> expected;
   expected.SetGPR(true).SetFPR(true).SetSVE(true);
   CHECK(groups == expected);
+
+  // Make sure double-byte vector length also works.
+  SetSVEVectorWidthGlobal(0x100);
+  RegisterGroupSet<AArch64> groups_db = GetCurrentPlatformRegisterGroups();
+  CHECK(groups_db == expected);
 }
 
 TEST(RegisterGroups, CurrentPlatformChecksumRegisterGroups) {

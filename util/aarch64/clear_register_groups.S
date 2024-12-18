@@ -21,7 +21,7 @@
 // This is equivalent to:
 //
 // void ClearRegisterGroups() {
-//   if (reg_group_io_supports_sve) {
+//   if (reg_group_io_sve_vector_width) {
 //     ClearPRegisters();
 //     ClearFfrRegister();
 //   }
@@ -36,13 +36,13 @@
 // is because the V registers share the bottom 128-bits of the Z registers.
 //
 ClearRegisterGroups:
-        // Save return address (x30).
-        str     x30, [sp, #-16]!
+        // Save x30 (return address) and x9.
+        stp     x30, x9, [sp, #-16]!
 
         // Check that SVE is supported.
-        adrp    x9, reg_group_io_supports_sve
-        add     x9, x9, :lo12:reg_group_io_supports_sve
-        ldrb    w9, [x9]
+        adrp    x9, reg_group_io_sve_vector_width
+        add     x9, x9, :lo12:reg_group_io_sve_vector_width
+        ldrh    w9, [x9]
         cbz     w9, Exit
 
 ClearSve:
@@ -50,7 +50,7 @@ ClearSve:
         bl      ClearFfrRegister
 
 Exit:
-        // Restore return address.
-        ldr     x30, [sp], #16
+        // Restore x30 (return address) and x9.
+        ldp     x30, x9, [sp], #16
         ret
         .size   ClearRegisterGroups, .-ClearRegisterGroups

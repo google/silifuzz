@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO(herooutman): The inline asm is prone to a lot of subtle bugs. We should
+// consider to rewrite these tests either using out-of-line assembly or in C++.
+
 #include "./util/aarch64/extension_registers.h"
 
 #include "./util/aarch64/sve.h"
@@ -77,7 +80,7 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadZRegisters) {
       : [original] "r"(original_buf.z), [seed] "r"(seed_buf.z),
         [after_seeding] "r"(buf_after_seeding.z),
         [after_clearing] "r"(buf_after_clearing.z)
-      : "x0", "memory");
+      : "x0", "p0", "cc", "memory");
 
   // If the vector registers are smaller than the theoretical max, part of
   // the buf_after_seeding should be empty.
@@ -134,7 +137,7 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadPRegisters) {
       : [original] "r"(original_buf.z), [seed] "r"(seed_buf.p),
         [after_seeding] "r"(buf_after_seeding.p),
         [after_clearing] "r"(buf_after_clearing.p)
-      : "x0", "memory");
+      : "x0", "p0", "cc", "memory");
 
   // If the predicate registers are smaller than the theoretical max, part of
   // the buf_after_seeding should be empty.
@@ -188,10 +191,10 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister) {
       "mov x0, %[original]\n"
       "bl LoadFfrRegister\n"
       :
-      : [original] "r"(original_buf.z), [seed] "r"(seed_buf.ffr),
+      : [original] "r"(original_buf.ffr), [seed] "r"(seed_buf.ffr),
         [after_seeding] "r"(buf_after_seeding.ffr),
         [after_clearing] "r"(buf_after_clearing.ffr)
-      : "x0", "memory");
+      : "x0", "p0", "cc", "memory");
 
   // If the predicate registers are smaller than the theoretical max, part of
   // the buf_after_seeding should be empty.
@@ -215,6 +218,67 @@ TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister) {
            0);
 }
 
+TEST(AArch64ExtensionRegistersTest, ClearRegisterGroups) {
+  if (!SveIsSupported()) {
+    SILIFUZZ_TEST_SKIP();
+  }
+  const size_t sve_predicate_width =
+      SveGetCurrentVectorLength() / kSvePRegSizeZRegFactor;
+  // Override the vector width to be the theoretical max. This is to ensure that
+  // ClearRegisterGroups() works with double-byte SVE vector length.
+  SetSVEVectorWidthGlobal(0x100);
+  RegisterGroupIOBuffer<AArch64> original_buf;
+  ClearBuffer(original_buf);
+  RegisterGroupIOBuffer<AArch64> seed_buf;
+  SeedBuffer(seed_buf);
+  RegisterGroupIOBuffer<AArch64> buf_after_clearing;
+  SeedBuffer(buf_after_clearing);
+
+  // 1. Store the original FFR & P register contents (into original_buf).
+  // 2. Load seed values (from seed_buf) into the FFR & P registers.
+  // 3. Call ClearRegisterGroups()
+  // 4. Store the FFR & P register contents (into buf_after_clearing).
+  // 5. seed_buf values should be non empty but buf_after_clearing should be
+  // empty.
+  // 6. Load the original contents (from original_buf) into the FFR & P
+  // registers.
+  asm inline(
+      "mov x0, %[original_p]\n"
+      "bl StorePRegisters\n"
+      "mov x0, %[original_ffr]\n"
+      "bl StoreFfrRegister\n"
+      "mov x0, %[seed_ffr]\n"
+      "bl LoadFfrRegister\n"
+      "mov x0, %[seed_p]\n"
+      "bl LoadPRegisters\n"
+      "bl ClearRegisterGroups\n"
+      "mov x0, %[after_clearing_p]\n"
+      "bl StorePRegisters\n"
+      "mov x0, %[after_clearing_ffr]\n"
+      "bl StoreFfrRegister\n"
+      "mov x0, %[original_ffr]\n"
+      "bl LoadFfrRegister\n"
+      "mov x0, %[original_p]\n"
+      "bl LoadPRegisters\n"
+      :
+      : [original_ffr] "r"(original_buf.ffr), [original_p] "r"(original_buf.p),
+        [seed_ffr] "r"(seed_buf.ffr), [seed_p] "r"(seed_buf.p),
+        [after_clearing_ffr] "r"(buf_after_clearing.ffr),
+        [after_clearing_p] "r"(buf_after_clearing.p)
+      : "x0", "p0", "cc", "memory");
+
+  RegisterGroupIOBuffer<AArch64> empty_buf;
+  ClearBuffer(empty_buf);
+
+  CHECK_NE(memcmp(seed_buf.ffr, empty_buf.ffr, sizeof empty_buf.ffr), 0);
+  CHECK_NE(memcmp(seed_buf.p, empty_buf.p, sizeof empty_buf.p), 0);
+  CHECK_EQ(memcmp(buf_after_clearing.ffr, empty_buf.ffr, sve_predicate_width),
+           0);
+  CHECK_EQ(memcmp(buf_after_clearing.p, empty_buf.p,
+                  sve_predicate_width * kSveNumPReg),
+           0);
+}
+
 }  // namespace
 }  // namespace silifuzz
 
@@ -224,4 +288,5 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadZRegisters);
   RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadPRegisters);
   RUN_TEST(AArch64ExtensionRegistersTest, StoreAndLoadFfrRegister);
+  RUN_TEST(AArch64ExtensionRegistersTest, ClearRegisterGroups);
 })
