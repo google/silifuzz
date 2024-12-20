@@ -190,6 +190,119 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b0011'1111'0010'0000'0000'1100'0000'0000,
         .bits = 0b0011'1100'0010'0000'0000'0000'0000'0000,
     },
+    // C4.1.78 SVE Memory - Contiguous Load
+    // SVE contiguous non-fault load (scalar plus immediate)
+    // Non-faulting memory operations mean that the making process will not know
+    // all the memory pages a test may touch. When a test containing a
+    // non-faulting instruction is added to a corpus, another test may contain
+    // the page the non-faulting instruction is trying to access. This means
+    // that a test containing a non-faulting instruction can behave differently
+    // depending on the presense of other tests in the corpus. In effect, this
+    // instruction can snoop on the state of the page table in a way the making
+    // process cannot detect.
+    {
+        .mask = 0b1111'1110'0001'0000'1110'0000'0000'0000,
+        .bits = 0b1010'0100'0001'0000'1010'0000'0000'0000,
+    },
+    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // SVE 32-bit gather load halfwords (scalar plus 32-bit scaled offsets)
+    // "First fault" loads have similar problems to non-faulting loads because
+    // any load after the first one will not explicitly fault.
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0100'1010'0000'0010'0000'0000'0000,
+    },
+    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // SVE 32-bit gather load words (scalar plus 32-bit scaled offsets)
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0101'0010'0000'0010'0000'0000'0000,
+    },
+    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // SVE 32-bit gather load (scalar plus 32-bit unscaled offsets)
+    // This is a bit complicated to define because if bits 24 and 23 are both 1,
+    // this would be a prefetch. So we define the three masks around this case.
+    // Note: mask covers op=10 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0100'0000'0000'0010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0100'1000'0000'0010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0101'0000'0000'0010'0000'0000'0000,
+    },
+    // SVE 32-bit gather load (vector plus immediate)
+    // Note: mask covers msz=10 u=0, similar to the previous case.
+    // Note: mask does _not_ cover msz=11. Covering this would make the mask
+    // simpler, but there's a greater chance this encoding will be allocated in
+    // the future.
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0100'0010'0000'1010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0100'1010'0000'1010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1000'0101'0010'0000'1010'0000'0000'0000,
+    },
+    // SVE contiguous first-fault load (scalar plus scalar)
+    {
+        .mask = 0b1111'1110'0000'0000'1110'0000'0000'0000,
+        .bits = 0b1010'0100'0000'0000'0110'0000'0000'0000,
+    },
+    // SVE 64-bit gather load (scalar plus 64-bit scaled offsets)
+    // Note: mask covers opc=11 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0100'1110'0000'1010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0101'0110'0000'1010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1110'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0101'1110'0000'1010'0000'0000'0000,
+    },
+    // SVE 64-bit gather load (scalar plus 32-bit unpacked scaled offsets)
+    // Note: mask covers opc=11 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0100'1010'0000'0010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0101'0010'0000'0010'0000'0000'0000,
+    },
+    {
+        .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0101'1010'0000'0010'0000'0000'0000,
+    },
+    // SVE 64-bit gather load (vector plus immediate)
+    // Note: mask covers msz=11 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1110'0110'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0100'0010'0000'1010'0000'0000'0000,
+    },
+    // SVE 64-bit gather load (scalar plus 64-bit unscaled offsets)
+    // Note: mask covers msz=11 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1110'0110'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0100'0100'0000'1010'0000'0000'0000,
+    },
+    // SVE 64-bit gather load (scalar plus unpacked 32-bit unscaled offsets)
+    // Note: mask covers msz=11 u=0 even though it is unallocated.
+    {
+        .mask = 0b1111'1110'0010'0000'1010'0000'0000'0000,
+        .bits = 0b1100'0100'0000'0000'0010'0000'0000'0000,
+    },
 };
 
 // These rules cover fine-grained encoding issues that could be corrected in
