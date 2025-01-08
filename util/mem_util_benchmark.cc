@@ -106,6 +106,7 @@
 #include "third_party/lss/lss/linux_syscall_support.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/math.h"
 #include "./util/mem_util.h"
 
 #ifdef __x86_64__
@@ -249,11 +250,6 @@ uint64_t GetThreadVirtualTimeNano() {
   return tp.tv_sec * static_cast<uint64_t>(1000000000) + tp.tv_nsec;
 }
 
-// Rounds up size to given alignment.
-inline size_t RoundUp(size_t size, size_t alignment) {
-  return (size + alignment - 1) / alignment * alignment;
-}
-
 // Returns bandwidth in bytes processed per second for a memory function.
 // function.
 template <typename MemoryCompareFunc>
@@ -262,7 +258,7 @@ inline uint64_t MeasureBandwidth(void (*do_one_iteration)(MemoryCompareFunc,
                                  MemoryCompareFunc func, size_t size) {
   CHECK_LE(size, BUFFER_SIZE);
 
-  size_t aligned_size = RoundUp(size, sizeof(uint64_t));
+  size_t aligned_size = RoundUpToPowerOfTwo(size, sizeof(uint64_t));
 
   // Estimate roughly number of iterations in 1ms
   size_t num_iterations_in_1ms = 1;
@@ -309,7 +305,7 @@ void RunBenchmark(void (*do_one_iteration)(MemoryCompareFunc, size_t),
     const size_t size = kTestSizes[i];
     if (should_memset) {
       CHECK_LE(size, BUFFER_SIZE);
-      size_t aligned_size = RoundUp(size, sizeof(uint64_t));
+      size_t aligned_size = RoundUpToPowerOfTwo(size, sizeof(uint64_t));
       memset(test_buffer_1, memset_value, aligned_size);
     }
     const uint64_t bandwidth_mibps =

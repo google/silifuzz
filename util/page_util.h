@@ -18,7 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "./util/checks.h"
+#include "./util/math.h"
 
 namespace silifuzz {
 
@@ -43,13 +43,9 @@ T* RoundDownToPageAlignment(T* ptr, uintptr_t page_size = kPageSize) {
       RoundDownToPageAlignment(reinterpret_cast<uintptr_t>(ptr), page_size));
 }
 
-// Not constexpr because of CHECK
 inline uintptr_t RoundUpToPageAlignment(uintptr_t value,
                                         uintptr_t page_size = kPageSize) {
-  uintptr_t tmp = 0;
-  // TODO(ncbray): propagate error
-  CHECK(!__builtin_add_overflow(value, page_size - 1, &tmp));
-  return tmp & ~(page_size - 1);
+  return RoundUpToPowerOfTwo(value, page_size);
 }
 
 template <typename T>

@@ -17,11 +17,11 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cerrno>
-#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -44,6 +44,7 @@
 #include "./util/byte_io.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/math.h"
 #include "./util/owned_file_descriptor.h"
 #include "./util/path_util.h"
 #include "./util/span_util.h"
@@ -51,6 +52,8 @@
 namespace silifuzz {
 
 namespace {
+
+constexpr uint64_t kMb = 1 << 20;  // 1MB
 
 // Writes data in `cord` to file with descriptor `fd` and returns status.
 absl::Status WriteCord(const absl::Cord& cord, int fd) {
@@ -66,7 +69,7 @@ absl::Status WriteCord(const absl::Cord& cord, int fd) {
 // Returns contents for file with descriptor `fd` as a Cord or a status.
 // This reads starting from the current file offset.
 absl::StatusOr<absl::Cord> ReadCord(int fd) {
-  constexpr size_t kChunkSize = 1 << 20;  // 1MB
+  constexpr size_t kChunkSize = kMb;  // 1MB
   std::string buffer(kChunkSize, 0);
   ssize_t bytes_read;
   absl::Cord cord;
@@ -100,10 +103,10 @@ absl::StatusOr<absl::Cord> ReadXzipFile(const std::string& path) {
         absl::StrCat("Failed to initialize decoder, return code =", ret));
   }
 
-  constexpr size_t kInputChunkSize = 1 << 20;
+  constexpr size_t kInputChunkSize = kMb;
   std::vector<uint8_t> input_buffer(kInputChunkSize);
 
-  constexpr size_t kOutputChunkSize = 1 << 20;
+  constexpr size_t kOutputChunkSize = kMb;
   std::vector<uint8_t> output_buffer(kOutputChunkSize);
   decompressed_stream.avail_out = output_buffer.size();
   decompressed_stream.next_out = output_buffer.data();
@@ -279,8 +282,7 @@ absl::StatusOr<uint64_t> EstimateLargestCorpusSizeMB(
   ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryShard shard,
                              LoadCorpus(corpus_paths[largest_path_idx]));
   // Round up to 1 meg.
-  return static_cast<uint64_t>(
-      std::ceil(static_cast<double>(shard.file_size) / (1024 * 1024)));
+  return static_cast<uint64_t>(RoundUpToPowerOfTwo(shard.file_size, kMb) / kMb);
 }
 
 absl::StatusOr<InMemoryCorpora> LoadCorpora(

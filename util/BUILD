@@ -471,6 +471,25 @@ cc_test(
 )
 
 cc_library_plus_nolibc(
+    name = "math",
+    hdrs = ["math.h"],
+    deps = [":checks"],
+)
+
+cc_test_plus_nolibc(
+    name = "math_test",
+    srcs = ["math_test.cc"],
+    libc_deps = [
+        "@com_google_googletest//:gtest_main",
+    ],
+    deps = [
+        ":checks",
+        ":math",
+        ":nolibc_gunit",
+    ],
+)
+
+cc_library_plus_nolibc(
     name = "mem_util",
     srcs = ["mem_util.cc"],
     hdrs = ["mem_util.h"],
@@ -494,6 +513,7 @@ cc_binary_nolibc(
         ":avx",
         ":checks",
         ":itoa",
+        ":math",
         ":mem_util",
     ],
 )
@@ -1072,7 +1092,7 @@ cc_library(
 cc_library_plus_nolibc(
     name = "page_util",
     hdrs = ["page_util.h"],
-    deps = [":checks"],
+    deps = [":math"],
 )
 
 cc_test_plus_nolibc(

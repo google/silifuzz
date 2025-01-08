@@ -170,6 +170,7 @@ cc_library(
         "@silifuzz//util:byte_io",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+        "@silifuzz//util:math",
         "@silifuzz//util:owned_file_descriptor",
         "@silifuzz//util:path_util",
         "@silifuzz//util:span_util",
