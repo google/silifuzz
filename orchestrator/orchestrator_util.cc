@@ -150,26 +150,15 @@ absl::Status CapResourcesToMemLimit(int64_t memory_usage_limit_mb,
 
   int64_t memory_budget_mb = memory_usage_limit_mb;
   VLOG_INFO(0, "Initial mem budget is ", memory_budget_mb, "MB");
-  ASSIGN_OR_RETURN_IF_NOT_OK(
-      uint64_t top_shard_size_mb, [&]() -> absl::StatusOr<uint64_t> {
-        // Probe the top shard size. Works under the assumption that all shards
-        // are equally sized.
-        // TODO(b/380883498): Shard size estimation can go wrong and need to be
-        // fixed.
-        ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryCorpora top_shard,
-                                   LoadCorpora({resources.shards[0]}));
-        off_t top_shard_size =
-            lseek64(top_shard.shards[0].file_descriptor.borrow(), 0, SEEK_END);
-        if (top_shard_size < 0) {
-          return absl::InternalError(absl::StrCat("lseek64 errno = ", errno));
-        }
-        // Round up to 1 meg.
-        return std::max<uint64_t>(1, top_shard_size / (1024 * 1024));
-      }());
+  // Largest shard size is estimated by loading the largest compressed shard
+  // file into memory. This is fine in most cases unless some corpus has very
+  // low entropy and is compressed very well.
+  ASSIGN_OR_RETURN_IF_NOT_OK(const uint64_t shard_size_estimate_mb,
+                             EstimateLargestCorpusSizeMB(resources.shards));
 
   const uint64_t max_num_runners = resources.num_concurrent_runners;
   memory_budget_mb -=
-      top_shard_size_mb;  // Reserve memory for at least one shard.
+      shard_size_estimate_mb;  // Reserve memory for at least one shard.
   if (memory_budget_mb <= 0) {
     return absl::ResourceExhaustedError(absl::StrCat(
         "Not enough memory to run a single runner with the given budget of ",
@@ -186,18 +175,19 @@ absl::Status CapResourcesToMemLimit(int64_t memory_usage_limit_mb,
       kSingleRunnerMemoryUsageMb * resources.num_concurrent_runners;
   VLOG_INFO(0, "We can schedule ", resources.num_concurrent_runners, "/",
             max_num_runners, " runners of ", kSingleRunnerMemoryUsageMb,
-            "MB each with at least one shard of ", top_shard_size_mb, "MB");
+            "MB each with at least one shard of ", shard_size_estimate_mb,
+            "MB");
 
   const size_t total_shards = resources.shards.size();
   memory_budget_mb +=
-      top_shard_size_mb;  // Add the reserved memory budget back.
+      shard_size_estimate_mb;  // Add the reserved memory budget back.
   int max_shards =
-      std::min<int>(total_shards, memory_budget_mb / top_shard_size_mb);
+      std::min<int>(total_shards, memory_budget_mb / shard_size_estimate_mb);
   CHECK_GT(max_shards, 0);
-  VLOG_INFO(0, "Shard 0 size is ", top_shard_size_mb,
+  VLOG_INFO(0, "Largest shard size is ", shard_size_estimate_mb,
             "MB. With the remaining budget of ", memory_budget_mb,
             "MB we can fit ", max_shards, " of ", total_shards);
-  memory_budget_mb -= top_shard_size_mb * max_shards;
+  memory_budget_mb -= shard_size_estimate_mb * max_shards;
   VLOG_INFO(0, "Total expected memory usage of SiliFuzz is ",
             memory_usage_limit_mb - memory_budget_mb, "MB");
   std::shuffle(resources.shards.begin(), resources.shards.end(),

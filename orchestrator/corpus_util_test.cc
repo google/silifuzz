@@ -36,6 +36,7 @@
 #include "absl/strings/str_cat.h"
 #include "./snap/snap.h"
 #include "./util/byte_io.h"
+#include "./util/data_dependency.h"
 #include "./util/owned_file_descriptor.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
@@ -254,6 +255,15 @@ TEST(CorpusUtil, LoadCorporaUncompressed) {
     EXPECT_OK(
         CheckFileContents(shard.file_descriptor.borrow(), corpus_contents[i]));
   }
+}
+
+TEST(CorpusUtil, EstimateLargestCorpusSize) {
+  std::vector<std::string> shards = {
+      GetDataDependencyFilepath("orchestrator/testdata/one_mb_of_zeros.xz")};
+  EXPECT_THAT(EstimateLargestCorpusSizeMB(shards), IsOkAndHolds(1));
+  shards.push_back(
+      GetDataDependencyFilepath("orchestrator/testdata/two_mb_of_zeros.xz"));
+  EXPECT_THAT(EstimateLargestCorpusSizeMB(shards), IsOkAndHolds(2));
 }
 
 class ValidateShardTest : public ::testing::Test {

@@ -45,7 +45,7 @@ struct InMemoryShard {
   // May be too small if the file is too small.
   std::string header_bytes;
 
-  // The size of the file, in bytes.
+  // The size of the uncompressed corpus shard file, in bytes.
   uint64_t file_size;
 
   // The checksum of the file.
@@ -89,12 +89,27 @@ absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path);
 // Reads and decompresses gzipped relocatable Snap corpora whose paths are in
 // `corpus_path`. Contents of each corpus are written in a file created in RAM.
 //
-// RETURNS an InMemoryCorpora struct contaning a vector of owned file
+// RETURNS an InMemoryCorpora struct containing a vector of owned file
 // descriptors and a vector of paths or an error status. See above for details
 // about InMemoryCorpora.
 //
 // REQUIRES: corpus_paths not empty.
 absl::StatusOr<InMemoryCorpora> LoadCorpora(
+    const std::vector<std::string>& corpus_paths);
+
+// Given the decompresses gzipped relocatable Snap corpora whose paths are in
+// `corpus_path`, estimates the size of the largest corpus in MB.
+//
+// This function first finds the possibly largest corpus file by checking the
+// compressed file size. Then it is decompressed and loaded into memory, and its
+// size is returned.
+//
+// This function assumes that all the corpora are compressed with the same
+// settings. If the corpora is a mix of different compression settings, the
+// result may be inaccurate.
+//
+// REQUIRES: corpus_paths not empty.
+absl::StatusOr<uint64_t> EstimateLargestCorpusSizeMB(
     const std::vector<std::string>& corpus_paths);
 
 }  // namespace silifuzz

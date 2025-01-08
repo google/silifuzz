@@ -186,10 +186,17 @@ cc_library(
 cc_test(
     name = "corpus_util_test",
     srcs = ["corpus_util_test.cc"],
+    data = [
+        # dd if=/dev/zero of=/dev/stdout bs=1024 count=1024 | xz -9 > testdata/one_mb_of_zeros.xz
+        "testdata/one_mb_of_zeros.xz",
+        # dd if=/dev/zero of=/dev/stdout bs=1024 count=2048 | xz -9 > testdata/two_mb_of_zeros.xz
+        "testdata/two_mb_of_zeros.xz",
+    ],
     deps = [
         ":corpus_util",
         "@silifuzz//snap",
         "@silifuzz//util:byte_io",
+        "@silifuzz//util:data_dependency",
         "@silifuzz//util:owned_file_descriptor",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",

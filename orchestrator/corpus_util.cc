@@ -16,10 +16,12 @@
 
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cerrno>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -76,6 +78,15 @@ absl::StatusOr<absl::Cord> ReadCord(int fd) {
     return absl::ErrnoToStatus(errno, "read()");
   }
   return cord;
+}
+
+// Returns the size of the file (in bytes) at `path` or an error status.
+absl::StatusOr<off_t> GetFileSize(const std::string& path) {
+  struct stat st;
+  if (stat(path.c_str(), &st) != 0) {
+    return absl::ErrnoToStatus(errno, absl::StrCat("stat() on ", path));
+  }
+  return st.st_size;
 }
 
 }  // namespace
@@ -251,6 +262,25 @@ absl::StatusOr<InMemoryShard> LoadCorpus(const std::string& path) {
       .file_size = contents.size(),
       .checksum = checksum.Checksum(),
   };
+}
+
+absl::StatusOr<uint64_t> EstimateLargestCorpusSizeMB(
+    const std::vector<std::string>& corpus_paths) {
+  CHECK(!corpus_paths.empty());
+  int largest_path_idx = 0;
+  ASSIGN_OR_RETURN_IF_NOT_OK(off_t largest_size, GetFileSize(corpus_paths[0]));
+  for (int i = 1; i < corpus_paths.size(); ++i) {
+    ASSIGN_OR_RETURN_IF_NOT_OK(off_t size, GetFileSize(corpus_paths[i]));
+    if (size > largest_size) {
+      largest_path_idx = i;
+      largest_size = size;
+    }
+  }
+  ASSIGN_OR_RETURN_IF_NOT_OK(InMemoryShard shard,
+                             LoadCorpus(corpus_paths[largest_path_idx]));
+  // Round up to 1 meg.
+  return static_cast<uint64_t>(
+      std::ceil(static_cast<double>(shard.file_size) / (1024 * 1024)));
 }
 
 absl::StatusOr<InMemoryCorpora> LoadCorpora(
