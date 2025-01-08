@@ -137,7 +137,7 @@ SILIFUZZ_SRC_DIR=`pwd`
 bazel build -c opt @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id,simple_fix_tool_main} \
      @silifuzz//runner:reading_runner_main_nolibc \
      @silifuzz//orchestrator:silifuzz_orchestrator_main
-SILIFUZZ_BIN_DIR=`pwd`/bazel-bin/
+SILIFUZZ_BIN_DIR=`pwd`/bazel-bin
 cd "${SILIFUZZ_BIN_DIR}"
 ```
 
@@ -148,6 +148,8 @@ type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian:bookworm /bin/bash -c
 ..."`
 
 ### Prework (fuzzing Unicorn target)
+
+For Bazel, use the following commands.
 
 ```shell
 cd "${SILIFUZZ_SRC_DIR}"
