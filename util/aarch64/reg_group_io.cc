@@ -32,14 +32,15 @@ RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
   RegisterChecksum<AArch64> register_checksum;
 
   const RegisterGroupSet<AArch64>& groups = buffer.register_groups;
-  if (groups.GetSVE()) {
+  const uint16_t sve_vector_width = groups.GetSVEVectorWidth();
+  if (sve_vector_width) {
     crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.ffr),
                  sizeof(buffer.ffr));
     crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.p),
                  sizeof(buffer.p));
     crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.z),
                  sizeof(buffer.z));
-    register_checksum.register_groups.SetSVE(true);
+    register_checksum.register_groups.SetSVEVectorWidth(sve_vector_width);
   }
 
   register_checksum.checksum = crc;

@@ -147,8 +147,8 @@ TEST(SnapRunnerUtil, BasicTest) {
   // Check register group IO buffer after snap exit.
   RegisterGroupIOBuffer<AArch64> expected_buffer{};
   if (SveIsSupported()) {
-    expected_buffer.register_groups.SetSVE(true);
     size_t z_vl = SveGetCurrentVectorLength();
+    expected_buffer.register_groups.SetSVEVectorWidth(z_vl);
 
     // The bottom 128-bits of the z registers are shared with their
     // corresponding floating point registers, so we should expect the contents

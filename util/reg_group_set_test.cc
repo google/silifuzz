@@ -68,7 +68,6 @@ TEST(RegisterGroupSet, ToggleAArch64Groups) {
   RegisterGroupSet<AArch64> reg_group_set;
   TOGGLE_GROUP(GPR);
   TOGGLE_GROUP(FPR);
-  TOGGLE_GROUP(SVE);
 }
 
 #undef TOGGLE_GROUP
@@ -96,10 +95,17 @@ TEST(RegisterGroupSet, AArch64BitEncoding) {
   RegisterGroupSet<AArch64> reg_group_set;
   VERIFY_ENCODING(GPR, AARCH64_REG_GROUP_GPR);
   VERIFY_ENCODING(FPR, AARCH64_REG_GROUP_FPR);
-  VERIFY_ENCODING(SVE, AARCH64_REG_GROUP_SVE);
 }
 
 #undef VERIFY_ENCODING
+
+TEST(RegisterGroupSet, AArch64SVEVectorWidth) {
+  RegisterGroupSet<AArch64> reg_group_set;
+  for (int vector_width = 256; vector_width >= 0; vector_width -= 16) {
+    reg_group_set.SetSVEVectorWidth(vector_width);
+    CHECK_EQ(reg_group_set.GetSVEVectorWidth(), vector_width);
+  }
+}
 
 }  // namespace
 
@@ -113,4 +119,5 @@ NOLIBC_TEST_MAIN({
   RUN_TEST(RegisterGroupSet, ToggleAArch64Groups);
   RUN_TEST(RegisterGroupSet, X86_64BitEncoding);
   RUN_TEST(RegisterGroupSet, AArch64BitEncoding);
+  RUN_TEST(RegisterGroupSet, AArch64SVEVectorWidth);
 })

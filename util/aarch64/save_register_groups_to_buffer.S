@@ -24,7 +24,7 @@
 //
 // void SaveRegisterGroupsToBuffer(RegisterGroupIOBuffer<AArch64>& buffer) {
 //   uint64_t mask = buffer.register_groups.Serialize();
-//   if (mask & AARCH64_REG_GROUP_SVE != 0) {
+//   if (mask & AARCH64_SVE_VECTOR_WIDTH_MASK != 0) {
 //     StoreZRegisters(&buffer.z);
 //     StorePRegisters(&buffer.p);
 //     StoreFfrRegister(&buffer.ffr);
@@ -45,7 +45,7 @@ SaveRegisterGroupsToBuffer:
         // Check register groups bitmask for SVE group.
         add     x1, x19, #REGISTER_GROUP_IO_BUFFER_REGISTER_GROUPS_OFFSET
         ldr     x1, [x1]
-        and     x1, x1, #AARCH64_REG_GROUP_SVE
+        and     x1, x1, #AARCH64_SVE_VECTOR_WIDTH_MASK
         cbz     x1, Exit
 
 SaveSve:

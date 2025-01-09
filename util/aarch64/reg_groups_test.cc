@@ -38,12 +38,13 @@ TEST(RegisterGroups, CurrentPlatformRegisterGroupsWithSVE) {
   SetSVEVectorWidthGlobal(16);
   RegisterGroupSet<AArch64> groups = GetCurrentPlatformRegisterGroups();
   RegisterGroupSet<AArch64> expected;
-  expected.SetGPR(true).SetFPR(true).SetSVE(true);
+  expected.SetGPR(true).SetFPR(true).SetSVEVectorWidth(16);
   CHECK(groups == expected);
 
   // Make sure double-byte vector length also works.
   SetSVEVectorWidthGlobal(0x100);
   RegisterGroupSet<AArch64> groups_db = GetCurrentPlatformRegisterGroups();
+  expected.SetSVEVectorWidth(0x100);
   CHECK(groups_db == expected);
 }
 
@@ -54,7 +55,7 @@ TEST(RegisterGroups, CurrentPlatformChecksumRegisterGroups) {
   CHECK(!groups.GetGPR() && !groups.GetFPR());
 
   // Clear all other known checksum bits to ensure no unexpected bits are set.
-  groups.SetSVE(false);
+  groups.SetSVEVectorWidth(0);
   CHECK(groups.Empty());
 }
 

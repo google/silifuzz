@@ -43,7 +43,9 @@
 #define AARCH64_REG_GROUP_GPR 0x1
 #define AARCH64_REG_GROUP_FPR 0x2
 
-// z0-z31, p0-p15, and ffr
-#define AARCH64_REG_GROUP_SVE 0x4
+// SVE vector width in bytes in bits 2-10 (zero-based, from LSB).
+// When these bytes are all zero, SVE is not supported.
+#define AARCH64_SVE_VECTOR_WIDTH_OFFSET 2
+#define AARCH64_SVE_VECTOR_WIDTH_MASK 0x7FC
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_REG_GROUP_BITS_H_

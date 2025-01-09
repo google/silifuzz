@@ -22,7 +22,7 @@ namespace silifuzz {
 
 RegisterGroupSet<AArch64> GetCurrentPlatformRegisterGroups() {
   RegisterGroupSet<AArch64> groups;
-  groups.SetGPR(true).SetFPR(true).SetSVE(GetSVEVectorWidthGlobal());
+  groups.SetGPR(true).SetFPR(true).SetSVEVectorWidth(GetSVEVectorWidthGlobal());
   return groups;
 }
 

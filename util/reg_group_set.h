@@ -16,8 +16,10 @@
 #define THIRD_PARTY_SILIFUZZ_UTIL_REG_GROUP_SET_H_
 
 #include <cstddef>
+#include <cstdint>
 
 #include "./util/arch.h"
+#include "./util/checks.h"
 #include "./util/reg_group_bits.h"
 namespace silifuzz {
 
@@ -168,10 +170,17 @@ class RegisterGroupSet<AArch64> {
     return SetBit(AARCH64_REG_GROUP_FPR, v);
   }
 
-  constexpr bool GetSVE() const { return GetBit(AARCH64_REG_GROUP_SVE); }
+  // Returns the SVE vector width in bytes.
+  constexpr uint16_t GetSVEVectorWidth() const {
+    return GetBits(AARCH64_SVE_VECTOR_WIDTH_OFFSET,
+                   AARCH64_SVE_VECTOR_WIDTH_MASK);
+  }
 
-  RegisterGroupSet<AArch64>& SetSVE(bool v) {
-    return SetBit(AARCH64_REG_GROUP_SVE, v);
+  // Sets the SVE vector width in bytes. This does not validate the vector
+  // width.
+  RegisterGroupSet<AArch64>& SetSVEVectorWidth(uint16_t vector_width) {
+    return SetBits(AARCH64_SVE_VECTOR_WIDTH_OFFSET,
+                   AARCH64_SVE_VECTOR_WIDTH_MASK, vector_width);
   }
 
   // Returns a bit mask representing this using AArch64 register group bits
@@ -196,6 +205,19 @@ class RegisterGroupSet<AArch64> {
     } else {
       bits_ &= ~bit;
     }
+    return *this;
+  }
+
+  constexpr uint64_t GetBits(size_t offset, uint64_t mask) const {
+    CHECK_LT(offset, 64);
+    return ((bits_ & mask) >> offset);
+  }
+
+  RegisterGroupSet<AArch64>& SetBits(size_t offset, uint64_t mask,
+                                     uint64_t value) {
+    CHECK_LT(offset, 64);
+    CHECK_EQ((value << offset) & ~mask, 0);
+    bits_ = (bits_ & ~mask) | (value << offset);
     return *this;
   }
 

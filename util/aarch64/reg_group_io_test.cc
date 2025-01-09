@@ -43,7 +43,7 @@ TEST(RegisterGroupIO, GetRegisterGroupChecksumWithoutSVE) {
   RegisterGroupIOBuffer<AArch64> buffer;
   buffer.register_groups = GetCurrentPlatformChecksumRegisterGroups();
 
-  if (buffer.register_groups.GetSVE()) {
+  if (buffer.register_groups.GetSVEVectorWidth()) {
     SILIFUZZ_TEST_SKIP();
   }
 
@@ -60,7 +60,7 @@ TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE) {
   RegisterGroupIOBuffer<AArch64> buffer;
   buffer.register_groups = GetCurrentPlatformChecksumRegisterGroups();
 
-  if (!buffer.register_groups.GetSVE()) {
+  if (!buffer.register_groups.GetSVEVectorWidth()) {
     SILIFUZZ_TEST_SKIP();
   }
 

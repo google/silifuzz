@@ -609,7 +609,7 @@ TEST(UContextTest, RestoreUContextClearsChecksummedRegisters) {
   UContextView<AArch64> mostly_empty_view(mostly_empty);
   TestStack stack;
   RegisterGroupIOBuffer<AArch64> buffer{};
-  buffer.register_groups.SetSVE(true);
+  buffer.register_groups.SetSVEVectorWidth(16);
 
   mostly_empty.gregs.pc =
       reinterpret_cast<uint64_t>(&SaveRegisterGroupsThenRestoreUContext);
@@ -635,7 +635,7 @@ TEST(UContextTest, RestoreUContextClearsChecksummedRegisters) {
   }
 
   RegisterGroupIOBuffer<AArch64> expected_buffer{};
-  expected_buffer.register_groups.SetSVE(true);
+  expected_buffer.register_groups.SetSVEVectorWidth(16);
   ASSERT_EQ(memcmp(&buffer, &expected_buffer, sizeof(buffer)), 0);
 }
 

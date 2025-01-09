@@ -1173,6 +1173,7 @@ cc_library_plus_nolibc(
     hdrs = ["reg_group_set.h"],
     deps = [
         ":arch",
+        ":checks",
         ":reg_group_bits",
     ],
 )
@@ -1294,6 +1295,7 @@ cc_test_plus_nolibc(
         ":reg_group_io",
         ":reg_group_set",
         ":reg_groups",
+        ":sve",
     ],
 )
 
