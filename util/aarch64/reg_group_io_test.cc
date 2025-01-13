@@ -14,11 +14,13 @@
 
 #include "./util/reg_group_io.h"
 
+#include <cstddef>
+
+#include "./util/aarch64/sve.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"
 #include "./util/reg_checksum.h"
-#include "./util/reg_group_set.h"
 #include "./util/reg_groups.h"
 
 namespace silifuzz {
@@ -75,6 +77,57 @@ TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE) {
   CHECK(register_checksum != empty_checksum);
 }
 
+TEST(RegisterGroupIO, GetSVEZRegistersChecksumOnRightVectorLength) {
+  InitRegisterGroupIO();
+  const uint16_t sve_vector_width = 32;
+  RegisterGroupIOBuffer<AArch64> buffer;
+  buffer.register_groups.SetSVEVectorWidth(sve_vector_width);
+
+  RegisterChecksum<AArch64> initial_checksum =
+      GetRegisterGroupsChecksum(buffer);
+  // Only the first sve_vector_width * kSveNumZReg bytes in buffer.z should be
+  // used in the checksum. This should not affect the checksum result.
+  const size_t active_z_buffer_size = sve_vector_width * kSveNumZReg;
+  for (int i = active_z_buffer_size; i < sizeof(buffer.z); i++) {
+    buffer.z[i] = 1;
+  }
+  RegisterChecksum<AArch64> checksum_not_changed =
+      GetRegisterGroupsChecksum(buffer);
+
+  buffer.z[active_z_buffer_size - 1] = 1;
+  RegisterChecksum<AArch64> checksum_changed =
+      GetRegisterGroupsChecksum(buffer);
+  CHECK(checksum_not_changed == initial_checksum);
+  CHECK(checksum_changed != initial_checksum);
+}
+
+TEST(RegisterGroupIO, GetSVEPRegistersChecksumOnRightVectorLength) {
+  InitRegisterGroupIO();
+  const uint16_t sve_vector_width = 32;
+  RegisterGroupIOBuffer<AArch64> buffer;
+  buffer.register_groups.SetSVEVectorWidth(sve_vector_width);
+
+  RegisterChecksum<AArch64> initial_checksum =
+      GetRegisterGroupsChecksum(buffer);
+
+  // Only the first sve_vector_width / kSvePRegSizeZRegFactor * kSveNumPReg
+  // bytes in buffer.p should be used in the checksum. This should not affect
+  // the checksum result.
+  const size_t active_p_buffer_size =
+      sve_vector_width / kSvePRegSizeZRegFactor * kSveNumPReg;
+  for (int i = active_p_buffer_size; i < sizeof(buffer.p); i++) {
+    buffer.p[i] = 1;
+  }
+  RegisterChecksum<AArch64> checksum_not_changed =
+      GetRegisterGroupsChecksum(buffer);
+
+  buffer.p[active_p_buffer_size - 1] = 1;
+  RegisterChecksum<AArch64> checksum_changed =
+      GetRegisterGroupsChecksum(buffer);
+  CHECK(checksum_not_changed == initial_checksum);
+  CHECK(checksum_changed != initial_checksum);
+}
+
 }  // namespace
 }  // namespace silifuzz
 
@@ -83,4 +136,6 @@ TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE) {
 NOLIBC_TEST_MAIN({
   RUN_TEST(RegisterGroupIO, GetRegisterGroupChecksumWithoutSVE);
   RUN_TEST(RegisterGroupIO, GetRegisterGroupChecksumWithSVE);
+  RUN_TEST(RegisterGroupIO, GetSVEZRegistersChecksumOnRightVectorLength);
+  RUN_TEST(RegisterGroupIO, GetSVEPRegistersChecksumOnRightVectorLength);
 })
