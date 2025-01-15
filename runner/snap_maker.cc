@@ -36,6 +36,7 @@
 #include "./common/snapshot_enums.h"
 #include "./common/snapshot_printer.h"
 #include "./player/trace_options.h"
+#include "./runner/disassembling_snap_tracer.h"
 #include "./runner/driver/runner_driver.h"
 #include "./snap/gen/reserved_memory_mappings.h"
 #include "./snap/gen/snap_generator.h"
@@ -45,10 +46,6 @@
 #include "./util/line_printer.h"
 #include "./util/page_util.h"
 #include "./util/platform.h"
-
-#if defined(__x86_64__)
-#include "./runner/disassembling_snap_tracer.h"
-#endif
 
 namespace silifuzz {
 
@@ -166,9 +163,6 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
 absl::StatusOr<Snapshot> SnapMaker::CheckTrace(
     const Snapshot& snapshot, const TraceOptions& trace_options) const {
   Snapshot copy = snapshot.Copy();
-  // TODO(ncbray): instruction filtering on aarch64. This will likely involve
-  // static decompilation rather than dynamic tracing.
-#if defined(__x86_64__)
   ASSIGN_OR_RETURN_IF_NOT_OK(
       RunnerDriver driver,
       RunnerDriverFromSnapshot(snapshot, opts_.runner_path));
@@ -187,7 +181,6 @@ absl::StatusOr<Snapshot> SnapMaker::CheckTrace(
                                  absl::StrJoin(trace_result.disassembly, "\n"));
   trace_data.add_platform(CurrentPlatformId());
   copy.set_trace_data({trace_data});
-#endif
   return copy;
 }
 
