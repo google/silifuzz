@@ -1,6 +1,4 @@
-# Silifuzz Snap Data Structurue
-
-[TOC]
+# Silifuzz Snap Data Structure
 
 ## Overview
 
