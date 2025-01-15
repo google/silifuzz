@@ -499,6 +499,17 @@ add $0x4, %r8
   )
 
   b.snapshot(
+      name="ExitGroup",
+      arch=X86_64,
+      src="""
+// 231 == SYS_exit_group
+movq $231, %rax
+// Exit code 0
+xor %rdi, %rdi
+syscall
+""",
+  )
+  b.snapshot(
       name="VSyscallRegionAccess",
       arch=X86_64,
       src="""
