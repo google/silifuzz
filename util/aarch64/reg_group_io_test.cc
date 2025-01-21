@@ -82,6 +82,7 @@ TEST(RegisterGroupIO, GetSVEZRegistersChecksumOnRightVectorLength) {
   const uint16_t sve_vector_width = 32;
   RegisterGroupIOBuffer<AArch64> buffer;
   buffer.register_groups.SetSVEVectorWidth(sve_vector_width);
+  SeedBuffer(buffer);
 
   RegisterChecksum<AArch64> initial_checksum =
       GetRegisterGroupsChecksum(buffer);
@@ -106,6 +107,7 @@ TEST(RegisterGroupIO, GetSVEPRegistersChecksumOnRightVectorLength) {
   const uint16_t sve_vector_width = 32;
   RegisterGroupIOBuffer<AArch64> buffer;
   buffer.register_groups.SetSVEVectorWidth(sve_vector_width);
+  SeedBuffer(buffer);
 
   RegisterChecksum<AArch64> initial_checksum =
       GetRegisterGroupsChecksum(buffer);
