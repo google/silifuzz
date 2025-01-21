@@ -27,6 +27,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "./common/harness_tracer.h"
+#include "./instruction/static_insn_filter.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 
@@ -59,10 +60,6 @@ uint64_t DisassemblingSnapTracer::GetInstructionPointer(
   return regs.pc;
 }
 
-// Unlike the x86 counterpart, StepInstruction() does not perform any
-// instruction filtering except for the instruction count limit. On aarch64,
-// we use a static instruction filter to filter out inputs with unwanted
-// instructions.
 HarnessTracer::ContinuationMode
 DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
     pid_t pid, const struct user_regs_struct& regs,
@@ -81,6 +78,20 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
     // We couldn't fetch the instruction meaning this snapshot likely causes
     // SEGV. Let HarnessTracer take care of proper signal delivery.
     return HarnessTracer::kKeepTracing;
+  }
+
+  // Reapply the static instruction filter.
+  //
+  // This filter should already be applied in the fuzzing process, but old
+  // snapshots may bypass it if they were fed as side inputs to generate the
+  // corpus (e.g. old false positives that were not removed).
+  //
+  // This step should have minimal overhead, and thus we opt to apply it here
+  // too for defense in depth (as opposed to relying on us remembering to delete
+  // bad snapshots from the corpus).
+  if (!StaticInstructionFilter<AArch64>(*insn_or)) {
+    trace_result_.early_termination_reason = "Has problematic instructions.";
+    return HarnessTracer::kInjectSigusr1;
   }
 
   // Disassemble the instruction.

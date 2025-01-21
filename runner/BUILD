@@ -323,6 +323,7 @@ cc_library(
         "@com_google_absl//absl/strings",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
+            "@silifuzz//instruction:static_insn_filter",
         ],
         "@silifuzz//build_defs/platform:x86_64": [
             "@silifuzz//instruction:decoded_insn",
