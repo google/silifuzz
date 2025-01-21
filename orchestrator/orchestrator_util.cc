@@ -18,7 +18,6 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cerrno>
 #include <cstdio>
 #include <filesystem>  // NOLINT
 #include <fstream>
