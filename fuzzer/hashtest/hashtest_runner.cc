@@ -43,6 +43,10 @@
 #include "./util/cpu_id.h"
 #include "./util/page_util.h"
 
+#ifdef MEMORY_SANITIZER
+#include <sanitizer/msan_interface.h>
+#endif
+
 namespace silifuzz {
 
 std::string FormatSeed(uint64_t seed) {
