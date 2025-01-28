@@ -32,6 +32,11 @@ class CreateTestSnapshotOptions {
   // If set, the returned snapshot will always have a normal state. This
   // is only useful for Snap/Runner testing.
   bool force_normal_state = false;
+
+  // If set, the returned snapshot will have use the legacy register format to
+  // serialize the start and end registers.
+  // This must only be set for x86_64 machines, or the test will crash.
+  bool use_legacy_register_format = false;
 };
 
 // Not every test snapshot exists for every architecture.

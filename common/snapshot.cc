@@ -58,9 +58,6 @@ struct Snapshot::ArchitectureDescr {
 
   // See Snapshot::required_stack_size().
   int required_stack_size;
-
-  // TODO(ksteuck): [as-needed]: Add a flag to indicate the direction of
-  // stack growth.
 };
 
 // static
@@ -105,7 +102,6 @@ absl::Status Snapshot::IsValidId(const Snapshot::Id& id) {
 
 // static
 Snapshot::Architecture Snapshot::CurrentArchitecture() {
-  // TODO(ksteuck): [as-needed] Evolve as we add more architectures.
 #if defined(__x86_64__)
   return Architecture::kX86_64;
 #elif defined(__aarch64__)
@@ -629,7 +625,7 @@ absl::Status Snapshot::can_add_expected_end_state(const EndState& x,
   switch (x.endpoint().type()) {
     case Endpoint::kInstruction: {
       // Make sure there is at least some executable memory after the endpoint.
-      // Note this is a weak check because it doesn't guarentee we can add a
+      // Note this is a weak check because it doesn't guarantee we can add a
       // full exit sequence.
       auto s = IsExecutable(x.endpoint().instruction_address(), 1);
       RETURN_IF_NOT_OK(s.status());
@@ -1134,6 +1130,10 @@ void Snapshot::EndState::set_platforms(
     CHECK_LT(i, ToInt(kMaxPlatformId));
     platforms_[i] = true;
   }
+}
+
+void Snapshot::EndState::set_registers(const RegisterState& registers) {
+  registers_ = registers;
 }
 
 // ========================================================================= //

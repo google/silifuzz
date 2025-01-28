@@ -34,6 +34,7 @@
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
+#include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -93,7 +94,7 @@ void InitTestSnapshotRegs(const TestSnapshotConfig& config,
     *reg = kCanary;
   }
 
-  // PC points at the begining of code.
+  // PC points at the beginning of code.
   ucontext.gregs.pc = config.code_addr;
   // x30 will be aliased to pc as an artifact of how we jump into the code.
   ucontext.gregs.x[30] = ucontext.gregs.pc;
@@ -104,6 +105,40 @@ void InitTestSnapshotRegs(const TestSnapshotConfig& config,
   // Initialize data pointers, similar to raw_insns_util.
   ucontext.gregs.x[6] = config.data_addr;
   ucontext.gregs.x[7] = config.data_addr;
+}
+
+Snapshot::RegisterState ConvertRegsToLegacySnapshot(
+    const GRegSet<X86_64>& gregs, const FPRegSet<X86_64>& fpregs) {
+  Snapshot::ByteData gregs_bytes, fpregs_bytes;
+#if defined(__x86_64__)
+  Serialized<GRegSet<X86_64>> gregs_serialized;
+  Serialized<FPRegSet<X86_64>> fpregs_serialized;
+  CHECK_GT(serialize_internal::SerializeLegacyGRegs(
+               gregs, &gregs_serialized.data, sizeof(gregs_serialized)),
+           0);
+  CHECK_GT(serialize_internal::SerializeLegacyFPRegs(
+               fpregs, &fpregs_serialized.data, sizeof(fpregs_serialized)),
+           0);
+  // Copied expected legacy register lengths from
+  // silifuzz/util/ucontext/x86_64/serialize.cc.
+  gregs_bytes.append(gregs_serialized.data, 216);
+  fpregs_bytes.append(fpregs_serialized.data, 512);
+#else
+  LOG(FATAL) << "Legacy register format is only supported on x86-64. Did you "
+                "forget to restrict the tests to run on x86-64 machines, or "
+                "accidentally set "
+                "`CreateTestSnapshotOptions.use_legacy_register_format`?";
+#endif
+
+  return Snapshot::RegisterState(gregs_bytes, fpregs_bytes);
+}
+
+Snapshot::RegisterState ConvertRegsToLegacySnapshot(
+    const GRegSet<AArch64>& gregs, const FPRegSet<AArch64>& fpregs) {
+  LOG(FATAL) << "Legacy register format is not supported in AArch64. Did you "
+                "forget to restrict the tests to run on x86-64 machines, or "
+                "accidentally set "
+                "`CreateTestSnapshotOptions.use_legacy_register_format`?";
 }
 
 // The bytes that RestoreUContext() will write into the stack of the
@@ -135,7 +170,7 @@ Snapshot::MemoryBytes ExitSequenceStackBytes(
 template <typename Arch>
 absl::StatusOr<Snapshot::EndState> ApplySideEffects(
     const Snapshot& snapshot, const Snapshot::EndState& end_state) {
-  // Construct initial memory state of the snaphsot modulo non-writable
+  // Construct initial memory state of the snapshot modulo non-writable
   // mappings.
   MemoryState memory_state =
       MemoryState::MakeInitial(snapshot, MemoryState::kZeroMappedBytes);
@@ -240,10 +275,11 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
 
   UContext<Arch> ucontext;
   InitTestSnapshotRegs(config, ucontext);
-
-  snapshot.set_registers(
-      ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs));
-
+  Snapshot::RegisterState regs =
+      options.use_legacy_register_format
+          ? ConvertRegsToLegacySnapshot(ucontext.gregs, ucontext.fpregs)
+          : ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
+  snapshot.set_registers(regs);
   // We are expecting `bytecode` to execute fully:
   Snapshot::Endpoint endpoint(config.code_addr + bytecode_size);
   if (options.force_normal_state || config.normal_end) {
@@ -251,7 +287,9 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
     // expected value of rip when reaching `endpoint`
     ucontext.gregs.SetInstructionPointer(endpoint.instruction_address());
     Snapshot::RegisterState regs =
-        ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
+        options.use_legacy_register_format
+            ? ConvertRegsToLegacySnapshot(ucontext.gregs, ucontext.fpregs)
+            : ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     Snapshot::EndState end_state(endpoint, regs);
     end_state.add_platform(TestSnapshotPlatform<Arch>());
     auto end_state_with_sideeffects =

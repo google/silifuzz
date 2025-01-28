@@ -764,6 +764,8 @@ class Snapshot::EndState final {
     register_checksum_ = value;
   }
 
+  void set_registers(const RegisterState& registers);
+
   // Gets register checksum.
   const ByteData& register_checksum() const { return register_checksum_; }
 

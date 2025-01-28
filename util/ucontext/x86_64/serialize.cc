@@ -104,7 +104,7 @@ ssize_t SerializeLegacyGRegs(const GRegSet<X86_64>& gregs, void* data,
 
   return sizeof(*user_gregs);
 #else
-  // TODO port to other platforms
+  // TODO(b/282033486): Delete code after migration.
   LOG_FATAL("Serializing legacy x86_64 GRegSet only supported on x86_64.");
   return -1;
 #endif
@@ -158,7 +158,7 @@ ssize_t DeserializeLegacyGRegs(const void* data, size_t data_size,
 
   return sizeof(*user_gregs);
 #else
-  // TODO(ncbray) port to other platforms.
+  // TODO(b/282033486): Delete code after migration.
   LOG_FATAL("Deserializing legacy x86_64 GRegSet only supported on x86_64.");
   return -1;
 #endif
