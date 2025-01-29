@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@rules_python//python:proto.bzl", "py_proto_library")
 load("@rules_python//python:py_test.bzl", "py_test")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
@@ -117,6 +120,22 @@ sh_test(
     ],
 )
 
+proto_library(
+    name = "hashtest_result",
+    srcs = ["hashtest_result.proto"],
+    deps = ["@com_google_protobuf//:timestamp_proto"],
+)
+
+cc_proto_library(
+    name = "hashtest_result_cc_proto",
+    deps = [":hashtest_result"],
+)
+
+py_proto_library(
+    name = "hashtest_result_py_proto",
+    deps = [":hashtest_result"],
+)
+
 cc_library(
     name = "hashtest_runner_lib",
     srcs = [
@@ -193,6 +212,7 @@ cc_binary(
     ],
     deps = [
         ":hashtest_generator_lib",
+        ":hashtest_result_cc_proto",
         ":hashtest_runner_lib",
         ":parallel_worker_pool",
         "@silifuzz//instruction:xed_util",
@@ -201,6 +221,7 @@ cc_binary(
         "@silifuzz//util:hostname",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
+        "@silifuzz//util:time_proto_util",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
@@ -208,6 +229,7 @@ cc_binary(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 
@@ -219,6 +241,7 @@ py_test(
         ":hashtest_runner",
     ],
     deps = [
+        ":hashtest_result_py_proto",
         "@absl_py//absl/testing:absltest",
     ],
 )

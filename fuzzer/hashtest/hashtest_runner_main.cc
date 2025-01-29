@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 
+#include "google/protobuf/timestamp.pb.h"
 #include "absl/container/btree_map.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -35,6 +36,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/candidate.h"
+#include "./fuzzer/hashtest/hashtest_result.pb.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/json.h"
@@ -48,6 +50,7 @@
 #include "./util/hostname.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
+#include "./util/time_proto_util.h"
 
 ABSL_FLAG(silifuzz::PlatformId, platform, silifuzz::PlatformId::kUndefined,
           "Platform to generate tests for. Defaults to the current platform.");
@@ -66,7 +69,9 @@ ABSL_FLAG(absl::Duration, corpus_time, absl::Seconds(10),
           "1m30s.");
 ABSL_FLAG(absl::Duration, time, absl::Minutes(1),
           "Total time limit for testing. For example: 1m30s.");
-
+ABSL_FLAG(bool, print_proto, false,
+          "Dump a binary proto to stdout rather than text. Intended for cases "
+          "where a machine-readable result is needed.");
 ABSL_FLAG(bool, verbose, false, "Print additional debugging information.");
 
 namespace silifuzz {
@@ -148,7 +153,8 @@ EndStateSubtask MakeSubtask(int index, size_t num_inputs, size_t num_workers,
 std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
                                          const absl::Span<const Test> tests,
                                          const TestConfig& config,
-                                         const absl::Span<const Input> inputs) {
+                                         const absl::Span<const Input> inputs,
+                                         bool printing_allowed) {
   const size_t num_end_state = tests.size() * inputs.size();
 
   // Redundant sets of end states.
@@ -193,7 +199,7 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
   // Try to guess which end states are correct, based on the redundancy.
   size_t bad =
       ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
-  if (bad > 0) {
+  if (printing_allowed && bad > 0) {
     std::cout << "Failed to reconcile " << bad << " end states." << std::endl;
   }
 
@@ -263,11 +269,14 @@ struct CorpusStats {
 void RunTestCorpus(size_t test_index, Rng& test_rng,
                    ParallelWorkerPool& workers,
                    const CorpusConfig& corpus_config, CorpusStats& corpus_stats,
-                   absl::Duration run_time, ResultReporter& result) {
+                   absl::Duration run_time, ResultReporter& result,
+                   bool printing_allowed) {
   // Generate tests corpus.
-  std::cout << std::endl;
-  std::cout << "Generating " << corpus_config.num_tests << " tests / "
-            << corpus_config.name << std::endl;
+  if (printing_allowed) {
+    std::cout << std::endl;
+    std::cout << "Generating " << corpus_config.num_tests << " tests / "
+              << corpus_config.name << std::endl;
+  }
   absl::Time corpus_begin = absl::Now();
 
   // Allocate the corpus.
@@ -319,26 +328,34 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
   // Finish generating the corpus.
   FinalizeCorpus(corpus, used);
 
-  std::cout << "Corpus size: " << (corpus.MemoryUse() / (1024 * 1024)) << " MB"
-            << std::endl;
+  if (printing_allowed) {
+    std::cout << "Corpus size: " << (corpus.MemoryUse() / (1024 * 1024))
+              << " MB" << std::endl;
+  }
 
   absl::Time end_state_begin = absl::Now();
   corpus_stats.code_gen_time += end_state_begin - corpus_begin;
 
   // Generate test+input end states.
-  std::cout << "Generating end states" << std::endl;
+  if (printing_allowed) {
+    std::cout << "Generating end states" << std::endl;
+  }
   std::vector<EndState> end_states =
       DetermineEndStates(workers, corpus.tests, corpus_config.run_config.test,
-                         corpus_config.inputs);
-  std::cout << "End state size: "
-            << (end_states.size() * sizeof(end_states[0]) / (1024 * 1024))
-            << " MB" << std::endl;
+                         corpus_config.inputs, printing_allowed);
+  if (printing_allowed) {
+    std::cout << "End state size: "
+              << (end_states.size() * sizeof(end_states[0]) / (1024 * 1024))
+              << " MB" << std::endl;
+  }
 
   absl::Time test_begin = absl::Now();
   corpus_stats.end_state_gen_time += test_begin - end_state_begin;
 
   // Run test corpus.
-  std::cout << "Running tests" << std::endl;
+  if (printing_allowed) {
+    std::cout << "Running tests" << std::endl;
+  }
   std::vector<ThreadStats> stats(workers.NumWorkers());
   absl::Duration testing_time = run_time - (test_begin - corpus_begin);
   workers.DoWork(stats, [&](ThreadStats& s) {
@@ -427,12 +444,28 @@ void PrintCorpusStats(const std::string& name, const CorpusStats& corpus_stats,
             << " per billion iteration hit rate" << std::endl;
 }
 
+void SetTestTimes(proto::HashTestResult& result_proto, absl::Time started,
+                  absl::Time ended) {
+  google::protobuf::Timestamp started_proto;
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(started, &started_proto));
+  *result_proto.mutable_testing_started() = started_proto;
+
+  google::protobuf::Timestamp ended_proto;
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(ended, &ended_proto));
+  *result_proto.mutable_testing_ended() = ended_proto;
+}
+
 int TestMain(std::vector<char*> positional_args) {
+  const bool print_proto = absl::GetFlag(FLAGS_print_proto);
+  const bool printing_allowed = !print_proto;
+
   absl::Time test_started = absl::Now();
-  std::cout << "Time started: " << test_started << std::endl;
-  std::cout << "Start timestamp: " << absl::ToUnixMillis(test_started)
-            << std::endl;
-  std::cout << std::endl;
+  if (printing_allowed) {
+    std::cout << "Time started: " << test_started << std::endl;
+    std::cout << "Start timestamp: " << absl::ToUnixMillis(test_started)
+              << std::endl;
+    std::cout << std::endl;
+  }
 
   InitXedIfNeeded();
 
@@ -441,8 +474,10 @@ int TestMain(std::vector<char*> positional_args) {
       absl::StrCat(kHashTestVersionMajor, ".", kHashTestVersionMinor, ".",
                    kHashTestVersionPatch);
 
-  std::cout << "Host: " << hostname << std::endl;
-  std::cout << "Version: " << version << std::endl;
+  if (printing_allowed) {
+    std::cout << "Host: " << hostname << std::endl;
+    std::cout << "Version: " << version << std::endl;
+  }
 
   // Alow the platform to be overridden.
   PlatformId platform = absl::GetFlag(FLAGS_platform);
@@ -451,15 +486,36 @@ int TestMain(std::vector<char*> positional_args) {
     platform = CurrentPlatformId();
   }
   xed_chip_enum_t chip = PlatformIdToChip(platform);
-  QCHECK_NE(chip, XED_CHIP_INVALID)
-      << "Unsupported platform: " << EnumStr(platform);
 
-  std::cout << "Platform: " << EnumStr(platform) << std::endl;
+  if (chip == XED_CHIP_INVALID) {
+    if (print_proto) {
+      proto::HashTestResult result_proto;
+      result_proto.set_hostname(hostname);
+      result_proto.set_platform(EnumStr(platform));
+      result_proto.set_version(version);
+
+      result_proto.set_status(proto::HashTestResult::PLATFORM_NOT_SUPPORTED);
+
+      SetTestTimes(result_proto, test_started, absl::Now());
+
+      result_proto.set_tests_run(0);
+      result_proto.set_tests_failed(0);
+
+      result_proto.SerializeToOstream(&std::cout);
+    } else {
+      std::cout << "Unsupported platform: " << EnumStr(platform);
+    }
+    return EXIT_FAILURE;
+  }
 
   size_t vector_width = ChipVectorRegisterWidth(chip);
   size_t mask_width = ChipMaskRegisterWidth(chip);
-  std::cout << "Vector width: " << vector_width << std::endl;
-  std::cout << "Mask width: " << mask_width << std::endl;
+
+  if (printing_allowed) {
+    std::cout << "Platform: " << EnumStr(platform) << std::endl;
+    std::cout << "Vector width: " << vector_width << std::endl;
+    std::cout << "Mask width: " << mask_width << std::endl;
+  }
 
   size_t num_tests = absl::GetFlag(FLAGS_tests);
   size_t num_inputs = absl::GetFlag(FLAGS_inputs);
@@ -473,16 +529,18 @@ int TestMain(std::vector<char*> positional_args) {
   std::random_device hardware_rng{};
   uint64_t seed = maybe_seed.value_or(GetSeed(hardware_rng));
 
-  std::cout << std::endl;
-  std::cout << "Tests: " << num_tests << std::endl;
-  std::cout << "Batch size: " << batch_size << std::endl;
-  std::cout << "Inputs: " << num_inputs << std::endl;
-  std::cout << "Repeat: " << num_repeat << std::endl;
-  std::cout << "Iterations: " << num_iterations << std::endl;
+  if (printing_allowed) {
+    std::cout << std::endl;
+    std::cout << "Tests: " << num_tests << std::endl;
+    std::cout << "Batch size: " << batch_size << std::endl;
+    std::cout << "Inputs: " << num_inputs << std::endl;
+    std::cout << "Repeat: " << num_repeat << std::endl;
+    std::cout << "Iterations: " << num_iterations << std::endl;
 
-  // Display seed so that we can recreate this run later, if needed.
-  std::cout << std::endl;
-  std::cout << "Seed: " << FormatSeed(seed) << std::endl;
+    // Display seed so that we can recreate this run later, if needed.
+    std::cout << std::endl;
+    std::cout << "Seed: " << FormatSeed(seed) << std::endl;
+  }
 
   // Create separate test and input RNGs so that we can get predictable
   // sequences, given a fixed seed. If we don't do this, small changes to the
@@ -497,8 +555,10 @@ int TestMain(std::vector<char*> positional_args) {
 
   std::vector<int> cpu_list;
   ForEachAvailableCPU([&](int cpu) { cpu_list.push_back(cpu); });
-  std::cout << std::endl;
-  std::cout << "Num threads: " << cpu_list.size() << std::endl;
+  if (printing_allowed) {
+    std::cout << std::endl;
+    std::cout << "Num threads: " << cpu_list.size() << std::endl;
+  }
   CHECK_GT(cpu_list.size(), 0);
 
   // Create a pool of worker threads.
@@ -616,7 +676,8 @@ int TestMain(std::vector<char*> positional_args) {
     absl::Duration clamped_corpus_time =
         std::min(corpus_time, testing_time_remaining);
     RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
-                  corpus_stats[current_variant], clamped_corpus_time, result);
+                  corpus_stats[current_variant], clamped_corpus_time, result,
+                  printing_allowed);
     test_index += corpus_config[current_variant].num_tests;
     current_variant = (current_variant + 1) % corpus_config.size();
   }
@@ -636,86 +697,124 @@ int TestMain(std::vector<char*> positional_args) {
     ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
   }
 
-  if (!hit_counts.empty()) {
-    std::cout << std::endl;
-    std::cout << "Hits / " << hit_counts.size() << std::endl;
-    for (const auto& [cpu, test_hits] : hit_counts) {
-      std::cout << std::endl;
-      std::cout << "CPU " << cpu << " / " << test_hits.size() << std::endl;
-      for (const auto& [test_seed, input_hits] : test_hits) {
-        size_t inputs = 0;
-        size_t test_input_hits = 0;
-        for (const auto& [input_seed, count] : input_hits) {
-          inputs += 1;
-          test_input_hits += count;
-        }
-        std::cout << "  " << FormatSeed(test_seed) << " / " << inputs << " / "
-                  << test_input_hits << std::endl;
-      }
-    }
+  std::vector<uint64_t> suspected_cpus;
+  for (const auto& [cpu, _] : hit_counts) {
+    suspected_cpus.push_back(cpu);
   }
+  std::sort(suspected_cpus.begin(), suspected_cpus.end());
 
   absl::Time test_ended = absl::Now();
 
-  // Print stats.
+  // Aggregate the stats from each config.
   CorpusStats all_stats{};
   for (size_t i = 0; i < corpus_config.size(); ++i) {
-    PrintCorpusStats(corpus_config[i].name, corpus_stats[i],
-                     workers.NumWorkers());
     all_stats += corpus_stats[i];
   }
-  PrintCorpusStats("all", all_stats, workers.NumWorkers());
+  const bool failed = all_stats.test_instance_hit > 0;
 
-  std::cout << std::endl;
-  std::cout << (test_hit_counts.size() / (double)all_stats.distinct_tests)
-            << " per test hit rate" << std::endl;
-  std::cout << "Total time: " << (test_ended - test_started) << std::endl;
-  std::cout << "Time ended: " << test_ended << std::endl;
-  std::cout << "End timestamp: " << absl::ToUnixMillis(test_ended) << std::endl;
-
-  // Print machine readable stats.
-  std::cout << std::endl;
-  std::cout << "BEGIN_JSON" << std::endl;
-  JSONFormatter out(std::cout);
-  out.Object([&] {
-    // Host information.
-    out.Field("hostname", hostname);
-    out.Field("platform", EnumStr(platform));
-    out.Field("vector_width", vector_width);
-    out.Field("mask_width", mask_width);
-
-    // Information about this run.
-    out.Field("version", version);
-    out.Field("seed", seed);
-    out.Field("threads", workers.NumWorkers());
-    out.Field("test_started", absl::ToUnixMillis(test_started));
-    out.Field("test_ended", absl::ToUnixMillis(test_ended));
-
-    out.Field("variants").List([&] {
-      for (size_t i = 0; i < corpus_config.size(); ++i) {
-        out.Object([&] {
-          out.Field("config");
-          FormatCorpusConfigJSON(corpus_config[i], out);
-          out.Field("stats");
-          FormatCorpusStatsJSON(corpus_stats[i], out);
-        });
+  if (printing_allowed) {
+    if (!hit_counts.empty()) {
+      std::cout << std::endl;
+      std::cout << "Hits / " << hit_counts.size() << std::endl;
+      for (const auto& [cpu, test_hits] : hit_counts) {
+        std::cout << std::endl;
+        std::cout << "CPU " << cpu << " / " << test_hits.size() << std::endl;
+        for (const auto& [test_seed, input_hits] : test_hits) {
+          size_t inputs = 0;
+          size_t test_input_hits = 0;
+          for (const auto& [input_seed, count] : input_hits) {
+            inputs += 1;
+            test_input_hits += count;
+          }
+          std::cout << "  " << FormatSeed(test_seed) << " / " << inputs << " / "
+                    << test_input_hits << std::endl;
+        }
       }
+    }
+
+    // Print stats.
+    for (size_t i = 0; i < corpus_config.size(); ++i) {
+      PrintCorpusStats(corpus_config[i].name, corpus_stats[i],
+                       workers.NumWorkers());
+    }
+    PrintCorpusStats("all", all_stats, workers.NumWorkers());
+
+    std::cout << std::endl;
+    std::cout << (test_hit_counts.size() / (double)all_stats.distinct_tests)
+              << " per test hit rate" << std::endl;
+    std::cout << "Total time: " << (test_ended - test_started) << std::endl;
+    std::cout << "Time ended: " << test_ended << std::endl;
+    std::cout << "End timestamp: " << absl::ToUnixMillis(test_ended)
+              << std::endl;
+
+    // Print machine readable stats.
+    std::cout << std::endl;
+    std::cout << "BEGIN_JSON" << std::endl;
+    JSONFormatter out(std::cout);
+    out.Object([&] {
+      // Host information.
+      out.Field("hostname", hostname);
+      out.Field("platform", EnumStr(platform));
+      out.Field("vector_width", vector_width);
+      out.Field("mask_width", mask_width);
+
+      // Information about this run.
+      out.Field("version", version);
+      out.Field("seed", seed);
+      out.Field("threads", workers.NumWorkers());
+      out.Field("test_started", absl::ToUnixMillis(test_started));
+      out.Field("test_ended", absl::ToUnixMillis(test_ended));
+
+      out.Field("variants").List([&] {
+        for (size_t i = 0; i < corpus_config.size(); ++i) {
+          out.Object([&] {
+            out.Field("config");
+            FormatCorpusConfigJSON(corpus_config[i], out);
+            out.Field("stats");
+            FormatCorpusStatsJSON(corpus_stats[i], out);
+          });
+        }
+      });
+
+      // TODO(ncbray): aggregate stats when there is more than one.
+      out.Field("stats");
+      FormatCorpusStatsJSON(all_stats, out);
+
+      out.Field("cpus_hit").List([&] {
+        for (uint64_t cpu : suspected_cpus) {
+          out.Value(cpu);
+        }
+      });
     });
+    std::cout << std::endl;
+    std::cout << "END_JSON" << std::endl;
+  }
 
-    // TODO(ncbray): aggregate stats when there is more than one.
-    out.Field("stats");
-    FormatCorpusStatsJSON(all_stats, out);
+  if (print_proto) {
+    proto::HashTestResult result_proto;
+    result_proto.set_hostname(hostname);
+    result_proto.set_platform(EnumStr(platform));
+    result_proto.set_version(version);
 
-    out.Field("cpus_hit").List([&] {
-      for (const auto& [cpu, _] : hit_counts) {
-        out.Value(cpu);
-      }
-    });
-  });
-  std::cout << std::endl;
-  std::cout << "END_JSON" << std::endl;
+    result_proto.set_status(failed ? proto::HashTestResult::FAILED
+                                   : proto::HashTestResult::OK);
 
-  return all_stats.test_instance_hit > 0 ? EXIT_FAILURE : EXIT_SUCCESS;
+    SetTestTimes(result_proto, test_started, test_ended);
+
+    result_proto.set_tests_run(all_stats.test_instance_run);
+    result_proto.set_tests_failed(all_stats.test_instance_hit);
+
+    for (uint64_t cpu : cpu_list) {
+      result_proto.add_tested_cpus(cpu);
+    }
+    for (uint64_t cpu : suspected_cpus) {
+      result_proto.add_suspected_cpus(cpu);
+    }
+
+    result_proto.SerializeToOstream(&std::cout);
+  }
+
+  return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 }  // namespace

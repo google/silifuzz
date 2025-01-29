@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 # Copyright 2024 The SiliFuzz Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +19,8 @@ import subprocess
 
 from absl.testing import absltest
 
+from silifuzz.fuzzer.hashtest import hashtest_result_pb2
+
 
 def get_data_dependency(name: str) -> str:
   return os.path.join(
@@ -28,6 +28,8 @@ def get_data_dependency(name: str) -> str:
       name,
   )
 
+
+CURRENT_VERSION = '1.1.2'
 
 HASHTEST_RUNNER_PATH = get_data_dependency(
     'silifuzz/fuzzer/hashtest/hashtest_runner'
@@ -64,7 +66,7 @@ class HashtestRunnerTest(absltest.TestCase):
       self.assertIn(field, data)
       self.assertIsInstance(data[field], t)
 
-  def run_hashtest(self, args: list[str]) -> str:
+  def run_hashtest(self, args: list[str], expected_returncode: int) -> str:
     """Run the hashtest runner with the given args and return the output."""
     cmd = [HASHTEST_RUNNER_PATH] + args
     result = subprocess.run(
@@ -74,43 +76,109 @@ class HashtestRunnerTest(absltest.TestCase):
     )
     self.assertEqual(
         result.returncode,
-        0,
-        f'Hashtest runner failed with code {result.returncode}',
+        expected_returncode,
     )
-    stdout = result.stdout.decode('utf-8')
+    return result.stdout
+
+  def run_hashtest_parse_json(
+      self, args: list[str], expected_returncode: int
+  ) -> dict[str, any]:
+    """Run the hashtest runner with the given args and return the JSON in the output."""
+    stdout = self.run_hashtest(args, expected_returncode)
+    stdout = stdout.decode('utf-8')
     return self.extract_json(stdout)
 
-  def test_standard(self):
+  def run_hashtest_parse_proto(
+      self, args: list[str], expected_returncode: int
+  ) -> hashtest_result_pb2.HashTestResult:
+    """Run the hashtest runner with the given args and return the Proto output."""
+    stdout = self.run_hashtest(args, expected_returncode)
+    res = hashtest_result_pb2.HashTestResult()
+    res.ParseFromString(stdout)
+    return res
+
+  def test_json(self):
     seed = 123
-    data = self.run_hashtest([
-        '--seed',
-        str(seed),
-        '--tests',
-        '10000',
-        '--inputs',
-        '5',
-        '--repeat',
-        '5',
-    ])
+    data = self.run_hashtest_parse_json(
+        [
+            '--seed',
+            str(seed),
+            '--tests',
+            '10000',
+            '--inputs',
+            '5',
+            '--repeat',
+            '5',
+            '--time',
+            '2s',
+        ],
+        0,
+    )
     self.check_json(data)
     self.assertEqual(data['seed'], seed)
 
-  def test_timed(self):
+  def test_proto(self):
     seed = 456
-    data = self.run_hashtest([
-        '--seed',
-        str(seed),
-        '--tests',
-        '10000',
-        '--inputs',
-        '5',
-        '--repeat',
-        '5',
-        '--time',
-        '1s',
-    ])
-    self.check_json(data)
-    self.assertEqual(data['seed'], seed)
+    data = self.run_hashtest_parse_proto(
+        [
+            '--seed',
+            str(seed),
+            '--time',
+            '2s',
+            '--print_proto',
+        ],
+        0,
+    )
+
+    self.assertNotEmpty(data.hostname)
+    self.assertNotEmpty(data.platform)
+    self.assertEqual(data.version, CURRENT_VERSION)
+
+    self.assertEqual(data.status, hashtest_result_pb2.HashTestResult.OK)
+
+    self.assertGreaterEqual(data.testing_started.seconds, 0)
+    self.assertGreaterEqual(data.testing_ended.seconds, 0)
+    self.assertGreaterEqual(
+        data.testing_ended.seconds, data.testing_started.seconds
+    )
+
+    self.assertGreaterEqual(data.tests_run, 0)
+    self.assertEqual(data.tests_failed, 0)
+
+    self.assertNotEmpty(data.tested_cpus)
+    self.assertEmpty(data.suspected_cpus)
+
+  def test_proto_bad_platform(self):
+    seed = 789
+    data = self.run_hashtest_parse_proto(
+        [
+            '--seed',
+            str(seed),
+            '--time',
+            '2s',
+            '--print_proto',
+            '--platform',
+            'NON-EXISTENT-PLATFORM',
+        ],
+        1,
+    )
+
+    self.assertNotEmpty(data.hostname)
+    self.assertNotEmpty(data.platform)
+    self.assertEqual(data.version, CURRENT_VERSION)
+
+    self.assertEqual(
+        data.status, hashtest_result_pb2.HashTestResult.PLATFORM_NOT_SUPPORTED
+    )
+
+    self.assertGreaterEqual(data.testing_started.seconds, 0)
+    self.assertGreaterEqual(data.testing_ended.seconds, 0)
+    self.assertGreaterEqual(
+        data.testing_ended.seconds, data.testing_started.seconds
+    )
+
+    self.assertEqual(data.tests_run, 0)
+    self.assertEqual(data.tests_failed, 0)
 
 
 if __name__ == '__main__':
