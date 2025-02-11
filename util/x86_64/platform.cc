@@ -65,15 +65,24 @@ PlatformId IntelPlatformId() {
   const uint32_t stepping = DecodeStepping(result.eax);
   if (family == 6) {
     // Mostly we can just map a model into a platform.
+    // Reference: https://en.wikichip.org/wiki/intel/cpuid#Family_6
     static const absl::flat_hash_map<uint32_t, PlatformId> platform_id_map{
-        {60, PlatformId::kIntelHaswell},  // Haswell Client
+        {60, PlatformId::kIntelHaswell},    // Haswell Client
+        {61, PlatformId::kIntelBroadwell},  // Broadwell Client
         {62, PlatformId::kIntelIvybridge},
         {63, PlatformId::kIntelHaswell},    // Haswell Server
+        {69, PlatformId::kIntelHaswell},    // Haswell Client
+        {70, PlatformId::kIntelHaswell},    // Haswell Client
+        {71, PlatformId::kIntelBroadwell},  // Broadwell Client
+        // Model 78 and 94 are Skylake client. Unlike the server variants, they
+        // don't support AVX512. To support these chips, we'd need to
+        // distinguish between Skylake client and server chips.
         {79, PlatformId::kIntelBroadwell},  // Broadwell
         {86, PlatformId::kIntelBroadwell},  // Broadwell DE
-        {106, PlatformId::kIntelIcelake},
-        {125, PlatformId::kIntelIcelake},  // Icelake Client
-        {126, PlatformId::kIntelIcelake},  // Icelake Client
+        {106, PlatformId::kIntelIcelake},   // Icelake Server
+        {108, PlatformId::kIntelIcelake},   // Icelake Server
+        {125, PlatformId::kIntelIcelake},   // Icelake Client
+        {126, PlatformId::kIntelIcelake},   // Icelake Client
         // Coffeelake and Kabylake share the same CPU model but have
         // different stepping (Kabylake stepping <= 9) similar to
         // Skylake/Cascadelake. It's not clear if there's a difference between
