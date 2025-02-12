@@ -305,7 +305,7 @@ $ ./tools/snap_tool --raw --out=/tmp/cpuid.pb make /tmp/cpuid
 
 ```
 <error log omitted>
-Could not load snapshot: INTERNAL: Tracing failed: Non-deterministic insn CPUID
+Could not load snapshot: INTERNAL: Tracing failed: Banned instruction: CPUID
 ```
 
 NOTE: To avoid non-deterministic results, various parts of SiliFuzz exclude

@@ -55,6 +55,12 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
 }
 
 bool InstructionIsAllowedInRunner(const xed_inst_t* instruction) {
+  return InstructionClassIsAllowedInRunner(instruction) &&
+         InstructionCanRunInUserSpace(instruction) &&
+         !InstructionRequiresIOPrivileges(instruction);
+}
+
+bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
   switch (xed_inst_iclass(instruction)) {
     case XED_ICLASS_RDPID:
     case XED_ICLASS_RDRAND:

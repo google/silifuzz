@@ -71,9 +71,9 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
       VLOG_INFO(1, trace_result_.disassembly.back());
     }
     if (!insn_or->is_allowed_in_runner() &&
-        options_.filter_non_deterministic_insn) {
+        options_.filter_banned_instructions) {
       trace_result_.early_termination_reason =
-          absl::StrCat("Non-deterministic insn ", insn_or->mnemonic());
+          absl::StrCat("Banned instruction: ", insn_or->mnemonic());
       return HarnessTracer::kInjectSigusr1;
     }
     if (options_.x86_filter_split_lock && insn_or->is_locking()) {

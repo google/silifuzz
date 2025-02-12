@@ -39,12 +39,16 @@ void InitXedIfNeeded();
 bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
                        char* buffer, size_t buffer_size);
 
+// Checks if an instruction is allowed to run in the runner.
+// For example, non-deterministic and privileged instructions are not allowed.
+bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
+
 // Does this instruction produce the same result every time when it is run
 // inside the runner? An obvious type of instruction that is non-deterministic
 // are instructions that produce random numbers. A less obvious type of
 // instruction are instructions that depend on state the runner does not /
 // cannot control.
-bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
+bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction);
 
 // Is this an unprivileged instruction? Useful for filtering instructions before
 // the run on hardware. Once they run on hardware, the answer should be obvious.

@@ -144,12 +144,15 @@ TEST_F(XedUtilTest, InstructionPredicates) {
       }
       const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
       EXPECT_EQ(test.not_deterministic,
-                !InstructionIsAllowedInRunner(instruction))
+                !InstructionClassIsAllowedInRunner(instruction))
           << test.text;
       EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(instruction))
           << test.text;
       EXPECT_EQ(test.is_branch, InstructionIsBranch(instruction)) << test.text;
       EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(instruction))
+          << test.text;
+      EXPECT_EQ(!test.not_deterministic && !test.is_io && !test.not_userspace,
+                InstructionIsAllowedInRunner(instruction))
           << test.text;
       EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
       EXPECT_EQ(test.is_x87, InstructionIsX87(instruction)) << test.text;

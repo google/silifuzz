@@ -82,14 +82,6 @@ bool PrefilterInstruction(const xed_inst_t* instruction) {
   if (!InstructionIsAllowedInRunner(instruction)) {
     return false;
   }
-  // Filter out privileged instructions.
-  if (!InstructionCanRunInUserSpace(instruction)) {
-    return false;
-  }
-  // Also privileged, in practice.
-  if (InstructionRequiresIOPrivileges(instruction)) {
-    return false;
-  }
 
   const xed_iclass_enum_t iclass = xed_inst_iclass(instruction);
   const xed_category_enum_t category = xed_inst_category(instruction);

@@ -228,10 +228,10 @@ absl::Status Trace(const Snapshot& snapshot, PlatformId platform_id,
       RunnerDriverFromSnapshot(snapified, RunnerLocation()));
 
   TraceOptions trace_options = TraceOptions::Default();
-  // Don't be opinionated about non-deterministic code like we are in SnapMaker.
+  // Don't be opinionated about problematic code like we are in SnapMaker.
   // If there's an existing (possibly, legacy) snapshot with non-deterministic
-  // instructions just trace it.
-  trace_options.filter_non_deterministic_insn = false;
+  // or other problematic instructions, just trace it.
+  trace_options.filter_banned_instructions = false;
   DisassemblingSnapTracer tracer(snapified, trace_options);
   auto trace_fn = absl::bind_front(&DisassemblingSnapTracer::Step, &tracer);
   absl::StatusOr<RunnerDriver::RunResult> trace_result =

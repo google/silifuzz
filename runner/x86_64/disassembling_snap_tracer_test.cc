@@ -89,8 +89,7 @@ TEST(DisassemblingSnapTracer, TraceNonDeterministic) {
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
   EXPECT_FALSE(result.success());
   const auto& trace_result = tracer.trace_result();
-  EXPECT_EQ(trace_result.early_termination_reason,
-            "Non-deterministic insn CPUID");
+  EXPECT_EQ(trace_result.early_termination_reason, "Banned instruction: CPUID");
 }
 
 TEST(DisassemblingSnapTracer, TraceSplitLock) {
