@@ -492,5 +492,19 @@ TEST(DecodedInsn, may_access_memory) {
   EXPECT_TRUE(insn3.may_access_memory());
 }
 
+TEST(DecodedInsn, clzero) {
+  DecodedInsn insn("\x0f\x01\xfc");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "clzero");
+  EXPECT_TRUE(insn.is_allowed_in_runner());
+}
+
+TEST(DecodedInsn, clzero_with_prefix) {
+  DecodedInsn insn("\xf2\x0f\x01\xfc");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()), "clzero");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
 }  // namespace
 }  // namespace silifuzz

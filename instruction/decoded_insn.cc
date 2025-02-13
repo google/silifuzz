@@ -37,22 +37,7 @@
 #include "./util/misc_util.h"
 
 extern "C" {
-#include "third_party/libxed/xed-address-width-enum.h"
-#include "third_party/libxed/xed-agen.h"
-#include "third_party/libxed/xed-attribute-enum.h"
-#include "third_party/libxed/xed-category-enum.h"
-#include "third_party/libxed/xed-decode.h"
-#include "third_party/libxed/xed-decoded-inst-api.h"
-#include "third_party/libxed/xed-error-enum.h"
-#include "third_party/libxed/xed-iclass-enum.h"
-#include "third_party/libxed/xed-iform-enum.h"
-#include "third_party/libxed/xed-machine-mode-enum.h"
-#include "third_party/libxed/xed-operand-accessors.h"
-#include "third_party/libxed/xed-operand-enum.h"
-#include "third_party/libxed/xed-print-info.h"
-#include "third_party/libxed/xed-reg-class.h"
-#include "third_party/libxed/xed-reg-enum.h"
-#include "third_party/libxed/xed-types.h"
+#include "third_party/libxed/xed-interface.h"
 };
 
 namespace silifuzz {
@@ -76,6 +61,12 @@ DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
 
 bool DecodedInsn::is_allowed_in_runner() const {
   DCHECK_STATUS(status_);
+  // Ban clzero with a prefix as it may crash some platforms (e.g. Turin) with
+  // `SIGILL`.
+  if (xed_decoded_inst_get_iclass(&xed_insn_) == XED_ICLASS_CLZERO &&
+      xed_decoded_inst_get_nprefixes(&xed_insn_) > 0) {
+    return false;
+  }
   return InstructionIsAllowedInRunner(xed_decoded_inst_inst(&xed_insn_));
 }
 
