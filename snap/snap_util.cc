@@ -44,7 +44,7 @@ Snapshot::ByteData SnapMemoryBytesData(const SnapMemoryBytes& memory_bytes) {
 template <typename Arch>
 absl::StatusOr<Snapshot> SnapToSnapshot(const Snap<Arch>& snap,
                                         PlatformId platform) {
-  CHECK(Arch::architecture_id == PlatformArchitecture(platform));
+  CHECK(Arch::architecture_id == PlatformArchitectureOrDie(platform));
   Snapshot snapshot(Snapshot::ArchitectureTypeToEnum<Arch>(), snap.id);
   for (const SnapMemoryMapping& m : snap.memory_mappings) {
     RETURN_IF_NOT_OK(MemoryMapping::CanMakeSized(m.start_address, m.num_bytes));

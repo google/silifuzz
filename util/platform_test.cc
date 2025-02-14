@@ -47,19 +47,28 @@ TEST(PlatformTest, PlatformArchitecture) {
   for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
     if (proto::PlatformId_IsValid(i)) {
       const std::string& enum_name = proto::PlatformId_Name(i);
+      ArchitectureId arch = PlatformArchitecture(static_cast<PlatformId>(i));
       if (absl::StrContains(enum_name, "RESERVED") ||
           static_cast<PlatformId>(i) == PlatformId::kUndefined) {
-        continue;
+        EXPECT_EQ(arch, ArchitectureId::kUndefined)
+            << "Platform " << enum_name
+            << " unexpectedly mapped to a defined architecture";
+      } else {
+        EXPECT_TRUE(arch == ArchitectureId::kX86_64 ||
+                    arch == ArchitectureId::kAArch64)
+            << "Platform " << enum_name
+            << " doesn't map to a valid architecture";
       }
-      ArchitectureId arch = PlatformArchitecture(static_cast<PlatformId>(i));
-      EXPECT_TRUE(arch == ArchitectureId::kX86_64 ||
-                  arch == ArchitectureId::kAArch64)
-          << "Platform " << enum_name << " doesn't map to a valid architecture";
     }
   }
 }
 
 TEST(PlatformTest, PlatformNameMatchesEnum) {
+  // `kAny` and `kNonExistent` are meta-values that won't be persisted in the
+  // proto representation.
+  EXPECT_EQ(proto::PlatformId_MAX, static_cast<int>(kMaxPlatformId) - 2)
+      << "snapshot.proto is not up to date with the latest changes in platform "
+         "ids.";
   for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
     if (proto::PlatformId_IsValid(i)) {
       std::string internal_name = absl::StrReplaceAll(
@@ -68,6 +77,13 @@ TEST(PlatformTest, PlatformNameMatchesEnum) {
       EXPECT_EQ(internal_name, proto::PlatformId_Name(i));
     }
   }
+}
+
+TEST(PlatformTest, EnumNameMap) {
+  EXPECT_EQ(EnumNameMap<PlatformId>[static_cast<int>(kMaxPlatformId)],
+            "NON-EXISTENT-PLATFORM")
+      << "EnumNameMap is not up to date with the latest changes in platform "
+         "ids.";
 }
 
 }  // namespace

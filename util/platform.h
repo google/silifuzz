@@ -113,6 +113,10 @@ uint32_t PlatformIdRegister();
 
 ArchitectureId PlatformArchitecture(PlatformId platform);
 
+// Same as above, but crashes fatally if the platform is undefined. Prefer to
+// use this variant in production code to avoid silent errors.
+ArchitectureId PlatformArchitectureOrDie(PlatformId platform);
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_

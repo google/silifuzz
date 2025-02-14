@@ -105,7 +105,7 @@ PlatformId GetTargetPlatform() {
   if (platform_id == PlatformId::kUndefined) {
     platform_id = CurrentPlatformId();
   }
-  CHECK(PlatformArchitecture(platform_id) == Arch::architecture_id);
+  CHECK(PlatformArchitectureOrDie(platform_id) == Arch::architecture_id);
   return platform_id;
 }
 

@@ -20,6 +20,14 @@
 
 namespace silifuzz {
 
+ArchitectureId PlatformArchitectureOrDie(PlatformId platform) {
+  ArchitectureId arch = PlatformArchitecture(platform);
+  if (arch == ArchitectureId::kUndefined) {
+    LOG_FATAL("Undefined architecture for platform: ", EnumStr(platform));
+  }
+  return arch;
+}
+
 ArchitectureId PlatformArchitecture(PlatformId platform) {
   switch (platform) {
     case PlatformId::kIntelSkylake:
@@ -46,16 +54,9 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kUndefined:
     case PlatformId::kAny:
     case PlatformId::kNonExistent:
-      LOG_FATAL("Tried to get architecture for meta-platform ID: ",
-                EnumStr(platform));
     default:
-      LOG_FATAL("Tried to get architecture for reserved platform ID: ",
-                EnumStr(platform));
+      return ArchitectureId::kUndefined;
   }
-
-  // Doing this here instead of as a default: case so -Werror,-Wswitch can catch
-  // missing platforms at compile time.
-  LOG_FATAL("Architecture not listed for platform ID: ", EnumStr(platform));
 }
 
 }  // namespace silifuzz

@@ -174,7 +174,7 @@ absl::Status GenerateCorpus(const std::vector<std::string>& input_protos,
     return absl::InvalidArgumentError(
         "generate_corpus requires a valid platform id");
   }
-  ArchitectureId arch_id = PlatformArchitecture(platform_id);
+  ArchitectureId arch_id = PlatformArchitectureOrDie(platform_id);
   SnapifyOptions opts = SnapifyOptions::V2InputRunOpts(arch_id);
   opts.platform_id = platform_id;
 
