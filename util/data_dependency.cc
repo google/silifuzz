@@ -34,7 +34,6 @@ std::string GetDataDependencyFilepathBazel(absl::string_view relative_path) {
   } else {
     p = std::filesystem::path(test_dir) / "silifuzz" / relative_path;
   }
-  CHECK(std::filesystem::exists(p));
   return p;
 }
 

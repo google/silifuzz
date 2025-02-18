@@ -519,6 +519,7 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:data_dependency",
+        "@com_google_absl//absl/flags:flag",
     ],
 )
 

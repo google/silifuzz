@@ -18,18 +18,30 @@
 
 #include <string>
 
+#include "absl/flags/flag.h"
 #include "./util/checks.h"
 #include "./util/data_dependency.h"
+
+ABSL_FLAG(std::string, runner, "", "Path to the runner binary.");
 
 namespace silifuzz {
 
 std::string RunnerLocation() {
+  // Allow a command-line override.
+  std::string runner = absl::GetFlag(FLAGS_runner);
+  if (!runner.empty()) {
+    return runner;
+  }
+
   std::string loc =
       GetDataDependencyFilepath("runner/reading_runner_main_nolibc");
   struct stat s;
   if (stat(loc.c_str(), &s) < 0) {
-    LOG_INFO(loc, " doesn't exist, defaulting to ./reading_runner_main_nolibc");
-    return "./reading_runner_main_nolibc";
+    loc = "./reading_runner_main_nolibc";
+  }
+  if (stat(loc.c_str(), &s) < 0) {
+    LOG(ERROR)
+        << "Could not find runner binary. Try passing --runner=PATH/TO/RUNNER.";
   }
   return loc;
 }

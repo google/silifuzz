@@ -85,7 +85,6 @@ ABSL_FLAG(std::optional<uint64_t>, code_address, std::nullopt,
           "by hashing the code. --code_address will override the default and "
           "the value should be page aligned.");
 
-ABSL_FLAG(std::string, runner, "", "Path to the runner binary.");
 ABSL_FLAG(std::optional<std::string>, out, std::nullopt, "Output file path.");
 
 // Flags that control `print` command (including in --dry_run mode):
@@ -111,11 +110,6 @@ ABSL_FLAG(silifuzz::PlatformId, target_platform,
 // ========================================================================= //
 
 namespace silifuzz {
-
-std::string RunnerLocationForSnapTool() {
-  std::string runner = absl::GetFlag(FLAGS_runner);
-  return runner.empty() ? RunnerLocation() : runner;
-}
 
 // Implements the `print` command.
 void PrintSnapshot(const Snapshot& snapshot, LinePrinter* line_printer) {
@@ -157,7 +151,7 @@ absl::StatusOr<Snapshot> CreateSnapshotFromRawInstructions(
   // Load the instructions.
   ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                              GetFileContents(filename));
-  MakingConfig config = MakingConfig::Default(RunnerLocationForSnapTool());
+  MakingConfig config = MakingConfig::Default(RunnerLocation());
   return MakeRawInstructions(instructions, config);
 }
 
@@ -421,7 +415,7 @@ bool SnapToolMain(std::vector<char*>& args) {
     if (ExtraArgs(args)) return false;
 
     absl::StatusOr<RunnerDriver> runner_or =
-        RunnerDriverFromSnapshot(snapshot, RunnerLocationForSnapTool());
+        RunnerDriverFromSnapshot(snapshot, RunnerLocation());
 
     if (!runner_or.ok()) {
       line_printer.Line("Could not play snapshot: ",
@@ -455,7 +449,7 @@ bool SnapToolMain(std::vector<char*>& args) {
       }
       snapshot = std::move(edited).value();
     }
-    MakingConfig config = MakingConfig::Default(RunnerLocationForSnapTool());
+    MakingConfig config = MakingConfig::Default(RunnerLocation());
     config.enforce_fuzzing_config = false;
     absl::StatusOr<Snapshot> recorded_snapshot = MakeSnapshot(snapshot, config);
     if (!recorded_snapshot.ok()) {
