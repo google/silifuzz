@@ -117,6 +117,14 @@ ArchitectureId PlatformArchitecture(PlatformId platform);
 // use this variant in production code to avoid silent errors.
 ArchitectureId PlatformArchitectureOrDie(PlatformId platform);
 
+namespace internal {
+// These functions are exposed for testing purposes only.
+PlatformId IntelPlatformIdFromCpuId(uint32_t family, uint32_t model,
+                                    uint32_t stepping);
+PlatformId AmdPlatformIdFromCpuId(uint32_t family, uint32_t model,
+                                  uint32_t stepping);
+}  // namespace internal
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_PLATFORM_H_
