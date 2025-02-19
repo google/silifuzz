@@ -20,6 +20,7 @@
 #include <sys/personality.h>
 #include <sys/prctl.h>  // prctl(), PR_SET_PDEATHSIG
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -59,6 +60,17 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
   VLOG_INFO(1, "Running ", absl::StrJoin(argv, " "));
   // Note that we assume that there are no other threads, thus we don't have to
   // do crazy stuff like using socket pairs or avoiding libc locks.
+
+  // Check the binary exists _before_ we fork so that we can easily give a hard
+  // error to the user.
+  if (argv.empty()) {
+    return absl::InternalError("No binary specified.");
+  }
+  struct stat s;
+  if (stat(argv[0].c_str(), &s) < 0) {
+    return absl::InternalError(
+        absl::StrCat("Binary does not exist: ", argv[0]));
+  }
 
   // [0] is read end, [1] is write end.
   int stdout_pipe[2] = {-1, -1};

@@ -33,6 +33,7 @@
 
 namespace silifuzz {
 namespace {
+using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 
@@ -105,13 +106,9 @@ TEST(Subprocess, NoExecutable) {
   Subprocess::Options opts = Subprocess::Options::Default();
   opts.MapStderr(Subprocess::kMapToStdout);
   Subprocess sp(opts);
-  ASSERT_OK(sp.Start({"/bin/foobarbaz"}));
-  std::string stdout;
-  ProcessInfo info = sp.Communicate(&stdout);
-  EXPECT_EQ(WEXITSTATUS(info.status), 1);
-  // Observed one case where maxrss was zero, so not checking rusage here.
-  // It's not always zero, either.
-  EXPECT_THAT(stdout, HasSubstr("program not found or is not executable"));
+  ASSERT_THAT(sp.Start({"/bin/foobarbaz"}),
+              StatusIs(absl::StatusCode::kInternal,
+                       HasSubstr("Binary does not exist")));
 }
 
 TEST(Subprocess, DisableAslr) {
