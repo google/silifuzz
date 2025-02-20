@@ -16,18 +16,9 @@
 
 #include <cstdint>
 
-#include "absl/status/statusor.h"
-#include "./util/checks.h"
-#include "./util/itoa.h"
-#include "./util/tool_util.h"
-
 namespace silifuzz {
 
 namespace {
-
-absl::StatusOr<PlatformId> DistinguishNeoverseV2() {
-  return PlatformId::kArmNeoverseV2;
-}
 
 uint64_t GetMidr() {
   uint64_t midr;
@@ -44,37 +35,7 @@ PlatformId DoCurrentPlatformId() {
   // uint32_t variant = (midr >> 20) & 0xf;
   uint32_t part_number = (midr >> 4) & 0xfff;
   // uint32_t revision = midr & 0xf;
-
-  if (implementer == 0x41) {
-    // This means the core is ARM IP. Different SoCs may use the same IP.
-    switch (part_number) {
-      case 0xd0c:
-        return PlatformId::kArmNeoverseN1;
-      case 0xd4f: {
-        auto soc_platform_id = DistinguishNeoverseV2();
-        if (soc_platform_id.ok()) {
-          return soc_platform_id.value();
-        }
-        LOG_ERROR("Failed to determine NeoverseV2-based CPU: ",
-                  soc_platform_id.status());
-        return PlatformId::kUndefined;
-      }
-      default:
-        LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
-        return PlatformId::kUndefined;
-    }
-  } else if (implementer == 0xc0) {
-    // Ampere Computing
-    if (part_number == 0xac3) {
-      return PlatformId::kAmpereOne;
-    } else {
-      LOG_ERROR("Unknown Ampere part number: ", HexStr(part_number));
-      return PlatformId::kUndefined;
-    }
-  } else {
-    LOG_ERROR("Unknown implementer: ", HexStr(implementer));
-    return PlatformId::kUndefined;
-  }
+  return internal::ArmPlatformIdFromMainId(implementer, part_number);
 }
 
 }  // namespace

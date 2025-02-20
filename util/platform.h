@@ -123,6 +123,7 @@ PlatformId IntelPlatformIdFromCpuId(uint32_t family, uint32_t model,
                                     uint32_t stepping);
 PlatformId AmdPlatformIdFromCpuId(uint32_t family, uint32_t model,
                                   uint32_t stepping);
+PlatformId ArmPlatformIdFromMainId(uint32_t implementer, uint32_t part_number);
 }  // namespace internal
 
 }  // namespace silifuzz

@@ -147,6 +147,41 @@ TEST(PlatformUtilsX86, AllX86PlatformsAreMapped) {
   }
 }
 
-}  // namespace
+struct ArmMainId {
+  uint32_t implementer;
+  uint32_t part_number;
+  PlatformId mapped_platform;  // Some concrete platforms are mapped to abstract
+                               // platforms (ARM Neoverse v2, v3).
+};
 
+const absl::flat_hash_map<PlatformId, ArmMainId> kArmPlatformToCpuId = {
+    {PlatformId::kArmNeoverseN1, {0x41, 0xd0c, PlatformId::kArmNeoverseN1}},
+    {PlatformId::kArmNeoverseV2, {0x41, 0xd4f, PlatformId::kArmNeoverseV2}},
+    {PlatformId::kAmpereOne, {0xc0, 0xac3, PlatformId::kAmpereOne}},
+};
+
+TEST(PlatformUtilsAarch, ArmPlatformIdFromMainId) {
+  for (const auto& [platform, main_id] : kArmPlatformToCpuId) {
+    PlatformId actual_mapped_platform = internal::ArmPlatformIdFromMainId(
+        main_id.implementer, main_id.part_number);
+    EXPECT_EQ(actual_mapped_platform, main_id.mapped_platform)
+        << EnumStr(platform) << " is unexpectedly mapped to "
+        << EnumStr(actual_mapped_platform) << " instead of "
+        << EnumStr(main_id.mapped_platform);
+  }
+}
+
+TEST(PlatformUtilsAarch, AllAArch64PlatformsAreMapped) {
+  for (int i = 0; i <= static_cast<int>(kMaxPlatformId); ++i) {
+    PlatformId platform = static_cast<PlatformId>(i);
+    if (PlatformArchitecture(platform) == ArchitectureId::kAArch64) {
+      EXPECT_TRUE(kArmPlatformToCpuId.contains(platform))
+          << "AArch64 platform " << EnumStr(platform)
+          << " is not mapped to a CPU ID in "
+             "silifuzz/util/aarch64/platform.cc.";
+    }
+  }
+}
+
+}  // namespace
 }  // namespace silifuzz

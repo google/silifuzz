@@ -131,6 +131,32 @@ PlatformId AmdPlatformIdFromCpuId(uint32_t family, uint32_t model,
             " stepping = ", stepping);
   return PlatformId::kUndefined;
 }
+
+PlatformId ArmPlatformIdFromMainId(uint32_t implementer, uint32_t part_number) {
+  if (implementer == 0x41) {
+    // This means the core is ARM IP. Different SoCs may use the same IP.
+    switch (part_number) {
+      case 0xd0c:
+        return PlatformId::kArmNeoverseN1;
+      case 0xd4f: {
+        return PlatformId::kArmNeoverseV2;
+      }
+      default:
+        LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
+        return PlatformId::kUndefined;
+    }
+  } else if (implementer == 0xc0) {
+    // Ampere Computing
+    if (part_number == 0xac3) {
+      return PlatformId::kAmpereOne;
+    }
+    LOG_ERROR("Unknown Ampere part number: ", HexStr(part_number));
+    return PlatformId::kUndefined;
+  }
+
+  LOG_ERROR("Unknown implementer: ", HexStr(implementer));
+  return PlatformId::kUndefined;
+}
 }  // namespace internal
 
 }  // namespace silifuzz

@@ -819,10 +819,8 @@ cc_library(
         ":checks",
         ":itoa",
         ":misc_util",
-        ":tool_util",
         ":x86_cpuid",
         "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/status:statusor",
     ],
 )
 
