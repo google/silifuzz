@@ -66,6 +66,7 @@ cc_test(
     srcs = ["xed_util_test.cc"],
     deps = [
         ":xed_util",
+        "@silifuzz//util:arch",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@com_google_googletest//:gtest_main",

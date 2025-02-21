@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/itoa.h"
 #include "./util/platform.h"
 
@@ -179,6 +180,18 @@ TEST_F(XedUtilTest, ChipInfo) {
     EXPECT_EQ(PlatformIdToChip(info.platform), info.chip);
     EXPECT_EQ(ChipVectorRegisterWidth(info.chip), info.vector_width);
     EXPECT_EQ(ChipMaskRegisterWidth(info.chip), info.mask_width);
+  }
+}
+
+TEST_F(XedUtilTest, PlatformIdToChip) {
+  for (int i = 0; i <= static_cast<int>(kMaxPlatformId); ++i) {
+    PlatformId platform = static_cast<PlatformId>(i);
+    if (PlatformArchitecture(platform) == ArchitectureId::kX86_64) {
+      EXPECT_NE(PlatformIdToChip(platform), XED_CHIP_INVALID)
+          << "X86-64 platform " << EnumStr(platform)
+          << " is not mapped to a chip in "
+             "silifuzz/instruction/xed_util.cc.";
+    }
   }
 }
 

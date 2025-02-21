@@ -205,6 +205,7 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
     case PlatformId::kIntelCascadelake:
       return XED_CHIP_CASCADE_LAKE;
     case PlatformId::kAmdRome:
+    case PlatformId::kAmdRyzenV3000:
       return XED_CHIP_AMD_ZEN2;
     case PlatformId::kIntelIcelake:
       return XED_CHIP_ICE_LAKE_SERVER;
@@ -214,6 +215,7 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
     case PlatformId::kIntelSapphireRapids:
       return XED_CHIP_SAPPHIRE_RAPIDS;
     case PlatformId::kAmdGenoa:
+    case PlatformId::kAmdSiena:
       // Should be ZEN4?
       return XED_CHIP_AMD_FUTURE;
     case PlatformId::kIntelCoffeelake:
