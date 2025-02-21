@@ -20,9 +20,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <iterator>
 #include <optional>
 #include <random>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "google/protobuf/timestamp.pb.h"
@@ -54,6 +56,9 @@
 
 ABSL_FLAG(silifuzz::PlatformId, platform, silifuzz::PlatformId::kUndefined,
           "Platform to generate tests for. Defaults to the current platform.");
+ABSL_FLAG(size_t, j, 0,
+          "Maximum number of cores to test. Will test all available cores, by "
+          "default.");
 ABSL_FLAG(size_t, tests, 10000, "Number of tests in a copus.");
 ABSL_FLAG(size_t, batch, 10,
           "Number of different tests to run interleaved in a group.");
@@ -555,6 +560,16 @@ int TestMain(std::vector<char*> positional_args) {
 
   std::vector<int> cpu_list;
   ForEachAvailableCPU([&](int cpu) { cpu_list.push_back(cpu); });
+
+  size_t cpu_limit = absl::GetFlag(FLAGS_j);
+  if (cpu_limit > 0 && cpu_limit < cpu_list.size()) {
+    // Run on a random subset of CPUs.
+    std::vector<int> sampled;
+    std::sample(cpu_list.begin(), cpu_list.end(), std::back_inserter(sampled),
+                cpu_limit, rng);
+    cpu_list = std::move(sampled);
+  }
+
   if (printing_allowed) {
     std::cout << std::endl;
     std::cout << "Num threads: " << cpu_list.size() << std::endl;

@@ -111,6 +111,8 @@ class HashtestRunnerTest(absltest.TestCase):
             '5',
             '--time',
             '2s',
+            '-j',
+            '2',
         ],
         0,
     )
@@ -125,6 +127,8 @@ class HashtestRunnerTest(absltest.TestCase):
             str(seed),
             '--time',
             '2s',
+            '-j',
+            '2',
             '--print_proto',
         ],
         0,
