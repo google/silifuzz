@@ -81,10 +81,21 @@ TEST(AVX, HasAVX512Registers) {
     case PlatformId::kIntelIcelake:
     case PlatformId::kIntelSapphireRapids:
     case PlatformId::kAmdGenoa:
+    case PlatformId::kAmdSiena:
       EXPECT_TRUE(HasAVX512Registers());
       break;
-    default:
+    case PlatformId::kAmdRome:
+    case PlatformId::kAmdMilan:
+    case PlatformId::kAmdRyzenV3000:
+    case PlatformId::kIntelHaswell:
+    case PlatformId::kIntelBroadwell:
       EXPECT_FALSE(HasAVX512Registers());
+      break;
+    default:
+      // Newer platforms are not tested. This a smoke test to make sure the
+      // logic works for a subset of platforms that we know for sure about
+      // AVX512 support.
+      break;
   }
 }
 
