@@ -92,48 +92,6 @@ static_assert(ToInt(Snapshot::Metadata::Origin::kGem5) ==
 static_assert(ToInt(Snapshot::Metadata::Origin::kUseString) ==
               ToInt(proto::SnapshotMetadata::USE_STRING_ORIGIN));
 
-// Make sure that PlatformId values match.
-static_assert(ToInt(PlatformId::kUndefined) ==
-              ToInt(proto::PlatformId::UNDEFINED_PLATFORM_ID));
-static_assert(ToInt(PlatformId::kIntelSkylake) ==
-              ToInt(proto::PlatformId::INTEL_SKYLAKE));
-static_assert(ToInt(PlatformId::kIntelHaswell) ==
-              ToInt(proto::PlatformId::INTEL_HASWELL));
-static_assert(ToInt(PlatformId::kIntelBroadwell) ==
-              ToInt(proto::PlatformId::INTEL_BROADWELL));
-static_assert(ToInt(PlatformId::kIntelIvybridge) ==
-              ToInt(proto::PlatformId::INTEL_IVYBRIDGE));
-static_assert(ToInt(PlatformId::kIntelCascadelake) ==
-              ToInt(proto::PlatformId::INTEL_CASCADELAKE));
-static_assert(ToInt(PlatformId::kAmdRome) ==
-              ToInt(proto::PlatformId::AMD_ROME));
-static_assert(ToInt(PlatformId::kIntelIcelake) ==
-              ToInt(proto::PlatformId::INTEL_ICELAKE));
-static_assert(ToInt(PlatformId::kAmdMilan) ==
-              ToInt(proto::PlatformId::AMD_MILAN));
-static_assert(ToInt(PlatformId::kIntelSapphireRapids) ==
-              ToInt(proto::PlatformId::INTEL_SAPPHIRERAPIDS));
-static_assert(ToInt(PlatformId::kAmdGenoa) ==
-              ToInt(proto::PlatformId::AMD_GENOA));
-static_assert(ToInt(PlatformId::kIntelCoffeelake) ==
-              ToInt(proto::PlatformId::INTEL_COFFEELAKE));
-static_assert(ToInt(PlatformId::kIntelAlderlake) ==
-              ToInt(proto::PlatformId::INTEL_ALDERLAKE));
-static_assert(ToInt(PlatformId::kArmNeoverseN1) ==
-              ToInt(proto::PlatformId::ARM_NEOVERSE_N1));
-static_assert(ToInt(PlatformId::kAmpereOne) ==
-              ToInt(proto::PlatformId::AMPERE_ONE));
-static_assert(ToInt(PlatformId::kIntelEmeraldRapids) ==
-              ToInt(proto::PlatformId::INTEL_EMERALDRAPIDS));
-static_assert(ToInt(PlatformId::kIntelGraniteRapids) ==
-              ToInt(proto::PlatformId::INTEL_GRANITERAPIDS));
-static_assert(ToInt(PlatformId::kAmdSiena) ==
-              ToInt(proto::PlatformId::AMD_SIENA));
-static_assert(ToInt(PlatformId::kAmdRyzenV3000) ==
-              ToInt(proto::PlatformId::AMD_RYZEN_V3000));
-static_assert(ToInt(PlatformId::kArmNeoverseV2) ==
-              ToInt(proto::PlatformId::ARM_NEOVERSE_V2));
-
 static_assert(ToInt(snapshot_types::RunnerExecutionStatusCode::kOk) ==
               ToInt(proto::RunnerOutput::ExecutionResult::OK));
 static_assert(
