@@ -49,18 +49,17 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
         aarch64_mutator_(centipede::GetRandomSeed(env.seed),
                          env.crossover_level / 100.0, env.max_len) {}
 
-  void Mutate(const std::vector<centipede::MutationInputRef> &inputs,
-              size_t num_mutants, std::vector<centipede::ByteArray> &mutants) {
+  std::vector<centipede::ByteArray> Mutate(
+      const std::vector<centipede::MutationInputRef> &inputs,
+      size_t num_mutants) override {
     // Fall back to the byte mutator if the architecture was not specified.
     if (arch_ == ArchitectureId::kUndefined) {
-      centipede::CentipedeDefaultCallbacks::Mutate(inputs, num_mutants,
-                                                   mutants);
-      return;
+      return centipede::CentipedeDefaultCallbacks::Mutate(inputs, num_mutants);
     }
 
     // Init
-    mutants.resize(num_mutants);
-    if (num_mutants == 0) return;
+    std::vector<centipede::ByteArray> mutants{num_mutants};
+    if (num_mutants == 0) return mutants;
 
     // Re-wrap the input vector so the mutator doesn't need to depend on
     // Centipede's types.
@@ -81,6 +80,8 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
       default:
         LOG(FATAL) << "Unknown architecture: " << (int)arch_;
     }
+
+    return mutants;
   }
 
  private:
