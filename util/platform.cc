@@ -49,6 +49,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAmdRyzenV3000:
     case PlatformId::kIntelGraniteRapids:
     case PlatformId::kAmdSiena:
+    case PlatformId::kAmdTurin:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
     case PlatformId::kArmNeoverseV2:
@@ -126,6 +127,7 @@ PlatformId AmdPlatformIdFromCpuId(uint32_t family, uint32_t model,
     return PlatformId::kAmdRyzenV3000;
   if (family == 25 && (model >= 160 && model <= 175))
     return PlatformId::kAmdSiena;
+  if (family == 26 && (model <= 15)) return PlatformId::kAmdTurin;
 
   LOG_ERROR("Unknown AMD platform: family = ", family, " model = ", model,
             " stepping = ", stepping);

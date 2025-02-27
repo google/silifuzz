@@ -103,6 +103,7 @@ const absl::flat_hash_map<PlatformId, CpuId> kAmdPlatformToCpuId = {
     {PlatformId::kAmdGenoa, {25, 16, 0}},
     {PlatformId::kAmdRyzenV3000, {25, 64, 0}},
     {PlatformId::kAmdSiena, {25, 160, 0}},
+    {PlatformId::kAmdTurin, {26, 2, 0}},
 };
 const absl::flat_hash_map<PlatformId, CpuId> kIntelPlatformToCpuId = {
     {PlatformId::kIntelHaswell, {6, 60, 0}},
@@ -141,8 +142,8 @@ TEST(PlatformUtilsX86, AllX86PlatformsAreMapped) {
       EXPECT_TRUE(kAmdPlatformToCpuId.contains(platform) ||
                   kIntelPlatformToCpuId.contains(platform))
           << "X86-64 platform " << EnumStr(platform)
-          << " is not mapped to a CPU ID in "
-             "silifuzz/util/x86_64/platform.cc.";
+          << " is not mapped to a CPU ID in silifuzz/util/platform.cc, or a"
+             "test case is not added.";
     }
   }
 }
@@ -177,8 +178,8 @@ TEST(PlatformUtilsAarch, AllAArch64PlatformsAreMapped) {
     if (PlatformArchitecture(platform) == ArchitectureId::kAArch64) {
       EXPECT_TRUE(kArmPlatformToCpuId.contains(platform))
           << "AArch64 platform " << EnumStr(platform)
-          << " is not mapped to a CPU ID in "
-             "silifuzz/util/aarch64/platform.cc.";
+          << " is not mapped to a CPU ID in silifuzz/util/platform.cc, or a "
+             "test case is not added.";
     }
   }
 }
