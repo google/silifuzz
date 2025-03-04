@@ -249,19 +249,19 @@ std::array<const void *, kNumUnicornAArch64Reg> UnicornAArch64RegValue(
 }  // namespace
 
 template <>
-uint64_t UnicornTracer<AArch64>::GetCurrentInstructionPointer() {
+uint64_t UnicornTracer<AArch64>::GetInstructionPointer() {
   uint64_t pc = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_ARM64_REG_PC, &pc));
   return pc;
 }
 
 template <>
-void UnicornTracer<AArch64>::SetCurrentInstructionPointer(uint64_t address) {
+void UnicornTracer<AArch64>::SetInstructionPointer(uint64_t address) {
   UNICORN_CHECK(uc_reg_write(uc_, UC_ARM64_REG_PC, &address));
 }
 
 template <>
-uint64_t UnicornTracer<AArch64>::GetCurrentStackPointer() {
+uint64_t UnicornTracer<AArch64>::GetStackPointer() {
   uint64_t sp = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_ARM64_REG_SP, &sp));
   return sp;
@@ -346,7 +346,7 @@ absl::Status UnicornTracer<AArch64>::ValidateArchEndState() {
   // but not all of these problems. It will not catch situations where the stack
   // pointer is unaligned during execution, but becomes re-aligned before
   // exiting.
-  uint64_t sp = GetCurrentStackPointer();
+  uint64_t sp = GetStackPointer();
   constexpr uint64_t kRequiredStackAlignment = 16;
   if (sp % kRequiredStackAlignment != 0) {
     return absl::InternalError("stack pointer misaligned on exit");

@@ -193,19 +193,19 @@ std::array<const void *, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
 }  // namespace
 
 template <>
-uint64_t UnicornTracer<X86_64>::GetCurrentInstructionPointer() {
+uint64_t UnicornTracer<X86_64>::GetInstructionPointer() {
   uint64_t pc = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_X86_REG_RIP, &pc));
   return pc;
 }
 
 template <>
-void UnicornTracer<X86_64>::SetCurrentInstructionPointer(uint64_t address) {
+void UnicornTracer<X86_64>::SetInstructionPointer(uint64_t address) {
   UNICORN_CHECK(uc_reg_write(uc_, UC_X86_REG_RIP, &address));
 }
 
 template <>
-uint64_t UnicornTracer<X86_64>::GetCurrentStackPointer() {
+uint64_t UnicornTracer<X86_64>::GetStackPointer() {
   uint64_t sp = 0;
   UNICORN_CHECK(uc_reg_read(uc_, UC_X86_REG_RSP, &sp));
   return sp;

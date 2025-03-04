@@ -21,11 +21,27 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "./instruction/disassembler.h"
+#include "./tracing/unicorn_tracer.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/page_util.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
+
+template <typename Arch>
+inline uint64_t MaxInstructionLength();
+
+template <>
+inline uint64_t MaxInstructionLength<X86_64>() {
+  return 15;
+}
+
+template <>
+inline uint64_t MaxInstructionLength<AArch64>() {
+  return 4;
+}
 
 // Information for a single instruction in an execution trace.
 template <typename Arch>
@@ -146,55 +162,59 @@ class ExecutionTrace {
 
 // Run the tracer and record each instruction.
 // `execution_trace` is an output parameter rather than a return value so that
-// it can be reused multiple times without being reallocated.
+// it can be reused multiple times without being reallocated. When
+// `memory_checksum` output parameter is provided with a non-null pointer, it
+// will calculate the memory checksum of the final state, and store it there.
 template <typename Tracer, typename Disassembler, typename Arch>
 absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
-                          ExecutionTrace<Arch>& execution_trace) {
+                          ExecutionTrace<Arch>& execution_trace,
+                          uint32_t* memory_checksum = nullptr) {
   // In theory the entry point should also be the page start, but be cautious
   // and force page alignment in case we add a preamble later.
-  const uint64_t code_page_start =
-      RoundDownToPageAlignment(tracer.GetCurrentInstructionPointer());
   bool insn_out_of_bounds = false;
   execution_trace.Reset();
-  tracer.SetInstructionCallback([&](Tracer* tracer, uint64_t address,
-                                    size_t max_size) {
+  tracer.SetBeforeInstructionCallback([&](Tracer& tracer) {
     // The instruction hasn't executed yet, capture the previous state.
-    tracer->GetRegisters(execution_trace.LastContext());
+    tracer.GetRegisters(execution_trace.LastContext());
 
     InstructionInfo<Arch>& info = execution_trace.NextInfo();
-
-    // Fetch the instruction.
-    // Be careful and only fetch memory inside the expected executable page.
-    // This could be a rogue jump that will end in a fault. If execution does
-    // fault by going out of bounds, it doesn't matter that we didn't read
-    // exactly the same memory as the tracer tried to.
-    if (address >= code_page_start && address - code_page_start < kPageSize) {
-      max_size = std::min(max_size, kPageSize - (address - code_page_start));
-      tracer->ReadMemory(address, info.bytes, max_size);
-    } else {
-      tracer->Stop();
+    DisassembleCurrentInstruction(tracer, disasm, info.bytes);
+    const uint64_t address = tracer.GetInstructionPointer();
+    if (!tracer.InstructionIsInRange(address, disasm.InstructionSize())) {
+      tracer.Stop();
       insn_out_of_bounds = true;
     }
 
-    // Disassemble the instruction
-    disasm.Disassemble(address, info.bytes, max_size);
-
-    info.address = address;
+    info.address = tracer.GetInstructionPointer();
     info.instruction_id = disasm.InstructionID();
     info.size = disasm.InstructionSize();
     info.can_branch = disasm.CanBranch();
     info.can_load = disasm.CanLoad();
     info.can_store = disasm.CanStore();
   });
-  absl::Status result = tracer.Run(execution_trace.MaxInstructions());
   // Capture the final state.
-  tracer.GetRegisters(execution_trace.LastContext());
+  tracer.SetAfterExecutionCallback([&](Tracer& tracer) -> void {
+    tracer.GetRegisters(execution_trace.LastContext());
+    if (memory_checksum != nullptr) {
+      *memory_checksum = tracer.PartialChecksumOfMutableMemory();
+    }
+  });
+  absl::Status result = tracer.Run(execution_trace.MaxInstructions());
   if (result.ok() && insn_out_of_bounds) {
     // It is unlikely this will happen, but it may if a native tracer jumps to
     // an executable page in the runner.
     result = absl::OutOfRangeError("instruction fetch was out of bounds");
   }
   return result;
+}
+
+template <typename Arch>
+void DisassembleCurrentInstruction(UnicornTracer<Arch>& tracer,
+                                   Disassembler& disasm, uint8_t* buf) {
+  const uint64_t addr = tracer.GetInstructionPointer();
+  const uint64_t max_size = MaxInstructionLength<Arch>();
+  tracer.ReadMemory(addr, buf, max_size);
+  disasm.Disassemble(addr, buf, max_size);
 }
 
 }  // namespace silifuzz

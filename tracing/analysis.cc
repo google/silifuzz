@@ -20,6 +20,7 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "./instruction/default_disassembler.h"
 #include "./tracing/execution_trace.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/checks.h"
@@ -39,21 +40,24 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
                                   UContext<Arch>& ucontext,
                                   uint32_t& memory_checksum) {
   UnicornTracer<Arch> tracer;
+  DefaultDisassembler<Arch> disasm;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
 
-  instructions_executed = 0;
-  tracer.SetInstructionCallback(
-      [&](UnicornTracer<Arch>* tracer, uint64_t address, size_t max_size) {
-        if (instructions_executed == skip) {
-          // Relies on the instruction size for Unicorn being precise.
-          // For ptrace we'll need to disassemble the instruction.
-          tracer->SetCurrentInstructionPointer(address + max_size);
-        }
-        instructions_executed++;
-      });
+  tracer.SetBeforeInstructionCallback([&](UnicornTracer<Arch>& tracer) {
+    if (instructions_executed == skip) {
+      uint8_t buf[16];  // enough for 15 bytes
+      DisassembleCurrentInstruction(tracer, disasm, buf);
+      const uint64_t address = tracer.GetInstructionPointer();
+      tracer.SetInstructionPointer(address + disasm.InstructionSize());
+    }
+    instructions_executed++;
+  });
+  tracer.SetAfterExecutionCallback([&](UnicornTracer<Arch>& tracer) -> void {
+    tracer.GetRegisters(ucontext);
+    memory_checksum = tracer.PartialChecksumOfMutableMemory();
+  });
+
   RETURN_IF_NOT_OK(tracer.Run(max_instructions));
-  tracer.GetRegisters(ucontext);
-  memory_checksum = tracer.PartialChecksumOfMutableMemory();
   return absl::OkStatus();
 }
 
@@ -81,7 +85,7 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     // If the status is not OK, this indicates the trace did not behave like a
     // valid Silifuzz test - it segfaulted, got stuck in an infinite loop, or
     // similar. Because the unmodified trace as OK, this indicates the injected
-    // fault changed the behavior in a detectible way.
+    // fault changed the behavior in a detectable way.
     // TODO(ncbray): compare memory.
     bool fault_detected = !status.ok() ||
                           ucontext.gregs != expected_ucontext.gregs ||

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/types.h>
+
 #include <cstddef>
 #include <cstdint>
 
@@ -82,16 +84,13 @@ absl::Status RunAArch64Instructions(
 
   feature_gen.BeforeInput(features);
 
-  UContext<AArch64> registers;
-  tracer.GetRegisters(registers);
-  feature_gen.BeforeExecution(registers);
-
   // Unicorn generates callbacks before the instruction executes and not after.
   // We need to do a little extra work to synthesize a callback after every
   // instruction.
   uint32_t instruction_id = kInvalidInstructionId;
   bool instruction_pending = false;
 
+  UContext<AArch64> registers;
   auto after_instruction = [&]() {
     if (instruction_pending) {
       tracer.GetRegisters(registers);
@@ -100,56 +99,58 @@ absl::Status RunAArch64Instructions(
     }
   };
 
-  tracer.SetInstructionCallback(
-      [&](UnicornTracer<AArch64> *tracer, uint64_t address, size_t max_size) {
-        after_instruction();
+  tracer.SetBeforeExecutionCallback([&](UnicornTracer<AArch64> &tracer) {
+    tracer.GetRegisters(registers);
+    feature_gen.BeforeExecution(registers);
+  });
+  tracer.SetBeforeInstructionCallback([&](UnicornTracer<AArch64> &tracer) {
+    after_instruction();
 
-        // Read the next instruction.
-        uint8_t insn[4];
-        CHECK_LE(max_size, sizeof(insn));
-        tracer->ReadMemory(address, insn, max_size);
+    // Read the next instruction.
+    uint8_t insn[4];
+    uint64_t address = tracer.GetInstructionPointer();
+    tracer.ReadMemory(address, insn, sizeof(insn));
 
-        // Decompile the next instruction.
-        if (disasm.Disassemble(address, insn, max_size)) {
-          instruction_id = disasm.InstructionID();
-          CHECK_LT(instruction_id, disasm.NumInstructionIDs());
-        } else {
-          instruction_id = kInvalidInstructionId;
-        }
+    // Decompile the next instruction.
+    if (disasm.Disassemble(address, insn, sizeof(insn))) {
+      instruction_id = disasm.InstructionID();
+      CHECK_LT(instruction_id, disasm.NumInstructionIDs());
+    } else {
+      instruction_id = kInvalidInstructionId;
+    }
 
-        instruction_pending = true;
-      });
+    instruction_pending = true;
+  });
+  tracer.SetAfterExecutionCallback([&](UnicornTracer<AArch64> &tracer) {
+    // Flush the last instruction.
+    after_instruction();
+
+    feature_gen.AfterExecution();
+
+    // Emit features for memory bits that are different from the initial state.
+    // The initial state is zero, so we can skip the diff.
+    // (The initial stack state is not entirely zero, but close enough.)
+    constexpr size_t kMemBytesPerChunk = 4096;
+    uint8_t mem[kMemBytesPerChunk];
+
+    // Stack
+    tracer.ReadMemory(fuzzing_config.stack_range.start_address, mem,
+                      kMemBytesPerChunk);
+    feature_gen.FinalMemory(mem);
+
+    // Data 1
+    tracer.ReadMemory(fuzzing_config.data1_range.start_address, mem,
+                      kMemBytesPerChunk);
+    feature_gen.FinalMemory(mem);
+
+    // Data 2
+    tracer.ReadMemory(fuzzing_config.data2_range.start_address, mem,
+                      kMemBytesPerChunk);
+    feature_gen.FinalMemory(mem);
+  });
 
   // Stop at an arbitrary instruction count to avoid infinite loops.
-  absl::Status status = tracer.Run(max_inst_executed);
-
-  // Flush the last instruction.
-  after_instruction();
-
-  feature_gen.AfterExecution();
-
-  // Emit features for memory bits that are different from the initial state.
-  // The initial state is zero, so we can skip the diff.
-  // (The inital stack state is not entirely zero, but close enough.)
-  constexpr size_t kMemBytesPerChunk = 4096;
-  uint8_t mem[kMemBytesPerChunk];
-
-  // Stack
-  tracer.ReadMemory(fuzzing_config.stack_range.start_address, mem,
-                    kMemBytesPerChunk);
-  feature_gen.FinalMemory(mem);
-
-  // Data 1
-  tracer.ReadMemory(fuzzing_config.data1_range.start_address, mem,
-                    kMemBytesPerChunk);
-  feature_gen.FinalMemory(mem);
-
-  // Data 2
-  tracer.ReadMemory(fuzzing_config.data2_range.start_address, mem,
-                    kMemBytesPerChunk);
-  feature_gen.FinalMemory(mem);
-
-  return status;
+  return tracer.Run(max_inst_executed);
 }
 
 }  // namespace

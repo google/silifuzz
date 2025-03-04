@@ -81,7 +81,7 @@ TYPED_TEST(UnicornTracerTest, StoppedEarly) {
   ASSERT_THAT(tracer.Run(2), Not(IsOk()));
 }
 
-TYPED_TEST(UnicornTracerTest, InstructionCallback) {
+TYPED_TEST(UnicornTracerTest, Callbacks) {
   std::string instructions =
       GetTestSnippet<TypeParam>(TestSnapshot::kSetThreeRegisters);
   UnicornTracer<TypeParam> tracer;
@@ -89,17 +89,17 @@ TYPED_TEST(UnicornTracerTest, InstructionCallback) {
 
   uint64_t instruction_count = 0;
   uint64_t instruction_bytes = 0;
-  tracer.SetInstructionCallback(
-      [&](UnicornTracer<TypeParam>* tracer, uint64_t address, uint32_t size) {
-        instruction_count++;
-        instruction_bytes += size;
-      });
-
+  tracer.SetBeforeInstructionCallback([&](UnicornTracer<TypeParam>& tracer) {
+    const uint32_t size = 4;
+    instruction_count++;
+    instruction_bytes += size;
+  });
+  UContext<TypeParam> ucontext;
+  tracer.SetAfterExecutionCallback(
+      [&](UnicornTracer<TypeParam>& tracer) { tracer.GetRegisters(ucontext); });
   ASSERT_THAT(tracer.Run(3), IsOk());
   EXPECT_EQ(instruction_count, 3);
   EXPECT_EQ(instruction_bytes, instructions.size());
-  UContext<TypeParam> ucontext;
-  tracer.GetRegisters(ucontext);
   CheckRegisters(ucontext);
 }
 
@@ -112,22 +112,24 @@ TYPED_TEST(UnicornTracerTest, SkipInstruction) {
     ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
     int instruction = 0;
-    tracer.SetInstructionCallback(
-        [&](UnicornTracer<TypeParam>* tracer, uint64_t address, uint32_t size) {
-          if (instruction == skip) {
-            // Relies on Unicorn's instruction size being exact.
-            tracer->SetCurrentInstructionPointer(address + size);
-          }
-          instruction++;
-        });
+    tracer.SetBeforeInstructionCallback([&](UnicornTracer<TypeParam>& tracer) {
+      const uint64_t address = tracer.GetInstructionPointer();
+      const uint32_t size = 4;
+      if (instruction == skip) {
+        // Relies on Unicorn's instruction size being exact.
+        tracer.SetInstructionPointer(address + size);
+      }
+      instruction++;
+    });
+    UContext<TypeParam> ucontext;
+    tracer.SetAfterExecutionCallback([&](UnicornTracer<TypeParam>& tracer) {
+      tracer.GetRegisters(ucontext);
+    });
 
     ASSERT_THAT(tracer.Run(3), IsOk());
     // Check that advancing the PC does not cause the next instruction callback
     // to be lost.
     CHECK_EQ(instruction, 3);
-
-    UContext<TypeParam> ucontext;
-    tracer.GetRegisters(ucontext);
     CheckRegisters(ucontext, skip);
   }
 }
@@ -205,8 +207,11 @@ TYPED_TEST(UnicornTracerTest, SetGetRegisters) {
   RandomizeRegisters(src);
   memset(&dst, 0, sizeof(dst));
 
-  tracer.SetRegisters(src);
-  tracer.GetRegisters(dst);
+  tracer.SetBeforeExecutionCallback([&](UnicornTracer<TypeParam>& tracer) {
+    tracer.SetRegisters(src);
+    tracer.GetRegisters(dst);
+  });
+  tracer.Run(0).IgnoreError();
 
   // Done after SetRegisters so that we will notice if a field we think is
   // unimplemented actually works.

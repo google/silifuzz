@@ -19,7 +19,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <string>
 
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
@@ -33,7 +32,7 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
-#include "./util/ucontext/ucontext.h"
+#include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
 
 namespace silifuzz {
@@ -63,7 +62,7 @@ struct UnicornTracerConfig<AArch64> {
 template <typename Arch>
 class UnicornTracer {
  public:
-  UnicornTracer() : uc_(nullptr), start_of_code_(0), end_of_code_(0) {}
+  UnicornTracer() : uc_(nullptr) {}
   ~UnicornTracer() { Destroy(); }
 
   void Destroy() {
@@ -96,8 +95,8 @@ class UnicornTracer {
 
     SetInitialRegisters(ucontext);
 
-    start_of_code_ = GetCurrentInstructionPointer();
-    end_of_code_ = GetExitPoint(snapshot);
+    code_start_address_ = GetInstructionPointer();
+    code_end_address_ = GetExitPoint(snapshot);
 
     // Hook instruction execution so that we can always count the number of
     // instructions executed. This is what Unicorn does internally when you try
@@ -109,16 +108,27 @@ class UnicornTracer {
     return absl::OkStatus();
   }
 
-  using InstructionCallback = void(UnicornTracer<Arch>* tracer,
-                                   uint64_t address, uint32_t size);
+  using UserCallback = void(UnicornTracer<Arch>& tracer);
 
-  // Ask the tracer to invoke `callback` before each instruction is executed.
-  // F should be compatible with InstructionCallback.
-  // This method should not be called more than once.
+  // Callback setters. F should be compatible with UserCallback.
+  // The callback setters should not be called more than once.
+  // Invoked before the code snippet is executed.
   template <typename F>
-  void SetInstructionCallback(F&& callback) {
-    CHECK(!instruction_callback_);
-    instruction_callback_ = callback;
+  void SetBeforeExecutionCallback(F&& callback) {
+    CHECK(!before_execution_callback_);
+    before_execution_callback_ = callback;
+  }
+  // Invoked before each instruction is executed.
+  template <typename F>
+  void SetBeforeInstructionCallback(F&& callback) {
+    CHECK(!before_instruction_callback_);
+    before_instruction_callback_ = callback;
+  }
+  // Invoked after the code snippet is executed.
+  template <typename F>
+  void SetAfterExecutionCallback(F&& callback) {
+    CHECK(!after_execution_callback_);
+    after_execution_callback_ = callback;
   }
 
   // Run the code snippet. Execution will stop after `max_insn_executed`
@@ -127,6 +137,8 @@ class UnicornTracer {
     num_instructions_ = 0;
     max_instructions_ = max_insn_executed;
     should_be_stopped_ = false;
+
+    BeforeExecution();
 
     // Unicorn can hang due to bugs in QEMU.
     // Halt execution if it exceeds 1 seconds of wall clock time.
@@ -138,8 +150,9 @@ class UnicornTracer {
     // Empirically, 1 second is about 20x-30x longer than execution takes in the
     // worst case on an unloaded machine.
     uint64_t timeout_microseconds = 1000000;
-    uc_err err = uc_emu_start(uc_, start_of_code_, end_of_code_,
+    uc_err err = uc_emu_start(uc_, code_start_address_, code_end_address_,
                               timeout_microseconds, 0);
+    AfterExecution();
 
     // Check if the emulator stopped cleanly.
     if (err) {
@@ -163,8 +176,8 @@ class UnicornTracer {
     // Check if the emulator stopped at the right address.
     // Generally, this should not be an issue if we did not hit the instruction
     // count limit or the time limit.
-    uint64_t pc = GetCurrentInstructionPointer();
-    if (pc != end_of_code_) {
+    uint64_t pc = GetInstructionPointer();
+    if (pc != code_end_address_) {
       return absl::InternalError("execution did not reach end of code snippet");
     }
 
@@ -220,10 +233,10 @@ class UnicornTracer {
     return static_cast<uint32_t>(checksum);
   }
 
-  uint64_t GetCurrentInstructionPointer();
-  void SetCurrentInstructionPointer(uint64_t address);
+  uint64_t GetInstructionPointer();
+  void SetInstructionPointer(uint64_t address);
 
-  uint64_t GetCurrentStackPointer();
+  uint64_t GetStackPointer();
 
   // Read the current register state. Not all platforms can read all registers,
   // so some registers may be set to zero instead of their actual values.
@@ -241,8 +254,11 @@ class UnicornTracer {
   // past the end of code. This can happens if the fuzzing input ends with a
   // partial instruction that depends on the bytes that come after the test.
   bool InstructionIsInRange(uint64_t address, size_t size) const {
-    return address >= start_of_code_ && address + size <= end_of_code_;
+    return address >= code_start_address_ &&
+           address + size <= code_end_address_;
   }
+
+  uint64_t GetCodeStartAddress() const { return code_start_address_; }
 
  private:
   // Initialize Unicorn and put it in a state that it can execute code snippets
@@ -283,20 +299,10 @@ class UnicornTracer {
       // We don't invoke the callback in this case so that clients can behave
       // as if the limit works.
       Stop();
-    } else if (!should_be_stopped_ && instruction_callback_) {
+    } else if (!should_be_stopped_) {
       // If Stop() has been called, we suppress further callbacks. Unicorn may
       // not stop immediately.
-
-      // On x86, Unicorn will sometimes invoke this function with an invalid
-      // max_size when it has absolutely no idea what the instruction does.
-      // (AVX512 for example.) It appears to be some sort of error code gone
-      // wrong? All instructions should be 15 bytes or less.
-      size = std::min(size, 15U);
-
-      // Unicorn knows the exact size of the instruction, but other tracers
-      // may not so we treat "size" as a maximum size for the instruction,
-      // which happens to be exact for this particular tracer.
-      instruction_callback_(this, address, size);
+      BeforeInstruction();
     }
     num_instructions_++;
   }
@@ -307,10 +313,27 @@ class UnicornTracer {
     tracer->HookCode(address, size);
   }
 
+  // Callback invocation
+  void BeforeExecution() {
+    if (before_execution_callback_) {
+      before_execution_callback_(*this);
+    }
+  }
+  void BeforeInstruction() {
+    if (before_instruction_callback_) {
+      before_instruction_callback_(*this);
+    }
+  }
+  void AfterExecution() {
+    if (after_execution_callback_) {
+      after_execution_callback_(*this);
+    }
+  }
+
   uc_engine* uc_;
 
-  uint64_t start_of_code_;
-  uint64_t end_of_code_;
+  uint64_t code_start_address_;
+  uint64_t code_end_address_;
 
   uc_hook hook_code_;
 
@@ -318,7 +341,9 @@ class UnicornTracer {
   size_t max_instructions_;
   bool should_be_stopped_;
 
-  std::function<InstructionCallback> instruction_callback_;
+  std::function<UserCallback> before_execution_callback_;
+  std::function<UserCallback> before_instruction_callback_;
+  std::function<UserCallback> after_execution_callback_;
 };
 
 }  // namespace silifuzz

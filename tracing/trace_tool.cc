@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <cstdlib>
 #include <optional>
@@ -275,8 +277,8 @@ absl::Status AnalyzeSnippet(const std::string& instructions,
   ExecutionTrace<Arch> execution_trace(max_instructions);
   UnicornTracer<Arch> tracer;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
-  RETURN_IF_NOT_OK(CaptureTrace(tracer, disasm, execution_trace));
-  uint32_t checksum = tracer.PartialChecksumOfMutableMemory();
+  uint32_t checksum;
+  RETURN_IF_NOT_OK(CaptureTrace(tracer, disasm, execution_trace, &checksum));
 
   ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,
                              AnalyzeSnippetWithFaultInjection<Arch>(
