@@ -22,10 +22,9 @@
 
 #include "absl/status/status.h"
 #include "./instruction/disassembler.h"
-#include "./tracing/unicorn_tracer.h"
+#include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/page_util.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -165,27 +164,27 @@ class ExecutionTrace {
 // it can be reused multiple times without being reallocated. When
 // `memory_checksum` output parameter is provided with a non-null pointer, it
 // will calculate the memory checksum of the final state, and store it there.
-template <typename Tracer, typename Disassembler, typename Arch>
-absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
+template <typename Disassembler, typename Arch>
+absl::Status CaptureTrace(Tracer<Arch>& tracer, Disassembler& disasm,
                           ExecutionTrace<Arch>& execution_trace,
                           uint32_t* memory_checksum = nullptr) {
   // In theory the entry point should also be the page start, but be cautious
   // and force page alignment in case we add a preamble later.
   bool insn_out_of_bounds = false;
   execution_trace.Reset();
-  tracer.SetBeforeInstructionCallback([&](Tracer& tracer) {
+  tracer.SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
     // The instruction hasn't executed yet, capture the previous state.
-    tracer.GetRegisters(execution_trace.LastContext());
+    control.GetRegisters(execution_trace.LastContext());
 
     InstructionInfo<Arch>& info = execution_trace.NextInfo();
-    DisassembleCurrentInstruction(tracer, disasm, info.bytes);
-    const uint64_t address = tracer.GetInstructionPointer();
-    if (!tracer.InstructionIsInRange(address, disasm.InstructionSize())) {
-      tracer.Stop();
+    DisassembleCurrentInstruction(control, disasm, info.bytes);
+    const uint64_t address = control.GetInstructionPointer();
+    if (!control.InstructionIsInRange(address, disasm.InstructionSize())) {
+      control.Stop();
       insn_out_of_bounds = true;
     }
 
-    info.address = tracer.GetInstructionPointer();
+    info.address = address;
     info.instruction_id = disasm.InstructionID();
     info.size = disasm.InstructionSize();
     info.can_branch = disasm.CanBranch();
@@ -193,10 +192,10 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
     info.can_store = disasm.CanStore();
   });
   // Capture the final state.
-  tracer.SetAfterExecutionCallback([&](Tracer& tracer) -> void {
-    tracer.GetRegisters(execution_trace.LastContext());
+  tracer.SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
+    control.GetRegisters(execution_trace.LastContext());
     if (memory_checksum != nullptr) {
-      *memory_checksum = tracer.PartialChecksumOfMutableMemory();
+      *memory_checksum = control.PartialChecksumOfMutableMemory();
     }
   });
   absl::Status result = tracer.Run(execution_trace.MaxInstructions());
@@ -209,7 +208,7 @@ absl::Status CaptureTrace(Tracer& tracer, Disassembler& disasm,
 }
 
 template <typename Arch>
-void DisassembleCurrentInstruction(UnicornTracer<Arch>& tracer,
+void DisassembleCurrentInstruction(TracerControl<Arch>& tracer,
                                    Disassembler& disasm, uint8_t* buf) {
   const uint64_t addr = tracer.GetInstructionPointer();
   const uint64_t max_size = MaxInstructionLength<Arch>();

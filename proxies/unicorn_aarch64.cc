@@ -23,6 +23,7 @@
 #include "./instruction/default_disassembler.h"
 #include "./proxies/arch_feature_generator.h"
 #include "./proxies/user_features.h"
+#include "./tracing/tracer.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -77,7 +78,7 @@ absl::Status RunAArch64Instructions(
   DefaultDisassembler<AArch64> &disasm = batch->disasm;
   ArchFeatureGenerator<AArch64> &feature_gen = batch->feature_gen;
 
-  UnicornTracerConfig<AArch64> tracer_config{.force_a72 = true};
+  TracerConfig<AArch64> tracer_config{.unicorn_force_a72 = true};
   UnicornTracer<AArch64> tracer;
   RETURN_IF_NOT_OK(
       tracer.InitSnippet(instructions, tracer_config, fuzzing_config));
@@ -91,25 +92,26 @@ absl::Status RunAArch64Instructions(
   bool instruction_pending = false;
 
   UContext<AArch64> registers;
-  auto after_instruction = [&]() {
+  auto after_instruction = [&](TracerControl<AArch64> &control) {
     if (instruction_pending) {
-      tracer.GetRegisters(registers);
+      control.GetRegisters(registers);
       feature_gen.AfterInstruction(instruction_id, registers);
       instruction_pending = false;
     }
   };
 
-  tracer.SetBeforeExecutionCallback([&](UnicornTracer<AArch64> &tracer) {
-    tracer.GetRegisters(registers);
+  tracer.SetBeforeExecutionCallback([&](TracerControl<AArch64> &control) {
+    control.GetRegisters(registers);
     feature_gen.BeforeExecution(registers);
   });
-  tracer.SetBeforeInstructionCallback([&](UnicornTracer<AArch64> &tracer) {
-    after_instruction();
+
+  tracer.SetBeforeInstructionCallback([&](TracerControl<AArch64> &control) {
+    after_instruction(control);
 
     // Read the next instruction.
     uint8_t insn[4];
-    uint64_t address = tracer.GetInstructionPointer();
-    tracer.ReadMemory(address, insn, sizeof(insn));
+    uint64_t address = control.GetInstructionPointer();
+    control.ReadMemory(address, insn, sizeof(insn));
 
     // Decompile the next instruction.
     if (disasm.Disassemble(address, insn, sizeof(insn))) {
@@ -121,9 +123,10 @@ absl::Status RunAArch64Instructions(
 
     instruction_pending = true;
   });
-  tracer.SetAfterExecutionCallback([&](UnicornTracer<AArch64> &tracer) {
+
+  tracer.SetAfterExecutionCallback([&](TracerControl<AArch64> &control) {
     // Flush the last instruction.
-    after_instruction();
+    after_instruction(control);
 
     feature_gen.AfterExecution();
 
@@ -134,18 +137,18 @@ absl::Status RunAArch64Instructions(
     uint8_t mem[kMemBytesPerChunk];
 
     // Stack
-    tracer.ReadMemory(fuzzing_config.stack_range.start_address, mem,
-                      kMemBytesPerChunk);
+    control.ReadMemory(fuzzing_config.stack_range.start_address, mem,
+                       kMemBytesPerChunk);
     feature_gen.FinalMemory(mem);
 
     // Data 1
-    tracer.ReadMemory(fuzzing_config.data1_range.start_address, mem,
-                      kMemBytesPerChunk);
+    control.ReadMemory(fuzzing_config.data1_range.start_address, mem,
+                       kMemBytesPerChunk);
     feature_gen.FinalMemory(mem);
 
     // Data 2
-    tracer.ReadMemory(fuzzing_config.data2_range.start_address, mem,
-                      kMemBytesPerChunk);
+    control.ReadMemory(fuzzing_config.data2_range.start_address, mem,
+                       kMemBytesPerChunk);
     feature_gen.FinalMemory(mem);
   });
 

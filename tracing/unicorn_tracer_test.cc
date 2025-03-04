@@ -23,6 +23,7 @@
 #include "absl/log/check.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
+#include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
@@ -89,14 +90,14 @@ TYPED_TEST(UnicornTracerTest, Callbacks) {
 
   uint64_t instruction_count = 0;
   uint64_t instruction_bytes = 0;
-  tracer.SetBeforeInstructionCallback([&](UnicornTracer<TypeParam>& tracer) {
+  tracer.SetBeforeInstructionCallback([&](TracerControl<TypeParam>& tracer) {
     const uint32_t size = 4;
     instruction_count++;
     instruction_bytes += size;
   });
   UContext<TypeParam> ucontext;
   tracer.SetAfterExecutionCallback(
-      [&](UnicornTracer<TypeParam>& tracer) { tracer.GetRegisters(ucontext); });
+      [&](TracerControl<TypeParam>& tracer) { tracer.GetRegisters(ucontext); });
   ASSERT_THAT(tracer.Run(3), IsOk());
   EXPECT_EQ(instruction_count, 3);
   EXPECT_EQ(instruction_bytes, instructions.size());
@@ -112,7 +113,7 @@ TYPED_TEST(UnicornTracerTest, SkipInstruction) {
     ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
 
     int instruction = 0;
-    tracer.SetBeforeInstructionCallback([&](UnicornTracer<TypeParam>& tracer) {
+    tracer.SetBeforeInstructionCallback([&](TracerControl<TypeParam>& tracer) {
       const uint64_t address = tracer.GetInstructionPointer();
       const uint32_t size = 4;
       if (instruction == skip) {
@@ -122,7 +123,7 @@ TYPED_TEST(UnicornTracerTest, SkipInstruction) {
       instruction++;
     });
     UContext<TypeParam> ucontext;
-    tracer.SetAfterExecutionCallback([&](UnicornTracer<TypeParam>& tracer) {
+    tracer.SetAfterExecutionCallback([&](TracerControl<TypeParam>& tracer) {
       tracer.GetRegisters(ucontext);
     });
 
@@ -207,7 +208,7 @@ TYPED_TEST(UnicornTracerTest, SetGetRegisters) {
   RandomizeRegisters(src);
   memset(&dst, 0, sizeof(dst));
 
-  tracer.SetBeforeExecutionCallback([&](UnicornTracer<TypeParam>& tracer) {
+  tracer.SetBeforeExecutionCallback([&](TracerControl<TypeParam>& tracer) {
     tracer.SetRegisters(src);
     tracer.GetRegisters(dst);
   });

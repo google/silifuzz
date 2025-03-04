@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
@@ -28,29 +27,14 @@
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_util.h"
+#include "./tracing/tracer.h"
 #include "./tracing/unicorn_util.h"
-#include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
 
 namespace silifuzz {
-
-template <typename Arch>
-struct UnicornTracerConfig;
-
-template <>
-struct UnicornTracerConfig<X86_64> {};
-
-template <>
-struct UnicornTracerConfig<AArch64> {
-  // Force Unicorn to emulate a A72 processor.
-  // This is a bit old, but if used as a fuzz target the resulting tests should
-  // be compatible with most hardware you would want to run on.
-  // By default Unicorn is roughly a A77+, it support sha512, sm3, and sm4.
-  bool force_a72 = false;
-};
 
 // An architecture-generic class for executing code snippets in Unicorn.
 // This class is not thread safe.  Each thread should have its own instance.
@@ -60,9 +44,9 @@ struct UnicornTracerConfig<AArch64> {
 // has consequences for the linker, particularly because we're trying to let the
 // user link in only the arch support they need to simplify coverage reports.
 template <typename Arch>
-class UnicornTracer {
+class UnicornTracer final : public Tracer<Arch> {
  public:
-  UnicornTracer() : uc_(nullptr) {}
+  UnicornTracer() : Tracer<Arch>(), uc_(nullptr) {}
   ~UnicornTracer() { Destroy(); }
 
   void Destroy() {
@@ -73,11 +57,11 @@ class UnicornTracer {
   }
 
   // Prepare Unicorn to run a code snippet.
-  absl::Status InitSnippet(absl::string_view instructions,
-                           const UnicornTracerConfig<Arch>& tracer_config =
-                               UnicornTracerConfig<Arch>{},
-                           const FuzzingConfig<Arch>& fuzzing_config =
-                               DEFAULT_FUZZING_CONFIG<Arch>) {
+  absl::Status InitSnippet(
+      absl::string_view instructions,
+      const TracerConfig<Arch>& tracer_config = TracerConfig<Arch>{},
+      const FuzzingConfig<Arch>& fuzzing_config =
+          DEFAULT_FUZZING_CONFIG<Arch>) override {
     ASSIGN_OR_RETURN_IF_NOT_OK(
         Snapshot snapshot,
         InstructionsToSnapshot<Arch>(instructions, fuzzing_config));
@@ -108,32 +92,9 @@ class UnicornTracer {
     return absl::OkStatus();
   }
 
-  using UserCallback = void(UnicornTracer<Arch>& tracer);
-
-  // Callback setters. F should be compatible with UserCallback.
-  // The callback setters should not be called more than once.
-  // Invoked before the code snippet is executed.
-  template <typename F>
-  void SetBeforeExecutionCallback(F&& callback) {
-    CHECK(!before_execution_callback_);
-    before_execution_callback_ = callback;
-  }
-  // Invoked before each instruction is executed.
-  template <typename F>
-  void SetBeforeInstructionCallback(F&& callback) {
-    CHECK(!before_instruction_callback_);
-    before_instruction_callback_ = callback;
-  }
-  // Invoked after the code snippet is executed.
-  template <typename F>
-  void SetAfterExecutionCallback(F&& callback) {
-    CHECK(!after_execution_callback_);
-    after_execution_callback_ = callback;
-  }
-
   // Run the code snippet. Execution will stop after `max_insn_executed`
   // instructions to help avoid infinite loops.
-  absl::Status Run(size_t max_insn_executed) {
+  absl::Status Run(size_t max_insn_executed) override {
     num_instructions_ = 0;
     max_instructions_ = max_insn_executed;
     should_be_stopped_ = false;
@@ -187,7 +148,7 @@ class UnicornTracer {
   }
 
   // Should only be invoked inside callbacks from Run()
-  void Stop() {
+  void Stop() override {
     uc_emu_stop(uc_);
     should_be_stopped_ = true;
   }
@@ -200,7 +161,7 @@ class UnicornTracer {
   // The exact definition of this checksum may change over time, comparing a
   // value produced by an old version of the software against a value produced
   // by a new version of the software is not meaningful.
-  uint32_t PartialChecksumOfMutableMemory() {
+  uint32_t PartialChecksumOfMutableMemory() override {
     uint32_t count;
     uc_mem_region* regions;
     UNICORN_CHECK(uc_mem_regions(uc_, &regions, &count));
@@ -233,37 +194,39 @@ class UnicornTracer {
     return static_cast<uint32_t>(checksum);
   }
 
-  uint64_t GetInstructionPointer();
-  void SetInstructionPointer(uint64_t address);
+  uint64_t GetInstructionPointer() override;
+  void SetInstructionPointer(uint64_t address) override;
 
-  uint64_t GetStackPointer();
+  uint64_t GetStackPointer() override;
 
   // Read the current register state. Not all platforms can read all registers,
   // so some registers may be set to zero instead of their actual values.
-  void GetRegisters(UContext<Arch>& ucontext);
+  void GetRegisters(UContext<Arch>& ucontext) override;
 
   // Write the current register state. Not all platforms can write all
   // registers, so some registers may not be updated.
-  void SetRegisters(const UContext<Arch>& ucontext);
+  void SetRegisters(const UContext<Arch>& ucontext) override;
 
-  void ReadMemory(uint64_t address, void* buffer, size_t size) {
+  void ReadMemory(uint64_t address, void* buffer, size_t size) override {
     UNICORN_CHECK(uc_mem_read(uc_, address, buffer, size));
   }
 
-  // HACK so X86_64 can check it isn't executing an instruction that dangles
-  // past the end of code. This can happens if the fuzzing input ends with a
-  // partial instruction that depends on the bytes that come after the test.
-  bool InstructionIsInRange(uint64_t address, size_t size) const {
-    return address >= code_start_address_ &&
-           address + size <= code_end_address_;
-  }
-
-  uint64_t GetCodeStartAddress() const { return code_start_address_; }
-
  private:
-  // Initialize Unicorn and put it in a state that it can execute code snippets
-  // and Snapshots. This may involve setting system registers, etc.
-  void InitUnicorn(const UnicornTracerConfig<Arch>& tracer_config);
+  // With a template-parameter-dependent base class, we need to use qualified
+  // name lookup for protected members. See
+  // https://stackoverflow.com/questions/4643074/why-do-i-have-to-access-template-base-class-members-through-the-this-pointer
+  using Tracer<Arch>::code_start_address_;
+  using Tracer<Arch>::code_end_address_;
+  using Tracer<Arch>::num_instructions_;
+  using Tracer<Arch>::max_instructions_;
+  using Tracer<Arch>::should_be_stopped_;
+  using Tracer<Arch>::BeforeExecution;
+  using Tracer<Arch>::BeforeInstruction;
+  using Tracer<Arch>::AfterExecution;
+
+  // Initialize Unicorn and put it in a state that it can execute code
+  // snippets and Snapshots. This may involve setting system registers, etc.
+  void InitUnicorn(const TracerConfig<Arch>& tracer_config);
 
   // Create a memory mapping or die. Helps avoid error handling in the cases we
   // know should succeed unless there is a bug.
@@ -313,37 +276,9 @@ class UnicornTracer {
     tracer->HookCode(address, size);
   }
 
-  // Callback invocation
-  void BeforeExecution() {
-    if (before_execution_callback_) {
-      before_execution_callback_(*this);
-    }
-  }
-  void BeforeInstruction() {
-    if (before_instruction_callback_) {
-      before_instruction_callback_(*this);
-    }
-  }
-  void AfterExecution() {
-    if (after_execution_callback_) {
-      after_execution_callback_(*this);
-    }
-  }
-
   uc_engine* uc_;
 
-  uint64_t code_start_address_;
-  uint64_t code_end_address_;
-
   uc_hook hook_code_;
-
-  size_t num_instructions_;
-  size_t max_instructions_;
-  bool should_be_stopped_;
-
-  std::function<UserCallback> before_execution_callback_;
-  std::function<UserCallback> before_instruction_callback_;
-  std::function<UserCallback> after_execution_callback_;
 };
 
 }  // namespace silifuzz

@@ -20,11 +20,10 @@ cc_library(
     name = "execution_trace",
     hdrs = ["execution_trace.h"],
     deps = [
-        ":unicorn_tracer",
+        ":tracer",
         "@silifuzz//instruction:disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
     ],
@@ -66,6 +65,7 @@ cc_library(
         "unicorn_tracer.h",
     ],
     deps = [
+        ":tracer",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -95,6 +95,7 @@ cc_library(
         "unicorn_tracer.h",
     ],
     deps = [
+        ":tracer",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -125,6 +126,7 @@ cc_library(
         "unicorn_tracer.h",
     ],
     deps = [
+        ":tracer",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -149,6 +151,7 @@ cc_test(
         "unicorn_tracer_test.cc",
     ],
     deps = [
+        ":tracer",
         ":unicorn_tracer",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
@@ -167,6 +170,7 @@ cc_library(
     hdrs = ["analysis.h"],
     deps = [
         ":execution_trace",
+        ":tracer",
         ":unicorn_tracer",
         "@silifuzz//instruction:default_disassembler",
         "@silifuzz//instruction:disassembler",
@@ -204,5 +208,38 @@ cc_binary(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "native_tracer",
+    srcs = [
+        "native_tracer.cc",
+    ],
+    hdrs = [
+        "native_tracer.h",
+    ],
+    deps = [
+        ":tracer",
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "tracer",
+    hdrs = ["tracer.h"],
+    deps = [
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util/ucontext:ucontext_types",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
     ],
 )

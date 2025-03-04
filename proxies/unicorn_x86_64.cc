@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -22,6 +21,7 @@
 #include "./instruction/default_disassembler.h"
 #include "./proxies/arch_feature_generator.h"
 #include "./proxies/user_features.h"
+#include "./tracing/tracer.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -68,7 +68,7 @@ absl::Status RunInstructions(absl::string_view instructions,
   DefaultDisassembler<X86_64> &disasm = batch->disasm;
   ArchFeatureGenerator<X86_64> &feature_gen = batch->feature_gen;
 
-  UnicornTracerConfig<X86_64> tracer_config{};
+  TracerConfig<X86_64> tracer_config{};
   UnicornTracer<X86_64> tracer;
   RETURN_IF_NOT_OK(
       tracer.InitSnippet(instructions, tracer_config, fuzzing_config));
@@ -82,9 +82,9 @@ absl::Status RunInstructions(absl::string_view instructions,
   bool instruction_pending = false;
 
   UContext<X86_64> registers;
-  auto after_instruction = [&]() {
+  auto after_instruction = [&](TracerControl<X86_64> &control) {
     if (instruction_pending) {
-      tracer.GetRegisters(registers);
+      control.GetRegisters(registers);
       feature_gen.AfterInstruction(instruction_id, registers);
       instruction_pending = false;
     }
@@ -92,22 +92,23 @@ absl::Status RunInstructions(absl::string_view instructions,
 
   bool instructions_are_in_range = true;
 
-  tracer.SetBeforeExecutionCallback([&](UnicornTracer<X86_64> &tracer) {
-    tracer.GetRegisters(registers);
+  tracer.SetBeforeExecutionCallback([&](TracerControl<X86_64> &control) {
+    control.GetRegisters(registers);
     feature_gen.BeforeExecution(registers);
   });
-  tracer.SetBeforeInstructionCallback([&](UnicornTracer<X86_64> &tracer) {
-    after_instruction();
+
+  tracer.SetBeforeInstructionCallback([&](TracerControl<X86_64> &control) {
+    after_instruction(control);
 
     // Read the next instruction.
     // 16 bytes should hold any x86-64 instruction. The actual limit should
     // be 15 bytes, but keep things as nice powers of two.
     uint8_t insn[16];
-    uint64_t address = tracer.GetInstructionPointer();
+    uint64_t address = control.GetInstructionPointer();
     // Sometimes Unicorn will invoke this function with an invalid max_size
     // when it has absolutely no idea what the instruction does. (AVX512 for
     // example.) It appears to be some sort of error code gone wrong?
-    tracer.ReadMemory(address, insn, kMaxX86InsnLength);
+    control.ReadMemory(address, insn, kMaxX86InsnLength);
 
     // Decompile the next instruction.
     if (disasm.Disassemble(address, insn, kMaxX86InsnLength)) {
@@ -118,16 +119,17 @@ absl::Status RunInstructions(absl::string_view instructions,
       // bytes immediately after the snippet. We try to filter out this
       // case because it can make the snippet hard to disassemble.
       instructions_are_in_range &=
-          tracer.InstructionIsInRange(address, disasm.InstructionSize());
+          control.InstructionIsInRange(address, disasm.InstructionSize());
     } else {
       instruction_id = kInvalidInstructionId;
     }
 
     instruction_pending = true;
   });
-  tracer.SetAfterExecutionCallback([&](UnicornTracer<X86_64> &tracer) {
+
+  tracer.SetAfterExecutionCallback([&](TracerControl<X86_64> &control) {
     // Flush the last instruction.
-    after_instruction();
+    after_instruction(control);
 
     feature_gen.AfterExecution();
 
@@ -138,13 +140,13 @@ absl::Status RunInstructions(absl::string_view instructions,
     uint8_t mem[kMemBytesPerChunk];
 
     // Data 1
-    tracer.ReadMemory(fuzzing_config.data1_range.start_address, mem,
-                      kMemBytesPerChunk);
+    control.ReadMemory(fuzzing_config.data1_range.start_address, mem,
+                       kMemBytesPerChunk);
     feature_gen.FinalMemory(mem);
 
     // Data 2
-    tracer.ReadMemory(fuzzing_config.data2_range.start_address, mem,
-                      kMemBytesPerChunk);
+    control.ReadMemory(fuzzing_config.data2_range.start_address, mem,
+                       kMemBytesPerChunk);
     feature_gen.FinalMemory(mem);
   });
 

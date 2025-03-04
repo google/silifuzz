@@ -21,6 +21,7 @@
 #include "absl/status/status.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./tracing/tracer.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./tracing/unicorn_util.h"
 #include "./util/arch.h"
@@ -269,10 +270,11 @@ uint64_t UnicornTracer<AArch64>::GetStackPointer() {
 
 template <>
 void UnicornTracer<AArch64>::InitUnicorn(
-    const UnicornTracerConfig<AArch64> &tracer_config) {
+    const TracerConfig<AArch64> &tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc_));
-  UNICORN_CHECK(uc_ctl_set_cpu_model(
-      uc_, tracer_config.force_a72 ? UC_CPU_ARM64_A72 : UC_CPU_ARM64_MAX));
+  UNICORN_CHECK(uc_ctl_set_cpu_model(uc_, tracer_config.unicorn_force_a72
+                                              ? UC_CPU_ARM64_A72
+                                              : UC_CPU_ARM64_MAX));
   SetupCPUState(uc_);
 }
 

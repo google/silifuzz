@@ -22,6 +22,7 @@
 #include "absl/status/status.h"
 #include "./instruction/default_disassembler.h"
 #include "./tracing/execution_trace.h"
+#include "./tracing/tracer.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -43,18 +44,18 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
   DefaultDisassembler<Arch> disasm;
   RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
 
-  tracer.SetBeforeInstructionCallback([&](UnicornTracer<Arch>& tracer) {
+  tracer.SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
     if (instructions_executed == skip) {
       uint8_t buf[16];  // enough for 15 bytes
-      DisassembleCurrentInstruction(tracer, disasm, buf);
-      const uint64_t address = tracer.GetInstructionPointer();
-      tracer.SetInstructionPointer(address + disasm.InstructionSize());
+      DisassembleCurrentInstruction(control, disasm, buf);
+      const uint64_t address = control.GetInstructionPointer();
+      control.SetInstructionPointer(address + disasm.InstructionSize());
     }
     instructions_executed++;
   });
-  tracer.SetAfterExecutionCallback([&](UnicornTracer<Arch>& tracer) -> void {
-    tracer.GetRegisters(ucontext);
-    memory_checksum = tracer.PartialChecksumOfMutableMemory();
+  tracer.SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
+    control.GetRegisters(ucontext);
+    memory_checksum = control.PartialChecksumOfMutableMemory();
   });
 
   RETURN_IF_NOT_OK(tracer.Run(max_instructions));
