@@ -52,8 +52,9 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAmdTurin:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
-    case PlatformId::kArmNeoverseV2:
     case PlatformId::kAmpereOne:
+    case PlatformId::kArmNeoverseV2:
+    case PlatformId::kArmNeoverseN3:
       return ArchitectureId::kAArch64;
     case PlatformId::kUndefined:
     case PlatformId::kAny:
@@ -140,9 +141,10 @@ PlatformId ArmPlatformIdFromMainId(uint32_t implementer, uint32_t part_number) {
     switch (part_number) {
       case 0xd0c:
         return PlatformId::kArmNeoverseN1;
-      case 0xd4f: {
+      case 0xd4f:
         return PlatformId::kArmNeoverseV2;
-      }
+      case 0xd8e:
+        return PlatformId::kArmNeoverseN3;
       default:
         LOG_ERROR("Unknown ARM part number: ", HexStr(part_number));
         return PlatformId::kUndefined;
