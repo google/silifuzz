@@ -155,7 +155,8 @@ void ZeroOutUnimplementedRegs<AArch64>(UContext<AArch64>& ucontext) {
 template <typename Arch>
 void FixupRandomRegs(UContext<Arch>& ucontext);
 
-constexpr __uint128_t kEightyBitMask = static_cast<__uint128_t>(0xffff) | ~0ULL;
+constexpr __uint128_t kEightyBitMask =
+    (static_cast<__uint128_t>(0xffff) << 64) | ~0ULL;
 
 template <>
 void FixupRandomRegs<X86_64>(UContext<X86_64>& ucontext) {
