@@ -221,13 +221,34 @@ cc_library(
     ],
     deps = [
         ":tracer",
+        "@silifuzz//common:harness_tracer",
         "@silifuzz//common:proxy_config",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//runner:make_snapshot",
+        "@silifuzz//runner:runner_provider",
+        "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_test(
+    name = "native_tracer_test",
+    srcs = ["native_tracer_test.cc"],
+    deps = [
+        ":native_tracer",
+        ":tracer",
+        "@silifuzz//common:snapshot_test_enum",
+        "@silifuzz//common:snapshot_test_util",
+        "@silifuzz//util:arch",
+        "@silifuzz//util/testing:status_matchers",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 
