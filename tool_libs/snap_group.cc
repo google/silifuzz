@@ -166,7 +166,7 @@ SnapshotGroup::SnapshotSummary::SnapshotSummary(const Snapshot& snapshot)
     // shard(s).
     uint64_t bits = 0;
     for (const auto& p : snapshot.expected_end_states()[0].platforms()) {
-      bits |= 1 << static_cast<int>(p);
+      bits |= 1ULL << static_cast<int>(p);
     }
     sort_key_ = -static_cast<int>(bits);
   }
