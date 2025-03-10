@@ -51,7 +51,7 @@ inline size_t SveGetCurrentVectorLength() {
   int z_len = prctl(PR_SVE_GET_VL);
   // Negative value indicates an error and/or that SVE is not supported.
   if (z_len < 0) {
-    VLOG_INFO(0, "SVE is most likely not supported on this platform: ",
+    VLOG_INFO(1, "SVE is most likely not supported on this platform: ",
               ErrnoStr(errno));
     return 0;
   }
