@@ -14,6 +14,7 @@
 
 #include <x86intrin.h>
 
+#include <cstdint>
 #include <cstring>
 
 #include "./util/cpu_features.h"
