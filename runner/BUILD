@@ -391,6 +391,7 @@ cc_library(
         "@silifuzz//util:page_util",
         "@silifuzz//util:platform",
         "@com_google_absl//absl/functional:bind_front",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
