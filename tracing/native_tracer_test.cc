@@ -102,6 +102,8 @@ TEST(NativeTracerTest, UserStop) {
   EXPECT_EQ(count, 2);
 }
 
+constexpr __uint128_t kEightyBitMask =
+    (static_cast<__uint128_t>(0xffff) << 64) | ~0ULL;
 // Not ever reg can accept arbitrary bit patterns, fix up the randomized values
 // so that they will be accepted.
 void FixupRandomRegs(const UContext<X86_64>& base, UContext<X86_64>& ucontext) {
@@ -118,12 +120,27 @@ void FixupRandomRegs(const UContext<X86_64>& base, UContext<X86_64>& ucontext) {
   // Some bits of eflags are ditched by ptrace. We set it to a constant rather
   // than trying to reverse engineer the exact bits that are preserved.
   ucontext.gregs.eflags = 0x302;
+
+  // Only eighty bits of FP registers are touched.
+  for (__uint128_t& st : ucontext.fpregs.st) {
+    st &= kEightyBitMask;
+  }
+
+  // Mask out reserved bits (16-31) of mxcsr. See Chapter 10.4 in
+  // https://www.intel.la/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-1-manual.pdf
+  // Bit 17 is supported on certain AMD processors, see chapter 4.2.2 in
+  // https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24592.pdf
+  // We still ignore it since it is not supported on all x86 processors.
+  ucontext.fpregs.mxcsr &= 0xffff;
 }
 
 void FixupRandomRegs(const UContext<AArch64>& base,
                      UContext<AArch64>& ucontext) {
   // Only NZCV supported
   ucontext.gregs.pstate = ucontext.gregs.pstate & kPStateMask;
+  // Upper 32 bits are ignored by ptrace.
+  ucontext.fpregs.fpsr &= ~0U;
+  ucontext.fpregs.fpcr &= ~0U;
 }
 
 void ZeroOutUnimplementedRegs(UContext<X86_64>& ucontext) {}
@@ -167,6 +184,7 @@ TEST(NativeTracerTest, SetGetRegisters) {
 
   ZeroOutUnimplementedRegs(expected);
   EXPECT_EQ(expected.gregs, actual.gregs);
+  EXPECT_EQ(expected.fpregs, actual.fpregs);
 }
 
 // Check the registers are what we expect after executing the

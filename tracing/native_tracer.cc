@@ -52,10 +52,28 @@ namespace silifuzz {
 
 namespace {
 
+#if defined(__x86_64__)
+using UserFPRegsStruct = user_fpregs_struct;
+#elif defined(__aarch64__)
+using UserFPRegsStruct = user_fpsimd_struct;
+#else
+#error "Unsupported architecture"
+#endif
+
 void SetGRegs(const pid_t pid, user_regs_struct& regs) {
   struct iovec io{&regs, sizeof(regs)};
   PTraceOrDie(PTRACE_SETREGSET, pid, (void*)NT_PRSTATUS, &io);
 }
+
+void GetFPRegs(const pid_t pid, UserFPRegsStruct& fp_regs) {
+  struct iovec io = {&fp_regs, sizeof(fp_regs)};
+  PTraceOrDie(PTRACE_GETREGSET, pid, (void*)NT_PRFPREG, &io);
+};
+
+void SetFPRegs(const pid_t pid, UserFPRegsStruct& fp_regs) {
+  struct iovec io = {&fp_regs, sizeof(fp_regs)};
+  PTraceOrDie(PTRACE_SETREGSET, pid, (void*)NT_PRFPREG, &io);
+};
 
 void DeserializeUserRegsStruct(const user_regs_struct& regs,
                                GRegSet<Host>* dst) {
@@ -93,6 +111,41 @@ void SerializeUserRegsStruct(const GRegSet<Host>& regs, user_regs_struct* dst) {
   dst->pstate = regs.pstate;
 #else
   LOG_FATAL("SerializeUserRegsStruct is not supported on this architecture");
+#endif
+}
+
+void SerializeUserFPRegsStruct(const FPRegSet<Host>& fp_reg_set,
+                               UserFPRegsStruct* dst) {
+#if defined(__x86_64__)
+  CHECK_EQ(
+      serialize_internal::SerializeLegacyFPRegs(fp_reg_set, dst, sizeof(*dst)),
+      sizeof(*dst));
+#elif defined(__aarch64__)
+  for (size_t i = 0; i < 32; ++i) {
+    dst->vregs[i] = fp_reg_set.v[i];
+  }
+  dst->fpsr = fp_reg_set.fpsr;
+  dst->fpcr = fp_reg_set.fpcr;
+#else
+  LOG_FATAL("SerializeUserRegsStruct is not supported on this architecture");
+#endif
+}
+
+void DeserializeUserFPRegsStruct(const UserFPRegsStruct& fp_regs,
+                                 FPRegSet<Host>* dst) {
+#if defined(__x86_64__)
+  CHECK_EQ(serialize_internal::DeserializeFPRegs<X86_64>(&fp_regs,
+                                                         sizeof(fp_regs), dst),
+           sizeof(fp_regs));
+#elif defined(__aarch64__)
+  for (size_t i = 0; i < 32; ++i) {
+    dst->v[i] = fp_regs.vregs[i];
+  }
+  dst->fpsr = fp_regs.fpsr;
+  dst->fpcr = fp_regs.fpcr;
+#else
+  LOG_FATAL(
+      "DeserializeUserFPRegsStruct is not supported on this architecture");
 #endif
 }
 
@@ -230,8 +283,11 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
   struct user_regs_struct regs;
   SerializeUserRegsStruct(ucontext.gregs, &regs);
   SetGRegs(pid_, regs);
+
+  UserFPRegsStruct fp_regs;
+  SerializeUserFPRegsStruct(ucontext.fpregs, &fp_regs);
+  SetFPRegs(pid_, fp_regs);
   // TODO(herooutman): set tpidr for ARM.
-  // TODO(herooutman): set fpregs.
 
   // Ptrace may silently discard some bits of the register state.  If this
   // happens, the subsequent GetRegisters() call will return different data.
@@ -242,10 +298,14 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
 void NativeTracer::GetRegisters(UContext<Host>& ucontext) {
   const user_regs_struct& regs = GetGRegStruct();
   // Not all registers will be read. memset so the result is consistent.
-  memset(&ucontext.gregs, 0, sizeof(ucontext.gregs));
+  memset(&ucontext, 0, sizeof(ucontext));
   DeserializeUserRegsStruct(regs, &ucontext.gregs);
+
+  UserFPRegsStruct fp_regs;
+  GetFPRegs(pid_, fp_regs);
+  DeserializeUserFPRegsStruct(fp_regs, &ucontext.fpregs);
+
   // TODO(herooutman): get tpidr for ARM.
-  // TODO(herooutman): get fpregs.
 }
 
 void NativeTracer::SetInstructionPointer(uint64_t address) {
