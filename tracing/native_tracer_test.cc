@@ -146,7 +146,6 @@ void FixupRandomRegs(const UContext<AArch64>& base,
 void ZeroOutUnimplementedRegs(UContext<X86_64>& ucontext) {}
 
 void ZeroOutUnimplementedRegs(UContext<AArch64>& ucontext) {
-  ucontext.gregs.tpidr = 0;
   ucontext.gregs.tpidrro = 0;
 }
 
