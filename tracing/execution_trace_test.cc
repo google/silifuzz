@@ -112,7 +112,7 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
   ASSERT_EQ(execution_trace.NumInstructions(), 0);
 
   // Capture the trace.
-  ASSERT_THAT(CaptureTrace(tracer, disasm, execution_trace), IsOk());
+  ASSERT_THAT(CaptureTrace(&tracer, disasm, execution_trace), IsOk());
   ASSERT_EQ(execution_trace.NumInstructions(), 3);
 
   // Check the trace.
@@ -159,7 +159,7 @@ TYPED_TEST(ExecutionTraceTest, Runaway) {
   ConcreteDisassembler disasm;
   ExecutionTrace<Arch> execution_trace(kTraceLength);
 
-  EXPECT_THAT(CaptureTrace(tracer, disasm, execution_trace),
+  EXPECT_THAT(CaptureTrace(&tracer, disasm, execution_trace),
               StatusIs(absl::StatusCode::kInternal,
                        "emulator executed too many instructions"));
   EXPECT_EQ(execution_trace.NumInstructions(), kTraceLength);

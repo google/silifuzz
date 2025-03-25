@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -171,9 +173,8 @@ cc_library(
     deps = [
         ":execution_trace",
         ":tracer",
-        ":unicorn_tracer",
+        ":tracer_factory",
         "@silifuzz//instruction:default_disassembler",
-        "@silifuzz//instruction:disassembler",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
@@ -191,13 +192,16 @@ cc_binary(
     deps = [
         ":analysis",
         ":execution_trace",
-        ":unicorn_tracer",
+        ":tracer",
+        ":tracer_factory",
         "@silifuzz//instruction:default_disassembler",
         "@silifuzz//instruction:disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:bitops",
         "@silifuzz//util:checks",
+        "@silifuzz//util:enum_flag",
         "@silifuzz//util:enum_flag_types",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",
@@ -275,5 +279,18 @@ cc_library(
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
+    ],
+)
+
+cc_library(
+    name = "tracer_factory",
+    hdrs = ["tracer_factory.h"],
+    deps = [
+        ":native_tracer",
+        ":tracer",
+        ":unicorn_tracer",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:checks",
+        "@silifuzz//util:itoa",
     ],
 )

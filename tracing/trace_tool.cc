@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -31,15 +32,23 @@
 #include "./instruction/disassembler.h"
 #include "./tracing/analysis.h"
 #include "./tracing/execution_trace.h"
-#include "./tracing/unicorn_tracer.h"
+#include "./tracing/tracer.h"
+#include "./tracing/tracer_factory.h"
 #include "./util/arch.h"
 #include "./util/bitops.h"
 #include "./util/checks.h"
+#include "./util/enum_flag.h"
 #include "./util/enum_flag_types.h"
 #include "./util/line_printer.h"
 #include "./util/logging_util.h"
 #include "./util/tool_util.h"
 #include "./util/ucontext/ucontext_types.h"
+
+namespace silifuzz {
+
+DEFINE_ENUM_FLAG(TracerType);
+
+}  // namespace silifuzz
 
 ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
           "Target architecture for raw snippets");
@@ -49,6 +58,10 @@ ABSL_FLAG(std::optional<std::string>, snippet, std::nullopt,
 
 ABSL_FLAG(size_t, max_instructions, 0x1000,
           "The maximum number of instructions that should be executed");
+
+ABSL_FLAG(
+    silifuzz::TracerType, tracer, silifuzz::TracerType::kUnicorn,
+    "The type of tracer to use: [unicorn/native]. Default is \"unicorn\".");
 
 namespace silifuzz {
 
@@ -224,7 +237,7 @@ void LogTraceOpInfo(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
 // Print information that can help a human understand the dynamic behavior of
 // the code.
 template <typename Arch>
-absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
+absl::Status PrintTrace(Tracer<Arch>* tracer, size_t max_instructions,
                         LinePrinter& out) {
   DefaultDisassembler<Arch> disasm;
   ExecutionTrace<Arch> execution_trace(max_instructions);
@@ -241,17 +254,19 @@ absl::Status PrintTrace(UnicornTracer<Arch>& tracer, size_t max_instructions,
 }
 
 template <typename Arch>
-absl::Status PrintSnippetTrace(std::string& instructions,
+absl::Status PrintSnippetTrace(TracerType tracer_type,
+                               std::string& instructions,
                                size_t max_instructions, LinePrinter& out) {
-  UnicornTracer<Arch> tracer;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
-  return PrintTrace(tracer, max_instructions, out);
+  std::unique_ptr<Tracer<Arch>> tracer = CreateTracer<Arch>(tracer_type);
+  RETURN_IF_NOT_OK(tracer->InitSnippet(instructions));
+  return PrintTrace(tracer.get(), max_instructions, out);
 }
 
 absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
                           LinePrinter& err) {
   std::optional<std::string> snippet_path = absl::GetFlag(FLAGS_snippet);
   if (snippet_path.has_value()) {
+    TracerType tracer_type = absl::GetFlag(FLAGS_tracer);
     ArchitectureId arch = absl::GetFlag(FLAGS_arch);
     if (arch == ArchitectureId::kUndefined) {
       return absl::InvalidArgumentError("--arch is required for snippets.");
@@ -262,8 +277,8 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
     size_t max_instructions = absl::GetFlag(FLAGS_max_instructions);
     ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                                GetFileContents(snippet_path.value()));
-    RETURN_IF_NOT_OK(ARCH_DISPATCH(PrintSnippetTrace, arch, instructions,
-                                   max_instructions, out));
+    RETURN_IF_NOT_OK(ARCH_DISPATCH(PrintSnippetTrace, arch, tracer_type,
+                                   instructions, max_instructions, out));
     return EXIT_SUCCESS;
   } else {
     return absl::InvalidArgumentError("Must specify an input.");
@@ -271,18 +286,21 @@ absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
 }
 
 template <typename Arch>
-absl::Status AnalyzeSnippet(const std::string& instructions,
+absl::Status AnalyzeSnippet(TracerType tracer_type,
+                            const std::string& instructions,
                             size_t max_instructions, LinePrinter& out) {
   DefaultDisassembler<Arch> disasm;
   ExecutionTrace<Arch> execution_trace(max_instructions);
-  UnicornTracer<Arch> tracer;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
+  std::unique_ptr<Tracer<Arch>> tracer = CreateTracer<Arch>(tracer_type);
+  RETURN_IF_NOT_OK(tracer->InitSnippet(instructions));
   uint32_t checksum;
-  RETURN_IF_NOT_OK(CaptureTrace(tracer, disasm, execution_trace, &checksum));
+  RETURN_IF_NOT_OK(
+      CaptureTrace(tracer.get(), disasm, execution_trace, &checksum));
 
-  ASSIGN_OR_RETURN_IF_NOT_OK(FaultInjectionResult result,
-                             AnalyzeSnippetWithFaultInjection<Arch>(
-                                 instructions, execution_trace, checksum));
+  ASSIGN_OR_RETURN_IF_NOT_OK(
+      FaultInjectionResult result,
+      AnalyzeSnippetWithFaultInjection<Arch>(tracer_type, instructions,
+                                             execution_trace, checksum));
   out.Line("Detected ", result.fault_detection_count, "/",
            result.fault_injection_count, " faults - ",
            static_cast<int>(100 * result.sensitivity), "% sensitive");
@@ -297,6 +315,7 @@ absl::StatusOr<int> Analyze(std::vector<char*>& positional_args,
                             LinePrinter& out, LinePrinter& err) {
   std::optional<std::string> snippet_path = absl::GetFlag(FLAGS_snippet);
   if (snippet_path.has_value()) {
+    TracerType tracer_type = absl::GetFlag(FLAGS_tracer);
     ArchitectureId arch = absl::GetFlag(FLAGS_arch);
     if (arch == ArchitectureId::kUndefined) {
       return absl::InvalidArgumentError("--arch is required for snippets.");
@@ -307,8 +326,8 @@ absl::StatusOr<int> Analyze(std::vector<char*>& positional_args,
     size_t max_instructions = absl::GetFlag(FLAGS_max_instructions);
     ASSIGN_OR_RETURN_IF_NOT_OK(std::string instructions,
                                GetFileContents(snippet_path.value()));
-    RETURN_IF_NOT_OK(ARCH_DISPATCH(AnalyzeSnippet, arch, instructions,
-                                   max_instructions, out));
+    RETURN_IF_NOT_OK(ARCH_DISPATCH(AnalyzeSnippet, arch, tracer_type,
+                                   instructions, max_instructions, out));
     return EXIT_SUCCESS;
   } else {
     return absl::InvalidArgumentError("Must specify an input.");

@@ -165,14 +165,14 @@ class ExecutionTrace {
 // `memory_checksum` output parameter is provided with a non-null pointer, it
 // will calculate the memory checksum of the final state, and store it there.
 template <typename Disassembler, typename Arch>
-absl::Status CaptureTrace(Tracer<Arch>& tracer, Disassembler& disasm,
+absl::Status CaptureTrace(Tracer<Arch>* tracer, Disassembler& disasm,
                           ExecutionTrace<Arch>& execution_trace,
                           uint32_t* memory_checksum = nullptr) {
   // In theory the entry point should also be the page start, but be cautious
   // and force page alignment in case we add a preamble later.
   bool insn_out_of_bounds = false;
   execution_trace.Reset();
-  tracer.SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
+  tracer->SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
     // The instruction hasn't executed yet, capture the previous state.
     control.GetRegisters(execution_trace.LastContext());
 
@@ -192,13 +192,13 @@ absl::Status CaptureTrace(Tracer<Arch>& tracer, Disassembler& disasm,
     info.can_store = disasm.CanStore();
   });
   // Capture the final state.
-  tracer.SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
+  tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
     control.GetRegisters(execution_trace.LastContext());
     if (memory_checksum != nullptr) {
       *memory_checksum = control.PartialChecksumOfMutableMemory();
     }
   });
-  absl::Status result = tracer.Run(execution_trace.MaxInstructions());
+  absl::Status result = tracer->Run(execution_trace.MaxInstructions());
   if (result.ok() && insn_out_of_bounds) {
     // It is unlikely this will happen, but it may if a native tracer jumps to
     // an executable page in the runner.

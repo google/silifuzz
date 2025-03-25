@@ -17,12 +17,11 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <functional>
 #include <string>
 
 #include "absl/status/statusor.h"
-#include "./instruction/disassembler.h"
 #include "./tracing/execution_trace.h"
+#include "./tracing/tracer_factory.h"
 
 namespace silifuzz {
 
@@ -33,16 +32,15 @@ struct FaultInjectionResult {
   float sensitivity;
 };
 
-// Perform fault analysis on the snippet `instructions`.
-// `execution_trace` must contain a valid trace. If this function is successful,
-// the trace is annotated with which instructions were critical in detecting
-// faults.
-// If successful, this function returns aggregate statistics about the fault
-// injection.
+// Perform fault analysis with a tracer of `tracer_type` on the snippet
+// `instructions`. `execution_trace` must contain a valid trace. If this
+// function is successful, the trace is annotated with which instructions were
+// critical in detecting faults. If successful, this function returns aggregate
+// statistics about the fault injection.
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, ExecutionTrace<Arch>& execution_trace,
-    uint32_t expected_memory_checksum);
+    TracerType tracer_type, const std::string& instructions,
+    ExecutionTrace<Arch>& execution_trace, uint32_t expected_memory_checksum);
 
 }  // namespace silifuzz
 

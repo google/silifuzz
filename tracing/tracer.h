@@ -77,8 +77,10 @@ class Tracer {
 
   // Initialize the tracer with a snippet of code.
   virtual absl::Status InitSnippet(
-      absl::string_view instructions, const TracerConfig<Arch>& tracer_config,
-      const FuzzingConfig<Arch>& fuzzing_config) = 0;
+      absl::string_view instructions,
+      const TracerConfig<Arch>& tracer_config = TracerConfig<Arch>{},
+      const FuzzingConfig<Arch>& fuzzing_config =
+          DEFAULT_FUZZING_CONFIG<Arch>) = 0;
 
   // Run the code snippet. Execution will stop after `max_insn_executed`
   // instructions to help avoid infinite loops.

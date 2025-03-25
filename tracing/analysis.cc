@@ -17,13 +17,14 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "absl/status/status.h"
 #include "./instruction/default_disassembler.h"
 #include "./tracing/execution_trace.h"
 #include "./tracing/tracer.h"
-#include "./tracing/unicorn_tracer.h"
+#include "./tracing/tracer_factory.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext_types.h"
 
@@ -35,30 +36,34 @@ namespace {
 // trace. All you need to know is the size of the instruction, and you don't
 // need to model its side effects.
 template <typename Arch>
-absl::Status TraceSnippetWithSkip(const std::string& instructions,
+absl::Status TraceSnippetWithSkip(TracerType tracer_type,
+                                  const std::string& instructions,
                                   size_t max_instructions, size_t skip,
                                   size_t& instructions_executed,
                                   UContext<Arch>& ucontext,
                                   uint32_t& memory_checksum) {
-  UnicornTracer<Arch> tracer;
+  std::unique_ptr<Tracer<Arch>> tracer = CreateTracer<Arch>(tracer_type);
   DefaultDisassembler<Arch> disasm;
-  RETURN_IF_NOT_OK(tracer.InitSnippet(instructions));
+  RETURN_IF_NOT_OK(tracer->InitSnippet(instructions));
 
-  tracer.SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
+  tracer->SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
     if (instructions_executed == skip) {
       uint8_t buf[16];  // enough for 15 bytes
       DisassembleCurrentInstruction(control, disasm, buf);
       const uint64_t address = control.GetInstructionPointer();
       control.SetInstructionPointer(address + disasm.InstructionSize());
     }
-    instructions_executed++;
+    const uint64_t address = control.GetInstructionPointer();
+    if (control.IsInsideCode(address)) {
+      instructions_executed++;
+    }
   });
-  tracer.SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
+  tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
     control.GetRegisters(ucontext);
     memory_checksum = control.PartialChecksumOfMutableMemory();
   });
 
-  RETURN_IF_NOT_OK(tracer.Run(max_instructions));
+  RETURN_IF_NOT_OK(tracer->Run(max_instructions));
   return absl::OkStatus();
 }
 
@@ -66,8 +71,8 @@ absl::Status TraceSnippetWithSkip(const std::string& instructions,
 
 template <typename Arch>
 absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
-    const std::string& instructions, ExecutionTrace<Arch>& execution_trace,
-    uint32_t expected_memory_checksum) {
+    TracerType tracer_type, const std::string& instructions,
+    ExecutionTrace<Arch>& execution_trace, uint32_t expected_memory_checksum) {
   size_t expected_instructions_executed = execution_trace.NumInstructions();
   UContext<Arch> expected_ucontext = execution_trace.LastContext();
 
@@ -81,7 +86,7 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     uint32_t actual_memory_checksum = 0;
     UContext<Arch> ucontext;
     absl::Status status = TraceSnippetWithSkip(
-        instructions, execution_trace.MaxInstructions(), skip,
+        tracer_type, instructions, execution_trace.MaxInstructions(), skip,
         instructions_executed, ucontext, actual_memory_checksum);
     // If the status is not OK, this indicates the trace did not behave like a
     // valid Silifuzz test - it segfaulted, got stuck in an infinite loop, or
@@ -109,11 +114,11 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
 // Instantiate concrete instances of exported functions.
 template absl::StatusOr<FaultInjectionResult>
 AnalyzeSnippetWithFaultInjection<X86_64>(
-    const std::string& instructions, ExecutionTrace<X86_64>& execution_trace,
-    uint32_t expected_memory_checksum);
-template absl::StatusOr<FaultInjectionResult>
-AnalyzeSnippetWithFaultInjection<AArch64>(
-    const std::string& instructions, ExecutionTrace<AArch64>& execution_trace,
-    uint32_t expected_memory_checksum);
+    TracerType tracer_type, const std::string& instructions,
+    ExecutionTrace<X86_64>& execution_trace, uint32_t expected_memory_checksum);
+template absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection<
+    AArch64>(TracerType tracer_type, const std::string& instructions,
+             ExecutionTrace<AArch64>& execution_trace,
+             uint32_t expected_memory_checksum);
 
 }  // namespace silifuzz
