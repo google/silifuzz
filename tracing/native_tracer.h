@@ -22,6 +22,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -74,9 +75,15 @@ class NativeTracer final : public Tracer<Host> {
     return ShouldStopTracing() ? HarnessTracer::kStopTracing
                                : HarnessTracer::kKeepTracing;
   }
+  // Returns general register state of the tracee. It tries to get it from
+  // cache. If the cache is not available, it will fetch the registers from the
+  // kernel using ptrace.
+  const user_regs_struct& GetGRegStruct();
 
   TracerState state_ = TracerState::kInit;
   std::unique_ptr<Snapshot> snapshot_ = nullptr;
+  // Cache the gregs provided by HarnessTracer.
+  std::optional<user_regs_struct> gregs_cache_ = std::nullopt;
   pid_t pid_ = 0;  // pid of the tracee
   bool stop_requested_ = false;
   bool insn_limit_reached_ = false;

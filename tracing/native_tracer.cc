@@ -14,6 +14,7 @@
 
 #include "./tracing/native_tracer.h"
 
+#include <sys/uio.h>
 #include <sys/user.h>
 
 #include <cstddef>
@@ -35,9 +36,59 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/ptrace_util.h"
+#include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
+
+namespace {
+
+void SetGRegs(const pid_t pid, user_regs_struct& regs) {
+  struct iovec io{&regs, sizeof(regs)};
+  PTraceOrDie(PTRACE_SETREGSET, pid, (void*)NT_PRSTATUS, &io);
+}
+
+void DeserializeUserRegsStruct(const user_regs_struct& regs,
+                               GRegSet<Host>* dst) {
+#if defined(__x86_64__)
+  // This abuses the fact that the legacy format is a byte dump of
+  // user_regs_struct.
+  CHECK_EQ(
+      serialize_internal::DeserializeGRegs<X86_64>(&regs, sizeof(regs), dst),
+      sizeof(regs));
+#elif defined(__aarch64__)
+  for (size_t i = 0; i < 31; ++i) {
+    dst->x[i] = regs.regs[i];
+  }
+  dst->sp = regs.sp;
+  dst->pc = regs.pc;
+  dst->pstate = regs.pstate & kPStateMask;
+#else
+  LOG_FATAL(
+      "DeserializeUserRegsStruct is not supported only on this architecture");
+#endif
+}
+
+void SerializeUserRegsStruct(const GRegSet<Host>& regs, user_regs_struct* dst) {
+#if defined(__x86_64__)
+  // This abuses the fact that the legacy format is a byte dump of
+  // user_regs_struct.
+  CHECK_EQ(serialize_internal::SerializeLegacyGRegs(regs, dst, sizeof(*dst)),
+           sizeof(*dst));
+#elif defined(__aarch64__)
+  for (size_t i = 0; i < 31; ++i) {
+    dst->regs[i] = regs.x[i];
+  }
+  dst->sp = regs.sp;
+  dst->pc = regs.pc;
+  dst->pstate = regs.pstate;
+#else
+  LOG_FATAL("SerializeUserRegsStruct is not supported on this architecture");
+#endif
+}
+
+}  // namespace
 
 absl::Status NativeTracer::InitSnippet(
     absl::string_view instructions, const TracerConfig<Host>& tracer_config,
@@ -78,12 +129,16 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
         if (reason != HarnessTracer::kSingleStepStop || ShouldStopTracing())
           return NextContinuationMode();
 
-        const uint64_t addr = silifuzz::GetInstructionPointer(regs);
+        uint64_t addr = silifuzz::GetInstructionPointer(regs);
+        gregs_cache_.emplace(regs);
         if (state_ == TracerState::kPreTracing) {
           if (addr == code_start_address_) {
             // Note that the start address can be reached multiple times. Only
             // invoke the BeforeExecution callback the first time.
             BeforeExecution();
+            // Always get the latest instruction pointer, as user callbacks may
+            // change the value.
+            addr = GetInstructionPointer();
             VLOG_INFO(1, "entering tracing state at ", HexStr(addr));
             state_ = TracerState::kTracing;
           } else if (IsInsideCode(addr)) {
@@ -102,6 +157,7 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
               insn_limit_reached_ = true;
             } else {
               BeforeInstruction();
+              addr = GetInstructionPointer();
             }
           }
           if (!IsInsideCode(addr) || stop_requested_) {
@@ -148,16 +204,65 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
 
 void NativeTracer::ReadMemory(uint64_t address, void* buffer, size_t size) {}
 
-void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {}
+void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
+  struct user_regs_struct regs;
+  SerializeUserRegsStruct(ucontext.gregs, &regs);
+  SetGRegs(pid_, regs);
+  // TODO(herooutman): set tpidr for ARM.
+  // TODO(herooutman): set fpregs.
 
-void NativeTracer::GetRegisters(UContext<Host>& ucontext) {}
+  // Ptrace may silently discard some bits of the register state.  If this
+  // happens, the subsequent GetRegisters() call will return different data.
+  // Reset the cache to force a refetch.
+  gregs_cache_.reset();
+}
 
-void NativeTracer::SetInstructionPointer(uint64_t address) {}
+void NativeTracer::GetRegisters(UContext<Host>& ucontext) {
+  const user_regs_struct& regs = GetGRegStruct();
+  // Not all registers will be read. memset so the result is consistent.
+  memset(&ucontext.gregs, 0, sizeof(ucontext.gregs));
+  DeserializeUserRegsStruct(regs, &ucontext.gregs);
+  // TODO(herooutman): get tpidr for ARM.
+  // TODO(herooutman): get fpregs.
+}
 
-uint64_t NativeTracer::GetInstructionPointer() { return 0; }
+void NativeTracer::SetInstructionPointer(uint64_t address) {
+  user_regs_struct regs = GetGRegStruct();
+#if defined(__x86_64__)
+  regs.rip = address;
+  gregs_cache_.value().rip = address;
+#elif defined(__aarch64__)
+  regs.pc = address;
+  gregs_cache_.value().pc = address;
+#endif
+  SetGRegs(pid_, regs);
+}
 
-uint64_t NativeTracer::GetStackPointer() { return 0; }
+uint64_t NativeTracer::GetInstructionPointer() {
+  return silifuzz::GetInstructionPointer(GetGRegStruct());
+}
+
+uint64_t NativeTracer::GetStackPointer() {
+#if defined(__x86_64__)
+  return GetGRegStruct().rsp;
+#elif defined(__aarch64__)
+  return GetGRegStruct().sp;
+#endif
+}
 
 uint32_t NativeTracer::PartialChecksumOfMutableMemory() { return 0; }
+
+const user_regs_struct& NativeTracer::GetGRegStruct() {
+  if (!gregs_cache_.has_value()) {
+    gregs_cache_.emplace(user_regs_struct{});
+    struct iovec io;
+    io.iov_base = &gregs_cache_.value();
+    io.iov_len = sizeof(gregs_cache_.value());
+    // NT_PRSTATUS means read the general purpose registers.
+    PTraceOrDie(PTRACE_GETREGSET, pid_, (void*)NT_PRSTATUS, &io);
+    CHECK_EQ(io.iov_len, sizeof(gregs_cache_.value()));
+  }
+  return *gregs_cache_;
+}
 
 }  // namespace silifuzz
