@@ -18,8 +18,6 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 
-#include <cstdio>
-#include <cstdlib>
 #include <string>
 #include <thread>  // NOLINT
 
