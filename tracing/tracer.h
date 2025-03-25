@@ -121,6 +121,11 @@ class Tracer {
   // Accessors
   virtual uint64_t GetInstructionPointer() = 0;
   virtual uint64_t GetStackPointer() = 0;
+  // Read a continuous chunk of memory of `size` bytes starting from the
+  // `address`, and store the result in `buffer`. The buffer needs to be large
+  // enough to hold the requested `size` bytes. If the read touches invalid or
+  // inaccessible memory (e.g unmapped or protected), a fatal error will be
+  // raised.
   virtual void ReadMemory(uint64_t address, void* buffer, size_t size) = 0;
   virtual void GetRegisters(UContext<Arch>& ucontext) = 0;
   // Checksum some of the tracer's mutable memory.

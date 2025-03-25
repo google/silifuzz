@@ -17,18 +17,25 @@
 #include <sys/uio.h>
 #include <sys/user.h>
 
+#include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
 #include <utility>
 
+#include "absl/crc/crc32c.h"
+#include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./common/harness_tracer.h"
+#include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_enums.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
@@ -36,6 +43,7 @@
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/page_util.h"
 #include "./util/ptrace_util.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -202,7 +210,21 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
   return absl::OkStatus();
 }
 
-void NativeTracer::ReadMemory(uint64_t address, void* buffer, size_t size) {}
+void NativeTracer::ReadMemory(uint64_t address, void* buffer, size_t size) {
+  struct iovec remote_iov, local_iov;
+  remote_iov.iov_base = (void*)address;
+  remote_iov.iov_len = size;
+  local_iov.iov_base = buffer;
+  local_iov.iov_len = size;
+  ssize_t num_read = process_vm_readv(pid_, &local_iov, 1, &remote_iov, 1, 0);
+  if (num_read == -1) {
+    LOG_FATAL("process_vm_readv failed on process #", pid_, " at address ",
+              HexStr(address), ": ", strerror(errno));
+  }
+  CHECK_EQ(size, num_read) << absl::StrCat(
+      "process_vm_readv partial read, start address: ", HexStr(address),
+      " size: ", size);
+}
 
 void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
   struct user_regs_struct regs;
@@ -250,7 +272,27 @@ uint64_t NativeTracer::GetStackPointer() {
 #endif
 }
 
-uint32_t NativeTracer::PartialChecksumOfMutableMemory() { return 0; }
+uint32_t NativeTracer::PartialChecksumOfMutableMemory() {
+  absl::crc32c_t checksum(0);
+  // Empirically, checksumming the first 8 pages of each mutable region
+  // covers ~58% of the pages the proxy tends to dirty. Doubling this
+  // raises the coverage to 59%. Beyond the first few pages, the access
+  // patterns are fairly unpredictable, so we'd need to checksum vastly
+  // more memory to catch all the dirty pages. Unfortunately checksumming
+  // all the mutable memory on x86_64 would make fault injection ~18x
+  // slower. So we're trading some accuracy for a huge amount of speed.
+  char data[kPageSize * 8];
+  snapshot_->mapped_memory_map().Iterate([&](snapshot_types::Address start,
+                                             snapshot_types::Address limit,
+                                             MemoryPerms perms) {
+    if (!perms.Has(MemoryPerms::kWritable)) return;
+    memset(data, 0, sizeof(data));
+    ReadMemory(start, data, std::min(sizeof(data), limit - start));
+    checksum =
+        absl::ExtendCrc32c(checksum, absl::string_view(data, sizeof(data)));
+  });
+  return static_cast<uint32_t>(checksum);
+}
 
 const user_regs_struct& NativeTracer::GetGRegStruct() {
   if (!gregs_cache_.has_value()) {

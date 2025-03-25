@@ -24,8 +24,10 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
+#include "./snap/exit_sequence.h"
 #include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -226,6 +228,47 @@ TEST(NativeTracerTest, SkipInstruction) {
   }
 }
 
+constexpr size_t kReadMemoryBufferSize = 4096;
+
+template <typename Arch>
+constexpr uint8_t GetCodePadding();
+
+template <>
+constexpr uint8_t GetCodePadding<X86_64>() {
+  return 0xcc;
+}
+
+template <>
+constexpr uint8_t GetCodePadding<AArch64>() {
+  return 0x0;
+}
+
+// Check the memory buffer contains the same data as in the code page of the
+// snapshot. The expected data starts with the test_snippet followed by the
+// exit_sequence. The remaining bytes are filled with padding bytes (0xcc for
+// x86_64 and 0x0 for aarch64).
+template <typename Arch>
+void CheckMemory(const uint8_t* buffer, absl::string_view test_snippet) {
+  uint8_t expected[kReadMemoryBufferSize];
+  memset(expected, GetCodePadding<Arch>(), sizeof(expected));
+  memcpy(expected, test_snippet.data(), test_snippet.size());
+  WriteSnapExitSequence<Arch>(expected + test_snippet.size());
+  EXPECT_EQ(memcmp(buffer, expected, kReadMemoryBufferSize), 0);
+}
+
+TEST(NativeTracerTest, ReadMemory) {
+  std::string instructions =
+      GetTestSnippet<Host>(TestSnapshot::kSetThreeRegisters);
+  NativeTracer tracer;
+  ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
+  uint8_t buffer[kReadMemoryBufferSize];
+  tracer.SetBeforeExecutionCallback([&](TracerControl<Host>& tracer) {
+    tracer.ReadMemory(tracer.GetInstructionPointer(), &buffer, sizeof(buffer));
+  });
+  // The instruction limit of zero means the tracer will return an error.
+  tracer.Run(0).IgnoreError();
+  CheckMemory<Host>(buffer, instructions);
+}
 }  // namespace
 
 }  // namespace silifuzz
