@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <cstring>
+
 #include "./util/arch.h"
 #include "./util/byte_io.h"
 #include "./util/checks.h"

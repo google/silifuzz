@@ -18,6 +18,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "./util/arch.h"
 #include "./util/checks.h"
