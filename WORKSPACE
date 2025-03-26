@@ -180,6 +180,13 @@ new_git_repository(
     build_file = "@silifuzz//:third_party/BUILD.unicorn",
     commit = "d4b92485b1a228fb003e1218e42f6c778c655809",
     patch_cmds = [
+        # crc32 and crc32c functions are prefixed with "unicorn_" to avoid linking errors from
+        # symbol conflicts with other libraries (e.g. zlib). We need to match the opening bracket so
+        # that we change only the function names, and not the header/argument/helper macros.
+        # We can't easily glob the files like with ** operators in bash, so we use `find` to glob
+        # the files and then `sed` to replace the function names in those files.
+        """find qemu '(' -name "*.h" -o -name "*.c" ')' -type f \
+                -exec sed -i -e 's/\\b\\(crc32[c]\\{0,1\\}\\)(/unicorn_\\1(/' {} +""",
     ],
     remote = "https://github.com/unicorn-engine/unicorn",
     shallow_since = "1687038706 +0200",
