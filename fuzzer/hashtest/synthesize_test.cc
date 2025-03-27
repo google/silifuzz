@@ -215,6 +215,20 @@ unsigned int RandomEffectiveOpWidth(Rng& rng,
   return possible_widths[index];
 }
 
+// Push the flags register onto the stack and pop it back into the destination
+// register.
+void SynthesizeFlagSave(unsigned int dst, InstructionBlock& block) {
+  {
+    InstructionBuilder builder(XED_ICLASS_PUSHFQ, 64U);
+    Emit(builder, block);
+  }
+  {
+    InstructionBuilder builder(XED_ICLASS_POP, 64U);
+    builder.AddOperands(GPRegOperand(dst, 64));
+    Emit(builder, block);
+  }
+}
+
 // Synthesize a test instruction, the necessary initialization instructions to
 // make it work correctly, and the output collection instruction to fold the
 // results back into the entropy pool.
@@ -254,6 +268,15 @@ void SynthesizeTestStep(Rng& rng, const InstructionCandidate& candidate,
 
   // Emit the test instruction.
   block.EmitInstruction(ibuf, actual_len);
+
+  // Note that flags need to be saved immediately after the test instruction,
+  // otherwise other instructions can modify the flags.
+  if (candidate.fixed_reg.written.flags &&
+      candidate.OutputMode() == RegisterBank::kGP) {
+    unsigned int tmp = PopRandomBit(rng, rpool.tmp.gp);
+    SynthesizeFlagSave(tmp, block);
+    reg_is_written.push_back(tmp);
+  }
 
   // Gather the output registers.
   CHECK(!reg_is_written.empty());
@@ -319,6 +342,7 @@ std::vector<TestRegisters> GenerateRegisterSchedule(
 }
 
 }  // namespace
+
 void SynthesizeGPRegDec(unsigned int dst, InstructionBlock& block) {
   InstructionBuilder builder(XED_ICLASS_DEC, 64U);
   builder.AddOperands(GPRegOperand(dst, 64));

@@ -29,7 +29,7 @@ def get_data_dependency(name: str) -> str:
   )
 
 
-CURRENT_VERSION = '1.1.2'
+CURRENT_VERSION = '1.1.3'
 
 HASHTEST_RUNNER_PATH = get_data_dependency(
     'silifuzz/fuzzer/hashtest/hashtest_runner'

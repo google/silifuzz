@@ -19,7 +19,7 @@ namespace silifuzz {
 
 inline constexpr unsigned int kHashTestVersionMajor = 1;
 inline constexpr unsigned int kHashTestVersionMinor = 1;
-inline constexpr unsigned int kHashTestVersionPatch = 2;
+inline constexpr unsigned int kHashTestVersionPatch = 3;
 
 }  // namespace silifuzz
 
