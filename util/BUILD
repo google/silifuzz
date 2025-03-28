@@ -1340,6 +1340,11 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "user_regs_util",
+    hdrs = ["user_regs_util.h"],
+)
+
 cc_test(
     name = "reg_checksum_util_test",
     srcs = ["reg_checksum_util_test.cc"],

@@ -33,6 +33,7 @@
 #include "./util/ptrace_util.h"
 #include "./util/subprocess.h"
 #include "./util/ucontext/x86_64/traps.h"
+#include "./util/user_regs_util.h"
 
 namespace silifuzz {
 
@@ -171,8 +172,8 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
   // The tracee is now in ptrace-stopped state and the tracer is active.
   CallbackReason reason = [&]() {
     if (WSTOPSIG(status) == (SI_KERNEL | SIGTRAP)) {
-      VLOG_INFO(2, "system call at ", HexStr(GetInstructionPointer(regs)),
-                ", number = ", GetSyscallNumber(regs));
+      VLOG_INFO(2, "system call at ", HexStr(GetIPFromUserRegs(regs)),
+                ", number = ", GetSyscallNumberFromUserRegs(regs));
       return kSyscallStop;
     }
     switch (info.si_signo) {
@@ -217,7 +218,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       break;
     case kInjectSigusr1:
       VLOG_INFO(2, "callback requested to inject SIGUSR1 at ",
-                HexStr(GetInstructionPointer(regs)));
+                HexStr(GetIPFromUserRegs(regs)));
       callback_(pid_, regs, kBecomingInactive);
       ContinueTraceeWithSignal(SIGUSR1);
       break;

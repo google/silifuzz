@@ -55,11 +55,6 @@ absl::StatusOr<std::string> FetchInstructionFromProcess(pid_t pid,
 
 }  // namespace
 
-uint64_t DisassemblingSnapTracer::GetInstructionPointer(
-    const struct user_regs_struct& regs) {
-  return regs.pc;
-}
-
 HarnessTracer::ContinuationMode
 DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
     pid_t pid, const struct user_regs_struct& regs,

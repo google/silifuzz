@@ -47,6 +47,7 @@
 #include "./util/ptrace_util.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
+#include "./util/user_regs_util.h"
 
 namespace silifuzz {
 
@@ -202,7 +203,7 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
         if (reason != HarnessTracer::kSingleStepStop || ShouldStopTracing())
           return NextContinuationMode();
 
-        uint64_t addr = silifuzz::GetInstructionPointer(regs);
+        uint64_t addr = GetIPFromUserRegs(regs);
         gregs_cache_.emplace(regs);
         if (state_ == TracerState::kPreTracing) {
           if (addr == code_start_address_) {
@@ -337,15 +338,11 @@ void NativeTracer::SetInstructionPointer(uint64_t address) {
 }
 
 uint64_t NativeTracer::GetInstructionPointer() {
-  return silifuzz::GetInstructionPointer(GetGRegStruct());
+  return GetIPFromUserRegs(GetGRegStruct());
 }
 
 uint64_t NativeTracer::GetStackPointer() {
-#if defined(__x86_64__)
-  return GetGRegStruct().rsp;
-#elif defined(__aarch64__)
-  return GetGRegStruct().sp;
-#endif
+  return GetSPFromUserRegs(GetGRegStruct());
 }
 
 uint32_t NativeTracer::PartialChecksumOfMutableMemory() {

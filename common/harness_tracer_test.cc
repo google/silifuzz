@@ -33,6 +33,7 @@
 #include "./util/checks.h"
 #include "./util/data_dependency.h"
 #include "./util/subprocess.h"
+#include "./util/user_regs_util.h"
 
 namespace silifuzz {
 namespace {
@@ -94,7 +95,7 @@ TEST(HarnessTracerTest, SingleStep) {
       [&n_loop_head_seen](pid_t pid, const struct user_regs_struct& regs,
                           HarnessTracer::CallbackReason reason) {
         uint64_t data =
-            ptrace(PTRACE_PEEKTEXT, pid, GetInstructionPointer(regs), nullptr);
+            ptrace(PTRACE_PEEKTEXT, pid, GetIPFromUserRegs(regs), nullptr);
         CHECK_EQ(errno, 0);
     // PEEKTEXT reads a word from the tracee. x86 is little-endian so bytes
     // are in reverse order
@@ -143,7 +144,7 @@ TEST(HarnessTracerTest, Syscall) {
       helper_process->pid(), HarnessTracer::kSyscall,
       [&num_seen_getcpu](pid_t pid, const struct user_regs_struct& regs,
                          HarnessTracer::CallbackReason reason) {
-        if (GetSyscallNumber(regs) == SYS_getcpu) {
+        if (GetSyscallNumberFromUserRegs(regs) == SYS_getcpu) {
           ++num_seen_getcpu;
         }
         return HarnessTracer::kKeepTracing;
@@ -206,7 +207,7 @@ TEST(HarnessTracerTest, SignalInjection) {
   HarnessTracer tracer(helper_process->pid(), HarnessTracer::kSyscall,
                        [](pid_t pid, const struct user_regs_struct& regs,
                           HarnessTracer::CallbackReason reason) {
-                         if (GetSyscallNumber(regs) == SYS_getcpu) {
+                         if (GetSyscallNumberFromUserRegs(regs) == SYS_getcpu) {
                            // asks the tracer to inject SIGUSR1 when it sees
                            // getcpu syscall
                            return HarnessTracer::kInjectSigusr1;

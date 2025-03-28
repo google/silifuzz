@@ -89,9 +89,6 @@ class DisassemblingSnapTracer {
   TraceResult trace_result() { return trace_result_; }
 
  private:
-  // Returns value instruction pointer in 'regs'
-  uint64_t GetInstructionPointer(const user_regs_struct& regs);
-
   // Stepper is a stateful implementation for single-stepping one snapshot.
   // StepInstruction() is compatible with HarnessTracer::Callback.
   class SnapshotStepper {

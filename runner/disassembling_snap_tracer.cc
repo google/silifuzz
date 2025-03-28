@@ -18,6 +18,7 @@
 #include <sys/user.h>
 
 #include "./common/harness_tracer.h"
+#include "./util/user_regs_util.h"
 
 namespace silifuzz {
 
@@ -34,7 +35,7 @@ HarnessTracer::ContinuationMode DisassemblingSnapTracer::Step(
   // Flag indicating if the instruction pointer is in one of the snapshot memory
   // regions.
   bool in_snapshot =
-      snapshot_.mapped_memory_map().Contains(GetInstructionPointer(regs));
+      snapshot_.mapped_memory_map().Contains(GetIPFromUserRegs(regs));
   if (in_snapshot) {
     auto r = stepper_.StepInstruction(pid, regs, reason);
     // If the SnapshotStepper callback does not wants to keep tracing then

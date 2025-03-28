@@ -31,11 +31,6 @@
 
 namespace silifuzz {
 
-uint64_t DisassemblingSnapTracer::GetInstructionPointer(
-    const struct user_regs_struct& regs) {
-  return regs.rip;
-}
-
 HarnessTracer::ContinuationMode
 DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
     pid_t pid, const struct user_regs_struct& regs,

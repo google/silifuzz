@@ -30,27 +30,6 @@
 
 namespace silifuzz {
 
-#if defined(__x86_64__)
-inline uint64_t GetInstructionPointer(const user_regs_struct& regs) {
-  return regs.rip;
-}
-
-inline uint64_t GetSyscallNumber(const user_regs_struct& regs) {
-  // Some syscalls clobber rax but orig_rax preserves the value.
-  return regs.orig_rax;
-}
-#elif defined(__aarch64__)
-inline uint64_t GetInstructionPointer(const user_regs_struct& regs) {
-  return regs.pc;
-}
-
-inline uint64_t GetSyscallNumber(const user_regs_struct& regs) {
-  return regs.regs[8];
-}
-#else
-#error "Unsupported architecture"
-#endif
-
 // HarnessTracer is a ptrace-based tracing facility for the subprocess harness.
 // The typical usage looks like this:
 //
@@ -135,9 +114,9 @@ class HarnessTracer {
     // Stop due to a signal delivery.
     kSignalStop,
 
-    // Callback due to the tracing swiching from active to inactive. In practice
-    // this means there will be no more callbacks from harness until the tracee
-    // flips the tracer back into active mode.
+    // Callback due to the tracing switching from active to inactive. In
+    // practice this means there will be no more callbacks from harness until
+    // the tracee flips the tracer back into active mode.
     kBecomingInactive,
   };
 
@@ -188,8 +167,7 @@ class HarnessTracer {
   // Processes a given ptrace stop event identified by `status`.
   // `status` is the waitpid's wstatus of the tracee. `is_active` is the current
   // state of the tracer (active or inactive).
-  // Returns active state of the tracer after processsing the current stop
-  // event.
+  // Returns active state of the tracer after processing the current stop event.
   bool Trace(int status, bool is_active) const;
 
   // Releases the tracee until the next ptrace-stop event (see class-level

@@ -78,6 +78,7 @@ cc_test(
         "@silifuzz//util:data_dependency",
         "@silifuzz//util:itoa",
         "@silifuzz//util:path_util",
+        "@silifuzz//util:user_regs_util",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",

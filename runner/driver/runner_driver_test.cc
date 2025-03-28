@@ -36,6 +36,7 @@
 #include "./util/testing/status_macros.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
+#include "./util/user_regs_util.h"
 
 namespace silifuzz {
 namespace {
@@ -117,7 +118,7 @@ TEST(RunnerDriver, BasicTrace) {
   auto cb = [&hit_initial_snap_rip, start_address](
                 pid_t pid, const user_regs_struct& regs,
                 HarnessTracer::CallbackReason reason) {
-    if (GetInstructionPointer(regs) == start_address) {
+    if (GetIPFromUserRegs(regs) == start_address) {
       hit_initial_snap_rip = true;
       return HarnessTracer::kStopTracing;
     }

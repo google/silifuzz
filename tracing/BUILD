@@ -237,6 +237,7 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:page_util",
         "@silifuzz//util:ptrace_util",
+        "@silifuzz//util:user_regs_util",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
         "@com_google_absl//absl/crc:crc32c",
