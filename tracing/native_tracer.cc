@@ -301,6 +301,10 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
 #endif
 
   UserFPRegsStruct fp_regs;
+  // On arm, user_fpsimd_struct has implicit alignment padding because
+  // __uint128_t is 16-byte aligned. Memset the entire struct to avoid msan
+  // complaints about reading uninitialized memory.
+  memset(&fp_regs, 0, sizeof(fp_regs));
   SerializeUserFPRegsStruct(ucontext.fpregs, &fp_regs);
   SetFPRegs(pid_, fp_regs);
 
