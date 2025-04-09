@@ -217,7 +217,8 @@ unsigned int RandomEffectiveOpWidth(Rng& rng,
 
 // Push the flags register onto the stack and pop it back into the destination
 // register.
-void SynthesizeFlagSave(unsigned int dst, InstructionBlock& block) {
+void SynthesizeFlagSave(unsigned int dst, bool mask_trap_flag,
+                        InstructionBlock& block) {
   {
     InstructionBuilder builder(XED_ICLASS_PUSHFQ, 64U);
     Emit(builder, block);
@@ -225,6 +226,27 @@ void SynthesizeFlagSave(unsigned int dst, InstructionBlock& block) {
   {
     InstructionBuilder builder(XED_ICLASS_POP, 64U);
     builder.AddOperands(GPRegOperand(dst, 64));
+    Emit(builder, block);
+  }
+  if (mask_trap_flag) {
+    // Mask the trap bit.
+    // This prevents a test from producing different results when it is being
+    // traced, or not.
+    // It does cost 7 bytes / 1 instruction, however.
+    // TODO(ncbray): the trap bit is still unmasked on the stack. When running
+    // inside Silifuzz, the unmasked flag value on the stack will be overwritten
+    // by the exit sequence. In the standalone hashtest runner, the contents of
+    // the stack are not checked. If we ever start using the stack for other
+    // purposes, however, the serendipity of the exit sequence erasing the trap
+    // bit may be lost. It would be more reliable to mask the stack memory
+    // directly rather than masking the value after it was loaded from memory.
+    // Adding an instruction that explicitly operates on memory could
+    // theoretically affect the microarchitecture in an unexpected way, so
+    // making this change would require an emperical reevaluation of hashtest
+    // effectiveness. So TODO, for now.
+    InstructionBuilder builder(XED_ICLASS_AND, 64U);
+    builder.AddOperands(GPRegOperand(dst, 64));
+    builder.AddOperands(xed_simm0(~(1 << 8), 32));
     Emit(builder, block);
   }
 }
@@ -235,6 +257,7 @@ void SynthesizeFlagSave(unsigned int dst, InstructionBlock& block) {
 void SynthesizeTestStep(Rng& rng, const InstructionCandidate& candidate,
                         const RegisterPool& original_rpool,
                         RegisterID entropy_output, RegisterID entropy_mixin,
+                        const SynthesisConfig& config,
                         InstructionBlock& block) {
   RegisterPool rpool = original_rpool;
 
@@ -273,9 +296,13 @@ void SynthesizeTestStep(Rng& rng, const InstructionCandidate& candidate,
   // otherwise other instructions can modify the flags.
   if (candidate.fixed_reg.written.flags &&
       candidate.OutputMode() == RegisterBank::kGP) {
-    unsigned int tmp = PopRandomBit(rng, rpool.tmp.gp);
-    SynthesizeFlagSave(tmp, block);
-    reg_is_written.push_back(tmp);
+    // Don't capture the flags all the time.
+    // It has a ~16 byte / 5 instruction cost (capture + mixing into entropy).
+    if (std::bernoulli_distribution(config.flag_capture_rate)(rng)) {
+      unsigned int tmp = PopRandomBit(rng, rpool.tmp.gp);
+      SynthesizeFlagSave(tmp, config.mask_trap_flag, block);
+      reg_is_written.push_back(tmp);
+    }
   }
 
   // Gather the output registers.
@@ -374,7 +401,9 @@ void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block) {
 }
 
 void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
-                        const RegisterPool& rpool, InstructionBlock& block) {
+                        const RegisterPool& rpool,
+                        const SynthesisConfig& config,
+                        InstructionBlock& block) {
   std::vector<TestRegisters> greg_schedule =
       GenerateRegisterSchedule(rng, RegisterBank::kGP, rpool.entropy.gp);
   std::vector<TestRegisters> vreg_schedule =
@@ -474,7 +503,7 @@ void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
   for (const TestStep& step : schedule) {
     // Generate the test instruction + setup + output collection.
     SynthesizeTestStep(rng, *step.candidate, dead_pool, step.registers.dead,
-                       step.registers.mix, block);
+                       step.registers.mix, config, block);
     // The mix register has been consumed, and is now dead.
     dead_pool.entropy.Set(step.registers.mix, false, true);
     // The old dead register now has entropy.

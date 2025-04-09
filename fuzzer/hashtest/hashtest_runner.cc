@@ -94,7 +94,9 @@ void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
   RegisterPool rpool{};
   InitRegisterLayout(chip, rpool);
 
-  SynthesizeLoopBody(rng, ipool, rpool, body);
+  SynthesisConfig config{};
+
+  SynthesizeLoopBody(rng, ipool, rpool, config, body);
 
   // Decrement the loop counter at the end of the loop body.
   SynthesizeGPRegDec(kLoopIndex, body);
