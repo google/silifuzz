@@ -23,6 +23,8 @@
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
+#include "./fuzzer/hashtest/mxcsr.h"
+#include "./fuzzer/hashtest/rand_util.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_shuffle.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
@@ -159,7 +161,17 @@ absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
     }
   }
 
-  // TODO(ncbray): randomize FP rounding mode, etc.
+  // Randomize the MXCSR.
+  uint32_t mxcsr = kMXCSRMaskAll;
+  mxcsr |= ChooseRandomElement(rng, {kMXCSRRoundNearest, kMXCSRRoundDown,
+                                     kMXCSRRoundUp, kMXCSRRoundTowardsZero});
+  if (RandomBool(rng)) {
+    mxcsr |= kMXCSRDenormalsAreZeros;
+  }
+  if (RandomBool(rng)) {
+    mxcsr |= kMXCSRFlushToZero;
+  }
+  ucontext.fpregs.mxcsr = mxcsr;
 
   ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
                              InstructionsToSnapshot(view, ucontext));

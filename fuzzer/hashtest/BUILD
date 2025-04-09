@@ -44,6 +44,7 @@ cc_library(
         "candidate.h",
         "debugging.h",
         "instruction_pool.h",
+        "mxcsr.h",
         "prefilter.h",
         "rand_util.h",
         "register_info.h",
@@ -146,7 +147,6 @@ cc_library(
         "hashtest_runner.h",
         "hashtest_runner_widgits.h",
         "json.h",
-        "mxcsr.h",
     ],
     deps = [
         ":hashtest_generator_lib",
