@@ -164,7 +164,7 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
   absl::flat_hash_set<Snapshot::Id> id_seen;
 
   for (const std::string& input : inputs) {
-    auto reader = centipede::DefaultBlobFileReaderFactory();
+    auto reader = fuzztest::internal::DefaultBlobFileReaderFactory();
     if (!reader->Open(input).ok()) {
       counters->Increment("silifuzz-ERROR-Read:open-blob-reader-failed");
       continue;
@@ -172,7 +172,7 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
 
     // TODO(dougkwan): Parallelize this to speed up blob reading.
     absl::Status status;
-    centipede::ByteSpan blob;
+    fuzztest::internal::ByteSpan blob;
     while ((status = reader->Read(blob)).ok()) {
       const std::string id = InstructionsToSnapshotId(
           {reinterpret_cast<const char*>(blob.data()), blob.size()});

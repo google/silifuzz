@@ -120,7 +120,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   for (size_t i = 1; i < compressed_counts.size(); ++i) {
     for (size_t j = 0; j < i; ++j) {
       const uint64_t pair = compressed_counts[i] * d + compressed_counts[j];
-      DCHECK_LT(pair, centipede::feature_domains::Domain::kDomainSize);
+      DCHECK_LT(pair, fuzztest::internal::feature_domains::Domain::kDomainSize);
       user_features.EmitFeature(kPMUCounterPairDomain, pair);
     }
   }

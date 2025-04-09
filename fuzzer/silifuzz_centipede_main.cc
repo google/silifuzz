@@ -37,28 +37,30 @@ ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
 
 namespace silifuzz {
 
-using centipede::MutationInputRef;
+using fuzztest::internal::MutationInputRef;
 
-class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
+class SilifuzzCentipedeCallbacks
+    : public fuzztest::internal::CentipedeDefaultCallbacks {
  public:
-  SilifuzzCentipedeCallbacks(const centipede::Environment &env)
+  SilifuzzCentipedeCallbacks(const fuzztest::internal::Environment &env)
       : CentipedeDefaultCallbacks(env),
         arch_(absl::GetFlag(FLAGS_arch)),
-        x86_64_mutator_(centipede::GetRandomSeed(env.seed),
+        x86_64_mutator_(fuzztest::internal::GetRandomSeed(env.seed),
                         env.crossover_level / 100.0, env.max_len),
-        aarch64_mutator_(centipede::GetRandomSeed(env.seed),
+        aarch64_mutator_(fuzztest::internal::GetRandomSeed(env.seed),
                          env.crossover_level / 100.0, env.max_len) {}
 
-  std::vector<centipede::ByteArray> Mutate(
-      const std::vector<centipede::MutationInputRef> &inputs,
+  std::vector<fuzztest::internal::ByteArray> Mutate(
+      const std::vector<fuzztest::internal::MutationInputRef> &inputs,
       size_t num_mutants) override {
     // Fall back to the byte mutator if the architecture was not specified.
     if (arch_ == ArchitectureId::kUndefined) {
-      return centipede::CentipedeDefaultCallbacks::Mutate(inputs, num_mutants);
+      return fuzztest::internal::CentipedeDefaultCallbacks::Mutate(inputs,
+                                                                   num_mutants);
     }
 
     // Init
-    std::vector<centipede::ByteArray> mutants{num_mutants};
+    std::vector<fuzztest::internal::ByteArray> mutants{num_mutants};
     if (num_mutants == 0) return mutants;
 
     // Re-wrap the input vector so the mutator doesn't need to depend on
@@ -93,11 +95,13 @@ class SilifuzzCentipedeCallbacks : public centipede::CentipedeDefaultCallbacks {
 }  // namespace silifuzz
 
 int main(int argc, char **argv) {
-  const auto runtime_state = centipede::config::InitCentipede(argc, argv);
-  centipede::Environment env =
-      centipede::CreateEnvironmentFromFlags(runtime_state->leftover_argv());
+  const auto runtime_state = fuzztest::internal::InitCentipede(argc, argv);
+  fuzztest::internal::Environment env =
+      fuzztest::internal::CreateEnvironmentFromFlags(
+          runtime_state->leftover_argv());
   LOG(INFO) << "Mutator arch: " << silifuzz::EnumStr(absl::GetFlag(FLAGS_arch));
-  centipede::DefaultCallbacksFactory<silifuzz::SilifuzzCentipedeCallbacks>
+  fuzztest::internal::DefaultCallbacksFactory<
+      silifuzz::SilifuzzCentipedeCallbacks>
       callbacks;
   return CentipedeMain(env, callbacks);
 }

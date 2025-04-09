@@ -44,7 +44,7 @@
 #include "./util/path_util.h"
 #include "./util/testing/status_macros.h"
 
-using centipede::DefaultBlobFileWriterFactory;
+using fuzztest::internal::DefaultBlobFileWriterFactory;
 using testing::SizeIs;
 using testing::UnorderedElementsAre;
 
