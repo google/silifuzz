@@ -48,8 +48,8 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
     ],
     alwayslink = True,
 )
@@ -77,8 +77,8 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
     ],
     alwayslink = True,
 )

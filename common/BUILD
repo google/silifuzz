@@ -34,9 +34,9 @@ cc_library(
         ":snapshot_enums",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -47,7 +47,7 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:misc_util",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -62,7 +62,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:range_map",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -73,7 +73,7 @@ cc_test(
         ":mapped_memory_map",
         ":memory_mapping",
         ":memory_perms",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -93,7 +93,7 @@ cc_test(
     srcs = ["memory_bytes_set_test.cc"],
     deps = [
         ":memory_bytes_set",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -103,8 +103,8 @@ cc_library_plus_nolibc(
     srcs = ["snapshot_enums.cc"],
     hdrs = ["snapshot_enums.h"],
     as_is_deps = [
-        "@com_google_absl//absl/time",
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:checks",
@@ -134,11 +134,11 @@ cc_library(
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/algorithm:container",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/algorithm:container",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -157,8 +157,8 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -184,9 +184,9 @@ cc_library(
         "@silifuzz//util:misc_util",
         "@silifuzz//util:platform",
         "@silifuzz//util:proto_util",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -207,7 +207,7 @@ cc_test(
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_group_set",
         "@silifuzz//util/testing:status_macros",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -222,9 +222,9 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -238,10 +238,10 @@ cc_library(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
         "@silifuzz//util:proto_util",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -267,8 +267,8 @@ cc_library(
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util:text_table",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -286,8 +286,8 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:range_map",
-        "@com_google_absl//absl/base:log_severity",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/base:log_severity",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -309,7 +309,7 @@ cc_library_plus_nolibc(
     testonly = True,
     hdrs = ["snapshot_test_enum.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:itoa",
@@ -354,7 +354,7 @@ cc_library(
         "@silifuzz//util:platform",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -386,10 +386,10 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:ucontext_types",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
         "@cityhash",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -408,8 +408,8 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -425,8 +425,8 @@ cc_library(
         "@silifuzz//util:subprocess",
         "@silifuzz//util:user_regs_util",
         "@silifuzz//util/ucontext:x86_traps",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/synchronization",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/synchronization",
     ],
 )
 
@@ -436,7 +436,7 @@ cc_binary(
     testonly = 1,
     srcs = ["harness_tracer_test_helper.cc"],
     deps = [
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@lss",
     ],
 )
@@ -453,7 +453,7 @@ cc_test(
         "@silifuzz//util:data_dependency",
         "@silifuzz//util:subprocess",
         "@silifuzz//util:user_regs_util",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )

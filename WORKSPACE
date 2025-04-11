@@ -4,15 +4,15 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 ###############################################################################
-# Bazel Skylib (transitively required by com_google_absl).
+# Bazel Skylib (transitively required by abseil-cpp).
 ###############################################################################
 
 http_archive(
     name = "bazel_skylib",
-    sha256 = "f24ab666394232f834f74d19e2ff142b0af17466ea0c69a3f4c276ee75f6efce",
+    sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
     urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.0/bazel-skylib-1.4.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.0/bazel-skylib-1.4.0.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
     ],
 )
 
@@ -27,9 +27,9 @@ bazel_skylib_workspace()
 
 http_archive(
     name = "rules_cc",
-    sha256 = "2037875b9a4456dce4a79d112a8ae885bbc4aad968e6587dca6e64f3a0900cdf",
-    strip_prefix = "rules_cc-0.0.9",
-    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.9/rules_cc-0.0.9.tar.gz"],
+    sha256 = "712d77868b3152dd618c4d64faaddefcc5965f90f5de6e6dd1d5ddcd0be82d42",
+    strip_prefix = "rules_cc-0.1.1",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.1.1/rules_cc-0.1.1.tar.gz"],
 )
 
 http_archive(
@@ -48,10 +48,12 @@ py_repositories()
 ###############################################################################
 
 http_archive(
-    name = "com_google_absl",
-    sha256 = "0ddd37f347c58d89f449dd189a645bfd97bcd85c5284404a3af27a3ca3476f39",
-    strip_prefix = "abseil-cpp-fad946221cec37175e762c399760f54b9de9a9fa",
-    url = "https://github.com/abseil/abseil-cpp/archive/fad946221cec37175e762c399760f54b9de9a9fa.tar.gz",
+    name = "abseil-cpp",
+    integrity = "sha256-33rryIpf8T3M5jdr3SkEmUO4hahMMCFrSkUbUPoLL14=",
+    strip_prefix = "abseil-cpp-93c112c587269e778494e828b23e63ae70bd451e",
+    url = "https://github.com/abseil/abseil-cpp/archive/93c112c587269e778494e828b23e63ae70bd451e.tar.gz",
+    patches = ["@silifuzz//:third_party/absl_endian_visibility.patch"],
+    patch_args = ["-p1"],
 )
 
 ###############################################################################
@@ -63,6 +65,8 @@ http_archive(
     sha256 = "2ebedb9330ff0e7e07abd77df9bd8c62692016a8138a4722f5259e7f657c89c1",
     strip_prefix = "googletest-b3a9ba2b8e975550799838332803d468797ae2e1",
     url = "https://github.com/google/googletest/archive/b3a9ba2b8e975550799838332803d468797ae2e1.tar.gz",
+    repo_mapping = {"@com_google_absl": "@abseil-cpp",
+                    "@com_googlesource_code_re2": "@re2"},
 )
 
 ###############################################################################
@@ -73,25 +77,39 @@ http_archive(
 # This statement defines the @com_google_protobuf repo.
 http_archive(
     name = "com_google_protobuf",
-    sha256 = "8ff511a64fc46ee792d3fe49a5a1bcad6f7dc50dfbba5a28b0e5b979c17f9871",
-    strip_prefix = "protobuf-25.2",
-    urls = ["https://github.com/protocolbuffers/protobuf/archive/v25.2.tar.gz"],
+    integrity = "sha256-B6Q9iP5aOOQ0x/lBKcrVakxDpR+ZM2B00HmcL31ORMU=",
+    strip_prefix = "protobuf-30.2",
+    urls = ["https://github.com/protocolbuffers/protobuf/archive/v30.2.tar.gz"],
 )
 
 load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
 
+load("@rules_java//java:rules_java_deps.bzl", "rules_java_dependencies")
+
+rules_java_dependencies()
+
+load("@rules_java//java:repositories.bzl", "rules_java_toolchains")
+
+rules_java_toolchains()
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+
+py_repositories()
+
 http_archive(
     name = "rules_proto",
-    sha256 = "dc3fb206a2cb3441b485eb1e423165b231235a1ea9b031b4433cf7bc1fa460dd",
-    strip_prefix = "rules_proto-5.3.0-21.7",
-    url = "https://github.com/bazelbuild/rules_proto/archive/refs/tags/5.3.0-21.7.tar.gz",
+    sha256 = "14a225870ab4e91869652cfd69ef2028277fc1dc4910d65d353b62d6e0ae21f4",
+    strip_prefix = "rules_proto-7.1.0",
+    url = "https://github.com/bazelbuild/rules_proto/archive/refs/tags/7.1.0.tar.gz",
 )
 
-load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies")
 
 rules_proto_dependencies()
+
+load("@rules_proto//proto:toolchains.bzl", "rules_proto_toolchains")
 
 rules_proto_toolchains()
 
@@ -212,7 +230,7 @@ http_archive(
 
 # Required by com_google_fuzztest.
 http_archive(
-    name = "com_googlesource_code_re2",
+    name = "re2",
     sha256 = "f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f",
     strip_prefix = "re2-2022-06-01",
     url = "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz",
@@ -228,9 +246,10 @@ new_git_repository(
 
 http_archive(
     name = "com_google_riegeli",
-    sha256 = "f8386e44e16d044c1d7151c0b553bb7075d79583d4fa9e613a4be452599e0795",
-    strip_prefix = "riegeli-411cda7f6aa81f8b8591b04cf141b1decdcc928c",
-    url = "https://github.com/google/riegeli/archive/411cda7f6aa81f8b8591b04cf141b1decdcc928c.tar.gz",
+    integrity = "sha256-/ALALKdLpx6VyrimK62Q0fgO9eoBHHppsRZc6l329Oc=",
+    strip_prefix = "riegeli-3385e3cbc5c1a1380eb99b7cf0b021c1ae0b2c30",
+    url = "https://github.com/google/riegeli/archive/3385e3cbc5c1a1380eb99b7cf0b021c1ae0b2c30.tar.gz",
+    repo_mapping = {"@com_google_absl": "@abseil-cpp"},
 )
 
 ################################################################################
@@ -239,31 +258,30 @@ http_archive(
 
 http_archive(
     name = "highwayhash",
-    build_file = "@com_google_riegeli//third_party:highwayhash.BUILD",
-    sha256 = "cf891e024699c82aabce528a024adbe16e529f2b4e57f954455e0bf53efae585",
-    strip_prefix = "highwayhash-276dd7b4b6d330e4734b756e97ccfb1b69cc2e12",
-    urls = ["https://github.com/google/highwayhash/archive/276dd7b4b6d330e4734b756e97ccfb1b69cc2e12.zip"],  # 2019-02-22
+    build_file = "@silifuzz//:third_party/BUILD.highwayhash",
+    integrity = "sha256-dEp0gr0f5NnP5mMuwlS5J+y5v2URYZU9OByx5Pbz+6M=",
+    strip_prefix = "highwayhash-5ad3bf8444cfc663b11bf367baaa31f36e7ff7c8",
+    url = "https://github.com/google/highwayhash/archive/5ad3bf8444cfc663b11bf367baaa31f36e7ff7c8.tar.gz",
 )
 
 http_archive(
     name = "org_brotli",
-    sha256 = "84a9a68ada813a59db94d83ea10c54155f1d34399baf377842ff3ab9b3b3256e",
-    strip_prefix = "brotli-3914999fcc1fda92e750ef9190aa6db9bf7bdb07",
-    urls = ["https://github.com/google/brotli/archive/3914999fcc1fda92e750ef9190aa6db9bf7bdb07.zip"],  # 2022-11-17
+    integrity = "sha256-5yCmyilCi4A/StFlNxdx9TmPq6OX7fZ3iDehhZnqE/8=",
+    strip_prefix = "brotli-1.1.0",
+    url = "https://github.com/google/brotli/archive/refs/tags/v1.1.0.tar.gz",
 )
 
 http_archive(
     name = "net_zstd",
-    build_file = "@com_google_riegeli//third_party:net_zstd.BUILD",
-    sha256 = "b6c537b53356a3af3ca3e621457751fa9a6ba96daf3aebb3526ae0f610863532",
-    strip_prefix = "zstd-1.4.5/lib",
-    urls = ["https://github.com/facebook/zstd/archive/v1.4.5.zip"],  # 2020-05-22
+    build_file = "@silifuzz//:third_party/BUILD.net_zstd",
+    integrity = "sha256-jCngbPQqrMHq/EB3ri7Gxvy5amJhV+BZPV6Co0/UA8E=",
+    strip_prefix = "zstd-1.5.6",
+    url = "https://github.com/facebook/zstd/releases/download/v1.5.6/zstd-1.5.6.tar.gz",
 )
 
 http_archive(
     name = "snappy",
-    build_file = "@com_google_riegeli//third_party:snappy.BUILD",
-    sha256 = "38b4aabf88eb480131ed45bfb89c19ca3e2a62daeb081bdf001cfb17ec4cd303",
-    strip_prefix = "snappy-1.1.8",
-    urls = ["https://github.com/google/snappy/archive/1.1.8.zip"],  # 2020-01-14
+    integrity = "sha256-m48Q+7XjvBEvLl5k+BPLc/rqQuycUzpQI7WuCK7e9C4=",
+    strip_prefix = "snappy-1.2.0",
+    url = "https://github.com/google/snappy/archive/refs/tags/1.2.0.tar.gz",
 )

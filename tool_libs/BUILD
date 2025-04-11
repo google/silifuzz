@@ -31,7 +31,7 @@ cc_library(
     deps = [
         ":snap_group",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/algorithm:container",
+        "@abseil-cpp//absl/algorithm:container",
     ],
 )
 
@@ -45,7 +45,7 @@ cc_test(
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -67,9 +67,9 @@ cc_library(
         "@silifuzz//util:page_util",
         "@silifuzz//util:platform",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -78,9 +78,9 @@ cc_library(
     hdrs = ["simple_fix_tool_counters.h"],
     deps = [
         ":fix_tool_common",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/meta:type_traits",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/meta:type_traits",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -103,8 +103,8 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
         "@silifuzz//util:thread_pool",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/status",
     ],
 )
 
@@ -124,8 +124,8 @@ cc_test(
         "@silifuzz//util:platform",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -140,6 +140,6 @@ cc_library(
         "@silifuzz//common:snapshot_proto",
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )

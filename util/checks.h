@@ -48,6 +48,7 @@
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 #include "absl/log/check.h"        // IWYU pragma: export
 #include "absl/log/log.h"          // IWYU pragma: export
+#include "absl/log/vlog_is_on.h"   // IWYU pragma: export
 #include "absl/strings/str_cat.h"  // IWYU pragma: export
 #endif
 

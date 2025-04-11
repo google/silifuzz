@@ -37,7 +37,7 @@ cc_library_plus_nolibc(
     name = "ucontext_types",
     hdrs = ["ucontext_types.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:arch",
@@ -73,7 +73,7 @@ cc_library_plus_nolibc(
     }),
     hdrs = ["ucontext.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         ":ucontext_types",
@@ -121,7 +121,7 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:misc_util",
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
         "@com_google_googletest//:gtest",
         "@lss",
     ],
@@ -154,7 +154,7 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:misc_util",
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
         "@com_google_googletest//:gtest",
         "@lss",
     ],
@@ -182,7 +182,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/base:log_severity",
+        "@abseil-cpp//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -223,7 +223,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/base:log_severity",
+        "@abseil-cpp//absl/base:log_severity",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
@@ -264,7 +264,7 @@ cc_library_plus_nolibc(
     hdrs = ["signal.h"],
     as_is_deps = [
         "@lss",
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         ":ucontext",
@@ -296,7 +296,7 @@ cc_test(
         ":ucontext",
         ":ucontext_types",
         "@silifuzz//util:arch",
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
         "@com_google_googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [":aarch64_esr"],
@@ -313,7 +313,7 @@ cc_library_plus_nolibc(
     ],
     hdrs = ["serialize.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         ":ucontext",

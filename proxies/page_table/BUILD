@@ -20,7 +20,7 @@ cc_library(
     name = "bit_struct",
     hdrs = ["bit_struct.h"],
     deps = [
-        "@com_google_absl//absl/log:check",
+        "@abseil-cpp//absl/log:check",
     ],
 )
 
@@ -48,11 +48,11 @@ cc_library(
         "@silifuzz//common:memory_perms",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
     ],
 )
 
@@ -65,9 +65,9 @@ cc_library(
         ":physical_address",
         ":table_descriptor_entry",
         "@silifuzz//util:arch",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:str_format",
     ],
 )
 
@@ -96,7 +96,7 @@ cc_library(
     hdrs = ["virtual_address.h"],
     deps = [
         ":bit_struct",
-        "@com_google_absl//absl/log",
+        "@abseil-cpp//absl/log",
     ],
 )
 
@@ -110,7 +110,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -124,7 +124,7 @@ cc_library(
         ":physical_address",
         ":virtual_address",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -140,8 +140,8 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/base",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -158,8 +158,8 @@ cc_library(
         "@silifuzz//common:memory_state",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -175,7 +175,7 @@ cc_test(
         "@silifuzz//common:snapshot",
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
-        "@com_google_absl//absl/cleanup",
+        "@abseil-cpp//absl/cleanup",
         "@com_google_googletest//:gtest_main",
     ],
 )

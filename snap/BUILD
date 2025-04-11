@@ -92,7 +92,7 @@ cc_test(
         "@silifuzz//util:checks",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util/testing:status_macros",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -121,7 +121,7 @@ cc_library(
         "@silifuzz//common:snapshot_util",
         "@silifuzz//util:checks",
         "@silifuzz//util:platform",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -134,7 +134,7 @@ cc_library_plus_nolibc(
         "snap_checksum.h",
     ],
     as_is_deps = [
-        "@com_google_absl//absl/strings:string_view",
+        "@abseil-cpp//absl/strings:string_view",
     ],
     deps = [
         ":snap",
@@ -152,7 +152,7 @@ cc_test(
         ":snap_checksum",
         "@silifuzz//util:arch",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/strings:string_view",
+        "@abseil-cpp//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -192,7 +192,7 @@ cc_test(
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:path_util",
         "@silifuzz//util/testing:status_macros",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )

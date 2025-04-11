@@ -25,7 +25,7 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
     ],
 )
 
@@ -43,7 +43,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -77,9 +77,9 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@unicorn//:unicorn_arm64",
     ],
 )
@@ -107,9 +107,9 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@unicorn//:unicorn_x86",
     ],
 )
@@ -138,9 +138,9 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:page_util",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@unicorn",
     ],
 )
@@ -159,7 +159,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/log:check",
+        "@abseil-cpp//absl/log:check",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -175,8 +175,8 @@ cc_library(
         "@silifuzz//instruction:default_disassembler",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -204,12 +204,12 @@ cc_binary(
         "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/types:span",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
+        "@abseil-cpp//absl/types:span",
     ],
 )
 
@@ -240,11 +240,11 @@ cc_library(
         "@silifuzz//util:user_regs_util",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/crc:crc32c",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:string_view",
+        "@abseil-cpp//absl/crc:crc32c",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings:string_view",
     ],
 )
 
@@ -262,8 +262,8 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/strings:string_view",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings:string_view",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -276,8 +276,8 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:string_view",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings:string_view",
     ],
 )
 

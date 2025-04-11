@@ -35,7 +35,7 @@ cc_library(
     deps = [
         "@silifuzz//util:arch",
         "@silifuzz//util:bit_matcher",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -56,7 +56,7 @@ cc_library(
     hdrs = ["xed_util.h"],
     deps = [
         "@silifuzz//util:platform",
-        "@com_google_absl//absl/base",
+        "@abseil-cpp//absl/base",
         "@libxed//:xed",
     ],
 )
@@ -83,11 +83,11 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:misc_util",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/base",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
         "@libxed//:xed",
     ],
 )
@@ -98,8 +98,8 @@ cc_test(
     deps = [
         ":decoded_insn",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
         "@libxed//:xed",
     ],
@@ -129,8 +129,8 @@ cc_library(
         ":disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@abseil-cpp//absl/strings",
         "@capstone",
-        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -143,7 +143,7 @@ cc_library(
         ":xed_util",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/strings",
         "@libxed//:xed",
     ],
 )

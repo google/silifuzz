@@ -83,9 +83,9 @@ cc_library(
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/hash",
-        "@com_google_absl//absl/log:check",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/hash",
+        "@abseil-cpp//absl/log:check",
     ],
 )
 
@@ -112,9 +112,9 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/container:flat_hash_map",
+        "@abseil-cpp//absl/container:flat_hash_set",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -127,9 +127,9 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
         "@silifuzz//util:mem_util",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:str_format",
     ],
 )
 
@@ -143,7 +143,7 @@ cc_test(
         "@silifuzz//common:snapshot",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -194,10 +194,10 @@ cc_library(
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -216,7 +216,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/status",
+        "@abseil-cpp//absl/status",
         "@com_google_googletest//:gtest_main",
     ],
 )

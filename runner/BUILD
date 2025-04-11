@@ -107,7 +107,7 @@ cc_test_nolibc(
         ],
     }),
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     features = ["fully_static_link"],
     linkstatic = 1,
@@ -153,7 +153,7 @@ cc_library_plus_nolibc(
         "runner_util.h",
     ],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     # This can only be built as a static library as it would
     # crash the dynamic linker due to invalid fs_base on x86.
@@ -292,8 +292,8 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -318,10 +318,10 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:user_regs_util",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "@silifuzz//instruction:static_insn_filter",
@@ -359,9 +359,9 @@ cc_test(
         "@silifuzz//util:data_dependency",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/functional:bind_front",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -391,11 +391,11 @@ cc_library(
         "@silifuzz//util:line_printer",
         "@silifuzz//util:page_util",
         "@silifuzz//util:platform",
-        "@com_google_absl//absl/functional:bind_front",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/functional:bind_front",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -412,7 +412,7 @@ cc_library(
         ":snap_maker",
         "@silifuzz//common:snapshot",
         "@silifuzz//player:trace_options",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
     ],
 )
 
@@ -432,8 +432,8 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/testing:vsyscall",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -453,9 +453,9 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:itoa",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -468,7 +468,7 @@ cc_library_nolibc(
     # is added by one {runner_main,reading_runner_main}
     hdrs = ["default_snap_corpus.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
         "@lss",
     ],
     linkstatic = 1,
@@ -521,7 +521,7 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:data_dependency",
-        "@com_google_absl//absl/flags:flag",
+        "@abseil-cpp//absl/flags:flag",
     ],
 )
 

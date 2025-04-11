@@ -25,9 +25,9 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
     ],
 )
 
@@ -49,11 +49,11 @@ cc_library(
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:subprocess",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/time",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
         "@com_google_protobuf//:protobuf",
     ],
 )
@@ -82,7 +82,7 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status:statusor",
         "@com_google_googletest//:gtest_main",
     ],
 )

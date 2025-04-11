@@ -32,7 +32,7 @@ cc_library_plus_nolibc(
     testonly = 1,
     hdrs = ["snap_test_types.h"],
     as_is_deps = [
-        "@com_google_absl//absl/base:core_headers",
+        "@abseil-cpp//absl/base:core_headers",
     ],
     deps = [
         "@silifuzz//util:itoa",
@@ -75,10 +75,10 @@ cc_binary(
         "@silifuzz//util:file_util",
         "@silifuzz//util:misc_util",
         "@silifuzz//util:mmapped_memory_ptr",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
     ],
 )
 
@@ -148,7 +148,7 @@ cc_library(
         "@silifuzz//util:reg_checksum",
         "@silifuzz//util:reg_checksum_util",
         "@silifuzz//util/ucontext:serialize",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
     ],
 )
