@@ -36,6 +36,7 @@ namespace silifuzz {
 // according to register number ordering.  For example, the LSB of zmm0 is
 // read first and the MSB of zmm31 is read last when checksumming AVX512
 // registers.
+template <>
 RegisterChecksum<X86_64> GetRegisterGroupsChecksum(
     const RegisterGroupIOBuffer<X86_64>& buffer) {
   uint32_t crc = 0;
@@ -60,6 +61,7 @@ RegisterChecksum<X86_64> GetRegisterGroupsChecksum(
   return register_checksum;
 }
 
+template <>
 RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
     const RegisterGroupIOBuffer<AArch64>& buffer) {
   uint32_t crc = 0;

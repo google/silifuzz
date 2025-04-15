@@ -96,8 +96,9 @@ extern "C" void ClearRegisterGroups();
 
 // Returns a RegisterChecksum struct using the contents 'buffer'.  The register
 // groups included in the checksum is controlled by buffer.register_groups.
-RegisterChecksum<Host> GetRegisterGroupsChecksum(
-    const RegisterGroupIOBuffer<Host>& buffer);
+template <typename Arch>
+RegisterChecksum<Arch> GetRegisterGroupsChecksum(
+    const RegisterGroupIOBuffer<Arch>& buffer);
 
 }  // namespace silifuzz
 
