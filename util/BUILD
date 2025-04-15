@@ -1239,7 +1239,7 @@ cc_test_plus_nolibc(
 
 cc_library_plus_nolibc(
     name = "reg_group_io",
-    srcs = select({
+    srcs = ["reg_group_io.cc"] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "aarch64/clear_register_groups.S",
             "aarch64/reg_group_io.cc",
@@ -1267,6 +1267,7 @@ cc_library_plus_nolibc(
         ":reg_group_bits",
         ":reg_group_set",
         ":sve",
+        ":sve_constants",
     ],
 )
 
@@ -1360,6 +1361,11 @@ cc_test(
 )
 
 cc_library_plus_nolibc(
+    name = "sve_constants",
+    hdrs = ["sve_constants.h"],
+)
+
+cc_library_plus_nolibc(
     name = "sve",
     hdrs = select({
         "@silifuzz//build_defs/platform:aarch64": ["aarch64/sve.h"],
@@ -1368,6 +1374,7 @@ cc_library_plus_nolibc(
     deps = [
         ":checks",
         ":itoa",
+        ":sve_constants",
     ],
 )
 

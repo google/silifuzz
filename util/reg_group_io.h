@@ -20,64 +20,28 @@
 // so locking is normally not required.  If it is ever used in a multi-threaded
 // environment, access needs to be controlled by a lock. Currently this
 // is only used for computing register checksums.
-#if defined(__aarch64__)
-#include "./util/aarch64/sve.h"
-#elif defined(__x86_64__)
-#include <x86intrin.h>
-#endif
+
+#include <cstddef>
+#include <cstdint>
 
 #include "./util/arch.h"
 #include "./util/reg_checksum.h"
 #include "./util/reg_group_set.h"
+#include "./util/sve_constants.h"
+
 namespace silifuzz {
 
-// A buffer of storing register groups contents. This is only used on the
-// host architecture.
-// TODO: b/355239537 - De-templatize this struct.
+// A buffer of storing register groups contents.
 template <typename Arch>
 struct RegisterGroupIOBuffer;
-
-// template specializations of host architecture are protected by #ifdef
-// as these may pull in architecture-specific header.
-#if defined(__aarch64__)
-#include "./util/aarch64/reg_group_io_buffer_offsets.h"
-
-template <>
-struct RegisterGroupIOBuffer<AArch64> {
-  // Register_groups describes which of the following components are active.
-  //   SVE: z (vector), p (predicate), ffr (first fault register)
-  // Groups not listed above are not supported yet and ignored.
-  RegisterGroupSet<AArch64> register_groups;
-  // Documentation for the LDR (predicate) and STR (predicate) instructions
-  // indicates that loading/storing the predicate registers from memory
-  // addresses with 2-byte alignment may be more efficient.
-  uint8_t ffr[kSvePRegMaxSizeBytes] __attribute__((aligned(2)));
-  uint8_t p[kSveNumPReg * kSvePRegMaxSizeBytes] __attribute__((aligned(2)));
-  // Documentation for the LDR (vector) and STR (vector) instructions indicates
-  // that loading/storing the Z registers from memory addresses with 16-byte
-  // alignment may be more efficient.
-  uint8_t z[kSveNumZReg * kSveZRegMaxSizeBytes] __attribute__((aligned(16)));
-};
-
-// RegisterGroupIOBuffer is used by assembly code, which needs to know struct
-// member offsets defined in reg_group_io_buffer_offsets.h. Check
-// here that offsets are correct.
-static_assert(REGISTER_GROUP_IO_BUFFER_REGISTER_GROUPS_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<AArch64>, register_groups));
-static_assert(REGISTER_GROUP_IO_BUFFER_FFR_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<AArch64>, ffr));
-static_assert(REGISTER_GROUP_IO_BUFFER_P_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<AArch64>, p));
-static_assert(REGISTER_GROUP_IO_BUFFER_Z_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<AArch64>, z));
-#elif defined(__x86_64__)
-#include "./util/x86_64/reg_group_io_buffer_offsets.h"
 
 template <>
 struct RegisterGroupIOBuffer<X86_64> {
   static constexpr size_t kNumYmms = 16;
   static constexpr size_t kNumZmms = 32;
   static constexpr size_t kNumOpmasks = 8;
+  static constexpr size_t kYmmSizeBytes = 32;
+  static constexpr size_t kZmmSizeBytes = 64;
 
   // Register_groups describes which of the following components are active.
   //   AVX: ymm
@@ -85,23 +49,34 @@ struct RegisterGroupIOBuffer<X86_64> {
   // Groups not listed above are not supported yet and ignored.
   // TODO(dougkwan): Support more register groups.
   RegisterGroupSet<X86_64> register_groups;
-  __m256 ymm[kNumYmms];
-  __m512 zmm[kNumZmms];
+  // Ymm and zmm need to be aligned to 32-bit and 64-bit respectively so that
+  // they can be used with the vmovdqa/vmovdqa32 instruction.
+  alignas(kYmmSizeBytes) uint8_t ymm[kNumYmms][kYmmSizeBytes];
+  alignas(kZmmSizeBytes) uint8_t zmm[kNumZmms][kZmmSizeBytes];
   uint64_t opmask[kNumOpmasks];
 };
 
-// RegisterGroupIOBuffer is used by assembly code, which needs to know struct
-// member offsets, which are defined in reg_group_io_buffer_offsets.h. Check
-// here the offsets are correct.
-static_assert(REGISTER_GROUP_IO_BUFFER_REGISTER_GROUPS_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<X86_64>, register_groups));
-static_assert(REGISTER_GROUP_IO_BUFFER_YMM_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<X86_64>, ymm));
-static_assert(REGISTER_GROUP_IO_BUFFER_ZMM_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<X86_64>, zmm));
-static_assert(REGISTER_GROUP_IO_BUFFER_OPMASK_OFFSET ==
-              offsetof(RegisterGroupIOBuffer<X86_64>, opmask));
-#endif
+template <>
+struct RegisterGroupIOBuffer<AArch64> {
+  // Register_groups describes which of the following components are active.
+  //   SVE: z (vector), p (predicate), ffr (first fault register)
+  // Groups not listed above are not supported yet and ignored.
+  RegisterGroupSet<AArch64> register_groups;
+  // SVE register sizes are dynamic. Use 1d array for the buffer so that we can
+  // keep the data compacted when vector length is small. This helps reduce the
+  // checksumming overhead.
+  // Documentation for the LDR (predicate) and STR (predicate) instructions
+  // indicates that loading/storing the predicate registers from memory
+  // addresses with 2-byte alignment may be more efficient.
+  alignas(kSvePRegSizeAlignmentBytes) uint8_t ffr[kSvePRegMaxSizeBytes];
+  alignas(
+      kSvePRegSizeAlignmentBytes) uint8_t p[kSveNumPReg * kSvePRegMaxSizeBytes];
+  // Documentation for the LDR (vector) and STR (vector) instructions indicates
+  // that loading/storing the Z registers from memory addresses with 16-byte
+  // alignment may be more efficient.
+  alignas(
+      kSveZRegSizeAlignmentBytes) uint8_t z[kSveNumZReg * kSveZRegMaxSizeBytes];
+};
 
 // Initialize register group I/O library. This needs to be called once
 // before calling any other functions in the library. This operation is

@@ -14,39 +14,28 @@
 
 #include "./util/reg_group_io.h"
 
+#include <cstddef>
+
+#include "./util/aarch64/reg_group_io_buffer_offsets.h"
 #include "./util/aarch64/sve.h"
 #include "./util/arch.h"
-#include "./util/crc32c.h"
-#include "./util/reg_checksum.h"
-#include "./util/reg_group_set.h"
 
 namespace silifuzz {
 
+// RegisterGroupIOBuffer is used by assembly code, which needs to know struct
+// member offsets of the host architecture, which are defined in
+// reg_group_io_buffer_offsets.h. Check here that offsets are correct.
+static_assert(REGISTER_GROUP_IO_BUFFER_REGISTER_GROUPS_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, register_groups));
+static_assert(REGISTER_GROUP_IO_BUFFER_FFR_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, ffr));
+static_assert(REGISTER_GROUP_IO_BUFFER_P_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, p));
+static_assert(REGISTER_GROUP_IO_BUFFER_Z_OFFSET ==
+              offsetof(RegisterGroupIOBuffer<AArch64>, z));
+
 void InitRegisterGroupIO() {
   SetSVEVectorWidthGlobal(SveGetCurrentVectorLength());
-}
-
-RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
-    const RegisterGroupIOBuffer<AArch64>& buffer) {
-  uint32_t crc = 0;
-  RegisterChecksum<AArch64> register_checksum;
-
-  const RegisterGroupSet<AArch64>& groups = buffer.register_groups;
-  const uint16_t sve_vector_width = groups.GetSVEVectorWidth();
-  if (sve_vector_width) {
-    CHECK_GE(sve_vector_width, 16);
-    CHECK_LE(sve_vector_width, kSveZRegMaxSizeBytes);
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.ffr),
-                 sizeof(buffer.ffr));
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.p),
-                 sve_vector_width / kSvePRegSizeZRegFactor * kSveNumPReg);
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.z),
-                 sve_vector_width * kSveNumZReg);
-    register_checksum.register_groups.SetSVEVectorWidth(sve_vector_width);
-  }
-
-  register_checksum.checksum = crc;
-  return register_checksum;
 }
 
 }  // namespace silifuzz

@@ -23,23 +23,9 @@
 
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/sve_constants.h"
 
 namespace silifuzz {
-
-// SVE hardware has z0-z31 (vector), p0-p15 (predicate), and ffr (first fault
-// register).
-inline constexpr size_t kSveNumZReg = 32;
-inline constexpr size_t kSveNumPReg = 16;
-
-// The SVE Z registers have a max size of 256 bytes (2048 bits).
-inline constexpr size_t kSveZRegMaxSizeBytes = 256;
-// The SVE Z registers have a size alignment of 16 bytes (128 bits).
-inline constexpr size_t kSveZRegSizeAlignmentBytes = 16;
-// The SVE P registers are fixed to 1/8th the size of the Z registers.
-inline constexpr size_t kSvePRegSizeZRegFactor = 8;
-// The SVE P registers have a max size of 32 bytes (256 bits).
-inline constexpr size_t kSvePRegMaxSizeBytes =
-    kSveZRegMaxSizeBytes / kSvePRegSizeZRegFactor;
 
 // Flag to store the vector width of SVE in bytes, or 0 if SVE is not supported.
 // Defined in sve_vector_width.S and set by InitRegisterGroupIO.
