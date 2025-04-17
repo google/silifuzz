@@ -15,9 +15,12 @@
 #include "./util/itoa.h"
 
 #include <csignal>
+#include <cstdint>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
 
 namespace silifuzz {
 
@@ -75,6 +78,50 @@ TEST(HexStr, All) {
   // Ptr:
   int x;
   EXPECT_THAT(HexStr(&x), ::testing::MatchesRegex("0x[0-9a-f]+"));
+}
+
+TEST(BigHexStr, empty) {
+  EXPECT_STREQ(BigHexStr({nullptr, 0}), "");
+  uint64_t data = 0x0123456789abcdef;
+  EXPECT_STREQ(BigHexStr({reinterpret_cast<uint8_t*>(&data), 0}), "");
+}
+
+TEST(BigHexStr, tiny) {
+  uint16_t data = 0x0123;
+  EXPECT_STREQ(BigHexStr({reinterpret_cast<uint8_t*>(&data), sizeof(data)}),
+               "0123");
+}
+
+TEST(BigHexStr, small) {
+  uint64_t small = 0x0123456789abcdef;
+  EXPECT_STREQ(BigHexStr({reinterpret_cast<uint8_t*>(&small), sizeof(small)}),
+               "0123456789abcdef");
+}
+
+TEST(BigHexStr, bigger) {
+  __uint128_t bigger = 0x0123456789abcdef;
+  bigger = bigger << 64 | 0xfedcba9876543210;
+  EXPECT_STREQ(BigHexStr({reinterpret_cast<uint8_t*>(&bigger), sizeof(bigger)}),
+               "0123456789abcdef fedcba9876543210");
+  EXPECT_STREQ(
+      BigHexStr({reinterpret_cast<uint8_t*>(&bigger), sizeof(bigger) - 2}),
+      "456789abcdef fedcba9876543210");
+}
+
+TEST(BigHexStr, max) {
+  uint64_t max[32];
+  for (int i = 0; i < 32; ++i) {
+    max[i] = i;
+  }
+
+  // Results should be in reverse order: "000000000000001f ... 0000000000000000"
+  std::string expected;
+  for (int i = 31; i >= 0; --i) {
+    expected += absl::StrFormat("%016x ", i);
+  }
+  expected.pop_back();  // Remove the last space.
+
+  EXPECT_STREQ(BigHexStr({max, sizeof(max)}), expected.c_str());
 }
 
 TEST(BoolStr, All) {

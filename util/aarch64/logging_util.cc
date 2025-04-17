@@ -14,34 +14,20 @@
 
 #include "./util/logging_util.h"
 
+#include <sys/types.h>
+
 #include <cstring>
 #include <iterator>
 
 #include "./util/arch.h"
+#include "./util/internal/logging_util_macros.h"
 #include "./util/itoa.h"
+#include "./util/reg_group_io.h"
 #include "./util/reg_group_set.h"
 #include "./util/strcat.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
-
-// Macro (vs a function) helps up to easily log the names of the registers
-// in both LogGRegs() and LogFPRegs() below.
-#define LOG_ONE_REG(reg_name)                                               \
-  if (base == nullptr || regs.reg_name != base->reg_name) {                 \
-    (*logger)(logger_arg, #reg_name " = ", HexStr(regs.reg_name),           \
-              (log_diff && base != nullptr) ? " want " : "",                \
-              (log_diff && base != nullptr) ? HexStr(base->reg_name) : ""); \
-  }
-
-#define LOG_INDEXED_REG(reg_name, index)                                     \
-  if (base == nullptr || regs.reg_name[index] != base->reg_name[index]) {    \
-    (*logger)(                                                               \
-        logger_arg, StrCat({#reg_name "[", IntStr(index), "] = "}),          \
-        HexStr(regs.reg_name[index]),                                        \
-        (log_diff && base != nullptr) ? " want " : "",                       \
-        (log_diff && base != nullptr) ? HexStr(base->reg_name[index]) : ""); \
-  }
 
 template <>
 void LogGRegs(const GRegSet<AArch64>& regs, RegsLogger logger, void* logger_arg,
@@ -69,6 +55,25 @@ void LogFPRegs(const FPRegSet<AArch64>& regs, bool log_fp_data,
   }
   LOG_ONE_REG(fpsr);
   LOG_ONE_REG(fpcr);
+}
+
+template <>
+void LogERegs(const RegisterGroupIOBuffer<AArch64>& regs, RegsLogger logger,
+              void* logger_arg, const RegisterGroupIOBuffer<AArch64>* base,
+              bool log_diff) {
+  const size_t vl = regs.register_groups.GetSVEVectorWidth();
+  if (vl == 0) {
+    return;
+  }
+  for (int i = 0; i < 32; ++i) {
+    LOG_INDEXED_BIG_REG(z, i, vl);
+  }
+  if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
+  for (int i = 0; i < 16; ++i) {
+    LOG_INDEXED_BIG_REG(p, i, vl / 8);
+  }
+  if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
+  LOG_INDEXED_BIG_REG(ffr, 0, vl / 8);
 }
 
 #if defined(__aarch64__)

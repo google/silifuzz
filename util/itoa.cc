@@ -58,6 +58,23 @@ HexStr::HexStr(__uint128_t num) {
   *--ptr_ = '0';
 }
 
+// ========================================================================= //
+
+constexpr uint64_t kMaxBigHexStrByteSize = 256;
+
+BigHexStr::BigHexStr(const uint8_t* data, uint64_t byte_size) {
+  CHECK_LE(byte_size, kMaxBigHexStrByteSize);
+  ptr_ = rep_ + sizeof(rep_);
+  *--ptr_ = '\0';
+  for (uint64_t i = 0; i < byte_size; ++i) {
+    if (i > 0 && i % 8 == 0) {
+      *--ptr_ = ' ';
+    }
+    *--ptr_ = kHexCharMap[data[i] & 0xf];
+    *--ptr_ = kHexCharMap[data[i] >> 4 & 0xf];
+  }
+}
+
 }  // namespace itoa_internal
 
 // ========================================================================= //

@@ -17,8 +17,13 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <cstring>
+
 #include "gtest/gtest.h"
+#include "./util/arch.h"
 #include "./util/reg_checksum.h"
+#include "./util/reg_group_io.h"
+#include "./util/reg_group_set.h"
 #include "./util/ucontext/ucontext.h"
 
 namespace silifuzz {
@@ -57,6 +62,21 @@ FPRegSet<X86_64> MakeDiff(const FPRegSet<X86_64>& regs) {
 FPRegSet<AArch64> MakeDiff(const FPRegSet<AArch64>& regs) {
   FPRegSet<AArch64> base = regs;
   base.v[2] = 0;
+  return base;
+}
+
+RegisterGroupIOBuffer<X86_64> MakeDiff(
+    const RegisterGroupIOBuffer<X86_64>& regs) {
+  RegisterGroupIOBuffer<X86_64> base = regs;
+  memset(base.zmm[2], 0, sizeof(base.zmm[2]));
+  return base;
+}
+
+RegisterGroupIOBuffer<AArch64> MakeDiff(
+    const RegisterGroupIOBuffer<AArch64>& regs) {
+  const size_t vl = regs.register_groups.GetSVEVectorWidth();
+  RegisterGroupIOBuffer<AArch64> base = regs;
+  memset(base.z + 2 * vl, 0, vl);
   return base;
 }
 
@@ -134,6 +154,45 @@ TYPED_TEST(LoggingUtilTest, FPRegsWithDiff) {
   ZeroOutFPRegsPadding(&regs);
   FPRegSet<TypeParam> base = MakeDiff(regs);
   LogFPRegs(regs, true, &base, true);
+}
+
+void SetTestRegisterGroupSet(RegisterGroupSet<X86_64>& set) {
+  set.SetAVX(true).SetAVX512(true);
+}
+void SetTestRegisterGroupSet(RegisterGroupSet<AArch64>& set) {
+  set.SetSVEVectorWidth(128);
+}
+
+TYPED_TEST(LoggingUtilTest, ERegsDefault) {
+  // Set up a randomized context.
+  RegisterGroupIOBuffer<TypeParam> regs;
+  pattern_init(&regs, sizeof(regs));
+  // Fix up the register groups
+  regs.register_groups = RegisterGroupSet<TypeParam>();
+  SetTestRegisterGroupSet(regs.register_groups);
+  LogERegs(regs);
+}
+
+TYPED_TEST(LoggingUtilTest, ERegsWithBase) {
+  // Set up a randomized context.
+  RegisterGroupIOBuffer<TypeParam> regs;
+  pattern_init(&regs, sizeof(regs));
+  // Fix up the register groups
+  regs.register_groups = RegisterGroupSet<TypeParam>();
+  SetTestRegisterGroupSet(regs.register_groups);
+  RegisterGroupIOBuffer<TypeParam> base = MakeDiff(regs);
+  LogERegs(regs, &base, false);
+}
+
+TYPED_TEST(LoggingUtilTest, ERegsWithDiff) {
+  // Set up a randomized context.
+  RegisterGroupIOBuffer<TypeParam> regs;
+  pattern_init(&regs, sizeof(regs));
+  // Fix up the register groups
+  regs.register_groups = RegisterGroupSet<TypeParam>();
+  SetTestRegisterGroupSet(regs.register_groups);
+  RegisterGroupIOBuffer<TypeParam> base = MakeDiff(regs);
+  LogERegs(regs, &base, true);
 }
 
 TEST(LoggingUtilSignalTest, SignalRegsDefault) {

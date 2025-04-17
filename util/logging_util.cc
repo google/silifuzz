@@ -15,10 +15,11 @@
 #include "./util/logging_util.h"
 
 #include "./util/checks.h"
+#include "./util/reg_group_io.h"
 
 namespace silifuzz {
 
-// An allocation-free "lambda" for implementing LogGRegs() and LogFPRegs().
+// An allocation-free "lambda" for implementing LogXXRegs().
 static void LogInfoLogger(void* /*logger_arg*/, const char* str1,
                           const char* str2, const char* str3,
                           const char* str4) {
@@ -46,6 +47,19 @@ template void LogFPRegs(const FPRegSet<X86_64>& gregs, bool log_fp_data,
                         const FPRegSet<X86_64>* base, bool log_diff);
 template void LogFPRegs(const FPRegSet<AArch64>& gregs, bool log_fp_data,
                         const FPRegSet<AArch64>* base, bool log_diff);
+
+template <typename Arch>
+void LogERegs(const RegisterGroupIOBuffer<Arch>& eregs,
+              const RegisterGroupIOBuffer<Arch>* base, bool log_diff) {
+  LogERegs(eregs, &LogInfoLogger, nullptr, base, log_diff);
+}
+
+template void LogERegs(const RegisterGroupIOBuffer<X86_64>& eregs,
+                       const RegisterGroupIOBuffer<X86_64>* base,
+                       bool log_diff);
+template void LogERegs(const RegisterGroupIOBuffer<AArch64>& eregs,
+                       const RegisterGroupIOBuffer<AArch64>* base,
+                       bool log_diff);
 
 void LogSignalRegs(const SignalRegSet& sigregs, const SignalRegSet* base,
                    bool log_diff) {

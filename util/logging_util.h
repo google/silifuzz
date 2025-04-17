@@ -21,6 +21,7 @@
 #include <cstddef>
 
 #include "./util/reg_checksum.h"
+#include "./util/reg_group_io.h"
 #include "./util/reg_group_set.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -41,6 +42,14 @@ void LogGRegs(const GRegSet<Arch>& gregs, const GRegSet<Arch>* base = nullptr,
 template <typename Arch>
 void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data = true,
                const FPRegSet<Arch>* base = nullptr, bool log_diff = false);
+
+// LOG_INFO()-s all general register values from a RegisterGroupIOBuffer.
+// Log lines will be prefixed with two spaces.
+// For `base` and `log_diff` see LogERegs() overload below.
+template <typename Arch>
+void LogERegs(const RegisterGroupIOBuffer<Arch>& eregs,
+              const RegisterGroupIOBuffer<Arch>* base = nullptr,
+              bool log_diff = false);
 
 // LOG_INFO()-s all register values from a SignalRegSet.
 // Log lines will be prefixed with two spaces.
@@ -77,6 +86,11 @@ template <typename Arch>
 void LogFPRegs(const FPRegSet<Arch>& fpregs, bool log_fp_data,
                RegsLogger logger, void* logger_arg,
                const FPRegSet<Arch>* base = nullptr, bool log_diff = false);
+template <typename Arch>
+void LogERegs(const RegisterGroupIOBuffer<Arch>& eregs, RegsLogger logger,
+              void* logger_arg,
+              const RegisterGroupIOBuffer<Arch>* base = nullptr,
+              bool log_diff = false);
 void LogSignalRegs(const SignalRegSet& gregs, RegsLogger logger,
                    void* logger_arg, const SignalRegSet* base = nullptr,
                    bool log_diff = false);

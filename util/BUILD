@@ -344,6 +344,7 @@ cc_library_plus_nolibc(
     hdrs = ["itoa.h"],
     as_is_deps = [
         "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/strings",
     ],
     deps = [":checks"],
 )
@@ -354,6 +355,7 @@ cc_test(
     srcs = ["itoa_test.cc"],
     deps = [
         ":itoa",
+        "@abseil-cpp//absl/strings:str_format",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -442,7 +444,10 @@ cc_library_plus_nolibc(
         "logging_util.cc",
         "x86_64/logging_util.cc",
     ],
-    hdrs = ["logging_util.h"],
+    hdrs = [
+        "internal/logging_util_macros.h",
+        "logging_util.h",
+    ],
     as_is_deps = [
         "@abseil-cpp//absl/base:core_headers",
     ],
@@ -452,8 +457,10 @@ cc_library_plus_nolibc(
         ":itoa",
         ":misc_util",
         ":reg_checksum",
+        ":reg_group_io",
         ":reg_group_set",
         ":strcat",
+        ":sve",
         "@silifuzz//util/ucontext:signal",
         "@silifuzz//util/ucontext:ucontext_types",
     ],
@@ -464,8 +471,11 @@ cc_test(
     size = "small",
     srcs = ["logging_util_test.cc"],
     deps = [
+        ":arch",
         ":logging_util",
         ":reg_checksum",
+        ":reg_group_io",
+        ":reg_group_set",
         "@silifuzz//util/ucontext",
         "@com_google_googletest//:gtest_main",
     ],

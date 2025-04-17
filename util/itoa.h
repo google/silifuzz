@@ -17,8 +17,8 @@
 
 // This library defines simple int->string converters that work without
 // bringing in libc dependencies and heap allocation.
-// All the memory needed is within the temporary itoa_internal::IntStr or
-// itoa_internal::HexStr object.
+// All the memory needed is within the temporary itoa_internal::IntStr,
+// itoa_internal::HexStr object, or itoa_internal::BigHexStr object.
 
 #include <cstdint>
 #include <type_traits>  // for std::enable_if_t, std::is_enum
@@ -109,6 +109,44 @@ inline const char* HexStr(const itoa_internal::HexStr& x) { return x.c_str(); }
 // Same as HexStr(), but without the "0x" prefix.
 inline const char* HexStrDigits(const itoa_internal::HexStr& x) {
   return x.c_str() + 2;
+}
+
+// ========================================================================= //
+
+namespace itoa_internal {
+// Impl for BigHexStr() below.
+// This class is a thread-compatible value type.
+class BigHexStr final {
+ public:
+  BigHexStr(const uint8_t* data, uint64_t byte_size);
+  template <typename T>
+  BigHexStr(const T* ptr, uint64_t byte_size)
+      : BigHexStr(reinterpret_cast<const uint8_t*>(ptr), byte_size) {}
+
+  BigHexStr(const BigHexStr&) = delete;
+  BigHexStr(BigHexStr&&) = delete;
+  BigHexStr operator=(const BigHexStr&) = delete;
+  BigHexStr operator=(BigHexStr&&) = delete;
+
+  const char* c_str() const { return ptr_; }
+
+ private:
+  char* ptr_;
+  char rep_[544];
+};
+}  // namespace itoa_internal
+
+// Converts a `data` array of `size` bytes to hex string representation of
+// multiple 16-char pieces separated spaces. This is useful for logging large
+// registers with more than 128 bits. It supports data array up to 256 bytes.
+// It assumes that the data is in little endian, and output string begins with
+// the MSBs.
+//
+// Usage example:
+//   uint8_t my_data[256] = ...;
+//   LOG_ERROR("My data: ", BigHexStr({my_data, sizeof(my_data)}));
+inline const char* BigHexStr(const itoa_internal::BigHexStr& x) {
+  return x.c_str();
 }
 
 // ========================================================================= //

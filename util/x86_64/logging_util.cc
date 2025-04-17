@@ -18,31 +18,15 @@
 #include <iterator>
 
 #include "./util/arch.h"
+#include "./util/internal/logging_util_macros.h"
 #include "./util/itoa.h"
+#include "./util/reg_group_io.h"
 #include "./util/reg_group_set.h"
 #include "./util/strcat.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
-
-// Macro (vs a function) helps up to easily log the names of the registers
-// in both LogGRegs() and LogFPRegs() below.
-#define LOG_ONE_REG(reg_name)                                               \
-  if (base == nullptr || regs.reg_name != base->reg_name) {                 \
-    (*logger)(logger_arg, #reg_name " = ", HexStr(regs.reg_name),           \
-              (log_diff && base != nullptr) ? " want " : "",                \
-              (log_diff && base != nullptr) ? HexStr(base->reg_name) : ""); \
-  }
-
-#define LOG_INDEXED_REG(reg_name, index)                                     \
-  if (base == nullptr || regs.reg_name[index] != base->reg_name[index]) {    \
-    (*logger)(                                                               \
-        logger_arg, StrCat({#reg_name "[", IntStr(index), "] = "}),          \
-        HexStr(regs.reg_name[index]),                                        \
-        (log_diff && base != nullptr) ? " want " : "",                       \
-        (log_diff && base != nullptr) ? HexStr(base->reg_name[index]) : ""); \
-  }
 
 template <>
 void LogGRegs(const GRegSet<X86_64>& regs, RegsLogger logger, void* logger_arg,
@@ -101,6 +85,28 @@ void LogFPRegs(const FPRegSet<X86_64>& regs, bool log_fp_data,
 
     for (int i = 0; i < std::size(regs.xmm); ++i) {
       LOG_INDEXED_REG(xmm, i);
+    }
+  }
+}
+
+template <>
+void LogERegs(const RegisterGroupIOBuffer<X86_64>& regs, RegsLogger logger,
+              void* logger_arg, const RegisterGroupIOBuffer<X86_64>* base,
+              bool log_diff) {
+  if (regs.register_groups.GetAVX()) {
+    for (int i = 0; i < regs.kNumYmms; ++i) {
+      LOG_INDEXED_BIG_REG(ymm, i, regs.kYmmSizeBytes);
+    }
+  }
+  if (regs.register_groups.GetAVX512()) {
+    if (base == nullptr && regs.register_groups.GetAVX())
+      (*logger)(logger_arg, "--", "", "", "");
+    for (int i = 0; i < regs.kNumZmms; ++i) {
+      LOG_INDEXED_BIG_REG(zmm, i, regs.kZmmSizeBytes);
+    }
+    if (base == nullptr) (*logger)(logger_arg, "--", "", "", "");
+    for (int i = 0; i < regs.kNumOpmasks; ++i) {
+      LOG_INDEXED_REG(opmask, i);
     }
   }
 }
