@@ -54,7 +54,7 @@ cc_library(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        "@com_google_protobuf//:protobuf",
+        "@protobuf",
     ],
 )
 
@@ -83,6 +83,6 @@ cc_test(
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

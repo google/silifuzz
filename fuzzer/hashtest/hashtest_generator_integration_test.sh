@@ -17,7 +17,7 @@
 set -eu
 set -o pipefail
 
-GENERATOR="${TEST_SRCDIR}/silifuzz/fuzzer/hashtest/hashtest_generator"
+GENERATOR="${TEST_SRCDIR}/${TEST_WORKSPACE}/fuzzer/hashtest/hashtest_generator"
 readonly GENERATOR
 
 # Make sure we can generate snapshots for various x86 platforms.

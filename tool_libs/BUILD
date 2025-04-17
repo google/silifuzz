@@ -46,7 +46,7 @@ cc_test(
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -89,7 +89,7 @@ cc_test(
     srcs = ["simple_fix_tool_counters_test.cc"],
     deps = [
         ":simple_fix_tool_counters",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -126,7 +126,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/status",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 

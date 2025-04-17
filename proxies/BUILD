@@ -60,7 +60,7 @@ cc_test(
     srcs = ["unicorn_aarch64_test.cc"],
     deps = [
         ":unicorn_aarch64_lib",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -89,7 +89,7 @@ cc_test(
     srcs = ["unicorn_x86_64_test.cc"],
     deps = [
         ":unicorn_x86_64_lib",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -103,7 +103,7 @@ cc_binary(
     ],
     deps = [
         ":unicorn_aarch64_lib",
-        "@com_google_fuzztest//centipede:centipede_runner",
+        "@fuzztest//centipede:centipede_runner",
     ],
 )
 
@@ -117,6 +117,6 @@ cc_binary(
     ],
     deps = [
         ":unicorn_x86_64_lib",
-        "@com_google_fuzztest//centipede:centipede_runner",
+        "@fuzztest//centipede:centipede_runner",
     ],
 )

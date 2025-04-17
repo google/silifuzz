@@ -35,7 +35,7 @@
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
-#include "external/com_google_fuzztest/centipede/feature.h"
+#include "centipede/feature.h"
 #include "./proxies/pmu_event_proxy/perf_event_fuzzer.h"
 #include "./proxies/pmu_event_proxy/pmu_events.h"
 #include "./proxies/user_features.h"

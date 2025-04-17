@@ -74,7 +74,7 @@ cc_test(
         ":hashtest_generator_lib",
         "@silifuzz//instruction:xed_util",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@libxed//:xed",
     ],
 )
@@ -124,7 +124,7 @@ sh_test(
 proto_library(
     name = "hashtest_result",
     srcs = ["hashtest_result.proto"],
-    deps = ["@com_google_protobuf//:timestamp_proto"],
+    deps = ["@protobuf//:timestamp_proto"],
 )
 
 cc_proto_library(
@@ -175,7 +175,7 @@ cc_test(
         "@silifuzz//util:platform",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -201,7 +201,7 @@ cc_test(
     ],
     deps = [
         ":parallel_worker_pool",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -229,7 +229,7 @@ cc_binary(
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
-        "@com_google_protobuf//:protobuf",
+        "@protobuf",
     ],
 )
 
@@ -242,6 +242,6 @@ py_test(
     ],
     deps = [
         ":hashtest_result_py_proto",
-        "@absl_py//absl/testing:absltest",
+        "@abseil-py//absl/testing:absltest",
     ],
 )

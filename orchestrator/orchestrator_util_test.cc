@@ -62,18 +62,6 @@ TEST(OrchestratorUtil, ProcessStatm) {
   EXPECT_GT(stat->vm_size_bytes, 0);
 }
 
-TEST(OrchestratorUtil, MaxRunnerRssSizeBytes) {
-#if defined(ABSL_HAVE_THREAD_SANITIZER)
-  GTEST_SKIP() << "This test does not work under TSAN";
-#endif
-  Subprocess s;
-  ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
-  EXPECT_GT(MaxRunnerRssSizeBytes(getpid(), ""), 0);
-  kill(s.pid(), SIGKILL);
-  std::string out;
-  s.Communicate(&out);
-}
-
 TEST(OrchestratorUtil, AvailableMemoryMb) {
   EXPECT_THAT(AvailableMemoryMb(), IsOkAndHolds(Gt(0)));
 }

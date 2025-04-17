@@ -46,7 +46,7 @@ cc_test(
     deps = [
         ":static_insn_filter",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -69,7 +69,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@libxed//:xed",
     ],
 )
@@ -100,7 +100,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@libxed//:xed",
     ],
 )
@@ -111,8 +111,8 @@ cc_test(
     deps = [
         ":decoded_insn",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_fuzztest//fuzztest",
-        "@com_google_googletest//:gtest_main",
+        "@fuzztest//fuzztest",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -166,6 +166,6 @@ cc_test(
         ":disassembler",
         ":xed_disassembler",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

@@ -33,7 +33,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "external/com_google_fuzztest/common/blob_file.h"
+#include "common/blob_file.h"
 #include "./common/snapshot.h"
 #include "./snap/snap.h"
 #include "./snap/snap_relocator.h"

@@ -44,7 +44,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -163,7 +163,7 @@ cc_test(
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/log:check",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -273,7 +273,7 @@ cc_test(
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 

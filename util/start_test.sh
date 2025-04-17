@@ -17,7 +17,7 @@
 set -eu -o pipefail
 
 # Test helper
-START_TEST_HELPER="${TEST_SRCDIR}/silifuzz/util/start_test_helper_nolibc"
+START_TEST_HELPER="${TEST_SRCDIR}/${TEST_WORKSPACE}/util/start_test_helper_nolibc"
 
 die() {
   echo "$@"

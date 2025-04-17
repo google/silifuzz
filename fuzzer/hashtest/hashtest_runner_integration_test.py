@@ -19,21 +19,20 @@ import subprocess
 
 from absl.testing import absltest
 
-from silifuzz.fuzzer.hashtest import hashtest_result_pb2
+from fuzzer.hashtest import hashtest_result_pb2
 
 
 def get_data_dependency(name: str) -> str:
   return os.path.join(
       absltest.get_default_test_srcdir(),
+      os.environ.get('TEST_WORKSPACE', ''),
       name,
   )
 
 
 CURRENT_VERSION = '1.1.3'
 
-HASHTEST_RUNNER_PATH = get_data_dependency(
-    'silifuzz/fuzzer/hashtest/hashtest_runner'
-)
+HASHTEST_RUNNER_PATH = get_data_dependency('fuzzer/hashtest/hashtest_runner')
 
 EXTRACT_JSON = re.compile(
     r'^BEGIN_JSON\n(.*?)\nEND_JSON$', re.DOTALL | re.MULTILINE

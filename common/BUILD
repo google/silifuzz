@@ -74,7 +74,7 @@ cc_test(
         ":memory_mapping",
         ":memory_perms",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -94,7 +94,7 @@ cc_test(
     deps = [
         ":memory_bytes_set",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -159,7 +159,7 @@ cc_test(
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -208,7 +208,7 @@ cc_test(
         "@silifuzz//util:reg_group_set",
         "@silifuzz//util/testing:status_macros",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -300,7 +300,7 @@ cc_test(
         ":memory_state",
         ":snapshot_types",
         "@com_github_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -322,7 +322,7 @@ cc_test(
     deps = [
         ":snapshot_test_enum",
         "@silifuzz//util:itoa",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -410,7 +410,7 @@ cc_test(
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -454,7 +454,7 @@ cc_test(
         "@silifuzz//util:subprocess",
         "@silifuzz//util:user_regs_util",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -480,6 +480,6 @@ cc_test(
         ":proxy_config",
         ":snapshot_enums",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

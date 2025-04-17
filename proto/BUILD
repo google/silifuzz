@@ -46,7 +46,7 @@ proto_library(
     srcs = ["player_result.proto"],
     deps = [
         ":snapshot",
-        "@com_google_protobuf//:duration_proto",
+        "@protobuf//:duration_proto",
     ],
 )
 
@@ -75,7 +75,7 @@ proto_library(
     srcs = ["session_summary.proto"],
     deps = [
         "corpus_metadata_proto",
-        "@com_google_protobuf//:duration_proto",
+        "@protobuf//:duration_proto",
     ],
 )
 
@@ -89,7 +89,7 @@ proto_library(
     srcs = ["snapshot_execution_result.proto"],
     deps = [
         ":player_result",
-        "@com_google_protobuf//:timestamp_proto",
+        "@protobuf//:timestamp_proto",
     ],
 )
 
@@ -109,8 +109,8 @@ proto_library(
     deps = [
         ":session_summary_proto",
         ":snapshot_execution_result_proto",
-        "@com_google_protobuf//:any_proto",
-        "@com_google_protobuf//:timestamp_proto",
+        "@protobuf//:any_proto",
+        "@protobuf//:timestamp_proto",
     ],
 )
 

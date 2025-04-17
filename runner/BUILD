@@ -294,7 +294,7 @@ cc_test(
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -362,7 +362,7 @@ cc_test(
         "@abseil-cpp//absl/functional:bind_front",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -434,7 +434,7 @@ cc_test(
         "@silifuzz//util/testing:vsyscall",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -532,6 +532,6 @@ cc_test(
     srcs = ["runner_provider_test.cc"],
     deps = [
         ":runner_provider",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

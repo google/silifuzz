@@ -104,7 +104,7 @@ cc_binary(
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_fuzztest//centipede:runner_fork_server",  # Note: external dependency.
+        "@fuzztest//centipede:runner_fork_server",  # Note: external dependency.
     ],
 )
 
@@ -117,7 +117,7 @@ cc_test(
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -192,8 +192,8 @@ cc_library(
         "@abseil-cpp//absl/strings:str_format",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
-        "@com_google_fuzztest//common:blob_file",
-        "@com_google_fuzztest//common:defs",
+        "@fuzztest//common:blob_file",
+        "@fuzztest//common:defs",
     ],
 )
 
@@ -232,7 +232,7 @@ cc_test(
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:str_format",
         "@abseil-cpp//absl/types:span",
-        "@com_google_fuzztest//common:blob_file",
-        "@com_google_googletest//:gtest_main",
+        "@fuzztest//common:blob_file",
+        "@googletest//:gtest_main",
     ],
 )

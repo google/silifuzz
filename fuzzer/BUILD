@@ -52,7 +52,7 @@ cc_test(
     deps = [
         ":program_mutator",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -62,8 +62,8 @@ cc_test(
     deps = [
         ":program_mutator",
         "@silifuzz//util:arch",
-        "@com_google_fuzztest//fuzztest",
-        "@com_google_googletest//:gtest_main",
+        "@fuzztest//fuzztest",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -78,15 +78,15 @@ cc_library(
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:flags",
-        "@com_google_fuzztest//centipede:centipede_callbacks",
-        "@com_google_fuzztest//centipede:centipede_default_callbacks",
-        "@com_google_fuzztest//centipede:centipede_interface",
-        "@com_google_fuzztest//centipede:config_file",
-        "@com_google_fuzztest//centipede:environment",
-        "@com_google_fuzztest//centipede:environment_flags",
-        "@com_google_fuzztest//centipede:mutation_input",
-        "@com_google_fuzztest//centipede:util",
-        "@com_google_fuzztest//common:defs",
+        "@fuzztest//centipede:centipede_callbacks",
+        "@fuzztest//centipede:centipede_default_callbacks",
+        "@fuzztest//centipede:centipede_interface",
+        "@fuzztest//centipede:config_file",
+        "@fuzztest//centipede:environment",
+        "@fuzztest//centipede:environment_flags",
+        "@fuzztest//centipede:mutation_input",
+        "@fuzztest//centipede:util",
+        "@fuzztest//common:defs",
     ],
 )
 

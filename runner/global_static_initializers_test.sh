@@ -19,7 +19,7 @@
 
 set -eu -o pipefail
 
-RUNNER_BINARY="${TEST_SRCDIR}/silifuzz/runner/reading_runner_main_nolibc"
+RUNNER_BINARY="${TEST_SRCDIR}/${TEST_WORKSPACE}/runner/reading_runner_main_nolibc"
 readonly RUNNER_BINARY
 
 # Make sure the file exists

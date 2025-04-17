@@ -12,29 +12,28 @@ import absl.logging
 from absl.testing import absltest
 from absl.testing import parameterized
 
-from silifuzz.proto import binary_log_entry_pb2 as bpb2
+from proto import binary_log_entry_pb2 as bpb2
 
 
 def get_data_dependency(name: str) -> str:
   return os.path.join(
       absltest.get_default_test_srcdir(),
+      os.environ.get('TEST_WORKSPACE', ''),
       name,
   )
 
 
 _ORCHESTRATOR_PATH = get_data_dependency(
-    'silifuzz/orchestrator/silifuzz_orchestrator_main'
+    'orchestrator/silifuzz_orchestrator_main'
 )
 
-_RUNNER_PATH = get_data_dependency('silifuzz/orchestrator/test_runner')
+_RUNNER_PATH = get_data_dependency('orchestrator/test_runner')
 
 _ENDS_AS_EXPECTED_CORPUS_PATH = get_data_dependency(
-    'silifuzz/snap/testing/ends_as_expected_corpus'
+    'snap/testing/ends_as_expected_corpus'
 )
 
-_RUNAWAY_CORPUS_PATH = get_data_dependency(
-    'silifuzz/snap/testing/runaway_corpus'
-)
+_RUNAWAY_CORPUS_PATH = get_data_dependency('snap/testing/runaway_corpus')
 
 
 class OrchestratorTest(parameterized.TestCase):

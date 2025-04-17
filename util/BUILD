@@ -66,7 +66,7 @@ cc_test_plus_nolibc(
     name = "atoi_test",
     srcs = ["atoi_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":atoi",
@@ -99,7 +99,7 @@ cc_test(
         ":avx",
         ":checks",
         ":platform",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -119,7 +119,7 @@ cc_test(
     srcs = ["bitops_test.cc"],
     deps = [
         ":bitops",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -138,7 +138,7 @@ cc_test_plus_nolibc(
     size = "small",
     srcs = ["byte_io_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":byte_io",
@@ -158,8 +158,8 @@ cc_library_plus_nolibc(
     ],
     libc_deps = [
         "@abseil-cpp//absl/log:log",
-        "@abseil-cpp//absl/log:vlog_is_on",
         "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/log:vlog_is_on",
         "@abseil-cpp//absl/strings",
     ],
 )
@@ -169,7 +169,7 @@ cc_test_plus_nolibc(
     size = "small",
     srcs = ["checks_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
     ],
@@ -206,7 +206,7 @@ cc_test(
         ":cpu_features",
         ":itoa",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -248,7 +248,7 @@ cc_test_plus_nolibc(
     name = "crc32c_test",
     srcs = ["crc32c_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -264,7 +264,7 @@ cc_test(
     deps = [
         ":crc32c",
         "@com_github_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -290,7 +290,7 @@ cc_test(
     ],
     deps = [
         ":data_dependency",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -334,7 +334,7 @@ cc_test(
     deps = [
         ":hostname",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -356,7 +356,7 @@ cc_test(
     deps = [
         ":itoa",
         "@abseil-cpp//absl/strings:str_format",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -377,7 +377,7 @@ cc_test(
     deps = [
         ":itoa",
         ":strcat",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -402,7 +402,7 @@ cc_test(
         ":itoa",
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -428,7 +428,7 @@ cc_test_plus_nolibc(
     name = "flag_matcher_test",
     srcs = ["flag_matcher_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -477,7 +477,7 @@ cc_test(
         ":reg_group_io",
         ":reg_group_set",
         "@silifuzz//util/ucontext",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -491,7 +491,7 @@ cc_test_plus_nolibc(
     name = "math_test",
     srcs = ["math_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -533,7 +533,7 @@ cc_test_plus_nolibc(
     name = "mem_util_test",
     srcs = ["mem_util_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -640,7 +640,7 @@ cc_library_plus_nolibc(
     testonly = 1,
     hdrs = ["nolibc_gunit.h"],
     libc_deps = [
-        "@com_google_googletest//:gtest",
+        "@googletest//:gtest",
     ],
     deps = [":checks"],
 )
@@ -670,7 +670,7 @@ cc_test_plus_nolibc(
     name = "proc_maps_parser_test",
     srcs = ["proc_maps_parser_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -686,7 +686,7 @@ cc_library(
     deps = [
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
-        "@com_google_protobuf//:protobuf_lite",
+        "@protobuf//:protobuf_lite",
     ],
 )
 
@@ -705,7 +705,7 @@ cc_test(
         ":range_map",
         "@abseil-cpp//absl/random",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -734,7 +734,7 @@ cc_test(
     deps = [
         ":checks",
         ":signals",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -753,7 +753,7 @@ cc_test(
     deps = [
         ":span_util",
         "@abseil-cpp//absl/types:span",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -777,7 +777,7 @@ cc_library(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        "@com_google_protobuf//:protobuf",
+        "@protobuf",
     ],
 )
 
@@ -790,8 +790,8 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf",
+        "@googletest//:gtest_main",
+        "@protobuf",
     ],
 )
 
@@ -805,7 +805,7 @@ cc_test_plus_nolibc(
     size = "small",
     srcs = ["x86_cpuid_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -846,7 +846,7 @@ cc_test(
         "@silifuzz//proto:snapshot_cc_proto",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/strings",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -889,7 +889,7 @@ cc_test(
         ":checks",
         ":cpu_id",
         ":itoa",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -913,7 +913,7 @@ cc_test_plus_nolibc(
     name = "text_proto_printer_test",
     srcs = ["text_proto_printer_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -929,8 +929,8 @@ cc_test(
         ":text_proto_printer",
         "@silifuzz//proto:player_result_cc_proto",
         "@silifuzz//proto:snapshot_cc_proto",
-        "@com_google_googletest//:gtest_main",
-        "@com_google_protobuf//:protobuf",
+        "@googletest//:gtest_main",
+        "@protobuf",
     ],
 )
 
@@ -961,7 +961,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -1012,7 +1012,7 @@ cc_test(
         ":path_util",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -1061,7 +1061,7 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -1085,7 +1085,7 @@ cc_test(
     deps = [
         ":arch",
         ":checks",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -1111,7 +1111,7 @@ cc_test_plus_nolibc(
     size = "small",
     srcs = ["page_util_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",
@@ -1158,7 +1158,7 @@ cc_test_plus_nolibc(
             ],
         }),
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     # We don't want calls in test helpers to go through PLTs.
     # The dynamic linker may clobber some extention registers.
@@ -1193,7 +1193,7 @@ cc_test_plus_nolibc(
     name = "reg_group_set_test",
     srcs = ["reg_group_set_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":arch",
@@ -1234,7 +1234,7 @@ cc_test_plus_nolibc(
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/reg_groups_test.cc"],
     }),
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":arch",
@@ -1291,7 +1291,7 @@ cc_test_plus_nolibc(
         ],
     }),
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     # We don't want calls in test helpers to go through PLTs.
     # The dynamic linker may clobber some extention registers.
@@ -1328,7 +1328,7 @@ cc_test_plus_nolibc(
     name = "reg_checksum_test",
     srcs = ["reg_checksum_test.cc"],
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":arch",
@@ -1366,7 +1366,7 @@ cc_test(
         ":reg_checksum_util",
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -1395,7 +1395,7 @@ cc_test_plus_nolibc(
         "@silifuzz//build_defs/platform:x86_64": ["x86_64/sve_noop_test.cc"],
     }),
     libc_deps = [
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
     deps = [
         ":checks",

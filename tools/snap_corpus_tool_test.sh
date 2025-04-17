@@ -21,8 +21,8 @@ function die() {
   exit 1
 }
 
-readonly TOOL="${TEST_SRCDIR}/silifuzz/tools/snap_corpus_tool"
-readonly CORPUS="${TEST_SRCDIR}/silifuzz/snap/testing/test_corpus"
+readonly TOOL="${TEST_SRCDIR}/${TEST_WORKSPACE}/tools/snap_corpus_tool"
+readonly CORPUS="${TEST_SRCDIR}/${TEST_WORKSPACE}/snap/testing/test_corpus"
 
 function snap_corpus_tool_test() {
   # The exact number of Snaps in the corpus can change between arches, so be

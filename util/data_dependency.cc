@@ -32,7 +32,8 @@ std::string GetDataDependencyFilepathBazel(absl::string_view relative_path) {
   if (auto test_dir = std::getenv("TEST_SRCDIR"); test_dir == nullptr) {
     p = std::filesystem::current_path() / relative_path;
   } else {
-    p = std::filesystem::path(test_dir) / "silifuzz" / relative_path;
+    p = std::filesystem::path(test_dir) / std::getenv("TEST_WORKSPACE") /
+        relative_path;
   }
   return p;
 }

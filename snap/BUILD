@@ -59,7 +59,7 @@ cc_test(
     srcs = ["snap_test.cc"],
     deps = [
         ":snap",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -93,7 +93,7 @@ cc_test(
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util/testing:status_macros",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -104,8 +104,8 @@ cc_test(
         ":snap_relocator",
         "@silifuzz//util:arch",
         "@silifuzz//util:mmapped_memory_ptr",
-        "@com_google_fuzztest//fuzztest",
-        "@com_google_googletest//:gtest_main",
+        "@fuzztest//fuzztest",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -153,7 +153,7 @@ cc_test(
         "@silifuzz//util:arch",
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -193,6 +193,6 @@ cc_test(
         "@silifuzz//util:path_util",
         "@silifuzz//util/testing:status_macros",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

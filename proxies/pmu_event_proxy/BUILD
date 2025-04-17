@@ -33,7 +33,7 @@ cc_test(
     tags = ["manual"],
     deps = [
         ":ring_buffer_view",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -69,8 +69,8 @@ cc_test(
         ":pmu_events",
         "@silifuzz//util/testing:status_macros",
         "@abseil-cpp//absl/log",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
         "@libpfm4//:pfm4",
     ],
 )
@@ -100,7 +100,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -112,8 +112,8 @@ cc_test(
         ":perf_event_records",
         ":ring_buffer_view",
         "@abseil-cpp//absl/log:check",
-        "@com_google_fuzztest//fuzztest",
-        "@com_google_googletest//:gtest_main",
+        "@fuzztest//fuzztest",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -151,7 +151,7 @@ cc_test(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/synchronization",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@libpfm4//:pfm4",
     ],
 )
@@ -209,7 +209,7 @@ cc_test(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings:string_view",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
         "@libpfm4//:pfm4",
     ],
 )
@@ -235,8 +235,8 @@ cc_binary(
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/strings",
-        "@com_google_fuzztest//centipede:centipede_runner",
-        "@com_google_fuzztest//centipede:feature",
+        "@fuzztest//centipede:centipede_runner",
+        "@fuzztest//centipede:feature",
         "@libpfm4//:pfm4",
     ],
 )

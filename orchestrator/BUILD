@@ -48,7 +48,7 @@ cc_binary(
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
-        "@com_google_protobuf//:protobuf",
+        "@protobuf",
     ],
 )
 
@@ -80,7 +80,7 @@ cc_test(
         ":silifuzz_orchestrator",
         "@silifuzz//runner/driver:runner_driver",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -106,7 +106,7 @@ cc_library(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
-        "@com_google_protobuf//:protobuf",
+        "@protobuf",
     ],
 )
 
@@ -124,7 +124,7 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -156,7 +156,7 @@ cc_test(
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -205,7 +205,7 @@ cc_test(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:cord",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -231,9 +231,9 @@ py_test(
         "@silifuzz//snap/testing:runaway_corpus",
     ],
     deps = [
-        "@absl_py//absl/logging",
-        "@absl_py//absl/testing:absltest",
-        "@absl_py//absl/testing:parameterized",
+        "@abseil-py//absl/logging",
+        "@abseil-py//absl/testing:absltest",
+        "@abseil-py//absl/testing:parameterized",
         "@silifuzz//proto:binary_log_entry_py_pb2",
     ],
 )
@@ -274,6 +274,6 @@ cc_test(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/time",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )

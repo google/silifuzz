@@ -212,7 +212,7 @@ TEST(NativeTracerTest, GetExtensionRegisters) {
     UContext<Host> ucontext;
     control.GetRegisters(ucontext, &eregs);
   });
-  ASSERT_OK(tracer.Run(99));
+  ASSERT_THAT(tracer.Run(99), IsOk());
   if (eregs.register_groups.GetAVX512()) {
     // clang-format off
     uint8_t zmm2[eregs.kZmmSizeBytes] = {

@@ -122,7 +122,7 @@ cc_library(
         "@silifuzz//util:logging_util",
         "@silifuzz//util:misc_util",
         "@abseil-cpp//absl/base:core_headers",
-        "@com_google_googletest//:gtest",
+        "@googletest//:gtest",
         "@lss",
     ],
 )
@@ -155,7 +155,7 @@ cc_library(
         "@silifuzz//util:logging_util",
         "@silifuzz//util:misc_util",
         "@abseil-cpp//absl/base:core_headers",
-        "@com_google_googletest//:gtest",
+        "@googletest//:gtest",
         "@lss",
     ],
 )
@@ -183,7 +183,7 @@ cc_test(
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/base:log_severity",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "@silifuzz//util:reg_group_io",
@@ -224,7 +224,7 @@ cc_test(
         "@silifuzz//util:arch_mem",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/base:log_severity",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [
             "@silifuzz//util:reg_group_io",
@@ -297,7 +297,7 @@ cc_test(
         ":ucontext_types",
         "@silifuzz//util:arch",
         "@abseil-cpp//absl/base:core_headers",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ] + select({
         "@silifuzz//build_defs/platform:aarch64": [":aarch64_esr"],
         "@silifuzz//build_defs/platform:x86_64": [":x86_traps"],
@@ -333,7 +333,7 @@ cc_test(
         ":ucontext",
         ":ucontext_types",
         "@silifuzz//util:arch",
-        "@com_google_googletest//:gtest_main",
+        "@googletest//:gtest_main",
     ],
 )
 
