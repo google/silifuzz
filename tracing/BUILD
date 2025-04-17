@@ -202,7 +202,6 @@ cc_binary(
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag",
         "@silifuzz//util:enum_flag_types",
-        "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",
@@ -225,6 +224,7 @@ cc_library(
         "native_tracer.h",
     ],
     deps = [
+        ":extension_registers",
         ":tracer",
         "@silifuzz//common:harness_tracer",
         "@silifuzz//common:mapped_memory_map",
@@ -241,6 +241,7 @@ cc_library(
         "@silifuzz//util:page_util",
         "@silifuzz//util:ptrace_util",
         "@silifuzz//util:reg_group_io",
+        "@silifuzz//util:reg_groups",
         "@silifuzz//util:user_regs_util",
         "@silifuzz//util/ucontext:serialize",
         "@silifuzz//util/ucontext:ucontext_types",
@@ -263,6 +264,8 @@ cc_test(
         "@silifuzz//snap:exit_sequence",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:reg_group_io",
+        "@silifuzz//util:reg_groups",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext",
         "@silifuzz//util/ucontext:ucontext_types",
@@ -296,5 +299,18 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
+    ],
+)
+
+cc_library(
+    name = "extension_registers",
+    srcs = select({
+        "@silifuzz//build_defs/platform:aarch64": [],
+        "@silifuzz//build_defs/platform:x86_64": ["save_x86_xstate.S"],
+    }),
+    hdrs = ["extension_registers.h"],
+    deps = [
+        "@silifuzz//util:arch",
+        "@silifuzz//util:reg_group_io",
     ],
 )

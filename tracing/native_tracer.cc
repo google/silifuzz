@@ -14,6 +14,8 @@
 
 #include "./tracing/native_tracer.h"
 
+#include <sys/ptrace.h>
+#include <sys/stat.h>
 #include <sys/uio.h>
 #include <sys/user.h>
 
@@ -21,6 +23,7 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
 #include <memory>
 #include <utility>
@@ -39,6 +42,7 @@
 #include "./runner/driver/runner_driver.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
+#include "./tracing/extension_registers.h"
 #include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -46,6 +50,7 @@
 #include "./util/page_util.h"
 #include "./util/ptrace_util.h"
 #include "./util/reg_group_io.h"
+#include "./util/reg_groups.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "./util/user_regs_util.h"
@@ -76,6 +81,32 @@ void SetFPRegs(const pid_t pid, UserFPRegsStruct& fp_regs) {
   struct iovec io = {&fp_regs, sizeof(fp_regs)};
   PTraceOrDie(PTRACE_SETREGSET, pid, (void*)NT_PRFPREG, &io);
 };
+
+#if defined(__x86_64__)
+// Enough to store all AVX512 components.
+// Copy from X86_XSTATE_AVX512_SIZE in "gdb/common/x86-xstate.h"
+constexpr size_t kXStateBufferSize = 2688;
+// TODO(herooutman): Currently, we use another ptrace call to get FPRegs. Since
+// XState always contains FPRegs, we can get them from XState and save the
+// redundant ptrace call.
+void GetX86XState(const pid_t pid, RegisterGroupIOBuffer<Host>& eregs) {
+  eregs.register_groups =
+      GetCurrentPlatformRegisterGroups().SetGPR(0).SetFPRAndSSE(0);
+  if (!eregs.register_groups.GetAVX512() && !eregs.register_groups.GetAVX()) {
+    VLOG_INFO(2,
+              "Skipping XState collection because AVX and AVX512 are not "
+              "enabled.");
+    return;
+  }
+  alignas(64) uint8_t host_xstate[kXStateBufferSize] = {};
+  alignas(64) uint8_t tracee_xstate[kXStateBufferSize] = {};
+
+  struct iovec io = {tracee_xstate, kXStateBufferSize};
+  PTraceOrDie(PTRACE_GETREGSET, pid, (void*)NT_X86_XSTATE, &io);
+
+  SaveX86XState(tracee_xstate, host_xstate, eregs);
+}
+#endif
 
 #if defined(__aarch64__)
 void GetTLSRegs(const pid_t pid, uint64_t* data) {
@@ -194,6 +225,9 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
       RunnerDriver runner_driver,
       RunnerDriverFromSnapshot(*snapshot_, RunnerLocation()));
 
+  // Need to initialize the register group IO library before using
+  // RegisterGroupIOBuffer.
+  InitRegisterGroupIO();
   size_t traced_insn_count = 0;
   absl::StatusOr<RunnerDriver::RunResult> run_result = runner_driver.TraceOne(
       snapshot_->id(),
@@ -317,10 +351,6 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
 
 void NativeTracer::GetRegisters(UContext<Host>& ucontext,
                                 RegisterGroupIOBuffer<Host>* eregs) {
-  if (eregs != nullptr) {
-    memset(eregs, 0, sizeof(*eregs));
-    LOG_ERROR("extension registers support is not implemented on NativeTracer");
-  }
   const user_regs_struct& regs = GetGRegStruct();
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
@@ -333,6 +363,17 @@ void NativeTracer::GetRegisters(UContext<Host>& ucontext,
   UserFPRegsStruct fp_regs;
   GetFPRegs(pid_, fp_regs);
   DeserializeUserFPRegsStruct(fp_regs, &ucontext.fpregs);
+
+  if (eregs != nullptr) {
+#if defined(__x86_64__)
+    memset(eregs, 0, sizeof(*eregs));
+    GetX86XState(pid_, *eregs);
+#elif defined(__aarch64__)
+    LOG_ERROR(
+        "extension eisters support is not implemented on NativeTracer for "
+        "aarch64");
+#endif
+  }
 }
 
 void NativeTracer::SetInstructionPointer(uint64_t address) {

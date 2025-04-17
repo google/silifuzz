@@ -123,8 +123,14 @@ enum class TestSnapshot {
   // Snapshot that contains expensive instructions.
   kExpensiveInstructions,
 
+  // Snapshot that sets three AVX registers.
+  kSetThreeAVXRegisters,
+
+  // Snapshot that sets three AVX512 registers.
+  kSetThreeAVX512Registers,
+
   // Used to iterate over all possible TestSnapshots.
-  kNumTestSnapshot
+  kNumTestSnapshot,
 };
 
 // EnumStr() works for TestSnapshot.
@@ -162,6 +168,8 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kUalignedExitingStackPointer",
     "kFuzzingConfigNonconformance",
     "kExpensiveInstructions",
+    "kSetThreeAVXRegisters",
+    "kSetThreeAVX512Registers",
 };
 
 }  // namespace silifuzz

@@ -559,6 +559,30 @@ fptan
 """,
   )
 
+  b.snapshot(
+      name="SetThreeAVXRegisters",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+mov $0x12345678, %eax
+movd %eax, %xmm2
+vpbroadcastw %xmm2, %xmm10
+vpbroadcastd %xmm2, %ymm15
+""",
+  )
+
+  b.snapshot(
+      name="SetThreeAVX512Registers",
+      arch=X86_64,
+      normal_end=False,
+      src="""
+mov $0x12345678, %eax
+vpbroadcastd %eax, %ymm2
+vpbroadcastq %rax, %zmm20
+kmovw %eax, %k4
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
