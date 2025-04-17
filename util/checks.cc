@@ -14,6 +14,38 @@
 
 #include "./util/checks.h"
 
+#include <cstdint>
+#include <limits>
+
+namespace silifuzz {
+
+namespace checks_internal {
+
+static const char kHexCharMap[] = "0123456789abcdef";
+
+char* IntStr(int64_t num, char (&buf)[kIntStrBufferSize]) {
+  // digits10 is the floor, we want ceil. +1 is a conservative approximation.
+  constexpr auto max_digits = std::numeric_limits<decltype(num)>::digits10 + 1;
+  static_assert(sizeof(buf) >= max_digits + 2, "Increase size of buf");
+  char* ptr = buf + sizeof(buf);
+  *--ptr = '\0';
+  bool is_neg = num < 0;
+  // We do not do num = -num as it does not work for the abs-largest negative
+  // int64.
+  do {
+    *--ptr = kHexCharMap[is_neg ? -(num % 10) : (num % 10)];
+    num /= 10;
+  } while (num != 0);
+  if (is_neg) {
+    *--ptr = '-';
+  }
+  return ptr;
+}
+
+}  // namespace checks_internal
+
+}  // namespace silifuzz
+
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
 #include "absl/base/internal/raw_logging.h"
@@ -55,8 +87,6 @@ void SetVLogLevel(int vlog_level) {
 
 #include <cerrno>  // for errno and EINTR.
 
-#include "./util/itoa.h"
-
 namespace silifuzz {
 
 void SetVLogLevel(int vlog_level) { checks_internal::vlog_level = vlog_level; }
@@ -86,7 +116,8 @@ void LogImpl(LogSeverity severity, const char* file, unsigned int line,
   WriteToStdErr("<DATE> <PID> ");
   WriteToStdErr(file);
   WriteToStdErr(":");
-  WriteToStdErr(IntStr(line));
+  char int_str_buf[kIntStrBufferSize];
+  WriteToStdErr(IntStr(line, int_str_buf));
   WriteToStdErr("] ");
   WriteToStdErr(message1);
   if (message2[0] != '\0') WriteToStdErr(message2);

@@ -43,6 +43,7 @@
 
 #include <string.h>  // for strlen
 
+#include <cstdint>
 #include <utility>  // for std::forward
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
@@ -614,6 +615,13 @@ inline ABSL_ATTRIBUTE_NORETURN void ASS_LogFatal(
   LogImpl(kFatal, file, line, err1, kNotChopped, err2, err3, err4, err5);
   __builtin_unreachable();
 }
+
+constexpr int kIntStrBufferSize = 22;
+
+// Converts an integer to string representation in the buffer. Returns a pointer
+// to the first character of the string. It's defined here to break a circular
+// dependency between `itoa` and `checks`.
+char* IntStr(int64_t num, char (&buf)[kIntStrBufferSize]);
 
 }  // namespace checks_internal
 }  // namespace silifuzz

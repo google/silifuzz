@@ -15,7 +15,7 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ITOA_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ITOA_H_
 
-// This library defiens simple int->string converters that work without
+// This library defines simple int->string converters that work without
 // bringing in libc dependencies and heap allocation.
 // All the memory needed is within the temporary itoa_internal::IntStr or
 // itoa_internal::HexStr object.

@@ -162,7 +162,6 @@ cc_library_plus_nolibc(
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings",
     ],
-    deps = [":itoa"],
 )
 
 cc_test_plus_nolibc(
@@ -346,6 +345,7 @@ cc_library_plus_nolibc(
     as_is_deps = [
         "@abseil-cpp//absl/base:core_headers",
     ],
+    deps = [":checks"],
 )
 
 cc_test(

@@ -20,29 +20,15 @@
 #include <cstdint>
 #include <limits>
 
+#include "./util/checks.h"
+
 namespace silifuzz {
 
 namespace itoa_internal {
 
 static const char kHexCharMap[] = "0123456789abcdef";
 
-IntStr::IntStr(int64_t num) {
-  // digits10 is the floor, we want ceil. +1 is a conservative approximation.
-  constexpr auto max_digits = std::numeric_limits<decltype(num)>::digits10 + 1;
-  static_assert(sizeof(rep_) >= max_digits + 2, "Increase size of rep_");
-  ptr_ = rep_ + sizeof(rep_);
-  *--ptr_ = '\0';
-  bool is_neg = num < 0;
-  // We do not do num = -num as it does not work for the abs-largest negative
-  // int64.
-  do {
-    *--ptr_ = kHexCharMap[is_neg ? -(num % 10) : (num % 10)];
-    num /= 10;
-  } while (num != 0);
-  if (is_neg) {
-    *--ptr_ = '-';
-  }
-}
+IntStr::IntStr(int64_t num) { ptr_ = checks_internal::IntStr(num, rep_); }
 
 ErrnoStr::ErrnoStr(int num) : IntStr(num) {
   static constexpr char prefix[] = "errno=";
