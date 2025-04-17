@@ -34,6 +34,7 @@
 #include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -56,7 +57,8 @@ class NativeTracer final : public Tracer<Host> {
   uint64_t GetInstructionPointer() override;
   uint64_t GetStackPointer() override;
   void ReadMemory(uint64_t address, void* buffer, size_t size) override;
-  void GetRegisters(UContext<Host>& ucontext) override;
+  void GetRegisters(UContext<Host>& ucontext,
+                    RegisterGroupIOBuffer<Host>* eregs = nullptr) override;
   uint32_t PartialChecksumOfMutableMemory() override;
 
  private:

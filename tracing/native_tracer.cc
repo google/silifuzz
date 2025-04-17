@@ -45,6 +45,7 @@
 #include "./util/itoa.h"
 #include "./util/page_util.h"
 #include "./util/ptrace_util.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "./util/user_regs_util.h"
@@ -314,7 +315,12 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
   gregs_cache_.reset();
 }
 
-void NativeTracer::GetRegisters(UContext<Host>& ucontext) {
+void NativeTracer::GetRegisters(UContext<Host>& ucontext,
+                                RegisterGroupIOBuffer<Host>* eregs) {
+  if (eregs != nullptr) {
+    memset(eregs, 0, sizeof(*eregs));
+    LOG_ERROR("extension registers support is not implemented on NativeTracer");
+  }
   const user_regs_struct& regs = GetGRegStruct();
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));

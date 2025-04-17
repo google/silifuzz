@@ -29,6 +29,7 @@
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/page_util.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
 #include "third_party/unicorn/x86.h"
@@ -260,7 +261,12 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
 }
 
 template <>
-void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64> &ucontext) {
+void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64> &ucontext,
+                                         RegisterGroupIOBuffer<X86_64> *eregs) {
+  if (eregs != nullptr) {
+    memset(eregs, 0, sizeof(*eregs));
+    LOG_ERROR("extension registers are not supported on Unicorn");
+  }
   // Not all registers will be read. Unicorn also does not set the upper bits of
   // st registers. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));

@@ -25,6 +25,7 @@
 #include "./common/proxy_config.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
@@ -129,7 +130,11 @@ class Tracer {
   // inaccessible memory (e.g unmapped or protected), a fatal error will be
   // raised.
   virtual void ReadMemory(uint64_t address, void* buffer, size_t size) = 0;
-  virtual void GetRegisters(UContext<Arch>& ucontext) = 0;
+  // Read the current register state of the tracee. GPR and FP registers are
+  // always read and stored in `ucontext`. If `eregs` is not null, the extension
+  // registers are also read and stored in `eregs`.
+  virtual void GetRegisters(UContext<Arch>& ucontext,
+                            RegisterGroupIOBuffer<Arch>* eregs) = 0;
   // Checksum some of the tracer's mutable memory.
   // This function does not checksum all the mutable memory because this can be
   // quite slow for the x86_64 which has ~1GB of mutable memory.
@@ -213,8 +218,9 @@ class TracerControl {
   inline void ReadMemory(uint64_t address, void* buffer, size_t size) {
     tracer_.ReadMemory(address, buffer, size);
   }
-  inline void GetRegisters(UContext<Arch>& ucontext) {
-    tracer_.GetRegisters(ucontext);
+  inline void GetRegisters(UContext<Arch>& ucontext,
+                           RegisterGroupIOBuffer<Arch>* eregs = nullptr) {
+    tracer_.GetRegisters(ucontext, eregs);
   }
   inline uint32_t PartialChecksumOfMutableMemory() {
     return tracer_.PartialChecksumOfMutableMemory();

@@ -31,6 +31,7 @@
 #include "./tracing/unicorn_util.h"
 #include "./util/checks.h"
 #include "./util/itoa.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/unicorn.h"
 
@@ -201,7 +202,8 @@ class UnicornTracer final : public Tracer<Arch> {
 
   // Read the current register state. Not all platforms can read all registers,
   // so some registers may be set to zero instead of their actual values.
-  void GetRegisters(UContext<Arch>& ucontext) override;
+  void GetRegisters(UContext<Arch>& ucontext,
+                    RegisterGroupIOBuffer<Arch>* eregs = nullptr) override;
 
   // Write the current register state. Not all platforms can write all
   // registers, so some registers may not be updated.

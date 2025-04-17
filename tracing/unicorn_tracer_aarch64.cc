@@ -28,6 +28,7 @@
 #include "./util/arch_mem.h"
 #include "./util/checks.h"
 #include "./util/page_util.h"
+#include "./util/reg_group_io.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "third_party/unicorn/arm64.h"
 #include "third_party/unicorn/unicorn.h"
@@ -307,7 +308,12 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
 }
 
 template <>
-void UnicornTracer<AArch64>::GetRegisters(UContext<AArch64> &ucontext) {
+void UnicornTracer<AArch64>::GetRegisters(
+    UContext<AArch64> &ucontext, RegisterGroupIOBuffer<AArch64> *eregs) {
+  if (eregs != nullptr) {
+    memset(eregs, 0, sizeof(*eregs));
+    LOG_ERROR("extension registers are not supported on Unicorn");
+  }
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
   std::array<const void *, kNumUnicornAArch64Reg> ptrs =
