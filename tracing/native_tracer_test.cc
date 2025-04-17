@@ -35,6 +35,7 @@
 #include "./util/checks.h"
 #include "./util/reg_group_io.h"
 #include "./util/reg_groups.h"
+#include "./util/sve_constants.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
 #include "./util/ucontext/ucontext_types.h"
@@ -262,6 +263,54 @@ TEST(NativeTracerTest, GetExtensionRegisters) {
     EXPECT_THAT(eregs.ymm[2], ContainerEq(ymm2));
     EXPECT_THAT(eregs.ymm[10], ContainerEq(ymm10));
     EXPECT_THAT(eregs.ymm[15], ContainerEq(ymm15));
+  }
+}
+#endif
+
+#if defined(__aarch64__)
+TEST(NativeTracerTest, GetExtensionRegisters) {
+  InitRegisterGroupIO();
+  // Early return if SVE is not enabled on the host, otherwise InitSnippet()
+  // will fail.
+  if (GetCurrentPlatformRegisterGroups().GetSVEVectorWidth() == 0) {
+    GTEST_SKIP() << "SVE not supported";
+  }
+  NativeTracer tracer;
+  ASSERT_OK(tracer.InitSnippet(
+      GetTestSnippet<Host>(TestSnapshot::kSetThreeSVERegisters)));
+
+  RegisterGroupIOBuffer<Host> eregs;
+  tracer.SetAfterExecutionCallback([&](TracerControl<Host>& control) {
+    UContext<Host> ucontext;
+    control.GetRegisters(ucontext, &eregs);
+  });
+  ASSERT_OK(tracer.Run(99));
+
+  const size_t vl = eregs.register_groups.GetSVEVectorWidth();
+  const size_t pl = vl / 8;
+  EXPECT_NE(vl, 0);
+
+  // all bytes of P[3] should be 0x55
+  for (size_t i = 0; i < kSveNumPReg; ++i) {
+    EXPECT_THAT(
+        std::all_of(eregs.p + i * pl, eregs.p + i * pl + pl,
+                    [&](uint8_t b) { return b == (i == 3 ? 0x55 : 0x00); }),
+        true)
+        << "P[" << i << "] value not as expected";
+  }
+  // all bits of FFR are set
+  EXPECT_THAT(std::all_of(eregs.ffr, eregs.ffr + pl,
+                          [](uint8_t b) { return b == 0xff; }),
+              true);
+  // Z3 should contain (vl / 8) double-word elements 0x1fff0000
+  uint8_t expected[8] = {0x00, 0x00, 0xff, 0x1f, 0x00, 0x00, 0x00, 0x00};
+  uint8_t zeros[8]{};
+  for (int i = 0; i < kSveNumZReg; ++i) {
+    auto z_ptr = reinterpret_cast<uint8_t (*)[8]>(eregs.z + i * vl);
+    for (int j = 0; j < vl / 8; ++j) {
+      EXPECT_THAT(*(z_ptr++), ContainerEq(i == 3 ? expected : zeros))
+          << "Z[" << i << "] value not as expected";
+    }
   }
 }
 #endif

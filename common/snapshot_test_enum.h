@@ -129,6 +129,9 @@ enum class TestSnapshot {
   // Snapshot that sets three AVX512 registers.
   kSetThreeAVX512Registers,
 
+  // Snapshot that sets three SVE registers.
+  kSetThreeSVERegisters,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot,
 };
@@ -170,6 +173,7 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kExpensiveInstructions",
     "kSetThreeAVXRegisters",
     "kSetThreeAVX512Registers",
+    "kSetThreeSVERegisters",
 };
 
 }  // namespace silifuzz

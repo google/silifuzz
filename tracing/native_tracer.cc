@@ -14,6 +14,7 @@
 
 #include "./tracing/native_tracer.h"
 
+#include <asm/ptrace.h>
 #include <sys/ptrace.h>
 #include <sys/stat.h>
 #include <sys/uio.h>
@@ -51,6 +52,7 @@
 #include "./util/ptrace_util.h"
 #include "./util/reg_group_io.h"
 #include "./util/reg_groups.h"
+#include "./util/sve_constants.h"
 #include "./util/ucontext/serialize.h"
 #include "./util/ucontext/ucontext_types.h"
 #include "./util/user_regs_util.h"
@@ -109,6 +111,34 @@ void GetX86XState(const pid_t pid, RegisterGroupIOBuffer<Host>& eregs) {
 #endif
 
 #if defined(__aarch64__)
+void GetSVE(const pid_t pid, RegisterGroupIOBuffer<Host>& eregs) {
+  // SVE_PT_SIZE(vq, flags) calculates the total size of the state in bytes. The
+  // flags are set to 0x1 here indicating SVE is enabled. See <asm/ptrace.h> for
+  // more details.
+  constexpr size_t kMaxSVEStateSize = SVE_PT_SIZE(kSveZRegMaxSizeBytes / 16, 1);
+  uint8_t data[kMaxSVEStateSize]{};
+
+  struct iovec io = {data, kMaxSVEStateSize};
+  PTraceOrDie(PTRACE_GETREGSET, pid, (void*)NT_ARM_SVE, &io);
+
+  // Double-check the PTrace-returned state header matches our expectations.
+  const user_sve_header* header =
+      reinterpret_cast<const user_sve_header*>(data);
+  CHECK_GE(kMaxSVEStateSize, header->size);
+  if ((header->flags & SVE_PT_REGS_MASK) != SVE_PT_REGS_SVE ||
+      header->vl == 0) {
+    VLOG_INFO(2, "SVE is not supported!");
+    return;
+  }
+  eregs.register_groups.SetSVEVectorWidth(header->vl);
+  const size_t vq = header->vl / 16;
+
+  memcpy(eregs.z, data + SVE_PT_SVE_ZREGS_OFFSET, SVE_PT_SVE_ZREGS_SIZE(vq));
+  memcpy(eregs.p, data + SVE_PT_SVE_PREGS_OFFSET(vq),
+         SVE_PT_SVE_PREGS_SIZE(vq));
+  memcpy(eregs.ffr, data + SVE_PT_SVE_FFR_OFFSET(vq), SVE_PT_SVE_FFR_SIZE(vq));
+}
+
 void GetTLSRegs(const pid_t pid, uint64_t* data) {
   struct iovec io = {data, sizeof(*data)};
   PTraceOrDie(PTRACE_GETREGSET, pid, (void*)NT_ARM_TLS, &io);
@@ -365,13 +395,11 @@ void NativeTracer::GetRegisters(UContext<Host>& ucontext,
   DeserializeUserFPRegsStruct(fp_regs, &ucontext.fpregs);
 
   if (eregs != nullptr) {
-#if defined(__x86_64__)
     memset(eregs, 0, sizeof(*eregs));
+#if defined(__x86_64__)
     GetX86XState(pid_, *eregs);
 #elif defined(__aarch64__)
-    LOG_ERROR(
-        "extension eisters support is not implemented on NativeTracer for "
-        "aarch64");
+    GetSVE(pid_, *eregs);
 #endif
   }
 }

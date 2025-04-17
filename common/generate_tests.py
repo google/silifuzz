@@ -821,6 +821,17 @@ ldr x0, [x0]
 """,
   )
 
+  b.snapshot(
+      name="SetThreeSVERegisters",
+      arch=AARCH64,
+      src="""
+.arch_extension sve
+ptrues p3.h
+mov z3.d, #0x1fff0000
+setffr
+""",
+  )
+
 
 def generate_source(b, out):
   out.write(f"""\
