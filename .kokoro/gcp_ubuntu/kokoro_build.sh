@@ -22,9 +22,9 @@ set -eu
 # in the job configuration.
 cd "${KOKORO_ARTIFACTS_DIR}/github/silifuzz/.kokoro/gcp_ubuntu"
 
-# Pin Debian Docker image to bookworm for better hermeticity.
+# Pin Ubuntu Docker image to noble for updated clang and better hermeticity.
 # See https://github.com/google/silifuzz/issues/9.
-DOCKER_IMAGE=debian:bookworm
+DOCKER_IMAGE=ubuntu:noble
 
 docker run \
   --security-opt seccomp=unconfined \

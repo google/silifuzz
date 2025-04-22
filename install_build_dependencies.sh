@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Tested on Debian GNU/Linux 11 (bullseye)
+# Tested on Ubuntu 24.04 (Noble Numbat).
 #
 # * git: to get the SiliFuzz sources.
 # * bazel, clang, lld, python: to build SiliFuzz
 # * libssl-dev: silifuzz uses SHA1.
-#   Clang 11 or newer will work.
+#   Clang 18 or newer will work.
 #   To get all of the functionality you may need to install fresh clang from
 #   source: https://llvm.org/.
 
@@ -36,4 +36,8 @@ echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
 apt update
 
 # Install dependencies.
-apt install --no-install-recommends -y git bazel bazel-7.4.1 libssl-dev libzstd-dev clang libclang-rt-dev lld python3 libpython3-stdlib
+# `DEBIAN_FRONTEND=noninteractive` avoids interactive prompts that interrupt the
+# script while installing a transitive dependency: `tzdata`.
+# Note that this is a debconf-specific env var that is required by both Debian
+# and Ubuntu.
+DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y git bazel bazel-7.4.1 libssl-dev libzstd-dev clang libclang-rt-dev lld python3 libpython3-stdlib
