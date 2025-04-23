@@ -263,7 +263,7 @@ cc_test(
     srcs = ["crc32c_benchmarks.cc"],
     deps = [
         ":crc32c",
-        "@com_github_google_benchmark//:benchmark_main",
+        "@google_benchmark//:benchmark_main",
         "@googletest//:gtest_main",
     ],
 )

@@ -47,8 +47,8 @@
 #include "./runner/runner_provider.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 
 namespace silifuzz {
 

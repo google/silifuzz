@@ -41,8 +41,8 @@
 #include "./proxies/pmu_event_proxy/perf_event_records.h"
 #include "./util/cpu_id.h"
 #include "./util/testing/status_macros.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 namespace silifuzz {
 namespace {
 

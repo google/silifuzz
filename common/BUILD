@@ -299,7 +299,7 @@ cc_test(
         ":memory_perms",
         ":memory_state",
         ":snapshot_types",
-        "@com_github_google_benchmark//:benchmark_main",
+        "@google_benchmark//:benchmark_main",
         "@googletest//:gtest_main",
     ],
 )

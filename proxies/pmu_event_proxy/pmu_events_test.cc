@@ -25,8 +25,8 @@
 #include "gtest/gtest.h"
 #include "absl/log/log.h"
 #include "./util/testing/status_macros.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 
 namespace silifuzz {
 namespace {

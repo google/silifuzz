@@ -7,7 +7,7 @@ exports_files(["LICENSE"])
 
 py_library(
     name = "mbuild",
-    srcs = glob(["*.py"]),
+    srcs = glob(["mbuild/*.py"]),
     srcs_version = "PY2AND3",
 )
 

@@ -41,8 +41,8 @@
 #include "./proxies/user_features.h"
 #include "./proxies/util/set_process_dumpable.h"
 #include "./util/checks.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 
 ABSL_FLAG(size_t, num_iterations, 10,
           "Number of iterations to run each input.");

@@ -55,7 +55,7 @@ cc_library(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -71,7 +71,7 @@ cc_test(
         "@abseil-cpp//absl/log",
         "@googletest//:gtest",
         "@googletest//:gtest_main",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -130,7 +130,7 @@ cc_library(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -152,7 +152,7 @@ cc_test(
         "@abseil-cpp//absl/synchronization",
         "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -183,7 +183,7 @@ cc_library(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -210,7 +210,7 @@ cc_test(
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings:string_view",
         "@googletest//:gtest_main",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )
 
@@ -237,6 +237,6 @@ cc_binary(
         "@abseil-cpp//absl/strings",
         "@fuzztest//centipede:centipede_runner",
         "@fuzztest//centipede:feature",
-        "@libpfm4//:pfm4",
+        "@libpfm//:pfm",
     ],
 )

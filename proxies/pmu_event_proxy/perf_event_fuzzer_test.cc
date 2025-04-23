@@ -45,8 +45,8 @@
 #include "./util/checks.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 
 using ::silifuzz::testing::IsOk;
 using ::silifuzz::testing::IsOkAndHolds;

@@ -33,8 +33,8 @@
 #include "absl/strings/str_cat.h"
 #include "./util/checks.h"
 #include "./util/x86_cpuid.h"
-#include "external/libpfm4/include/perfmon/pfmlib.h"
-#include "external/libpfm4/include/perfmon/pfmlib_perf_event.h"
+#include "perfmon/pfmlib.h"
+#include "perfmon/pfmlib_perf_event.h"
 
 namespace silifuzz {
 

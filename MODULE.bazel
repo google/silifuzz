@@ -26,3 +26,81 @@ git_override(
 )
 
 bazel_dep(name = "googletest", version = "1.16.0")
+bazel_dep(name = "google_benchmark", version = "1.9.2")
+bazel_dep(name = "libpfm", version = "4.11.0.bcr.1")
+
+# Non-module dependencies
+
+new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+new_git_repository(
+    name = "lss",
+    build_file = "@silifuzz//:third_party/BUILD.lss",
+    commit = "93e5acf3ef8793cad821c6af42612685e17392d8",
+    remote = "https://chromium.googlesource.com/linux-syscall-support",
+    shallow_since = "1705605906 +0000",
+)
+
+new_git_repository(
+    name = "cityhash",
+    build_file = "@silifuzz//:third_party/BUILD.cityhash",
+    commit = "8af9b8c2b889d80c22d6bc26ba0df1afb79a30db",
+    patch_cmds = [
+        # Running "configure" creates the config.h file needed for this library.
+        "./configure",
+        "mv config.h src",
+        """sed -i -e 's/<city.h>/"city.h"/' src/*.cc src/*.h""",
+        """sed -i -e 's/<citycrc.h>/"citycrc.h"/' src/*.cc""",
+    ],
+    remote = "https://github.com/google/cityhash",
+    shallow_since = "1375313681 +0000",
+)
+
+new_git_repository(
+    name = "mbuild",
+    build_file = "@silifuzz//:third_party/BUILD.mbuild",
+    commit = "75cb46e6536758f1a3cdb3d6bd83a4a9fd0338bb",
+    remote = "https://github.com/intelxed/mbuild",
+    shallow_since = "1659030943 +0300",
+)
+
+# TODO: XED
+
+http_archive(
+    name = "liblzma",
+    build_file = "@silifuzz//:third_party/BUILD.liblzma",
+    sha256 = "f6f4910fd033078738bd82bfba4f49219d03b17eb0794eb91efbae419f4aba10",
+    strip_prefix = "xz-5.2.5",
+    urls = [
+        "https://storage.googleapis.com/tensorstore-bazel-mirror/tukaani.org/xz/xz-5.2.5.tar.gz",
+        "https://tukaani.org/xz/xz-5.2.5.tar.gz",
+    ],
+)
+
+# Capstone disassembler
+new_git_repository(
+    name = "capstone",
+    build_file = "@silifuzz//:third_party/BUILD.capstone",
+    commit = "702dbe78ca116de8ec65f122d9202c2c1f4a2b4c",
+    remote = "https://github.com/capstone-engine/capstone.git",
+)
+
+# Unicorn for the proxies
+new_git_repository(
+    name = "unicorn",
+    build_file = "@silifuzz//:third_party/BUILD.unicorn",
+    commit = "d4b92485b1a228fb003e1218e42f6c778c655809",
+    patch_cmds = [
+        # crc32 and crc32c functions are prefixed with "unicorn_" to avoid linking errors from
+        # symbol conflicts with other libraries (e.g. zlib). We need to match the opening bracket so
+        # that we change only the function names, and not the header/argument/helper macros.
+        # We can't easily glob the files like with ** operators in bash, so we use `find` to glob
+        # the files and then `sed` to replace the function names in those files.
+        """find qemu '(' -name "*.h" -o -name "*.c" ')' -type f \
+                -exec sed -i -e 's/\\b\\(crc32[c]\\{0,1\\}\\)(/unicorn_\\1(/' {} +""",
+    ],
+    remote = "https://github.com/unicorn-engine/unicorn",
+    shallow_since = "1687038706 +0200",
+)
