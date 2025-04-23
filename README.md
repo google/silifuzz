@@ -134,7 +134,7 @@ paper
 ```shell
 git clone https://github.com/google/silifuzz.git && cd silifuzz
 SILIFUZZ_SRC_DIR=`pwd`
-./install_build_dependencies.sh  # Currently, works for the latest Debian and Ubuntu only
+./install_build_dependencies.sh  # Currently, works for the latest Ubuntu only.
 bazel build -c opt @silifuzz//tools:{snap_corpus_tool,fuzz_filter_tool,snap_tool,silifuzz_platform_id,simple_fix_tool_main} \
      @silifuzz//runner:reading_runner_main_nolibc \
      @silifuzz//orchestrator:silifuzz_orchestrator_main
@@ -144,7 +144,7 @@ cd "${SILIFUZZ_BIN_DIR}"
 
 NOTE: You can use a Docker container to avoid polluting the host system: `docker
 run -it --tty --security-opt seccomp=unconfined --mount
-type=bind,source=${SILIFUZZ_SRC_DIR},target=/app debian:bookworm /bin/bash -c
+type=bind,source=${SILIFUZZ_SRC_DIR},target=/app ubuntu:noble /bin/bash -c
 "cd /app && ./install_build_dependencies.sh && bazel build ... && bazel test
 ..."`
 
