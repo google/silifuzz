@@ -181,7 +181,7 @@ cc_library(
         "qemu/include/hw/arm/*.h",
         "qemu/target/arm/*.h",
         "qemu/target/arm/*.inc.c",
-    ]),
+    ], allow_empty=True),
     visibility = ["//visibility:private"],
 )
 
@@ -240,7 +240,7 @@ cc_library(
         "qemu/include/hw/i386/*.h",
         "qemu/target/i386/*.h",
         "qemu/target/i386/*.inc.c",
-    ]),
+    ], allow_empty=True),
     visibility = ["//visibility:private"],
 )
 

@@ -40,4 +40,4 @@ apt update
 # script while installing a transitive dependency: `tzdata`.
 # Note that this is a debconf-specific env var that is required by both Debian
 # and Ubuntu.
-DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y git bazel bazel-7.4.1 libssl-dev libzstd-dev clang libclang-rt-dev lld python3 libpython3-stdlib
+DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y git bazel bazel-8.2.1 libssl-dev libzstd-dev clang libclang-rt-dev lld python3 libpython3-stdlib

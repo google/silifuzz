@@ -1,4 +1,3 @@
-# Bazel modules are not supported yet.
 common --enable_bzlmod
 
 build --client_env=CC=clang
