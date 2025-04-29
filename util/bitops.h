@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 namespace silifuzz {
 
@@ -84,13 +85,12 @@ inline constexpr auto BestIntType() {
 // simple loads and stores. Effectively we're operating on arrays of
 // arbitrary-sized integers without running into strict aliasing issues.
 
-// Calculate the population count for a N byte block of memory.
-template <size_t N>
-size_t PopCount(const void* bitmap) {
-  using Granularity = decltype(BestIntType<N>());
+// Calculate the population count for a `n` byte block of memory.
+template <typename Granularity>
+size_t PopCount(size_t n, const void* bitmap) {
   const uint8_t* bytes = reinterpret_cast<const uint8_t*>(bitmap);
   size_t count = 0;
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity tmp;
     // See notes in the file on memcpy.
     memcpy(&tmp, &bytes[i], sizeof(Granularity));
@@ -101,15 +101,14 @@ size_t PopCount(const void* bitmap) {
   return count;
 }
 
-// Calculate "result = a ^ b" for a N byte block of memory.
-template <size_t N>
-void BitDiff(const void* a, const void* b, void* result) {
-  using Granularity = decltype(BestIntType<N>());
+// Calculate "result = a ^ b" for a `n` byte block of memory.
+template <typename Granularity>
+void BitDiff(size_t n, const void* a, const void* b, void* result) {
   const uint8_t* a_bytes = reinterpret_cast<const uint8_t*>(a);
   const uint8_t* b_bytes = reinterpret_cast<const uint8_t*>(b);
   uint8_t* result_bytes = reinterpret_cast<uint8_t*>(result);
 
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity a_tmp, b_tmp, result_tmp;
     // See notes in the file on memcpy.
     memcpy(&a_tmp, &a_bytes[i], sizeof(Granularity));
@@ -119,17 +118,16 @@ void BitDiff(const void* a, const void* b, void* result) {
   }
 }
 
-// Incrementally calculate bit toggles for a N byte block of memory.
-template <size_t N>
-void AccumulateToggle(const void* a, const void* b, void* zero_one,
+// Incrementally calculate bit toggles for a `n` byte block of memory.
+template <typename Granularity>
+void AccumulateToggle(size_t n, const void* a, const void* b, void* zero_one,
                       void* one_zero) {
-  using Granularity = decltype(BestIntType<N>());
   const uint8_t* a_bytes = reinterpret_cast<const uint8_t*>(a);
   const uint8_t* b_bytes = reinterpret_cast<const uint8_t*>(b);
   uint8_t* zero_one_bytes = reinterpret_cast<uint8_t*>(zero_one);
   uint8_t* one_zero_bytes = reinterpret_cast<uint8_t*>(one_zero);
 
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity a_tmp, b_tmp, zero_one_tmp, one_zero_tmp;
     // See notes in the file on memcpy.
     memcpy(&a_tmp, &a_bytes[i], sizeof(Granularity));
@@ -143,13 +141,12 @@ void AccumulateToggle(const void* a, const void* b, void* zero_one,
   }
 }
 
-// Invoke a callback for each bit in N bytes.
-template <size_t N, typename F>
-inline void ForEachBit(const void* bitmap, F f) {
-  using Granularity = decltype(BestIntType<N>());
+// Invoke a callback for each bit in `n` bytes.
+template <typename Granularity, typename F>
+inline void ForEachBit(size_t n, const void* bitmap, F f) {
   const uint8_t* bytes = reinterpret_cast<const uint8_t*>(bitmap);
 
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity tmp;
     memcpy(&tmp, &bytes[i], sizeof(Granularity));
     for (size_t bit = 0; bit < NumBits<Granularity>(); ++bit) {
@@ -159,13 +156,12 @@ inline void ForEachBit(const void* bitmap, F f) {
   }
 }
 
-// Invoke a callback for each bit in N bytes that is one.
-template <size_t N, typename F>
-inline void ForEachSetBit(const void* bitmap, F f) {
-  using Granularity = decltype(BestIntType<N>());
+// Invoke a callback for each bit in `n` bytes that is one.
+template <typename Granularity, typename F>
+inline void ForEachSetBit(size_t n, const void* bitmap, F f) {
   const uint8_t* bytes = reinterpret_cast<const uint8_t*>(bitmap);
 
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity tmp;
     memcpy(&tmp, &bytes[i], sizeof(Granularity));
     // For sparse bitmaps, ForEachSetBit can be significantly faster than
@@ -182,14 +178,13 @@ inline void ForEachSetBit(const void* bitmap, F f) {
   }
 }
 
-// Invoke a callback for each bit in N bytes that is different.
-template <size_t N, typename F>
-inline void ForEachDiffBit(const void* a, const void* b, F f) {
-  using Granularity = decltype(BestIntType<N>());
+// Invoke a callback for each bit in `n` bytes that is different.
+template <typename Granularity, typename F>
+inline void ForEachDiffBit(size_t n, const void* a, const void* b, F f) {
   const uint8_t* a_bytes = reinterpret_cast<const uint8_t*>(a);
   const uint8_t* b_bytes = reinterpret_cast<const uint8_t*>(b);
 
-  for (size_t i = 0; i < N; i += sizeof(Granularity)) {
+  for (size_t i = 0; i < n; i += sizeof(Granularity)) {
     Granularity a_tmp, b_tmp, diff;
     memcpy(&a_tmp, &a_bytes[i], sizeof(Granularity));
     memcpy(&b_tmp, &b_bytes[i], sizeof(Granularity));
@@ -206,6 +201,19 @@ inline void ForEachDiffBit(const void* a, const void* b, F f) {
   }
 }
 
+#define APPLY_WITH_BEST_INT_TYPE(func, byte_size, ...)                 \
+  [&](size_t n, auto&&... args) {                                      \
+    if (n % 8 == 0) {                                                  \
+      return func<uint64_t>(n, std::forward<decltype(args)>(args)...); \
+    } else if (n % 4 == 0) {                                           \
+      return func<uint32_t>(n, std::forward<decltype(args)>(args)...); \
+    } else if (n % 2 == 0) {                                           \
+      return func<uint16_t>(n, std::forward<decltype(args)>(args)...); \
+    } else {                                                           \
+      return func<uint8_t>(n, std::forward<decltype(args)>(args)...);  \
+    }                                                                  \
+  }(byte_size, ##__VA_ARGS__)
+
 }  // namespace bitops_internal
 
 // Zeros the struct. Slightly nicer than calling memset directly.
@@ -218,7 +226,8 @@ void ClearBits(T& result) {
 // Assumes that struct padding of the input has been zeroed.
 template <typename T>
 size_t PopCount(const T& bitmap) {
-  return bitops_internal::PopCount<sizeof(T)>(&bitmap);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  return bitops_internal::PopCount<Granularity>(sizeof(T), &bitmap);
 }
 
 // Create a bitmask in `result` that shows the bits that differ between `a` and
@@ -226,7 +235,8 @@ size_t PopCount(const T& bitmap) {
 // Assumes that struct padding of the inputs has been zeroed.
 template <typename T>
 void BitDiff(const T& a, const T& b, T& result) {
-  return bitops_internal::BitDiff<sizeof(T)>(&a, &b, &result);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  return bitops_internal::BitDiff<Granularity>(sizeof(T), &a, &b, &result);
 }
 
 // Compute which bits have changed between `a` and `b` as well as the direction
@@ -241,7 +251,9 @@ void BitDiff(const T& a, const T& b, T& result) {
 // Assumes that struct padding of the inputs has been zeroed.
 template <typename T>
 void AccumulateToggle(const T& a, const T& b, T& zero_one, T& one_zero) {
-  bitops_internal::AccumulateToggle<sizeof(T)>(&a, &b, &zero_one, &one_zero);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  bitops_internal::AccumulateToggle<Granularity>(sizeof(T), &a, &b, &zero_one,
+                                                 &one_zero);
 }
 
 // Note: the following functions invoke callbacks where one of the arguments is
@@ -261,14 +273,16 @@ void AccumulateToggle(const T& a, const T& b, T& zero_one, T& one_zero) {
 // The second argument of `f` is the value of the bit in `bitmap`.
 template <typename T, typename F>
 inline void ForEachBit(const T& bitmap, F f) {
-  bitops_internal::ForEachBit<sizeof(T), F>(&bitmap, f);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  bitops_internal::ForEachBit<Granularity, F>(sizeof(T), &bitmap, f);
 }
 
 // Call `f` for ever bit in `bitmap` that is set.
 // The only argument of `f` is index of the bit.
 template <typename T, typename F>
 inline void ForEachSetBit(const T& bitmap, F f) {
-  bitops_internal::ForEachSetBit<sizeof(T), F>(&bitmap, f);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  bitops_internal::ForEachSetBit<Granularity, F>(sizeof(T), &bitmap, f);
 }
 
 // Call `f` for ever bit that differs between `a` and `b`.
@@ -276,7 +290,47 @@ inline void ForEachSetBit(const T& bitmap, F f) {
 // The second argument of `f` is the value of the bit in `b`.
 template <typename T, typename F>
 inline void ForEachDiffBit(const T& a, const T& b, F f) {
-  bitops_internal::ForEachDiffBit<sizeof(T), F>(&a, &b, f);
+  using Granularity = decltype(bitops_internal::BestIntType<sizeof(T)>());
+  bitops_internal::ForEachDiffBit<Granularity, F>(sizeof(T), &a, &b, f);
+}
+
+// ============================================================================
+// An invariant of above BitOps that takes pointers to the byte arrays and their
+// size as the input/output data types.
+
+inline size_t PopCount(const void* bitmap, size_t byte_size) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::PopCount, byte_size, bitmap);
+}
+
+inline void BitDiff(const void* a, const void* b, size_t byte_size,
+                    void* result) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::BitDiff, byte_size, a, b,
+                                  result);
+}
+
+inline void AccumulateToggle(const void* a, const void* b, size_t byte_size,
+                             void* zero_one, void* one_zero) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::AccumulateToggle, byte_size,
+                                  a, b, zero_one, one_zero);
+}
+
+template <typename F>
+inline void ForEachBit(const void* bitmap, size_t byte_size, F f) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::ForEachBit, byte_size,
+                                  bitmap, f);
+}
+
+template <typename F>
+inline void ForEachSetBit(const void* bitmap, size_t byte_size, F f) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::ForEachSetBit, byte_size,
+                                  bitmap, f);
+}
+
+template <typename F>
+inline void ForEachDiffBit(const void* a, const void* b, size_t byte_size,
+                           F f) {
+  return APPLY_WITH_BEST_INT_TYPE(bitops_internal::ForEachDiffBit, byte_size, a,
+                                  b, f);
 }
 
 }  // namespace silifuzz
