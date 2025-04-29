@@ -63,9 +63,8 @@ SaveX86XState:
         call      SaveRegisterGroupsToBuffer
 
         // 4. recover original host's xstate
-        mov       %ebx, %eax
-        mov       %rbx, %rdx
-        shrq      $32, %rdx
+        mov       $0xe7, %eax
+        mov       $0, %edx
         xrstor64  (%r12)
 
         // Restore callee-saved registers and return.
