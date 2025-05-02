@@ -130,8 +130,8 @@ class HarnessTracer {
       pid_t, const user_regs_struct&, CallbackReason reason)>;
 
   // Create a tracer for the given process `pid` in the specified tracing
-  // `mode`. `callback` will be invoked for every intersting event as defined by
-  // `mode`.
+  // `mode`. `callback` will be invoked for every interesting event as defined
+  // by `mode`.
   HarnessTracer(pid_t pid, Mode mode, Callback callback);
 
   // Movable, but not copyable (not just a data holder).
@@ -167,7 +167,8 @@ class HarnessTracer {
   // Processes a given ptrace stop event identified by `status`.
   // `status` is the waitpid's wstatus of the tracee. `is_active` is the current
   // state of the tracer (active or inactive).
-  // Returns active state of the tracer after processing the current stop event.
+  // Returns active state of the tracer after processsing the current stop
+  // event.
   bool Trace(int status, bool is_active) const;
 
   // Releases the tracee until the next ptrace-stop event (see class-level
