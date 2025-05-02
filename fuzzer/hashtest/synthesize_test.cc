@@ -39,6 +39,23 @@ namespace silifuzz {
 
 namespace {
 
+const InstructionCandidate& ChooseRandomCandidate(Rng& rng,
+                                                  const InstructionPool* ipool,
+                                                  RegisterBank bank) {
+  switch (bank) {
+    case RegisterBank::kGP:
+      return ChooseRandomElement(rng, ipool->greg);
+    case RegisterBank::kVec:
+      return ChooseRandomElement(rng, ipool->vreg);
+    case RegisterBank::kMask:
+      return ChooseRandomElement(rng, ipool->mreg);
+    case RegisterBank::kMMX:
+      return ChooseRandomElement(rng, ipool->mmxreg);
+    default:
+      LOG(FATAL) << "Unknown register bank: " << static_cast<int>(bank);
+  }
+}
+
 // Synthesize a series of MOV instructions that will copy entropy values into
 // registers that will be used by the test instruction. Test instructions will
 // need to have specific registers initialized with values if:
@@ -318,11 +335,6 @@ struct TestRegisters {
   RegisterID mix;
 };
 
-struct TestStep {
-  TestRegisters registers;
-  const InstructionCandidate* candidate;
-};
-
 // For each register bank, we want to update each entropy register at least once
 // every iteration of the test loop. We also want to "cycle" the entropy through
 // the entropy registers to ensure each test instruction sees different input
@@ -452,7 +464,7 @@ void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
   std::shuffle(output_modes.begin(), output_modes.end(), rng);
 
   // Interleave the schedules.
-  std::vector<TestStep> schedule;
+  std::vector<TestRegisters> schedule;
   schedule.reserve(output_modes.size());
   size_t current_greg = 0;
   size_t current_vreg = 0;
@@ -461,35 +473,22 @@ void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
   for (RegisterBank mode : output_modes) {
     switch (mode) {
       case RegisterBank::kGP: {
-        const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, config.ipool->greg);
-        schedule.push_back(TestStep{.registers = greg_schedule[current_greg],
-                                    .candidate = &candidate});
+        schedule.push_back(greg_schedule[current_greg]);
         current_greg++;
         break;
       }
       case RegisterBank::kVec: {
-        const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, config.ipool->vreg);
-        schedule.push_back(TestStep{.registers = vreg_schedule[current_vreg],
-                                    .candidate = &candidate});
+        schedule.push_back(vreg_schedule[current_vreg]);
         current_vreg++;
         break;
       }
       case RegisterBank::kMask: {
-        const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, config.ipool->mreg);
-        schedule.push_back(TestStep{.registers = mreg_schedule[current_mreg],
-                                    .candidate = &candidate});
+        schedule.push_back(mreg_schedule[current_mreg]);
         current_mreg++;
         break;
       }
       case RegisterBank::kMMX: {
-        const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, config.ipool->mmxreg);
-        schedule.push_back(
-            TestStep{.registers = mmxreg_schedule[current_mmxreg],
-                     .candidate = &candidate});
+        schedule.push_back(mmxreg_schedule[current_mmxreg]);
         current_mmxreg++;
         break;
       }
@@ -499,14 +498,15 @@ void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
   }
 
   // Generate the instructions in the loop body.
-  for (const TestStep& step : schedule) {
+  for (const TestRegisters& step : schedule) {
     // Generate the test instruction + setup + output collection.
-    SynthesizeTestStep(rng, *step.candidate, dead_pool, step.registers.dead,
-                       step.registers.mix, config, block);
+    SynthesizeTestStep(rng,
+                       ChooseRandomCandidate(rng, config.ipool, step.mix.bank),
+                       dead_pool, step.dead, step.mix, config, block);
     // The mix register has been consumed, and is now dead.
-    dead_pool.entropy.Set(step.registers.mix, false, true);
+    dead_pool.entropy.Set(step.mix, false, true);
     // The old dead register now has entropy.
-    dead_pool.entropy.Set(step.registers.dead, true, true);
+    dead_pool.entropy.Set(step.dead, true, true);
   }
 }
 
