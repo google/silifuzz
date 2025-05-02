@@ -30,6 +30,7 @@
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/synthesize_test.h"
 
 namespace silifuzz {
 
@@ -152,7 +153,7 @@ Corpus AllocateCorpus(Rng& rng, size_t num_tests);
 // Assumes each test already has a valid seed.
 // Returns the amount of memory used by the generated tests.
 size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
-                       xed_chip_enum_t chip, const InstructionPool& ipool);
+                       xed_chip_enum_t chip, const SynthesisConfig& config);
 
 // Do the final steps to make the corpus useable.
 void FinalizeCorpus(Corpus& corpus, size_t used_size);

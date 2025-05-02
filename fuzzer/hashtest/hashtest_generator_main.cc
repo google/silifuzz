@@ -32,6 +32,7 @@
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
 #include "./fuzzer/hashtest/synthesize_snapshot.h"
+#include "./fuzzer/hashtest/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
 #include "./util/enum_flag_types.h"
@@ -78,9 +79,13 @@ absl::Status SynthesizeSnapshots(Rng& rng, xed_chip_enum_t chip,
   // Where the snapshots should be written.
   std::string outdir = absl::GetFlag(FLAGS_outdir);
 
+  SynthesisConfig config = {
+      .ipool = &ipool,
+  };
+
   for (size_t i = 0; i < n; ++i) {
     ASSIGN_OR_RETURN_IF_NOT_OK(Snapshot snapshot,
-                               SynthesizeTestSnapshot(rng, chip, ipool, make));
+                               SynthesizeTestSnapshot(rng, chip, config, make));
     if (!outdir.empty()) {
       std::string outfile = absl::StrCat(outdir, "/", snapshot.id(), ".pb");
       line_printer.Line(absl::StrCat("Writing ", outfile));

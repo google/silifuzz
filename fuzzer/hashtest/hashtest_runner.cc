@@ -89,14 +89,12 @@ void DumpTest(uint64_t start_address, InstructionBlock& body) {
 }
 
 void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
-                    const InstructionPool& ipool, InstructionBlock& body) {
+                    const SynthesisConfig& config, InstructionBlock& body) {
   Rng rng(seed);
   RegisterPool rpool{};
   InitRegisterLayout(chip, rpool);
 
-  SynthesisConfig config{};
-
-  SynthesizeLoopBody(rng, ipool, rpool, config, body);
+  SynthesizeLoopBody(rng, rpool, config, body);
 
   // Decrement the loop counter at the end of the loop body.
   SynthesizeGPRegDec(kLoopIndex, body);
@@ -131,11 +129,11 @@ Corpus AllocateCorpus(Rng& rng, size_t num_tests) {
 }
 
 size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
-                       xed_chip_enum_t chip, const InstructionPool& ipool) {
+                       xed_chip_enum_t chip, const SynthesisConfig& config) {
   size_t offset = 0;
   for (Test& test : tests) {
     InstructionBlock body{};
-    SynthesizeTest(test.seed, chip, ipool, body);
+    SynthesizeTest(test.seed, chip, config, body);
 
     // Copy the test into the mapping.
     test.code = code_buffer + offset;

@@ -190,16 +190,14 @@ absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
 }
 
 absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
-                                                const InstructionPool& ipool,
+                                                const SynthesisConfig& config,
                                                 bool make) {
   RegisterPool rpool{};
   InitRegisterLayout(chip, rpool);
 
-  SynthesisConfig config{};
-
   // Synthesize the body first, so we know how many instructions it contains.
   InstructionBlock body{};
-  SynthesizeLoopBody(rng, ipool, rpool, config, body);
+  SynthesizeLoopBody(rng, rpool, config, body);
 
   // Decrement the loop counter at the end of the loop body.
   SynthesizeGPRegDec(kLoopIndex, body);

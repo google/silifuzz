@@ -31,6 +31,7 @@
 #include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
 
@@ -137,7 +138,7 @@ TEST(Runner, EndToEnd) {
 
   Rng rng(0);
 
-  const RunConfig config = {
+  const RunConfig run_config = {
       .test =
           {
               .vector_width = ChipVectorRegisterWidth(chip),
@@ -150,10 +151,15 @@ TEST(Runner, EndToEnd) {
   InstructionPool ipool{};
   GenerateInstructionPool(rng, chip, ipool, false);
 
+  SynthesisConfig synthesis_config = {
+      .ipool = &ipool,
+  };
+
   Corpus corpus = AllocateCorpus(rng, 1);
-  size_t used = SynthesizeTests(
-      absl::MakeSpan(corpus.tests),
-      reinterpret_cast<uint8_t *>(corpus.mapping.Ptr()), chip, ipool);
+  size_t used =
+      SynthesizeTests(absl::MakeSpan(corpus.tests),
+                      reinterpret_cast<uint8_t *>(corpus.mapping.Ptr()), chip,
+                      synthesis_config);
   FinalizeCorpus(corpus, used);
 
   std::vector<Input> inputs;
@@ -162,13 +168,13 @@ TEST(Runner, EndToEnd) {
 
   std::vector<EndState> end_states;
   end_states.resize(corpus.tests.size() * inputs.size());
-  ComputeEndStates(corpus.tests, config.test, inputs,
+  ComputeEndStates(corpus.tests, run_config.test, inputs,
                    absl::MakeSpan(end_states));
 
   ThreadStats stats{};
   ResultReporter result(absl::Now());
   absl::Duration testing_time = absl::Seconds(1);
-  RunTests(corpus.tests, inputs, end_states, config, 0, testing_time, stats,
+  RunTests(corpus.tests, inputs, end_states, run_config, 0, testing_time, stats,
            result);
 
   EXPECT_EQ(stats.num_failed, 0);

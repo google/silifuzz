@@ -45,6 +45,7 @@
 #include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/synthesize_test.h"
 #include "./fuzzer/hashtest/version.h"
 #include "./instruction/xed_util.h"
 #include "./util/cpu_id.h"
@@ -221,9 +222,10 @@ struct CorpusConfig {
 
   // The chip to generate tests for.
   xed_chip_enum_t chip;
-  // The instructions to use when generating tests.
-  // Held by reference to avoid copying.
-  const InstructionPool* instruction_pool;
+
+  // Settings for test synthesis.
+  SynthesisConfig synthesis_config;
+
   // The number of tests to generate.
   size_t num_tests;
 
@@ -317,7 +319,7 @@ void RunTestCorpus(size_t test_index, Rng& test_rng,
   workers.DoWork(tasks, [&](SynthesizeTestsTask& task) {
     task.used =
         SynthesizeTests(task.tests, task.code_buffer, corpus_config.chip,
-                        *corpus_config.instruction_pool);
+                        corpus_config.synthesis_config);
 
     // Needs to be set on each worker thread.
     // Affects end state generation and test running.
@@ -590,7 +592,10 @@ int TestMain(std::vector<char*> positional_args) {
       .name = "default",
       .tags = {},
       .chip = chip,
-      .instruction_pool = &ipool,
+      .synthesis_config =
+          {
+              .ipool = &ipool,
+          },
       .num_tests = num_tests,
       .inputs = inputs,
       .run_config =
@@ -651,7 +656,7 @@ int TestMain(std::vector<char*> positional_args) {
         CorpusConfig filtered_corpus_config = base;
         filtered_corpus_config.name = "-vec128";
         filtered_corpus_config.tags.push_back("-vec128");
-        filtered_corpus_config.instruction_pool = &ipool_no_128;
+        filtered_corpus_config.synthesis_config.ipool = &ipool_no_128;
         corpus_config.push_back(filtered_corpus_config);
       }
     }

@@ -17,15 +17,13 @@
 
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
-#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/synthesize_instruction.h"
 #include "./fuzzer/hashtest/synthesize_test.h"
 
 namespace silifuzz {
 
 absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
-                                                const InstructionPool& ipool,
+                                                const SynthesisConfig& config,
                                                 bool make);
 
 }  // namespace silifuzz

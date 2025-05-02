@@ -400,8 +400,7 @@ void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block) {
   }
 }
 
-void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
-                        const RegisterPool& rpool,
+void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
                         const SynthesisConfig& config,
                         InstructionBlock& block) {
   std::vector<TestRegisters> greg_schedule =
@@ -463,7 +462,7 @@ void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
     switch (mode) {
       case RegisterBank::kGP: {
         const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, ipool.greg);
+            ChooseRandomElement(rng, config.ipool->greg);
         schedule.push_back(TestStep{.registers = greg_schedule[current_greg],
                                     .candidate = &candidate});
         current_greg++;
@@ -471,7 +470,7 @@ void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
       }
       case RegisterBank::kVec: {
         const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, ipool.vreg);
+            ChooseRandomElement(rng, config.ipool->vreg);
         schedule.push_back(TestStep{.registers = vreg_schedule[current_vreg],
                                     .candidate = &candidate});
         current_vreg++;
@@ -479,7 +478,7 @@ void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
       }
       case RegisterBank::kMask: {
         const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, ipool.mreg);
+            ChooseRandomElement(rng, config.ipool->mreg);
         schedule.push_back(TestStep{.registers = mreg_schedule[current_mreg],
                                     .candidate = &candidate});
         current_mreg++;
@@ -487,7 +486,7 @@ void SynthesizeLoopBody(Rng& rng, const InstructionPool& ipool,
       }
       case RegisterBank::kMMX: {
         const InstructionCandidate& candidate =
-            ChooseRandomElement(rng, ipool.mmxreg);
+            ChooseRandomElement(rng, config.ipool->mmxreg);
         schedule.push_back(
             TestStep{.registers = mmxreg_schedule[current_mmxreg],
                      .candidate = &candidate});
