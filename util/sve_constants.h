@@ -37,6 +37,18 @@ inline constexpr size_t kSvePRegMaxSizeBytes =
 inline constexpr size_t kSvePRegSizeAlignmentBytes =
     kSveZRegSizeAlignmentBytes / kSvePRegSizeZRegFactor;
 
+// Returns the active sizes of the Z, P, and FFR registers in bytes with the
+// given vector length.
+constexpr inline size_t SveZRegActiveSizeBytes(size_t vl) {
+  return vl * kSveNumZReg;
+}
+constexpr inline size_t SvePRegActiveSizeBytes(size_t vl) {
+  return vl / kSvePRegSizeZRegFactor * kSveNumPReg;
+}
+constexpr inline size_t SveFfrActiveSizeBytes(size_t vl) {
+  return vl / kSvePRegSizeZRegFactor;
+}
+
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_UTIL_SVE_H_

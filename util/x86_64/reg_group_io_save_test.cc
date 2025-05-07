@@ -1,4 +1,4 @@
-// Copyright 2023 The SiliFuzz Authors.
+// Copyright 2025 The SiliFuzz Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./util/reg_group_io.h"
-
 #include <x86intrin.h>
 
 #include <cstddef>
@@ -26,6 +24,7 @@
 #include "./util/crc32c.h"
 #include "./util/nolibc_gunit.h"
 #include "./util/reg_checksum.h"
+#include "./util/reg_group_io.h"
 #include "./util/reg_group_set.h"
 #include "./util/reg_groups.h"
 
@@ -44,14 +43,13 @@ void FillTestPattern(uint8_t* buffer, size_t size) {
   }
 }
 
-TEST(RegisterGroupIO, AVXChecksum) {
+TEST(SaveRegisterGroupsToBuffer, AVX) {
   InitRegisterGroupIO();
   RegisterGroupSet<X86_64> all_register_groups =
       GetCurrentPlatformChecksumRegisterGroups();
-  if (!all_register_groups.GetAVX()) return;
+  if (!all_register_groups.GetAVX()) SILIFUZZ_TEST_SKIP();
 
-  RegisterGroupIOBuffer<X86_64> buffer;
-  memset(&buffer, 0, sizeof(buffer));  // For sanitizer test.
+  RegisterGroupIOBuffer<X86_64> buffer{};
   buffer.register_groups.SetAVX(true);
 
   __m256 ymm[16];
@@ -65,14 +63,13 @@ TEST(RegisterGroupIO, AVXChecksum) {
   CHECK_EQ(register_checksum.checksum, expected_crc);
 }
 
-TEST(RegisterGroupIO, AVX512Checksum) {
+TEST(SaveRegisterGroupsToBuffer, AVX512) {
   InitRegisterGroupIO();
   RegisterGroupSet<X86_64> all_register_groups =
       GetCurrentPlatformChecksumRegisterGroups();
-  if (!all_register_groups.GetAVX512()) return;
+  if (!all_register_groups.GetAVX512()) SILIFUZZ_TEST_SKIP();
 
-  RegisterGroupIOBuffer<X86_64> buffer;
-  memset(&buffer, 0, sizeof(buffer));  // For sanitizer test.
+  RegisterGroupIOBuffer<X86_64> buffer{};
   buffer.register_groups.SetAVX512(true);
 
   const bool opmask_is_64_bit = HasX86CPUFeature(X86CPUFeatures::kAVX512BW);
@@ -107,6 +104,6 @@ TEST(RegisterGroupIO, AVX512Checksum) {
 // ========================================================================= //
 
 NOLIBC_TEST_MAIN({
-  RUN_TEST(RegisterGroupIO, AVXChecksum);
-  RUN_TEST(RegisterGroupIO, AVX512Checksum);
+  RUN_TEST(SaveRegisterGroupsToBuffer, AVX);
+  RUN_TEST(SaveRegisterGroupsToBuffer, AVX512);
 })

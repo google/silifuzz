@@ -1282,11 +1282,31 @@ cc_library_plus_nolibc(
 )
 
 cc_test_plus_nolibc(
-    name = "reg_group_io_test",
+    name = "reg_group_io_checksum_test",
+    srcs = ["reg_group_io_checksum_test.cc"],
+    libc_deps = [
+        "@googletest//:gtest_main",
+    ],
+    deps = [
+        ":arch",
+        ":checks",
+        ":itoa",
+        ":nolibc_gunit",
+        ":reg_checksum",
+        ":reg_group_io",
+        ":reg_group_set",
+        ":strcat",
+        ":sve_constants",
+    ],
+)
+
+cc_test_plus_nolibc(
+    name = "reg_group_io_save_test",
     srcs = select({
-        "@silifuzz//build_defs/platform:aarch64": ["aarch64/reg_group_io_test.cc"],
+        #  TODO(herooutman): Add tests for SaveRegisterGroupsToBuffer on aarch64.
+        "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": [
-            "x86_64/reg_group_io_test.cc",
+            "x86_64/reg_group_io_save_test.cc",
             "x86_64/reg_group_io_test_helpers.S",
         ],
     }),
@@ -1301,13 +1321,11 @@ cc_test_plus_nolibc(
         ":checks",
         ":cpu_features",
         ":crc32c",
-        ":extension_registers",
         ":nolibc_gunit",
         ":reg_checksum",
         ":reg_group_io",
         ":reg_group_set",
         ":reg_groups",
-        ":sve",
     ],
 )
 
