@@ -14,6 +14,7 @@
 #include "./util/reg_group_io.h"
 
 #include <cstdint>
+#include <cstring>
 
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -72,12 +73,18 @@ RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
   if (sve_vector_width) {
     CHECK_GE(sve_vector_width, 16);
     CHECK_LE(sve_vector_width, kSveZRegMaxSizeBytes);
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.ffr),
-                 sizeof(buffer.ffr));
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.p),
-                 sve_vector_width / kSvePRegSizeZRegFactor * kSveNumPReg);
-    crc = crc32c(crc, reinterpret_cast<const uint8_t*>(buffer.z),
-                 sve_vector_width * kSveNumZReg);
+    // `ffr_with_padding` is used for backwards compatibility reasons: the first
+    // version of the SVE registers checksum is calculated with the entire FFR
+    // register region in the RegisterGroupIOBuffer. In practice, only active
+    // bytes of FFR region are set to non-zero values, so that is equivalent to
+    // checksumming on a fixed 32-byte region starting with active bytes, and
+    // followed by 0 paddings.
+    uint8_t ffr_with_padding[kSvePRegMaxSizeBytes]{0};
+    memcpy(ffr_with_padding, buffer.ffr,
+           SveFfrActiveSizeBytes(sve_vector_width));
+    crc = crc32c(crc, ffr_with_padding, sizeof(ffr_with_padding));
+    crc = crc32c(crc, buffer.p, SvePRegActiveSizeBytes(sve_vector_width));
+    crc = crc32c(crc, buffer.z, SveZRegActiveSizeBytes(sve_vector_width));
     register_checksum.register_groups.SetSVEVectorWidth(sve_vector_width);
   }
 

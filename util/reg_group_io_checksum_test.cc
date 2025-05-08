@@ -179,6 +179,8 @@ TEST(RegisterGroupIO, SVEChecksumDetectsErrorOnActiveRegions) {
                   sizeof(buffer.z) - SveZRegActiveSizeBytes(vl));
     ChangePattern(buffer.p + SvePRegActiveSizeBytes(vl),
                   sizeof(buffer.p) - SvePRegActiveSizeBytes(vl));
+    ChangePattern(buffer.ffr + SveFfrActiveSizeBytes(vl),
+                  sizeof(buffer.ffr) - SveFfrActiveSizeBytes(vl));
     RegisterChecksum<AArch64> checksum_not_changed =
         GetRegisterGroupsChecksum(buffer);
     CHECK(checksum_not_changed == initial_checksum);
