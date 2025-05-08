@@ -20,11 +20,11 @@ cc_library(
     name = "execution_trace",
     hdrs = ["execution_trace.h"],
     deps = [
+        ":extension_registers",
         ":tracer",
         "@silifuzz//instruction:disassembler",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
-        "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
     ],
 )
@@ -173,11 +173,11 @@ cc_library(
     hdrs = ["analysis.h"],
     deps = [
         ":execution_trace",
+        ":extension_registers",
         ":tracer",
         ":tracer_factory",
         "@silifuzz//instruction:default_disassembler",
         "@silifuzz//util:checks",
-        "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
     ],
@@ -193,6 +193,7 @@ cc_binary(
     deps = [
         ":analysis",
         ":execution_trace",
+        ":extension_registers",
         ":tracer",
         ":tracer_factory",
         "@silifuzz//instruction:default_disassembler",
@@ -205,7 +206,6 @@ cc_binary(
         "@silifuzz//util:line_printer",
         "@silifuzz//util:logging_util",
         "@silifuzz//util:tool_util",
-        "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",

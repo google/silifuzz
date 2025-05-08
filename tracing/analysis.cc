@@ -23,10 +23,10 @@
 #include "absl/status/status.h"
 #include "./instruction/default_disassembler.h"
 #include "./tracing/execution_trace.h"
+#include "./tracing/extension_registers.h"
 #include "./tracing/tracer.h"
 #include "./tracing/tracer_factory.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -40,7 +40,7 @@ absl::Status TraceSnippetWithSkip(TracerType tracer_type,
                                   const std::string& instructions,
                                   size_t max_instructions, size_t skip,
                                   size_t& instructions_executed,
-                                  UContext<Arch>& ucontext,
+                                  ExtUContext<Arch>& ucontext,
                                   uint32_t& memory_checksum) {
   std::unique_ptr<Tracer<Arch>> tracer = CreateTracer<Arch>(tracer_type);
   DefaultDisassembler<Arch> disasm;
@@ -59,7 +59,7 @@ absl::Status TraceSnippetWithSkip(TracerType tracer_type,
     }
   });
   tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
-    control.GetRegisters(ucontext);
+    control.GetRegisters(ucontext, &ucontext.eregs);
     memory_checksum = control.PartialChecksumOfMutableMemory();
   });
 
@@ -74,7 +74,7 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     TracerType tracer_type, const std::string& instructions,
     ExecutionTrace<Arch>& execution_trace, uint32_t expected_memory_checksum) {
   size_t expected_instructions_executed = execution_trace.NumInstructions();
-  UContext<Arch> expected_ucontext = execution_trace.LastContext();
+  ExtUContext<Arch> expected_ucontext = execution_trace.LastContext();
 
   // See if skipping an instruction results in a different outcome.
   size_t num_faults_detected = 0;
@@ -84,7 +84,7 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     }
     size_t instructions_executed = 0;
     uint32_t actual_memory_checksum = 0;
-    UContext<Arch> ucontext;
+    ExtUContext<Arch> ucontext;
     absl::Status status = TraceSnippetWithSkip(
         tracer_type, instructions, execution_trace.MaxInstructions(), skip,
         instructions_executed, ucontext, actual_memory_checksum);
@@ -93,9 +93,7 @@ absl::StatusOr<FaultInjectionResult> AnalyzeSnippetWithFaultInjection(
     // similar. Because the unmodified trace as OK, this indicates the injected
     // fault changed the behavior in a detectable way.
     // TODO(ncbray): compare memory.
-    bool fault_detected = !status.ok() ||
-                          ucontext.gregs != expected_ucontext.gregs ||
-                          ucontext.fpregs != expected_ucontext.fpregs ||
+    bool fault_detected = !status.ok() || ucontext != expected_ucontext ||
                           actual_memory_checksum != expected_memory_checksum;
     execution_trace.Info(skip).critical = fault_detected;
     if (fault_detected) {

@@ -22,10 +22,10 @@
 
 #include "absl/status/status.h"
 #include "./instruction/disassembler.h"
+#include "./tracing/extension_registers.h"
 #include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -80,7 +80,7 @@ struct InstructionInfo {
   uint8_t bytes[16];
 
   // The architectural state after the instruction has executed.
-  UContext<Arch> ucontext;
+  ExtUContext<Arch> ucontext;
 };
 
 // A trace of all instructions in a test.
@@ -108,10 +108,10 @@ class ExecutionTrace {
   }
 
   // The architectural state immediately before the trace begins.
-  UContext<Arch>& FirstContext() { return first_; }
+  ExtUContext<Arch>& FirstContext() { return first_; }
 
   // The architectural state immediately after the end of the trace.
-  UContext<Arch>& LastContext() { return PrevContext(num_instructions_); }
+  ExtUContext<Arch>& LastContext() { return PrevContext(num_instructions_); }
 
   InstructionInfo<Arch>& Info(size_t i) {
     CHECK_LT(i, num_instructions_);
@@ -147,9 +147,9 @@ class ExecutionTrace {
  private:
   std::vector<InstructionInfo<Arch>> info_;
   size_t num_instructions_;
-  UContext<Arch> first_;
+  ExtUContext<Arch> first_;
 
-  UContext<Arch>& PrevContext(size_t i) {
+  ExtUContext<Arch>& PrevContext(size_t i) {
     CHECK_LE(i, num_instructions_);
     if (i == 0) {
       return first_;
@@ -174,7 +174,8 @@ absl::Status CaptureTrace(Tracer<Arch>* tracer, Disassembler& disasm,
   execution_trace.Reset();
   tracer->SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
     // The instruction hasn't executed yet, capture the previous state.
-    control.GetRegisters(execution_trace.LastContext());
+    control.GetRegisters(execution_trace.LastContext(),
+                         &execution_trace.LastContext().eregs);
 
     InstructionInfo<Arch>& info = execution_trace.NextInfo();
     DisassembleCurrentInstruction(control, disasm, info.bytes);
@@ -193,7 +194,8 @@ absl::Status CaptureTrace(Tracer<Arch>* tracer, Disassembler& disasm,
   });
   // Capture the final state.
   tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
-    control.GetRegisters(execution_trace.LastContext());
+    control.GetRegisters(execution_trace.LastContext(),
+                         &execution_trace.LastContext().eregs);
     if (memory_checksum != nullptr) {
       *memory_checksum = control.PartialChecksumOfMutableMemory();
     }

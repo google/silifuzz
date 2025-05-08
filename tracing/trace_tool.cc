@@ -32,6 +32,7 @@
 #include "./instruction/disassembler.h"
 #include "./tracing/analysis.h"
 #include "./tracing/execution_trace.h"
+#include "./tracing/extension_registers.h"
 #include "./tracing/tracer.h"
 #include "./tracing/tracer_factory.h"
 #include "./util/arch.h"
@@ -42,7 +43,6 @@
 #include "./util/line_printer.h"
 #include "./util/logging_util.h"
 #include "./util/tool_util.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -80,7 +80,7 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
   uint64_t expected_next = execution_trace.EntryAddress();
   bool last_valid = false;
   execution_trace.ForEach(
-      [&](size_t index, UContext<Arch>& prev, InstructionInfo<Arch>& info) {
+      [&](size_t index, ExtUContext<Arch>& prev, InstructionInfo<Arch>& info) {
         bool valid = info.instruction_id != disasm.InvalidInstructionID();
 
         // Did we see something other than linear execution?
@@ -106,7 +106,7 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
             info.can_branch ? "B" : "-");
 
         // How many bits changed?
-        UContext<Arch> diff;
+        ExtUContext<Arch> diff;
         BitDiff(prev, info.ucontext, diff);
         // Ignore instruction pointer changes.
         diff.gregs.SetInstructionPointer(0);
@@ -127,6 +127,7 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
         LogGRegs(info.ucontext.gregs, PrintRegister, &out, &diff.gregs);
         LogFPRegs(info.ucontext.fpregs, true, PrintRegister, &out,
                   &diff.fpregs);
+        LogERegs(info.ucontext.eregs, PrintRegister, &out, &diff.eregs);
 
         last_valid = valid;
         expected_next = info.address + info.size;
@@ -136,12 +137,12 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
 // Stats for a specific type of instruction in the trace.
 template <typename Arch>
 struct OpInfo {
-  UContext<Arch> zero_one;
-  UContext<Arch> one_zero;
+  ExtUContext<Arch> zero_one;
+  ExtUContext<Arch> one_zero;
   size_t critical;
   size_t count;
 
-  void AddOp(UContext<Arch>& prev, InstructionInfo<Arch>& info) {
+  void AddOp(ExtUContext<Arch>& prev, InstructionInfo<Arch>& info) {
     AccumulateToggle(prev, info.ucontext, zero_one, one_zero);
     if (info.critical) {
       critical++;
@@ -177,7 +178,7 @@ TraceOpInfo<Arch> GatherTraceOpInfo(Disassembler& disasm,
 
   // Gather information from the trace.
   execution_trace.ForEach(
-      [&](size_t index, UContext<Arch>& prev, InstructionInfo<Arch>& info) {
+      [&](size_t index, ExtUContext<Arch>& prev, InstructionInfo<Arch>& info) {
         trace_info.op_infos[info.instruction_id].AddOp(prev, info);
         trace_info.all_info.AddOp(prev, info);
       });
@@ -237,29 +238,23 @@ void LogTraceOpInfo(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
 // Print information that can help a human understand the dynamic behavior of
 // the code.
 template <typename Arch>
-absl::Status PrintTrace(Tracer<Arch>* tracer, size_t max_instructions,
-                        LinePrinter& out) {
-  DefaultDisassembler<Arch> disasm;
-  ExecutionTrace<Arch> execution_trace(max_instructions);
-
-  absl::Status result = CaptureTrace(tracer, disasm, execution_trace);
-
-  LogTrace(disasm, execution_trace, false, out);
-  LogTraceOpInfo(disasm, execution_trace, false, out);
-  out.Line();
-  UContext<Arch> diff;
-  BitDiff(execution_trace.FirstContext(), execution_trace.LastContext(), diff);
-  out.Line("Final register hamming distance: ", PopCount(diff));
-  return result;
-}
-
-template <typename Arch>
 absl::Status PrintSnippetTrace(TracerType tracer_type,
                                std::string& instructions,
                                size_t max_instructions, LinePrinter& out) {
   std::unique_ptr<Tracer<Arch>> tracer = CreateTracer<Arch>(tracer_type);
   RETURN_IF_NOT_OK(tracer->InitSnippet(instructions));
-  return PrintTrace(tracer.get(), max_instructions, out);
+
+  DefaultDisassembler<Arch> disasm;
+  ExecutionTrace<Arch> execution_trace(max_instructions);
+  absl::Status result = CaptureTrace(tracer.get(), disasm, execution_trace);
+
+  LogTrace(disasm, execution_trace, false, out);
+  LogTraceOpInfo(disasm, execution_trace, false, out);
+  out.Line();
+  ExtUContext<Arch> diff;
+  BitDiff(execution_trace.FirstContext(), execution_trace.LastContext(), diff);
+  out.Line("Final register hamming distance: ", PopCount(diff));
+  return result;
 }
 
 absl::StatusOr<int> Print(std::vector<char*>& positional_args, LinePrinter& out,
