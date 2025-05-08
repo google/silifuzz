@@ -92,4 +92,14 @@ RegisterChecksum<AArch64> GetRegisterGroupsChecksum(
   return register_checksum;
 }
 
+bool RegisterGroupIOBuffer<X86_64>::operator==(
+    const RegisterGroupIOBuffer<X86_64>& other) const {
+  return GetRegisterGroupsChecksum(*this) == GetRegisterGroupsChecksum(other);
+}
+
+bool RegisterGroupIOBuffer<AArch64>::operator==(
+    const RegisterGroupIOBuffer<AArch64>& other) const {
+  return GetRegisterGroupsChecksum(*this) == GetRegisterGroupsChecksum(other);
+}
+
 }  // namespace silifuzz

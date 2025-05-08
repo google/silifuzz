@@ -54,6 +54,8 @@ struct RegisterGroupIOBuffer<X86_64> {
   alignas(kYmmSizeBytes) uint8_t ymm[kNumYmms][kYmmSizeBytes];
   alignas(kZmmSizeBytes) uint8_t zmm[kNumZmms][kZmmSizeBytes];
   uint64_t opmask[kNumOpmasks];
+
+  bool operator==(const RegisterGroupIOBuffer<X86_64>& other) const;
 };
 
 template <>
@@ -76,6 +78,8 @@ struct RegisterGroupIOBuffer<AArch64> {
   // alignment may be more efficient.
   alignas(
       kSveZRegSizeAlignmentBytes) uint8_t z[kSveNumZReg * kSveZRegMaxSizeBytes];
+
+  bool operator==(const RegisterGroupIOBuffer<AArch64>& other) const;
 };
 
 // Initialize register group I/O library. This needs to be called once

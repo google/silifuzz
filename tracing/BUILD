@@ -309,10 +309,25 @@ cc_library(
     srcs = select({
         "@silifuzz//build_defs/platform:aarch64": [],
         "@silifuzz//build_defs/platform:x86_64": ["save_x86_xstate.S"],
-    }),
+    }) + ["extension_registers.cc"],
     hdrs = ["extension_registers.h"],
     deps = [
         "@silifuzz//util:arch",
+        "@silifuzz//util:bitops",
+        "@silifuzz//util:checks",
         "@silifuzz//util:reg_group_io",
+        "@silifuzz//util:sve_constants",
+        "@silifuzz//util/ucontext:ucontext_types",
+    ],
+)
+
+cc_test(
+    name = "extension_registers_test",
+    srcs = ["extension_registers_test.cc"],
+    deps = [
+        ":extension_registers",
+        "@silifuzz//util:arch",
+        "@silifuzz//util:reg_group_set",
+        "@googletest//:gtest_main",
     ],
 )
