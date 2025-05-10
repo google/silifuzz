@@ -167,8 +167,7 @@ class HarnessTracer {
   // Processes a given ptrace stop event identified by `status`.
   // `status` is the waitpid's wstatus of the tracee. `is_active` is the current
   // state of the tracer (active or inactive).
-  // Returns active state of the tracer after processsing the current stop
-  // event.
+  // Returns active state of the tracer after processing the current stop event.
   bool Trace(int status, bool is_active) const;
 
   // Releases the tracee until the next ptrace-stop event (see class-level
@@ -184,6 +183,22 @@ class HarnessTracer {
 
   // Gets the register state of the tracee.
   void GetRegSet(struct user_regs_struct& regs) const;
+
+  // Suppress trap flag.
+  // For reasons that are not clear the final popfq in RestoreUContext()
+  // erroneously raises TF meaning that despite PTRACE_CONT the tracee will
+  // keep firing unexpected SIGTRAPs for every instruction.
+  // Some related discussions and description of the problem can be found
+  // in [1] and [2]. [3] is the current ptrace helper code in the kernel.
+  // [1] http://lkml.iu.edu/hypermail/linux/kernel/0501.0/0066.html
+  // [2] https://lore.kernel.org/patchwork/patch/544554/
+  // [3]
+  // https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/step.c
+  //
+  // The TL;DR of the above is that on X86 ptrace uses TF to implement
+  // single-stepping but the kernel hides this from user-space except when
+  // pushf leaks the value.
+  void SuppressX86Trap() const;
 
   // c-tor parameters
   pid_t pid_;

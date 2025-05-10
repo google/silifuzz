@@ -21,7 +21,6 @@
 
 #include <csignal>
 #include <cstddef>
-#include <cstdlib>
 #include <memory>
 #include <optional>
 #include <thread>
@@ -110,6 +109,23 @@ void HarnessTracer::GetRegSet(struct user_regs_struct& regs) const {
   CHECK_EQ(io.iov_len, sizeof(regs));
 }
 
+void HarnessTracer::SuppressX86Trap() const {
+#if defined(__x86_64__)
+  struct user_regs_struct regs;
+  GetRegSet(regs);
+  regs.eflags &= ~kX86TrapFlag;
+  // Use POKEUSER instead of more readable SETREGS because the former allows
+  // updating just the one register. SETREGS can return unexpected EIO when
+  // the tracee has non-default segment registers. See details here:
+  // https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/ptrace.c#L150
+  static_assert(sizeof(regs.eflags) ==
+                sizeof(unsigned long));  // NOLINT(runtime/int): explicitly
+                                         // testing with machine word size.
+  PTraceOrDie(PTRACE_POKEUSER, pid_,
+              (void*)offsetof(struct user_regs_struct, eflags), regs.eflags);
+#endif
+}
+
 bool HarnessTracer::Trace(int status, bool is_active) const {
   VLOG_INFO(2, "Trace: ", HexStr(status), " active = ", is_active);
   if (WSTOPSIG(status) == SIGSTOP) {
@@ -123,33 +139,7 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       // else, we are leaving the active state. The tracer keeps itself attached
       // but won't receive syscall/singlestep events only signals until the
       // next SIGSTOP.
-
-#if defined(__x86_64__)
-      // Suppress trap flag.
-      // For reasons that are not clear the final popfq in RestoreUContext()
-      // erroneously raises TF meaning that despite PTRACE_CONT the tracee will
-      // keep firing unexpected SIGTRAPs for every instruction.
-      // Some related discussions and description of the problem can be found
-      // in [1] and [2]. [3] is the current ptrace helper code in the kernel.
-      // [1] http://lkml.iu.edu/hypermail/linux/kernel/0501.0/0066.html
-      // [2] https://lore.kernel.org/patchwork/patch/544554/
-      // [3]
-      // https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/step.c
-      //
-      // The TL;DR of the above is that on X86 ptrace uses TF to implement
-      // single-stepping but the kernel hides this from user-space except when
-      // pushf leaks the value.
-      struct user_regs_struct regs;
-      GetRegSet(regs);
-      regs.eflags &= ~kX86TrapFlag;
-      // Use POKEUSER instead of more readable SETREGS because the former allows
-      // updating just the one register. SETREGS can return unexpected EIO when
-      // the tracee has non-default segment registers. See details here:
-      // https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/ptrace.c#L150
-      PTraceOrDie(PTRACE_POKEUSER, pid_,
-                  (void*)offsetof(struct user_regs_struct, eflags),
-                  regs.eflags);
-#endif
+      SuppressX86Trap();
       ContinueTraceeWithSignal();
     }
     return !is_active;
@@ -214,6 +204,9 @@ bool HarnessTracer::Trace(int status, bool is_active) const {
       break;
     case kStopTracing:
       callback_(pid_, regs, kBecomingInactive);
+      // Once harness tracer is activated, it needs to suppress the trap flag to
+      // make PTRACE_CONT work.
+      SuppressX86Trap();
       ContinueTraceeWithSignal(signal);
       break;
     case kInjectSigusr1:

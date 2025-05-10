@@ -66,7 +66,7 @@ void SingleStepHelper() {
   // activate the tracer
   ToggleActive();
   DoWork(50);
-  // deactive the tracer
+  // deactivate the tracer
   ToggleActive();
 
   // this is untraced
@@ -146,6 +146,33 @@ int SignalInjectionHelper() {
   return 0;
 }
 
+// On X86 ptrace uses trap flag to implement single-stepping. For reasons that
+// are not clear, `popfq` would erroneously raises TF, and cause the tracee to
+// keep firing SIGTRAPs after each insn. This test helper is similar to
+// SingleStepHelper, but it does the work after triggering this bug.
+void X86TrapFlagBugHelper() {
+  // activate the tracer
+  ToggleActive();
+  asm("movq $0x202, %rbx\n"
+      "pushq %rbx\n"
+      "popfq\n");
+  DoWork(50);
+  // deactivate the tracer
+  ToggleActive();
+
+  // this is untraced
+  DoWork(50);
+
+  // activate the tracer again
+  ToggleActive();
+  asm("movq $0x202, %rbx\n"
+      "pushq %rbx\n"
+      "popfq\n");
+  DoWork(50);
+  // deactivate the tracer
+  ToggleActive();
+}
+
 #elif defined(__aarch64__)
 // TODO(ncbray): port sys_sigaction to aarch64. Currently it doesn't restore the
 // stack correctly.
@@ -159,6 +186,8 @@ int SignalInjectionHelper() {
   assert(false);
   return -1;
 }
+
+void X86TrapFlagBugHelper() { assert(false); }
 #else
 #error "Unsupported architecture"
 #endif
@@ -190,6 +219,8 @@ int main(int argc, char** argv) {
     return SignalHelper();
   } else if (strcmp(argv[1], "test-signal-injection") == 0) {
     return SignalInjectionHelper();
+  } else if (strcmp(argv[1], "test-x86-trap-flag-bug") == 0) {
+    X86TrapFlagBugHelper();
   }
 
   absl::string_view msg2 = "Helper exiting\n";
