@@ -105,13 +105,18 @@ void GetX86XState(const pid_t pid, RegisterGroupIOBuffer<Host>& eregs) {
 
   struct iovec io = {tracee_xstate, kXStateBufferSize};
   PTraceOrDie(PTRACE_GETREGSET, pid, (void*)NT_X86_XSTATE, &io);
-
   SaveX86XState(tracee_xstate, host_xstate, eregs);
 }
 #endif
 
 #if defined(__aarch64__)
 void GetSVE(const pid_t pid, RegisterGroupIOBuffer<Host>& eregs) {
+  // Use system-level SVE vl to quickly check if SVE is enabled. But note that
+  // this can be different from the vl used by the process.
+  if (GetCurrentPlatformRegisterGroups().GetSVEVectorWidth() == 0) {
+    VLOG_INFO(2, "Skipping SVE collection because SVE is not enabled.");
+    return;
+  }
   // SVE_PT_SIZE(vq, flags) calculates the total size of the state in bytes. The
   // flags are set to 0x1 here indicating SVE is enabled. See <asm/ptrace.h> for
   // more details.
