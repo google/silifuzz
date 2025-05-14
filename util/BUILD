@@ -18,6 +18,7 @@
 #   Contrast with silifuzz/common.
 
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@silifuzz//util:nolibc.bzl",
     "cc_binary_nolibc",

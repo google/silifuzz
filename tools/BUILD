@@ -16,6 +16,8 @@
 #   Various helper tools for Silifuzz.
 #   Particularly, snap_toop is the swiss-army-knife for Silifuzz snapshots.
 
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

@@ -16,6 +16,7 @@
 #   SiliFuzz Snapshot runner
 #
 
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@silifuzz//build_defs:constants.bzl",
     "SILIFUZZ_RUNNER_BASE_ADDRESS",
