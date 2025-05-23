@@ -117,7 +117,7 @@ void HarnessTracer::SuppressX86Trap() const {
   // Use POKEUSER instead of more readable SETREGS because the former allows
   // updating just the one register. SETREGS can return unexpected EIO when
   // the tracee has non-default segment registers. See details here:
-  // https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/ptrace.c#L150
+  // https://elixir.bootlin.com/linux/v6.14.7/source/arch/x86/kernel/ptrace.c#L170
   static_assert(sizeof(regs.eflags) ==
                 sizeof(unsigned long));  // NOLINT(runtime/int): explicitly
                                          // testing with machine word size.

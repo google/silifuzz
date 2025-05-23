@@ -410,15 +410,22 @@ void NativeTracer::GetRegisters(UContext<Host>& ucontext,
 }
 
 void NativeTracer::SetInstructionPointer(uint64_t address) {
-  user_regs_struct regs = GetGRegStruct();
 #if defined(__x86_64__)
-  regs.rip = address;
+  // Use POKEUSER instead of more readable SETREGSET because the former allows
+  // updating just the one register. SETREGS can return unexpected EIO when the
+  // tracee has non-default segment registers. See details here:
+  // https://elixir.bootlin.com/linux/v6.14.7/source/arch/x86/kernel/ptrace.c#L170
+  PTraceOrDie(PTRACE_POKEUSER, pid_,
+              (void*)offsetof(struct user_regs_struct, rip), address);
   gregs_cache_.value().rip = address;
 #elif defined(__aarch64__)
+  // POKEUSER is not implemented on aarch64. Use SETREGSET to set the entire
+  // user register struct instead.
+  user_regs_struct regs = GetGRegStruct();
   regs.pc = address;
+  SetGRegs(pid_, regs);
   gregs_cache_.value().pc = address;
 #endif
-  SetGRegs(pid_, regs);
 }
 
 uint64_t NativeTracer::GetInstructionPointer() {
