@@ -34,7 +34,11 @@ template <typename Arch>
 struct TracerConfig {};
 
 template <>
-struct TracerConfig<X86_64> {};
+struct TracerConfig<X86_64> {
+  // If true, the tracer will enforce the fuzzing config when making snapshots.
+  // This should be set to true for fuzzing.
+  bool enforce_fuzzing_config = false;
+};
 
 template <>
 struct TracerConfig<AArch64> {
@@ -43,6 +47,9 @@ struct TracerConfig<AArch64> {
   // be compatible with most hardware you would want to run on.
   // By default Unicorn is roughly a A77+, it support sha512, sm3, and sm4.
   bool unicorn_force_a72 = false;
+  // If true, the tracer will enforce the fuzzing config when making snapshots.
+  // This should be set to true for fuzzing.
+  bool enforce_fuzzing_config = false;
 };
 
 // TracerControl is a helper class for Tracer. It provides a way to access

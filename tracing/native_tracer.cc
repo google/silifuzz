@@ -234,9 +234,11 @@ void DeserializeUserFPRegsStruct(const UserFPRegsStruct& fp_regs,
 absl::Status NativeTracer::InitSnippet(
     absl::string_view instructions, const TracerConfig<Host>& tracer_config,
     const FuzzingConfig<Host>& fuzzing_config) {
+  MakingConfig making_config = MakingConfig::Quick(RunnerLocation());
+  making_config.enforce_fuzzing_config = tracer_config.enforce_fuzzing_config;
   ASSIGN_OR_RETURN_IF_NOT_OK(
       Snapshot snapshot,
-      MakeRawInstructions(instructions, MakingConfig::Quick(RunnerLocation())));
+      MakeRawInstructions(instructions, making_config, fuzzing_config));
   snapshot_ = std::make_unique<Snapshot>(std::move(snapshot));
 
   code_start_address_ = snapshot_->ExtractRip(snapshot_->registers());
