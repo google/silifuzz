@@ -17,15 +17,31 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <limits>
 #include <type_traits>
 
 #include "./proxies/user_features.h"
+#include "./tracing/extension_registers.h"
+#include "./util/arch.h"
 #include "./util/bitops.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
+
+// Used to assign IDs to each feature domain.
+struct ArchFeatureDomains {
+  uint32_t op = 0;
+  uint32_t op_pair = 1;
+  uint32_t reg_toggle_zero_one = 2;
+  uint32_t reg_toggle_one_zero = 3;
+  uint32_t reg_difference = 4;
+  uint32_t op_reg_toggle_zero_one = 5;
+  uint32_t op_reg_toggle_one_zero = 6;
+  uint32_t mem_difference = 7;
+};
+
+constexpr ArchFeatureDomains kDefaultArchFeatureDomains;
 
 // Emit a feature if bitmap == 1 for each bit.
 template <typename T>
@@ -36,6 +52,36 @@ EmitSetBitFeatures(uint64_t domain, uint64_t base, const T &bitmap,
     user_features.EmitFeature(domain, base + index);
   });
   return base + NumBits<T>();
+}
+
+// Preprocess the ExtUContext so that it can be treated as a bitset that
+// contains the active register state. This includes clearing out aliased
+// registers, register groups information, and inactive regions (should be all
+// zero already because all ExtUContext are zero-initialized).
+template <typename Arch>
+inline void PrepareToEmit(ExtUContext<Arch> &uctx);
+
+template <>
+inline void PrepareToEmit(ExtUContext<X86_64> &uctx) {
+  // XMM registers are aliased to YMM and ZMM registers.
+  if (uctx.HasERegs()) {
+    memset(uctx.fpregs.xmm, 0, sizeof(uctx.fpregs.xmm));
+  }
+  // Aliased AVX registers (YMM and ZMM) can be double saved if
+  // AVX512 is enabled. Clear out YMM in the case.
+  // TODO(herooutman): Avoid double saving YMM and ZMM.
+  if (uctx.eregs.register_groups.GetAVX512()) {
+    memset(uctx.eregs.ymm, 0, sizeof(uctx.eregs.ymm));
+  }
+  uctx.eregs.register_groups = {};
+}
+
+template <>
+inline void PrepareToEmit(ExtUContext<AArch64> &uctx) {
+  if (uctx.HasERegs()) {
+    memset(uctx.fpregs.v, 0, sizeof(uctx.fpregs.v));
+  }
+  uctx.eregs.register_groups = {};
 }
 
 // Emit a feature if a^b == 1 for each bit.
@@ -76,31 +122,22 @@ inline constexpr uint32_t kInvalidInstructionId =
 template <typename Arch>
 class ArchFeatureGenerator {
  private:
-  // All the domains we emit features for.
-  enum Domains {
-    kOpDomain = 0,
-    kOpPairDomain = 1,
-    kRegToggleZeroOneDomain = 2,
-    kRegToggleOneZeroDomain = 3,
-    kRegDifferenceDomain = 4,
-    kOpRegToggleZeroOneDomain = 5,
-    kOpRegToggleOneZeroDomain = 6,
-    kMemDifferenceDomain = 7,
-  };
-
   // An internal bookkeeping structure for tracking formation associated with
   // different instruction IDs.
   struct OpInfo {
     // How many times was this type of instruction executed?
     size_t count;
     // Which register bits has this instruction toggled from zero to one?
-    UContext<Arch> zero_one;
+    ExtUContext<Arch> zero_one;
     // Which register bits has this instruction toggled from one to zero?
-    UContext<Arch> one_zero;
+    ExtUContext<Arch> one_zero;
   };
 
  public:
-  ArchFeatureGenerator() : num_instruction_ids_(0), op_info_(nullptr) {}
+  ArchFeatureGenerator(ArchFeatureDomains domains)
+      : num_instruction_ids_(0), op_info_(nullptr), domains_(domains) {}
+
+  ArchFeatureGenerator() : ArchFeatureGenerator(kDefaultArchFeatureDomains) {}
 
   ~ArchFeatureGenerator() { delete[] op_info_; }
 
@@ -134,8 +171,9 @@ class ArchFeatureGenerator {
   }
 
   // Called after the tracer has been set up, but before executing.
-  // Records the initial state before execution.
-  void BeforeExecution(UContext<Arch> &current_registers) {
+  // Records the initial state before execution. Inactive regions of
+  // `current_registers` need to be zeroed out before calling this function.
+  void BeforeExecution(ExtUContext<Arch> &current_registers) {
     prev_instruction_id_ = kInvalidInstructionId;
     initial_registers_ = current_registers;
     prev_registers_ = current_registers;
@@ -146,10 +184,10 @@ class ArchFeatureGenerator {
 
   // Called after each instruction has been executed.
   // `current_registers` is the register state after the instruction has
-  // executed.
-  // May emit user features.
+  // executed. Inactive regions of `current_registers` need to be zeroed out
+  // before calling this function. May emit user features.
   void AfterInstruction(uint32_t instruction_id,
-                        UContext<Arch> &current_registers) {
+                        ExtUContext<Arch> &current_registers) {
     if (instruction_id != kInvalidInstructionId) {
       CHECK_LT(instruction_id, num_instruction_ids_);
       op_info_[instruction_id].count++;
@@ -161,10 +199,10 @@ class ArchFeatureGenerator {
                        op_info_[instruction_id].one_zero);
 
       if (prev_instruction_id_ != kInvalidInstructionId) {
-        // Emit (instrution X instruction) feature eagerly because it's sparse
+        // Emit (instruction X instruction) feature eagerly because it's sparse
         // and low volume.
         user_features_.EmitFeature(
-            kOpPairDomain,
+            domains_.op_pair,
             prev_instruction_id_ * num_instruction_ids_ + instruction_id);
       }
     }
@@ -182,25 +220,33 @@ class ArchFeatureGenerator {
   // Will emit user features based on information that we accumulated during
   // execution.
   void AfterExecution() {
+    PrepareToEmit(zero_one_);
+    PrepareToEmit(one_zero_);
     // Did the register bit toggle at any point during the execution?
-    EmitSetBitFeatures(kRegToggleZeroOneDomain, 0, zero_one_, user_features_);
-    EmitSetBitFeatures(kRegToggleOneZeroDomain, 0, one_zero_, user_features_);
+    EmitSetBitFeatures(domains_.reg_toggle_zero_one, 0, zero_one_,
+                       user_features_);
+    EmitSetBitFeatures(domains_.reg_toggle_one_zero, 0, one_zero_,
+                       user_features_);
 
+    PrepareToEmit(initial_registers_);
+    PrepareToEmit(prev_registers_);
     // Is the final register bit different from the initial register bit?
-    EmitDiffBitFeatures(kRegDifferenceDomain, 0, initial_registers_,
+    EmitDiffBitFeatures(domains_.reg_difference, 0, initial_registers_,
                         prev_registers_, user_features_);
 
     // Emit per-op features.
     for (size_t instruction_id = 0; instruction_id < num_instruction_ids_;
          ++instruction_id) {
       if (op_info_[instruction_id].count > 0) {
-        user_features_.EmitFeature(kOpDomain, instruction_id);
+        user_features_.EmitFeature(domains_.op, instruction_id);
+        PrepareToEmit(op_info_[instruction_id].zero_one);
+        PrepareToEmit(op_info_[instruction_id].one_zero);
         EmitSetBitFeatures(
-            kOpRegToggleZeroOneDomain,
+            domains_.op_reg_toggle_zero_one,
             instruction_id * NumBits(op_info_[instruction_id].zero_one),
             op_info_[instruction_id].zero_one, user_features_);
         EmitSetBitFeatures(
-            kOpRegToggleOneZeroDomain,
+            domains_.op_reg_toggle_one_zero,
             instruction_id * NumBits(op_info_[instruction_id].one_zero),
             op_info_[instruction_id].one_zero, user_features_);
       }
@@ -217,10 +263,17 @@ class ArchFeatureGenerator {
   template <size_t N>
   void FinalMemory(uint8_t (&page)[N]) {
     current_memory_feature_ = EmitSetBitFeatures(
-        kMemDifferenceDomain, current_memory_feature_, page, user_features_);
+        domains_.mem_difference, current_memory_feature_, page, user_features_);
+  }
+
+  void EmitFeature(uint32_t domain, uint32_t feature) {
+    user_features_.EmitFeature(domain, feature);
   }
 
  private:
+  // IDs assigned to each feature domain.
+  ArchFeatureDomains domains_;
+
   // Raw user features.
   UserFeatures user_features_;
 
@@ -229,14 +282,14 @@ class ArchFeatureGenerator {
   OpInfo *op_info_;
 
   // Initial register state.
-  UContext<Arch> initial_registers_;
+  ExtUContext<Arch> initial_registers_;
 
   // The last register state we were given.
-  UContext<Arch> prev_registers_;
+  ExtUContext<Arch> prev_registers_;
 
   // Register bit toggles.
-  UContext<Arch> zero_one_;
-  UContext<Arch> one_zero_;
+  ExtUContext<Arch> zero_one_;
+  ExtUContext<Arch> one_zero_;
 
   // Information about the previous instruction.
   uint32_t prev_instruction_id_;

@@ -33,7 +33,7 @@ static int run_bytes(std::vector<uint8_t> &&data) {
 }
 
 // The preprocessor does not understand initializer lists, so hack around this
-// with vardic macros.
+// with variadic macros.
 #define EXPECT_BYTES_ACCEPTED(...) EXPECT_EQ(0, run_bytes(__VA_ARGS__));
 #define EXPECT_BYTES_REJECTED(...) EXPECT_EQ(-1, run_bytes(__VA_ARGS__));
 

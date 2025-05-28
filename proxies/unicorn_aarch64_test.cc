@@ -43,7 +43,7 @@ static int run_instructions(std::vector<uint32_t>&& data) {
 }
 
 // The preprocessor does not understand initializer lists, so hack around this
-// with vardic macros.
+// with variadic macros.
 #define EXPECT_BYTES_ACCEPTED(...) EXPECT_EQ(0, run_bytes(__VA_ARGS__));
 #define EXPECT_BYTES_REJECTED(...) EXPECT_EQ(-1, run_bytes(__VA_ARGS__));
 #define EXPECT_INSTRUCTIONS_ACCEPTED(...) \
@@ -144,7 +144,7 @@ TEST(UnicornAarch64, EL0) {
   // d51bd040  msr tpidr_el0, x0
   EXPECT_INSTRUCTIONS_ACCEPTED({0xd53bd040, 0xd51bd040});
 
-  // These instructions are privleged and should not work at EL0
+  // These instructions are privileged and should not work at EL0
 
   // d5087878  at s1e0w, x24
   EXPECT_INSTRUCTIONS_REJECTED({0xd5087878});

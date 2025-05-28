@@ -23,11 +23,11 @@
 #include "./instruction/default_disassembler.h"
 #include "./proxies/arch_feature_generator.h"
 #include "./proxies/user_features.h"
+#include "./tracing/extension_registers.h"
 #include "./tracing/tracer.h"
 #include "./tracing/unicorn_tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
-#include "./util/ucontext/ucontext_types.h"
 
 namespace silifuzz {
 
@@ -91,7 +91,11 @@ absl::Status RunAArch64Instructions(
   uint32_t instruction_id = kInvalidInstructionId;
   bool instruction_pending = false;
 
-  UContext<AArch64> registers;
+  // Zero initialize the registers. Since the GetRegisters() call below
+  // doesn't write to `eregs`, this is necessary to ensure that the `eregs` is
+  // initialized and does not contain garbage when counting bit-diff and
+  // bit-toggle features.
+  ExtUContext<AArch64> registers{};
   auto after_instruction = [&](TracerControl<AArch64> &control) {
     if (instruction_pending) {
       control.GetRegisters(registers);
