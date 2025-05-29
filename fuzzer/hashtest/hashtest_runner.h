@@ -220,12 +220,13 @@ struct Hit {
 
 // An interface for reporting the results of test execution.
 struct ResultReporter {
-  ResultReporter(absl::Time test_started,
+  ResultReporter(absl::Time test_started, bool printing_allowed = true,
                  absl::Duration update_period = absl::Seconds(10))
       : num_hits_reported(0),
         test_started(test_started),
         update_period(update_period),
-        next_update(test_started + update_period) {}
+        next_update(test_started + update_period),
+        printing_allowed(printing_allowed) {}
   // Called periodically to produce a heartbeat.
   void CheckIn(absl::Time now);
 
@@ -255,6 +256,7 @@ struct ResultReporter {
   // don't need to reason about what happens if we get an async signal while the
   // mutex is being acquired, etc.
   std::atomic<bool> stop_running = false;
+  bool printing_allowed;
 };
 
 constexpr inline double kUpdateInterval = 0.35;

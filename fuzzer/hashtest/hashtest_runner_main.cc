@@ -672,7 +672,7 @@ int TestMain(std::vector<char*> positional_args) {
   std::shuffle(corpus_config.begin(), corpus_config.end(), rng);
 
   // Static so the signal handler callback can access it.
-  static ResultReporter result(test_started);
+  static ResultReporter result(test_started, printing_allowed);
 
   absl::Duration testing_time = absl::GetFlag(FLAGS_time);
   absl::Duration corpus_time = absl::GetFlag(FLAGS_corpus_time);

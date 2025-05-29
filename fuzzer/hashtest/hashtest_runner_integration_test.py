@@ -120,12 +120,14 @@ class HashtestRunnerTest(absltest.TestCase):
 
   def test_proto(self):
     seed = 456
+    # Regression test - run for more than 10s so that if the "heartbeat" prints
+    # anything in --print_proto mode, the proto will fail to parse.
     data = self.run_hashtest_parse_proto(
         [
             '--seed',
             str(seed),
             '--time',
-            '2s',
+            '30s',
             '-j',
             '2',
             '--print_proto',

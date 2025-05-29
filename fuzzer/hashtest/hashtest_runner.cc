@@ -162,6 +162,9 @@ void ResultReporter::StopRunning() {
 }
 
 void ResultReporter::CheckIn(absl::Time now) {
+  if (!printing_allowed) {
+    return;
+  }
   absl::MutexLock lock(&mutex);
   if (now >= next_update) {
     std::cout << (hits.size() - num_hits_reported) << " hits @ "
