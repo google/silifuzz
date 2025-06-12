@@ -197,7 +197,7 @@ absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
 
   // Synthesize the body first, so we know how many instructions it contains.
   InstructionBlock body{};
-  SynthesizeLoopBody(rng, rpool, config, body);
+  size_t max_body_instructions = SynthesizeLoopBody(rng, rpool, config, body);
 
   // Decrement the loop counter at the end of the loop body.
   SynthesizeGPRegDec(kLoopIndex, body);
@@ -220,22 +220,22 @@ absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
 
   size_t header_instruction_count = block.num_instructions;
 
-  // Still need to add back edge.
-  size_t body_instruction_count = body.num_instructions + 1;
+  // Body plus decrement plus backedge.
+  size_t body_instruction_count_with_loop = max_body_instructions + 2;
 
   // Calculate how many times we can iterate without exceeding the target
   // instruction count.
   size_t target_instruction_count = 1000;
   size_t iteration_count =
       (target_instruction_count - header_instruction_count) /
-      body_instruction_count;
+      body_instruction_count_with_loop;
 
   // Add the body.
   block.Append(body);
 
   // Using JNLE so that the loop will abort if an SDC causes us to miss zero
   // or jump to a negative index.
-  SynthesizeJnle(-(int32_t)body.bytes.size(), block);
+  SynthesizeBackwardJnle(-(int32_t)body.bytes.size(), block);
 
   return CreateSnapshot(rng, rpool, iteration_count, block, make);
 }

@@ -618,9 +618,13 @@ int TestMain(std::vector<char*> positional_args) {
         return candidate.vector_width != 128;
       });
 
+  // Vary the rounding mode. This doesn't have a large impact on hit rate, but
+  // some machines prefer specific modes.
   for (uint32_t rounding_mode : {kMXCSRRoundNearest, kMXCSRRoundDown,
                                  kMXCSRRoundUp, kMXCSRRoundTowardsZero}) {
+    // Vary FTZ. Flush to zero generally has a slightly higher hit rate.
     for (bool flush_to_zero : {false, true}) {
+      // Vary DAZ. Denormals are zero generally has a slightly higher hit rate.
       for (bool denormals_are_zeros : {false, true}) {
         CorpusConfig base = default_corpus_config;
 
@@ -651,13 +655,39 @@ int TestMain(std::vector<char*> positional_args) {
           base.tags.push_back("daz");
         }
         base.run_config.mxcsr = mxcsr;
-        corpus_config.push_back(base);
 
-        CorpusConfig filtered_corpus_config = base;
-        filtered_corpus_config.name = "-vec128";
-        filtered_corpus_config.tags.push_back("-vec128");
-        filtered_corpus_config.synthesis_config.ipool = &ipool_no_128;
-        corpus_config.push_back(filtered_corpus_config);
+        // Generate different branch configurations.
+        // 0 does not test branches.
+        // 1 has unpredictable 50/50% branches that slow down execution.
+        // Subsequent variants become more and more predictable and run faster
+        // because the branches are predicted.
+        // 3 seems to generally have the highest hit rate.
+        // 4 seems to generally have the lowest hit rate.
+        // Different machines respond differently to these configurations,
+        // however, so switching between them produces the best result.
+        // TODO(ncbray): is it worth eliminating 4?
+        for (int branch_test_bits : {0, 1, 2, 3, 4}) {
+          CorpusConfig branch_config = base;
+          branch_config.synthesis_config.branch_test_bits = branch_test_bits;
+          if (branch_test_bits == 0) {
+            // Turn off branch generation for the btb0 case.
+            branch_config.synthesis_config.min_duplication_rate = 0.0f;
+            branch_config.synthesis_config.max_duplication_rate = 0.0f;
+          }
+          branch_config.tags.push_back(absl::StrCat("btb", branch_test_bits));
+          corpus_config.push_back(branch_config);
+
+          // Generate a variant with 128-bit vector instructions filtered out.
+          // This reduces instruction coverage, but can greatly speed up test
+          // execution on some microarchitectures. Some defective machines do
+          // not care about this setting, others have strongly affected hit
+          // rates.
+          CorpusConfig filtered_corpus_config = branch_config;
+          filtered_corpus_config.name = "-vec128";
+          filtered_corpus_config.tags.push_back("-vec128");
+          filtered_corpus_config.synthesis_config.ipool = &ipool_no_128;
+          corpus_config.push_back(filtered_corpus_config);
+        }
       }
     }
   }

@@ -21,6 +21,7 @@
 #include <random>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "./fuzzer/hashtest/candidate.h"
 #include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/rand_util.h"
@@ -388,7 +389,54 @@ void SynthesizeGPRegDec(unsigned int dst, InstructionBlock& block) {
   Emit(builder, block);
 }
 
-void SynthesizeJnle(int32_t offset, InstructionBlock& block) {
+// Generate a "TEST" instruction that does a bitwise AND between a register and
+// a bitmask and sets flags.
+static void SynthesizeTest(unsigned int src, uint8_t mask,
+                           InstructionBlock& block) {
+  InstructionBuilder builder(XED_ICLASS_TEST, 8U);
+  builder.AddOperands(GPRegOperand(src, 8));
+  builder.AddOperands(xed_imm0(mask, 8));
+  Emit(builder, block);
+}
+
+// Generate an unconditional branch instruction.
+// `offset` is from the _end_ of the instruction. The intended use is jumping
+// past a subsequent block of instructions. This results in an inconsistency for
+// how we generate jump instructions - it's simplest if backward jump offsets
+// are relative to the beginning of the instruction, and forward jump offsets
+// are relative to the end of the instruction. In theory all of the
+// Synthesize[jump]() functions could have a flag indicating where the offset
+// should be relative to, but there are no use cases for that, yet. Instead we
+// name functions that calculate the offset relative to the end of the
+// instruction as "SynthesizeForward*".
+static void SynthesizeForwardJmp(int32_t offset, InstructionBlock& block) {
+  InstructionBuilder builder(XED_ICLASS_JMP, 64U);
+  // The branch displacement is relative to the end of the instruction so that
+  // the caller doesn't need to know the size of the instruction that is
+  // generated.
+  builder.AddOperands(xed_relbr(offset, 32));
+  Emit(builder, block);
+}
+
+static void SynthesizeForwardJz(int32_t offset, InstructionBlock& block) {
+  InstructionBuilder builder(XED_ICLASS_JZ, 64U);
+  // The branch displacement is relative to the end of the instruction so that
+  // the caller doesn't need to know the size of the instruction that is
+  // generated.
+  builder.AddOperands(xed_relbr(offset, 32));
+  Emit(builder, block);
+}
+
+static void SynthesizeForwardJnz(int32_t offset, InstructionBlock& block) {
+  InstructionBuilder builder(XED_ICLASS_JNZ, 64U);
+  // The branch displacement is relative to the end of the instruction so that
+  // the caller doesn't need to know the size of the instruction that is
+  // generated.
+  builder.AddOperands(xed_relbr(offset, 32));
+  Emit(builder, block);
+}
+
+void SynthesizeBackwardJnle(int32_t offset, InstructionBlock& block) {
   // TODO(ncbray): emit instruction immediate when possible?
   InstructionBuilder builder(XED_ICLASS_JNLE, 64U);
   // We know this instruction will be 6 bytes.
@@ -397,7 +445,9 @@ void SynthesizeJnle(int32_t offset, InstructionBlock& block) {
   // the caller doesn't need to know the size of the instruction that is
   // generated.
   builder.AddOperands(xed_relbr(offset - kInstructionSize, 32));
+  size_t prev_bytes = block.bytes.size();
   Emit(builder, block);
+  CHECK_EQ(block.bytes.size(), prev_bytes + kInstructionSize);
 }
 
 void SynthesizeReturn(InstructionBlock& block) {
@@ -412,9 +462,174 @@ void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block) {
   }
 }
 
-void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
-                        const SynthesisConfig& config,
-                        InstructionBlock& block) {
+// Forward declaration.
+static size_t SynthesizeBlock(Rng& rng,
+                              absl::Span<const TestRegisters> schedule,
+                              size_t duplication_budget,
+                              RegisterPool& dead_pool,
+                              const SynthesisConfig& config,
+                              InstructionBlock& block);
+
+// Randomly select the number of instructions to duplicate, up to the maximum
+// budget.
+static size_t PartitionDuplicationBudget(Rng& rng, size_t duplication_budget) {
+  return std::uniform_int_distribution<size_t>(0, duplication_budget)(rng);
+}
+
+static size_t SynthesizeBranch(Rng& rng,
+                               absl::Span<const TestRegisters> schedule,
+                               size_t duplication_budget,
+                               RegisterPool& dead_pool,
+                               const SynthesisConfig& config,
+                               InstructionBlock& block) {
+  // Save which register we're testing before we mutate the dead pool.
+  unsigned int test_reg = ChooseRandomBit(rng, dead_pool.entropy.gp);
+
+  // Split the remaining duplication target randomly between each side of the
+  // branch.
+  size_t a_duplication_budget =
+      PartitionDuplicationBudget(rng, duplication_budget);
+  size_t b_duplication_budget = duplication_budget - a_duplication_budget;
+
+  RegisterPool dead_pool_copy = dead_pool;
+  InstructionBlock a_block;
+  size_t a_max_instructions = SynthesizeBlock(
+      rng, schedule, a_duplication_budget, dead_pool_copy, config, a_block);
+
+  InstructionBlock b_block;
+  size_t b_max_instructions = SynthesizeBlock(
+      rng, schedule, b_duplication_budget, dead_pool, config, b_block);
+
+  // After the first block is executed, jump past the second block.
+  // This means execution will merge to the same place after we execute either
+  // of the blocks.
+  SynthesizeForwardJmp(b_block.bytes.size(), a_block);
+  a_max_instructions += 1;
+
+  // Create branch point.
+  // A higher bit count in the mask makes the branch more predictable (less
+  // likely all the bits are zero). Predictable branches improve performance,
+  // but an extremely predictable branch is effectively a no-op.
+  int branch_test_bits = config.branch_test_bits;
+  CHECK_LE(branch_test_bits, 8);
+
+  // Sample without replacement guarantees exactly `count` bits are set.
+  constexpr uint8_t kByteBits[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  uint8_t bits[8];
+  std::sample(std::begin(kByteBits), std::end(kByteBits), std::begin(bits),
+              branch_test_bits, rng);
+
+  // Construct the mask.
+  uint8_t mask = 0;
+  for (int i = 0; i < branch_test_bits; ++i) {
+    mask |= 1 << bits[i];
+  }
+
+  // Generate a test + conditional branch to split the control flow.
+  SynthesizeTest(test_reg, mask, block);
+  // Conditionally jump past the first block to the second block. Otherwise,
+  // fall through to the first block.
+  if (RandomBool(rng)) {
+    SynthesizeForwardJz(a_block.bytes.size(), block);
+  } else {
+    SynthesizeForwardJnz(a_block.bytes.size(), block);
+  }
+
+  block.Append(a_block);
+  block.Append(b_block);
+  return std::max(a_max_instructions, b_max_instructions) + 2;
+}
+
+// Split the schedule in two at a random offset, and randomly allocate the
+// duplication target between each of the parts. Generate each part of the
+// schedules independently, and then concatenate the resulting instructions.
+// Block splitting is necessary in the cases where the duplication budget is
+// lower than the schedule length - adding branch around the entire schedule
+// would add too many instructions. Block splitting can also be useful even when
+// there is sufficient budget - in encourages shorter and nested branches.
+// Note that splitting does not change anything in of itself. It helps define
+// different regions of the test schedule that can have different randomized
+// branch structures applied to them.
+static size_t SynthesizeSplit(Rng& rng,
+                              absl::Span<const TestRegisters> schedule,
+                              size_t duplication_budget,
+                              RegisterPool& dead_pool,
+                              const SynthesisConfig& config,
+                              InstructionBlock& block) {
+  CHECK_GT(schedule.size(), 1);
+
+  size_t split_point =
+      std::uniform_int_distribution<size_t>(1, schedule.size() - 1)(rng);
+
+  // Split the remaining duplication target randomly between each side of the
+  // branch.
+  size_t a_duplication_budget =
+      PartitionDuplicationBudget(rng, duplication_budget);
+  size_t b_duplication_budget = duplication_budget - a_duplication_budget;
+
+  size_t max_instructions =
+      SynthesizeBlock(rng, schedule.subspan(0, split_point),
+                      a_duplication_budget, dead_pool, config, block);
+  max_instructions +=
+      SynthesizeBlock(rng, schedule.subspan(split_point), b_duplication_budget,
+                      dead_pool, config, block);
+  return max_instructions;
+}
+
+// Generate straight-line code.
+static size_t SynthesizeBasicBlock(Rng& rng,
+                                   absl::Span<const TestRegisters> schedule,
+                                   RegisterPool& dead_pool,
+                                   const SynthesisConfig& config,
+                                   InstructionBlock& block) {
+  size_t existing_instructions = block.num_instructions;
+  for (const TestRegisters& step : schedule) {
+    // Generate the test instruction + setup + output collection.
+    SynthesizeTestStep(rng,
+                       ChooseRandomCandidate(rng, config.ipool, step.mix.bank),
+                       dead_pool, step.dead, step.mix, config, block);
+    // The mix register has been consumed, and is now dead.
+    dead_pool.entropy.Set(step.mix, false, true);
+    // The old dead register now has entropy.
+    dead_pool.entropy.Set(step.dead, true, true);
+  }
+  return block.num_instructions - existing_instructions;
+}
+
+static size_t SynthesizeBlock(Rng& rng,
+                              absl::Span<const TestRegisters> schedule,
+                              size_t duplication_budget,
+                              RegisterPool& dead_pool,
+                              const SynthesisConfig& config,
+                              InstructionBlock& block) {
+  CHECK(!schedule.empty());
+
+  constexpr float p_branch = 0.5;
+
+  // If duplication_budget is zero, no more branches can be added. Generate
+  // a basic block.
+  if (duplication_budget == 0) {
+    return SynthesizeBasicBlock(rng, schedule, dead_pool, config, block);
+  }
+
+  // Cannot branch if duplication_budget < schedule.size().
+  // Cannot split if schedule.size() < 2.
+  // Must split if duplication_budget > 0 and not branching.
+  if ((duplication_budget >= schedule.size() &&
+       std::bernoulli_distribution(p_branch)(rng)) ||
+      schedule.size() == 1) {
+    duplication_budget -= schedule.size();
+    return SynthesizeBranch(rng, schedule, duplication_budget, dead_pool,
+                            config, block);
+  } else {
+    return SynthesizeSplit(rng, schedule, duplication_budget, dead_pool, config,
+                           block);
+  }
+}
+
+size_t SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
+                          const SynthesisConfig& config,
+                          InstructionBlock& block) {
   std::vector<TestRegisters> greg_schedule =
       GenerateRegisterSchedule(rng, RegisterBank::kGP, rpool.entropy.gp);
   std::vector<TestRegisters> vreg_schedule =
@@ -497,17 +712,18 @@ void SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
     }
   }
 
+  // Choose the number of tests in the test schedule that can be duplicated by
+  // adding branches.
+  size_t min_duplication =
+      static_cast<size_t>(schedule.size() * config.min_duplication_rate);
+  size_t max_duplication =
+      static_cast<size_t>(schedule.size() * config.max_duplication_rate);
+  size_t duplication_budget =
+      std::uniform_int_distribution<int>(min_duplication, max_duplication)(rng);
+
   // Generate the instructions in the loop body.
-  for (const TestRegisters& step : schedule) {
-    // Generate the test instruction + setup + output collection.
-    SynthesizeTestStep(rng,
-                       ChooseRandomCandidate(rng, config.ipool, step.mix.bank),
-                       dead_pool, step.dead, step.mix, config, block);
-    // The mix register has been consumed, and is now dead.
-    dead_pool.entropy.Set(step.mix, false, true);
-    // The old dead register now has entropy.
-    dead_pool.entropy.Set(step.dead, true, true);
-  }
+  return SynthesizeBlock(rng, schedule, duplication_budget, dead_pool, config,
+                         block);
 }
 
 }  // namespace silifuzz

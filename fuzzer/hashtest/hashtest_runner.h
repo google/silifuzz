@@ -143,7 +143,7 @@ struct Corpus {
 };
 
 // We allocate this amount of executable memory per test.
-constexpr inline size_t kMaxTestBytes = 1024;
+constexpr inline size_t kMaxTestBytes = 2048;
 
 // Created a corpus of the specified size and generate the test seeds.
 Corpus AllocateCorpus(Rng& rng, size_t num_tests);

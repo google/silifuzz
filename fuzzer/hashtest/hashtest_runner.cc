@@ -101,7 +101,7 @@ void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
 
   // Using JNLE so that the loop will abort if an SDC causes us to miss zero
   // or jump to a negative index.
-  SynthesizeJnle(-(int32_t)body.bytes.size(), body);
+  SynthesizeBackwardJnle(-(int32_t)body.bytes.size(), body);
 
   SynthesizeReturn(body);
   size_t padding = (16 - (body.bytes.size() % 16)) % 16;
