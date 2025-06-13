@@ -22,6 +22,7 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -151,6 +152,11 @@ class Tracer {
   // value produced by an old version of the software against a value produced
   // by a new version of the software is not meaningful.
   virtual uint32_t PartialChecksumOfMutableMemory() = 0;
+  // Iterate over the mapped memory regions of the snapshot being traced, and
+  // invoke `fn` for each region.
+  virtual void IterateMappedMemory(
+      std::function<void(uint64_t start, uint64_t limit, MemoryPerms perms)> fn)
+      const = 0;
   uint64_t GetCodeStartAddress() const { return code_start_address_; }
 
   // Callback invocation
@@ -176,9 +182,9 @@ class Tracer {
     return code_start_address_ <= address && address < code_end_address_;
   }
 
-  // Check if an instruction that dangles past the end of code is executed. This
-  // can happens on X86 if the fuzzing input ends with a partial instruction
-  // that depends on the bytes that come after the test.
+  // Check if an instruction that dangles past the end of code is executed.
+  // This can happens on X86 if the fuzzing input ends with a partial
+  // instruction that depends on the bytes that come after the test.
   inline bool InstructionIsInRange(uint64_t address, size_t size) const {
     return address >= code_start_address_ &&
            address + size <= code_end_address_;
@@ -240,6 +246,11 @@ class TracerControl {
   }
   inline bool InstructionIsInRange(uint64_t address, size_t size) {
     return tracer_.InstructionIsInRange(address, size);
+  }
+  inline void IterateMappedMemory(
+      std::function<void(uint64_t start, uint64_t limit, MemoryPerms perms)>
+          fn) {
+    return tracer_.IterateMappedMemory(fn);
   }
   friend class Tracer<Arch>;
 

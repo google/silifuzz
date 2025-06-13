@@ -66,6 +66,7 @@ cc_library(
     ],
     deps = [
         ":tracer",
+        "@silifuzz//common:memory_mapping",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -97,6 +98,7 @@ cc_library(
     ],
     deps = [
         ":tracer",
+        "@silifuzz//common:memory_mapping",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -129,6 +131,7 @@ cc_library(
     ],
     deps = [
         ":tracer",
+        "@silifuzz//common:memory_mapping",
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//common:raw_insns_util",
@@ -155,7 +158,11 @@ cc_test(
     ],
     deps = [
         ":tracer",
+        ":tracer_test_util",
         ":unicorn_tracer",
+        "@silifuzz//common:mapped_memory_map",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util:arch",
@@ -260,6 +267,10 @@ cc_test(
     deps = [
         ":native_tracer",
         ":tracer",
+        ":tracer_test_util",
+        "@silifuzz//common:mapped_memory_map",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:proxy_config",
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//snap:exit_sequence",
@@ -281,6 +292,7 @@ cc_library(
     name = "tracer",
     hdrs = ["tracer.h"],
     deps = [
+        "@silifuzz//common:memory_perms",
         "@silifuzz//common:proxy_config",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
@@ -318,6 +330,18 @@ cc_library(
         "@silifuzz//util:reg_group_io",
         "@silifuzz//util:sve_constants",
         "@silifuzz//util/ucontext:ucontext_types",
+    ],
+)
+
+cc_library(
+    name = "tracer_test_util",
+    testonly = True,
+    hdrs = ["tracer_test_util.h"],
+    deps = [
+        "@silifuzz//common:mapped_memory_map",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:proxy_config",
+        "@silifuzz//util:arch",
     ],
 )
 

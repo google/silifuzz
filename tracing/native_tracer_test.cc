@@ -27,10 +27,14 @@
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
+#include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
 #include "./snap/exit_sequence.h"
 #include "./tracing/tracer.h"
+#include "./tracing/tracer_test_util.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/reg_group_io.h"
@@ -415,6 +419,31 @@ TEST(NativeTracerTest, ReadMemory) {
   tracer.Run(0).IgnoreError();
   CheckMemory<Host>(buffer, instructions);
 }
+
+TEST(NativeTracerTest, IterateMappedMemory) {
+  NativeTracer tracer;
+  FuzzingConfig<Host> fuzzing_config = DEFAULT_FUZZING_CONFIG<Host>;
+  ASSERT_THAT(
+      tracer.InitSnippet({}, TracerConfig<Host>{.enforce_fuzzing_config = true},
+                         fuzzing_config),
+      IsOk());
+
+  MappedMemoryMap config_memory_map = GetMemoryMapFromConfig(fuzzing_config);
+  tracer.SetBeforeExecutionCallback([&](TracerControl<Host>& control) {
+    control.IterateMappedMemory([&](uint64_t start, uint64_t limit,
+                                    MemoryPerms perms) {
+      EXPECT_TRUE(config_memory_map.Contains(start, limit));
+      EXPECT_EQ(
+          config_memory_map.Perms(start, limit, MemoryPerms::JoinMode::kOr),
+          perms);
+      EXPECT_EQ(
+          config_memory_map.Perms(start, limit, MemoryPerms::JoinMode::kAnd),
+          perms);
+    });
+  });
+  ASSERT_THAT(tracer.Run(0), IsOk());
+}
+
 }  // namespace
 
 }  // namespace silifuzz

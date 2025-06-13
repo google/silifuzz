@@ -21,9 +21,13 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
+#include "./common/mapped_memory_map.h"
+#include "./common/memory_perms.h"
+#include "./common/proxy_config.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
 #include "./tracing/tracer.h"
+#include "./tracing/tracer_test_util.h"
 #include "./util/arch.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/ucontext.h"
@@ -223,6 +227,27 @@ TYPED_TEST(UnicornTracerTest, SetGetRegisters) {
   EXPECT_EQ(src.fpregs, dst.fpregs);
 }
 
+TYPED_TEST(UnicornTracerTest, IterateMappedMemory) {
+  UnicornTracer<TypeParam> tracer;
+  FuzzingConfig<TypeParam> fuzzing_config = DEFAULT_FUZZING_CONFIG<TypeParam>;
+  ASSERT_THAT(tracer.InitSnippet({}, TracerConfig<TypeParam>{}, fuzzing_config),
+              IsOk());
+
+  MappedMemoryMap config_memory_map = GetMemoryMapFromConfig(fuzzing_config);
+  tracer.SetBeforeExecutionCallback([&](TracerControl<TypeParam>& control) {
+    control.IterateMappedMemory([&](uint64_t start, uint64_t limit,
+                                    MemoryPerms perms) {
+      EXPECT_TRUE(config_memory_map.Contains(start, limit));
+      EXPECT_EQ(
+          config_memory_map.Perms(start, limit, MemoryPerms::JoinMode::kOr),
+          perms);
+      EXPECT_EQ(
+          config_memory_map.Perms(start, limit, MemoryPerms::JoinMode::kAnd),
+          perms);
+    });
+  });
+  ASSERT_THAT(tracer.Run(0), IsOk());
+}
 }  // namespace
 
 }  // namespace silifuzz

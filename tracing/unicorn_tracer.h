@@ -18,11 +18,15 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <vector>
 
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "./common/memory_mapping.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
@@ -75,7 +79,6 @@ class UnicornTracer final : public Tracer<Arch> {
     }
 
     InitUnicorn(tracer_config);
-
     SetupSnippetMemory(snapshot, ucontext, fuzzing_config);
 
     SetInitialRegisters(ucontext);
@@ -195,6 +198,14 @@ class UnicornTracer final : public Tracer<Arch> {
     return static_cast<uint32_t>(checksum);
   }
 
+  void IterateMappedMemory(
+      std::function<void(uint64_t start, uint64_t limit, MemoryPerms perms)> fn)
+      const override {
+    for (const Snapshot::MemoryMapping& mm : memory_mappings_) {
+      fn(mm.start_address(), mm.start_address() + mm.num_bytes(), mm.perms());
+    }
+  }
+
   uint64_t GetInstructionPointer() override;
   void SetInstructionPointer(uint64_t address) override;
 
@@ -281,6 +292,8 @@ class UnicornTracer final : public Tracer<Arch> {
   uc_engine* uc_;
 
   uc_hook hook_code_;
+
+  std::vector<MemoryMapping> memory_mappings_;
 };
 
 }  // namespace silifuzz

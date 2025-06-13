@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
 #include "./tracing/tracer.h"
@@ -284,6 +285,17 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
     const Snapshot &snapshot, const UContext<AArch64> &ucontext,
     const FuzzingConfig<AArch64> &fuzzing_config) {
   for (const Snapshot::MemoryMapping &mm : snapshot.memory_mappings()) {
+    memory_mappings_.push_back(mm);
+  }
+  // These mappings are currently not represented in the Snapshot.
+  memory_mappings_.push_back(Snapshot::MemoryMapping::MakeSized(
+      fuzzing_config.data1_range.start_address,
+      fuzzing_config.data1_range.num_bytes, MemoryPerms::RW()));
+  memory_mappings_.push_back(Snapshot::MemoryMapping::MakeSized(
+      fuzzing_config.data2_range.start_address,
+      fuzzing_config.data2_range.num_bytes, MemoryPerms::RW()));
+
+  for (const Snapshot::MemoryMapping &mm : memory_mappings_) {
     MapMemory(mm.start_address(), mm.num_bytes(),
               MemoryPermsToUnicorn(mm.perms()));
   }
@@ -293,12 +305,6 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
     UNICORN_CHECK(
         uc_mem_write(uc_, mb.start_address(), data.data(), data.size()));
   }
-
-  // These mappings are currently not represented in the Snapshot.
-  MapMemory(fuzzing_config.data1_range.start_address,
-            fuzzing_config.data1_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
-  MapMemory(fuzzing_config.data2_range.start_address,
-            fuzzing_config.data2_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
 
   // Simulate the effect RestoreUContext could have on the stack.
   std::string stack_bytes = RestoreUContextStackBytes(ucontext.gregs);

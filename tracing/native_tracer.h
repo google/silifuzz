@@ -21,6 +21,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 
@@ -29,8 +30,10 @@
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "./common/harness_tracer.h"
+#include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./common/snapshot_enums.h"
 #include "./tracing/tracer.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
@@ -60,6 +63,12 @@ class NativeTracer final : public Tracer<Host> {
   void GetRegisters(UContext<Host>& ucontext,
                     RegisterGroupIOBuffer<Host>* eregs = nullptr) override;
   uint32_t PartialChecksumOfMutableMemory() override;
+
+  void IterateMappedMemory(
+      std::function<void(uint64_t start, uint64_t limit, MemoryPerms perms)> fn)
+      const override {
+    snapshot_->mapped_memory_map().Iterate(fn);
+  }
 
  private:
   enum class TracerState {

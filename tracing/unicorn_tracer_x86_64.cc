@@ -237,6 +237,17 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
     // The stack is aliased with data1, and Unicorn doesn't like mapping the
     // same memory twice. Hack around this by skipping RW mappings.
     if (mm.perms() == MemoryPerms::RW()) continue;
+    memory_mappings_.push_back(mm);
+  }
+  // These mappings are currently not represented in the Snapshot.
+  memory_mappings_.push_back(Snapshot::MemoryMapping::MakeSized(
+      fuzzing_config.data1_range.start_address,
+      fuzzing_config.data1_range.num_bytes, MemoryPerms::RW()));
+  memory_mappings_.push_back(Snapshot::MemoryMapping::MakeSized(
+      fuzzing_config.data2_range.start_address,
+      fuzzing_config.data2_range.num_bytes, MemoryPerms::RW()));
+
+  for (const Snapshot::MemoryMapping &mm : memory_mappings_) {
     MapMemory(mm.start_address(), mm.num_bytes(),
               MemoryPermsToUnicorn(mm.perms()));
   }
@@ -246,12 +257,6 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
     UNICORN_CHECK(
         uc_mem_write(uc_, mb.start_address(), data.data(), data.size()));
   }
-
-  // These mappings are currently not represented in the Snapshot.
-  MapMemory(fuzzing_config.data1_range.start_address,
-            fuzzing_config.data1_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
-  MapMemory(fuzzing_config.data2_range.start_address,
-            fuzzing_config.data2_range.num_bytes, UC_PROT_READ | UC_PROT_WRITE);
 
   // Simulate the effect RestoreUContext could have on the stack.
   std::string stack_bytes = RestoreUContextStackBytes(ucontext.gregs);
