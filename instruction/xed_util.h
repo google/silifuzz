@@ -70,6 +70,9 @@ bool InstructionIsX87(const xed_inst_t* instruction);
 // Some chips may have a penalty for mixing SSE and AVX instructions.
 bool InstructionIsSSE(const xed_inst_t* instruction);
 
+// Is this an AVX512 EVEX instruction?
+bool InstructionIsAVX512EVEX(const xed_inst_t* instruction);
+
 // Translate a Silifuzz platform ID to a XED chip enum.
 xed_chip_enum_t PlatformIdToChip(PlatformId platform_id);
 

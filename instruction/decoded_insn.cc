@@ -419,4 +419,72 @@ absl::StatusOr<bool> DecodedInsn::may_access_region(
   }
   return false;
 }
+
+bool DecodedInsn::is_non_canonical_evex_rsp() const {
+  DCHECK_STATUS(status_);
+  const xed_inst_t* raw = xed_decoded_inst_inst(&xed_insn_);
+  if (!InstructionIsAVX512EVEX(raw)) {
+    return false;
+  }
+
+  auto noperands = xed_decoded_inst_noperands(&xed_insn_);
+
+  // Check if the instruction has any operands that reads from rsp, and writes
+  // to AVX registers.
+  bool read_from_rsp = false;
+  bool write_to_avx = false;
+  for (int i = 0; i < noperands; ++i) {
+    const xed_operand_t* op = xed_inst_operand(raw, i);
+    const xed_operand_enum_t op_type = xed_operand_name(op);
+    const xed_operand_action_enum_t action =
+        xed_decoded_inst_operand_action(&xed_insn_, i);
+    xed_reg_enum_t reg = XED_REG_INVALID;
+    if (op_type >= XED_OPERAND_REG0 && op_type <= XED_OPERAND_REG9) {
+      reg = xed_decoded_inst_get_reg(&xed_insn_, op_type);
+    }
+    switch (action) {
+      case XED_OPERAND_ACTION_R:
+      case XED_OPERAND_ACTION_CR:
+        if (reg == XED_REG_RSP || reg == XED_REG_ESP || reg == XED_REG_SP ||
+            reg == XED_REG_SPL) {
+          read_from_rsp = true;
+        }
+        break;
+      case XED_OPERAND_ACTION_W:
+      case XED_OPERAND_ACTION_CW:
+        switch (xed_reg_class(reg)) {
+          case XED_REG_CLASS_XMM:
+          case XED_REG_CLASS_YMM:
+          case XED_REG_CLASS_ZMM:
+            write_to_avx = true;
+            break;
+          default:
+            break;
+        }
+        break;
+      default:
+        break;
+    };
+  }
+  if (!(read_from_rsp && write_to_avx)) {
+    return false;
+  }
+
+  // Check if EVEX prefix is non-canonical.
+  const size_t inst_size = xed_decoded_inst_get_length(&xed_insn_);
+  // Locate the EVEX prefix.
+  for (size_t i = 0; i < inst_size; ++i) {
+    const uint8_t byte = xed_decoded_inst_get_byte(&xed_insn_, i);
+    if (byte == 0x62) {
+      CHECK_GE(inst_size - i, 5);
+      const uint8_t p0 = xed_decoded_inst_get_byte(&xed_insn_, i + 1);
+      return p0 & 0x40;
+    }
+  }
+  LOG_FATAL(
+      "EVEX prefix byte 0 (0x62) not found in what was decoded as EVEX "
+      "instruction: ",
+      DebugString());
+}
+
 }  // namespace silifuzz

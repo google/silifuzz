@@ -190,6 +190,10 @@ bool InstructionIsSSE(const xed_inst_t* instruction) {
          ext == XED_EXTENSION_SSE4A || ext == XED_EXTENSION_SSSE3;
 }
 
+bool InstructionIsAVX512EVEX(const xed_inst_t* instruction) {
+  return xed_inst_extension(instruction) == XED_EXTENSION_AVX512EVEX;
+}
+
 // Note: we use the "server" versions of each chips because we're primarily
 // targeting the data center. This may skew with desktops.
 xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {

@@ -49,6 +49,7 @@ struct XedTest {
   bool is_io;
   bool is_sse;
   bool is_x87;
+  bool is_avx512_evex;
 };
 
 std::vector<XedTest> MakeXedTests() {
@@ -119,6 +120,11 @@ std::vector<XedTest> MakeXedTests() {
           .bytes = {0x48, 0x0f, 0xc3, 0x07},
           .is_sse = true,
       },
+      {
+          .text = "vpbroadcastq zmm15, rsp",
+          .bytes = {0x62, 0x32, 0xfd, 0x48, 0x7c, 0xfc},
+          .is_avx512_evex = true,
+      },
   };
 }
 
@@ -157,6 +163,8 @@ TEST_F(XedUtilTest, InstructionPredicates) {
           << test.text;
       EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
       EXPECT_EQ(test.is_x87, InstructionIsX87(instruction)) << test.text;
+      EXPECT_EQ(test.is_avx512_evex, InstructionIsAVX512EVEX(instruction))
+          << test.text;
     }
   }
 }

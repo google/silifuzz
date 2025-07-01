@@ -506,5 +506,81 @@ TEST(DecodedInsn, clzero_with_prefix) {
   EXPECT_FALSE(insn.is_allowed_in_runner());
 }
 
+TEST(DecodedInsn, canonical_evex_rsp) {
+  struct TestCase {
+    const char* raw_bytes = nullptr;    // instruction bytes.
+    const char* disassembly = nullptr;  // expected value for DebugString().
+    bool is_non_canonical_evex_rsp =
+        false;  // expected value for is_non_canonical_evex_rsp().
+  };
+
+  const std::vector<TestCase> test_cases = {
+      // Non-EVEX instruction.
+      {
+          .raw_bytes = "\x90",
+          .disassembly = "nop",
+          .is_non_canonical_evex_rsp = false,
+      },
+      // RSP not involved.
+      {
+          .raw_bytes = "\x62\x72\xfd\x48\x7c\xf8",
+          .disassembly = "vpbroadcastq zmm15, rax",
+          .is_non_canonical_evex_rsp = false,
+      },
+      // RSP is involved but not read.
+      {
+          .raw_bytes = "\x62\x71\xfd\x08\x7e\xec",
+          .disassembly = "vmovq rsp, xmm13",
+          .is_non_canonical_evex_rsp = false,
+      },
+      // EVEX instructions, reading from RSP and writing to AVX registers.
+      {
+          .raw_bytes = "\x62\x72\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm15, rsp",
+          .is_non_canonical_evex_rsp = true,
+      },
+      {
+          .raw_bytes = "\x62\x32\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm15, rsp",
+          .is_non_canonical_evex_rsp = false,
+      },
+      {
+          .raw_bytes = "\x62\xf1\xfd\x08\x6e\xcc",
+          .disassembly = "vmovq xmm1, rsp",
+          .is_non_canonical_evex_rsp = true,
+      },
+      {
+          .raw_bytes = "\x62\xb1\xfd\x08\x6e\xcc",
+          .disassembly = "vmovq xmm1, rsp",
+          .is_non_canonical_evex_rsp = false,
+      },
+      {
+          // Test that multiple 0x62 in the EVEX prefix can be properly handled.
+          .raw_bytes = "\x62\x62\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm31, rsp",
+          .is_non_canonical_evex_rsp = true,
+      },
+      {
+          .raw_bytes = "\x62\x22\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm31, rsp",
+          .is_non_canonical_evex_rsp = false,
+      },
+      {
+          // With legacy prefix.
+          .raw_bytes = "\x65\x62\x72\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm15, rsp",
+          .is_non_canonical_evex_rsp = true,
+      },
+  };
+  for (const auto& test_case : test_cases) {
+    DecodedInsn insn(test_case.raw_bytes);
+    ASSERT_TRUE(insn.is_valid());
+    EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+              test_case.disassembly);
+    EXPECT_EQ(test_case.is_non_canonical_evex_rsp,
+              insn.is_non_canonical_evex_rsp());
+  }
+}
+
 }  // namespace
 }  // namespace silifuzz

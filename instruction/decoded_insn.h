@@ -105,6 +105,16 @@ class DecodedInsn {
     return xed_decoded_inst_number_of_memory_operands(&xed_insn_) != 0;
   }
 
+  // Returns true if all of the following are true:
+  // 1) is an AVX512 EVEX instruction
+  // 2) reads from RSP
+  // 3) writes to AVX registers
+  // 4) x_bar (byte 1, bit 6) is set in the EVEX prefix.
+  // We should ban such instructions for AMD because they might read wrong data
+  // from RSP.
+  // https://github.com/google/security-research/tree/master/pocs/cpus/errata/amd/genoa-evex-rsp
+  bool is_non_canonical_evex_rsp() const;
+
   // Returns textual representation of the instruction in Intel syntax.
   // REQUIRES: is_valid().
   absl::string_view DebugString() const {
