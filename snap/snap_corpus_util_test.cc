@@ -15,7 +15,6 @@
 #include "./snap/snap_corpus_util.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
