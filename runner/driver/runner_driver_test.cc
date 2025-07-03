@@ -21,7 +21,6 @@
 #include <filesystem>  // NOLINT
 
 #include "gtest/gtest.h"
-#include "absl/status/statusor.h"
 #include "./common/harness_tracer.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
