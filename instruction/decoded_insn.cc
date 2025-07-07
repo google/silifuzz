@@ -57,6 +57,9 @@ size_t l1_cache_line_size;
 DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
   status_ = Decode(data, address);
   if (!status_.ok()) LOG_ERROR(status_.message());
+  for (int i = 0; i < xed_decoded_inst_get_length(&xed_insn_); ++i) {
+    raw_bytes_.push_back(xed_decoded_inst_get_byte(&xed_insn_, i));
+  }
 }
 
 bool DecodedInsn::is_allowed_in_runner() const {
@@ -471,14 +474,13 @@ bool DecodedInsn::is_non_canonical_evex_rsp() const {
   }
 
   // Check if EVEX prefix is non-canonical.
-  const size_t inst_size = xed_decoded_inst_get_length(&xed_insn_);
+  const size_t inst_size = raw_bytes_.size();
   // Locate the EVEX prefix.
   for (size_t i = 0; i < inst_size; ++i) {
-    const uint8_t byte = xed_decoded_inst_get_byte(&xed_insn_, i);
+    const uint8_t byte = raw_bytes_[i];
     if (byte == 0x62) {
       CHECK_GE(inst_size - i, 5);
-      const uint8_t p0 = xed_decoded_inst_get_byte(&xed_insn_, i + 1);
-      return p0 & 0x40;
+      return raw_bytes_[i + 1] & 0x40;
     }
   }
   LOG_FATAL(

@@ -185,6 +185,13 @@ class DecodedInsn {
 
   // Text-formatted insn. See DebugString()
   char formatted_insn_buf_[96];
+
+  // Xed's API to get the raw instruction bytes `xed_decoded_inst_get_byte()`
+  // seems to rely on the original data buffer that was passed to `xed_decode()`
+  // to return the correct values. This field saves a copy of raw insn bytes so
+  // that we can access them reliably even after the original data buffer is out
+  // of scope.
+  std::string raw_bytes_;
 };
 
 }  // namespace silifuzz

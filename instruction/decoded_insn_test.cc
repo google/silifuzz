@@ -20,6 +20,8 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -56,6 +58,7 @@ class DecodedInsnTestPeer {
       size_t i, const struct user_regs_struct& regs) {
     return insn_.memory_operand_address(i, regs);
   }
+  std::string get_raw_bytes() { return insn_.raw_bytes_; }
 
  private:
   DecodedInsn& insn_;  // class under test
@@ -580,6 +583,30 @@ TEST(DecodedInsn, canonical_evex_rsp) {
     EXPECT_EQ(test_case.is_non_canonical_evex_rsp,
               insn.is_non_canonical_evex_rsp());
   }
+}
+
+// This test covers a special case where the string `raw_bytes` that used by the
+// DecodedInsn constructor is out of scope. In such case, calling xed's API
+// xed_decoded_inst_get_byte() within the DecodedInsn instance will return junk
+// data. This test ensures that the we can get the correct raw instruction
+// bytes.
+TEST(DecodedInsn, can_get_correct_raw_bytes) {
+  DecodedInsn insn = [&]() {
+    std::string raw_bytes = {0x62, 0x72, 0xfd, 0x48, 0x7c, 0xfc};
+    return DecodedInsn(raw_bytes);
+  }();
+
+  ASSERT_TRUE(insn.is_valid());
+  ASSERT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "vpbroadcastq zmm15, rsp");
+  DecodedInsnTestPeer peer(insn);
+  EXPECT_EQ(peer.get_raw_bytes(),
+            std::string({0x62, 0x72, 0xfd, 0x48, 0x7c, 0xfc}));
+
+  DecodedInsn moved = std::move(insn);
+  DecodedInsnTestPeer moved_peer(moved);
+  EXPECT_EQ(moved_peer.get_raw_bytes(),
+            std::string({0x62, 0x72, 0xfd, 0x48, 0x7c, 0xfc}));
 }
 
 }  // namespace
