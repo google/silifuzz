@@ -77,6 +77,10 @@ class TraceOptions {
   // exempted from filtering. Currently this option has no effect on non-x86
   // platforms.
   bool filter_memory_access = false;
+
+  // If true, tracer injects a signal when an EVEX instruction reads from RSP,
+  // writes to AVX registers, and is non-canonical (i.e. x_bar bit is set).
+  bool x86_filter_non_canonical_evex_rsp = false;
 };
 
 }  // namespace silifuzz

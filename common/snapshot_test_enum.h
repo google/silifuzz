@@ -132,6 +132,10 @@ enum class TestSnapshot {
   // Snapshot that sets three SVE registers.
   kSetThreeSVERegisters,
 
+  // Snapshot that contains a non-canonical EVEX instruction that reads from
+  // RSP.
+  kNonCanonicalEvexRsp,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot,
 };
@@ -174,6 +178,7 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kSetThreeAVXRegisters",
     "kSetThreeAVX512Registers",
     "kSetThreeSVERegisters",
+    "kNonCanonicalEvexRsp",
 };
 
 }  // namespace silifuzz
