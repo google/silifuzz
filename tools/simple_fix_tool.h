@@ -60,13 +60,17 @@ struct SimpleFixToolOptions {
 
   // If true, filter Snapshots that do not conform to fuzzing config.
   bool enforce_fuzzing_config = true;
+
+  // If true, snapshots containing EVEX instructions that read from RSP,
+  // write to AVX registers, and are non-canonical (i.e. x_bar bit is set).
+  bool x86_filter_non_canonical_evex_rsp = false;
 };
 
 // Converts raw instructions blobs in `inputs` into snapshots of the
 // current architecture. Runs the snapshots through the maker to generate
 // end states for them. Partitions successfully made snapshots into
 // `num_output_shards` shards and outputs snapified snapshots as a sharded
-// relocatable corpus. pdates fix tool statistics in
+// relocatable corpus. updates fix tool statistics in
 // `counters`.
 void FixupCorpus(const SimpleFixToolOptions& options,
                  const std::vector<std::string>& inputs,

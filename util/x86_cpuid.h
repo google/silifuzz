@@ -20,7 +20,7 @@
 
 namespace silifuzz {
 
-// Result of executing a CPUID intruction on an x86 CPU.
+// Result of executing a CPUID instruction on an x86 CPU.
 struct X86CPUIDResult {
   uint32_t eax;
   uint32_t ebx;
