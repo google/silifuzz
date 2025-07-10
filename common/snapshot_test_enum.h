@@ -133,8 +133,8 @@ enum class TestSnapshot {
   kSetThreeSVERegisters,
 
   // Snapshot that contains a non-canonical EVEX instruction that reads from
-  // RSP.
-  kNonCanonicalEvexRsp,
+  // stack pointer.
+  kNonCanonicalEvexSp,
 
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot,
@@ -178,7 +178,7 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kSetThreeAVXRegisters",
     "kSetThreeAVX512Registers",
     "kSetThreeSVERegisters",
-    "kNonCanonicalEvexRsp",
+    "kNonCanonicalEvexSp",
 };
 
 }  // namespace silifuzz

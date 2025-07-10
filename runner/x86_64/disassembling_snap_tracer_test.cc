@@ -166,12 +166,12 @@ TEST(DisassemblingSnapTracer, TraceVSyscallRegionAccess) {
             "May access vsyscall region MOV");
 }
 
-TEST(DisassemblingSnapTracer, TraceNonCanonicalEvexRsp) {
+TEST(DisassemblingSnapTracer, TraceNonCanonicalEvexSp) {
   RunnerDriver driver = HelperDriver();
   auto snapshot =
-      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kNonCanonicalEvexRsp);
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kNonCanonicalEvexSp);
   TraceOptions options = TraceOptions::Default();
-  options.x86_filter_non_canonical_evex_rsp = true;
+  options.x86_filter_non_canonical_evex_sp = true;
   DisassemblingSnapTracer tracer(snapshot, options);
   const auto result = driver.TraceOne(
       snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));

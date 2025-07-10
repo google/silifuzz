@@ -117,8 +117,8 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
         return HarnessTracer::kInjectSigusr1;
       }
     }
-    if (options_.x86_filter_non_canonical_evex_rsp &&
-        insn_or->is_non_canonical_evex_rsp()) {
+    if (options_.x86_filter_non_canonical_evex_sp &&
+        insn_or->is_non_canonical_evex_sp()) {
       trace_result_.early_termination_reason = "Non-canonical EVEX instruction";
       return HarnessTracer::kInjectSigusr1;
     }

@@ -509,12 +509,12 @@ TEST(DecodedInsn, clzero_with_prefix) {
   EXPECT_FALSE(insn.is_allowed_in_runner());
 }
 
-TEST(DecodedInsn, canonical_evex_rsp) {
+TEST(DecodedInsn, canonical_evex_sp) {
   struct TestCase {
     const char* raw_bytes = nullptr;    // instruction bytes.
     const char* disassembly = nullptr;  // expected value for DebugString().
-    bool is_non_canonical_evex_rsp =
-        false;  // expected value for is_non_canonical_evex_rsp().
+    bool is_non_canonical_evex_sp =
+        false;  // expected value for is_non_canonical_evex_sp().
   };
 
   const std::vector<TestCase> test_cases = {
@@ -522,57 +522,68 @@ TEST(DecodedInsn, canonical_evex_rsp) {
       {
           .raw_bytes = "\x90",
           .disassembly = "nop",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = false,
       },
-      // RSP not involved.
+      // SP not involved.
       {
-          .raw_bytes = "\x62\x72\xfd\x48\x7c\xf8",
+          .raw_bytes = "\x62\x32\xfd\x48\x7c\xf8",
           .disassembly = "vpbroadcastq zmm15, rax",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = false,
       },
-      // RSP is involved but not read.
+      // SP is involved but not read.
       {
-          .raw_bytes = "\x62\x71\xfd\x08\x7e\xec",
+          .raw_bytes = "\x62\x31\xfd\x08\x7e\xec",
           .disassembly = "vmovq rsp, xmm13",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = false,
       },
-      // EVEX instructions, reading from RSP and writing to AVX registers.
-      {
-          .raw_bytes = "\x62\x72\xfd\x48\x7c\xfc",
-          .disassembly = "vpbroadcastq zmm15, rsp",
-          .is_non_canonical_evex_rsp = true,
-      },
+      // EVEX instructions, reading from SP and writing to AVX registers.
       {
           .raw_bytes = "\x62\x32\xfd\x48\x7c\xfc",
           .disassembly = "vpbroadcastq zmm15, rsp",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = true,
       },
       {
-          .raw_bytes = "\x62\xf1\xfd\x08\x6e\xcc",
-          .disassembly = "vmovq xmm1, rsp",
-          .is_non_canonical_evex_rsp = true,
+          .raw_bytes = "\x62\x72\xfd\x48\x7c\xfc",
+          .disassembly = "vpbroadcastq zmm15, rsp",
+          .is_non_canonical_evex_sp = false,
       },
       {
           .raw_bytes = "\x62\xb1\xfd\x08\x6e\xcc",
           .disassembly = "vmovq xmm1, rsp",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = true,
+      },
+      {
+          .raw_bytes = "\x62\xf1\xfd\x08\x6e\xcc",
+          .disassembly = "vmovq xmm1, rsp",
+          .is_non_canonical_evex_sp = false,
       },
       {
           // Test that multiple 0x62 in the EVEX prefix can be properly handled.
           .raw_bytes = "\x62\x62\xfd\x48\x7c\xfc",
           .disassembly = "vpbroadcastq zmm31, rsp",
-          .is_non_canonical_evex_rsp = true,
+          .is_non_canonical_evex_sp = false,
       },
       {
           .raw_bytes = "\x62\x22\xfd\x48\x7c\xfc",
           .disassembly = "vpbroadcastq zmm31, rsp",
-          .is_non_canonical_evex_rsp = false,
+          .is_non_canonical_evex_sp = true,
       },
       {
           // With legacy prefix.
-          .raw_bytes = "\x65\x62\x72\xfd\x48\x7c\xfc",
+          .raw_bytes = "\x65\x62\x32\xfd\x48\x7c\xfc",
           .disassembly = "vpbroadcastq zmm15, rsp",
-          .is_non_canonical_evex_rsp = true,
+          .is_non_canonical_evex_sp = true,
+      },
+      // Read from other SP variants.
+      {
+          .raw_bytes = "\x62\x32\x7d\x28\x7c\xfc",
+          .disassembly = "vpbroadcastd ymm15, esp",
+          .is_non_canonical_evex_sp = true,
+      },
+      {
+          .raw_bytes = "\x62\x32\x7d\x28\x7b\xfc",
+          .disassembly = "vpbroadcastw ymm15, esp",
+          .is_non_canonical_evex_sp = true,
       },
   };
   for (const auto& test_case : test_cases) {
@@ -580,8 +591,8 @@ TEST(DecodedInsn, canonical_evex_rsp) {
     ASSERT_TRUE(insn.is_valid());
     EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
               test_case.disassembly);
-    EXPECT_EQ(test_case.is_non_canonical_evex_rsp,
-              insn.is_non_canonical_evex_rsp());
+    EXPECT_EQ(test_case.is_non_canonical_evex_sp,
+              insn.is_non_canonical_evex_sp());
   }
 }
 

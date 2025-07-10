@@ -466,14 +466,14 @@ const TestSnapshotConfig configs[57] = {
         .normal_end = false,
     },
     {
-        .type = TestSnapshot::kNonCanonicalEvexRsp,
+        .type = TestSnapshot::kNonCanonicalEvexSp,
         .arch = ArchitectureId::kX86_64,
         .code_addr = 0x32555000,
         .code_num_bytes = 0x1000,
         .data_addr = 0x220000,
         .data_num_bytes = 0x1000,
-        //     32555000:   62 72 fd 48 7c fc       vpbroadcastq %rsp,%zmm15
-        .instruction_bytes = {0x62, 0x72, 0xfd, 0x48, 0x7c, 0xfc},
+        //     32555000:   62 32 fd 48 7c fc       vpbroadcastq %rsp,%zmm15
+        .instruction_bytes = {0x62, 0x32, 0xfd, 0x48, 0x7c, 0xfc},
         .normal_end = true,
     },
     {

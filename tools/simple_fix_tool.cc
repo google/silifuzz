@@ -110,8 +110,8 @@ void FixToolWorker(FixToolWorkerArgs& args) {
         args.options->x86_filter_vsyscall_region_access;
     options.filter_memory_access = args.options->filter_memory_access;
     options.enforce_fuzzing_config = args.options->enforce_fuzzing_config;
-    options.x86_filter_non_canonical_evex_rsp =
-        args.options->x86_filter_non_canonical_evex_rsp;
+    options.x86_filter_non_canonical_evex_sp =
+        args.options->x86_filter_non_canonical_evex_sp;
     auto remade_snapshot_or =
         FixupSnapshot(snapshot.value(), options, &platform_counters);
     if (!remade_snapshot_or.ok()) {

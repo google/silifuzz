@@ -122,9 +122,10 @@ struct FixupSnapshotOptions {
   // mappings are filtered.
   bool enforce_fuzzing_config = true;
 
-  // If true, snapshots containing EVEX instructions that read from RSP,
-  // write to AVX registers, and are non-canonical (i.e. x_bar bit is set).
-  bool x86_filter_non_canonical_evex_rsp = false;
+  // If true, snapshots containing EVEX instructions that read from stack
+  // pointer, write to AVX registers, and are non-canonical (i.e. x_bar bit is
+  // clear).
+  bool x86_filter_non_canonical_evex_sp = false;
 };
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.

@@ -61,9 +61,10 @@ struct SimpleFixToolOptions {
   // If true, filter Snapshots that do not conform to fuzzing config.
   bool enforce_fuzzing_config = true;
 
-  // If true, snapshots containing EVEX instructions that read from RSP,
-  // write to AVX registers, and are non-canonical (i.e. x_bar bit is set).
-  bool x86_filter_non_canonical_evex_rsp = false;
+  // If true, snapshots containing EVEX instructions that read from stack
+  // pointer, write to AVX registers, and are non-canonical (i.e. x_bar bit is
+  // clear).
+  bool x86_filter_non_canonical_evex_sp = false;
 };
 
 // Converts raw instructions blobs in `inputs` into snapshots of the

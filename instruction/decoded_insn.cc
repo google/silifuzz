@@ -388,7 +388,7 @@ absl::StatusOr<bool> DecodedInsn::may_access_region(
   // Scatter and gather instructions use vector registers as indices
   // Currently we do not read contents of vector register during tracing.
   // Thus we cannot easily tell if any scatter and gather instructions touch
-  // the region or not.  To be conservative, return true always.
+  // the region or not. To be conservative, return true always.
   xed_category_enum_t category = xed_decoded_inst_get_category(&xed_insn_);
   switch (category) {
     case XED_CATEGORY_AVX2GATHER:
@@ -423,7 +423,7 @@ absl::StatusOr<bool> DecodedInsn::may_access_region(
   return false;
 }
 
-bool DecodedInsn::is_non_canonical_evex_rsp() const {
+bool DecodedInsn::is_non_canonical_evex_sp() const {
   DCHECK_STATUS(status_);
   const xed_inst_t* raw = xed_decoded_inst_inst(&xed_insn_);
   if (!InstructionIsAVX512EVEX(raw)) {
@@ -480,7 +480,7 @@ bool DecodedInsn::is_non_canonical_evex_rsp() const {
     const uint8_t byte = raw_bytes_[i];
     if (byte == 0x62) {
       CHECK_GE(inst_size - i, 5);
-      return raw_bytes_[i + 1] & 0x40;
+      return (raw_bytes_[i + 1] & 0x40) == 0;
     }
   }
   LOG_FATAL(

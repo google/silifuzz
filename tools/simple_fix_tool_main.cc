@@ -57,10 +57,10 @@ ABSL_FLAG(bool, filter_memory_access, false,
 ABSL_FLAG(bool, enforce_fuzzing_config, true,
           "Filter snaps that do not conform to fuzzing config.");
 
-ABSL_FLAG(
-    bool, x86_filter_non_canonical_evex_rsp, true,
-    "Filter snaps that contain EVEX instructions that read from RSP, write to "
-    "AVX registers, and are non-canonical (i.e. x_bar bit is set).");
+ABSL_FLAG(bool, x86_filter_non_canonical_evex_sp, true,
+          "Filter snaps that contain EVEX instructions that read from stack "
+          "pointer, write to AVX registers, and are non-canonical (i.e. x_bar "
+          "bit is clear).");
 
 namespace silifuzz {
 namespace {
@@ -88,8 +88,8 @@ int SimpleFixToolMain(int argc, char* argv[]) {
       absl::GetFlag(FLAGS_x86_filter_vsyscall_region_access);
   options.filter_memory_access = absl::GetFlag(FLAGS_filter_memory_access);
   options.enforce_fuzzing_config = absl::GetFlag(FLAGS_enforce_fuzzing_config);
-  options.x86_filter_non_canonical_evex_rsp =
-      absl::GetFlag(FLAGS_x86_filter_non_canonical_evex_rsp);
+  options.x86_filter_non_canonical_evex_sp =
+      absl::GetFlag(FLAGS_x86_filter_non_canonical_evex_sp);
 
   fix_tool_internal::SimpleFixToolCounters counters;
   FixupCorpus(options, inputs, absl::GetFlag(FLAGS_output_path_prefix),
