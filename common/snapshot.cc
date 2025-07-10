@@ -826,8 +826,7 @@ void Snapshot::NormalizeMemoryBytes(const MappedMemoryMap& memory_map,
           current_chunk.start_address() ==
               memory_bytes->back().limit_address() &&
           memory_mapping->perms() == perms) {
-        memory_bytes->back().mutable_byte_values()->append(
-            current_chunk.byte_values());
+        memory_bytes->back().append_bytes(current_chunk.byte_values());
       } else {
         perms = memory_mapping->perms();
         memory_bytes->emplace_back(std::move(current_chunk));
@@ -980,6 +979,11 @@ bool Snapshot::MemoryBytes::operator<(const MemoryBytes& y) const {
   return start_address_ < y.start_address_ ||
          (start_address_ == y.start_address_ &&
           limit_address() < y.limit_address());
+}
+
+void Snapshot::MemoryBytes::append_bytes(ByteDataView bytes) {
+  byte_values_.append(bytes);
+  DCHECK_STATUS(CanConstruct(start_address_, byte_values_));
 }
 
 Snapshot::MemoryBytes Snapshot::MemoryBytes::Range(Address start,

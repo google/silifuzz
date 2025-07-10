@@ -77,6 +77,7 @@ class Snapshot final {
 
   // Type for a sequence of byte data.
   using ByteData = std::string;
+  using ByteDataView = std::string_view;
 
   // Type for one byte of data.
   using Byte = ByteData::value_type;  // char
@@ -631,7 +632,7 @@ class Snapshot::MemoryBytes final {
 
   // The bytes to exist in the [start_address, limit_address) address range.
   const ByteData& byte_values() const { return byte_values_; }
-  ByteData* mutable_byte_values() { return &byte_values_; }
+  void append_bytes(ByteDataView bytes);
   ByteSize num_bytes() const { return byte_values_.size(); }
 
   // Returns a new MemoryBytes in of contents in range [start, limit).

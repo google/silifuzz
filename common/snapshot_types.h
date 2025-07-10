@@ -40,6 +40,7 @@ class SnapshotTypeNames {
   using Address = Snapshot::Address;
   using ByteSize = Snapshot::ByteSize;
   using ByteData = Snapshot::ByteData;
+  using ByteDataView = Snapshot::ByteDataView;
   using Byte = Snapshot::Byte;
   using Architecture = Snapshot::Architecture;
   using MemoryMapping = Snapshot::MemoryMapping;

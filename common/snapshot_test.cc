@@ -388,6 +388,20 @@ TEST(MemoryBytes, Range) {
   EXPECT_EQ(middle.byte_values(), "ob");
 }
 
+TEST(MemoryBytes, Appending) {
+  Snapshot::MemoryBytes mb(42, "foo");
+  mb.append_bytes("bar");
+
+  EXPECT_EQ(mb.start_address(), 42);
+  EXPECT_EQ(mb.limit_address(), 48);
+  EXPECT_EQ(mb.byte_values(), "foobar");
+}
+
+TEST(MemoryBytesDeathTest, FailsToExtendPastkMaxAddr) {
+  Snapshot::MemoryBytes mb(Snapshot::kMaxAddress - 5, "foo");
+  EXPECT_DEBUG_DEATH(mb.append_bytes("bar"), "");
+}
+
 TEST(TraceMetadata, Platforms) {
   Snapshot::TraceData t(1, "nop");
   static_assert(PlatformId::kAmdGenoa > PlatformId::kIntelCascadelake);

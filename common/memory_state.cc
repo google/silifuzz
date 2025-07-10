@@ -388,16 +388,17 @@ inline void MemoryState::GrowResultChunk(const MemoryBytes& bytes, Address addr,
   if (!chunk.has_value()) {
     chunk = MemoryBytes(addr, ByteData(byte_values.data() + offset, size));
   } else if (chunk.value().limit_address() == addr) {
-    chunk.value().mutable_byte_values()->append(byte_values, offset, size);
+    chunk.value().append_bytes(ByteDataView(byte_values).substr(offset, size));
   } else {
     DCHECK_LT(chunk.value().limit_address(), addr);
     if (addr - chunk.value().limit_address() < kMinSkipOverBytes) {
       // Too few unchanged bytes from the last `chunk` to skip,
       // so we append all the bytes from chunk's end to `addr` and then
       // `size` more bytes:
-      chunk.value().mutable_byte_values()->append(
-          byte_values, chunk.value().limit_address() - bytes.start_address(),
-          addr - chunk.value().limit_address() + size);
+      chunk.value().append_bytes(
+          ByteDataView(byte_values)
+              .substr(chunk.value().limit_address() - bytes.start_address(),
+                      addr - chunk.value().limit_address() + size));
     } else {
       result.push_back(std::move(chunk).value());
       chunk = MemoryBytes(addr, ByteData(byte_values.data() + offset, size));
