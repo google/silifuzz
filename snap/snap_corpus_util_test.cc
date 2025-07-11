@@ -19,7 +19,6 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "absl/status/statusor.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_test_enum.h"
 #include "./snap/gen/relocatable_snap_generator.h"
