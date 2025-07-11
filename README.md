@@ -160,11 +160,11 @@ bazel build -c opt --copt=-UNDEBUG --dynamic_mode=off \
 bazel build -c opt @com_google_fuzztest//centipede:centipede
 mkdir -p /tmp/wd
 
-# Fuzz the Unicorn proxy under Centipede with parallelism of 30.
+# Fuzz the Unicorn proxy under Centipede 1000 times with parallelism of 30.
 "${SILIFUZZ_BIN_DIR}/external/com_google_fuzztest/centipede/centipede" \
   --binary="${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
   --workdir=/tmp/wd \
-  -j=30
+  -j=30 --num_runs=1000
 ```
 
 NOTE: Please refer to
