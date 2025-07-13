@@ -25,6 +25,10 @@ we can generate a _nolibc binary in the same build as normal binaries and
 easily integration-test the two kinds.
 """
 
+load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("//third_party/bazel_rules/rules_cc/cc:cc_test.bzl", "cc_test")
+
 # Disable vector instructions on x86 inside runner
 X86_NO_VECTOR_INSN_COPTS = ["-mno-mmx", "-mno-sse", "-mno-avx"]
 
@@ -99,7 +103,7 @@ def _cc_library_plus_nolibc_impl(
 
     tags = tags or []
     if not nolibc_only:
-        native.cc_library(
+        cc_library(
             name = name,
             hdrs = hdrs,
             srcs = srcs,
@@ -111,8 +115,7 @@ def _cc_library_plus_nolibc_impl(
         )
 
     deps_nolibc = [_add_nolibc_dep_suffix(d) for d in deps]
-
-    native.cc_library(
+    cc_library(
         name = name + "_nolibc",
         hdrs = hdrs,
         srcs = srcs,
@@ -168,7 +171,7 @@ def _cc_binary_plus_nolibc_impl(
     """
 
     if not nolibc_only:
-        native.cc_binary(
+        cc_binary(
             name = name,
             srcs = srcs,
             deps = deps + libc_deps + as_is_deps,
@@ -180,8 +183,7 @@ def _cc_binary_plus_nolibc_impl(
         )
 
     deps_nolibc = [_add_nolibc_dep_suffix(d) for d in deps]
-
-    native.cc_binary(
+    cc_binary(
         name = name + "_nolibc",
         srcs = srcs,
         deps = deps_nolibc + nolibc_deps + as_is_deps + NOLIBC_STDLIB,
@@ -236,7 +238,7 @@ def _cc_test_libc_andor_nolibc_impl(
     """
 
     if not nolibc_only:
-        native.cc_test(
+        cc_test(
             name = name,
             srcs = srcs,
             deps = deps + libc_deps + as_is_deps,
@@ -249,8 +251,7 @@ def _cc_test_libc_andor_nolibc_impl(
         )
 
     deps_nolibc = [_add_nolibc_dep_suffix(d) for d in deps]
-
-    native.cc_test(
+    cc_test(
         name = name + "_nolibc",
         srcs = srcs,
         deps = deps_nolibc + nolibc_deps + as_is_deps + NOLIBC_STDLIB,

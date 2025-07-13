@@ -16,6 +16,9 @@
 #   Common utility libraries for SiliFuzz that *do* have something
 #   SiliFuzz-specific in them. Contrast with silifuzz/util.
 
+load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("//third_party/bazel_rules/rules_cc/cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:py_test.bzl", "py_test")
 load("@silifuzz//util:nolibc.bzl", "cc_library_plus_nolibc")
 

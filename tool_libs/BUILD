@@ -18,6 +18,9 @@
 #   entities and not manipulating the internals of snapshots, which are handled
 #   by various libraries in silifuzz/common/
 
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("//third_party/bazel_rules/rules_cc/cc:cc_test.bzl", "cc_test")
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

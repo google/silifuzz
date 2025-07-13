@@ -18,6 +18,10 @@
 #   Contrast with silifuzz/common.
 
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
+load("//third_party/bazel_rules/rules_cc/cc:cc_import.bzl", "cc_import")
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("//third_party/bazel_rules/rules_cc/cc:cc_test.bzl", "cc_test")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load(
     "@silifuzz//util:nolibc.bzl",
@@ -48,6 +52,7 @@ DISABLE_X86_TAGS = [
 bzl_library(
     name = "nolibc_bzl",
     srcs = ["nolibc.bzl"],
+    deps = ["//third_party/bazel_rules/rules_cc/cc:core_rules"],
 )
 
 cc_library_plus_nolibc(
