@@ -20,9 +20,9 @@
 #   CAVEAT: All the platform-specific code in this directory is for
 #   x86_64 Linux. Adjustments would need to be made for higher portability.
 
-load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
-load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
-load("//third_party/bazel_rules/rules_cc/cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@silifuzz//util:nolibc.bzl", "cc_library_plus_nolibc")
 
 package(default_visibility = ["//visibility:public"])

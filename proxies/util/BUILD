@@ -14,7 +14,7 @@
 
 # General utility libraries for proxies.
 
-load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 licenses(["notice"])
 

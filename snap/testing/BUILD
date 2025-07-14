@@ -16,8 +16,8 @@
 #   Testing helpers and snaphots for the Snap library.
 #
 
-load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
-load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load(
     "@silifuzz//util:nolibc.bzl",
     "cc_library_plus_nolibc",
