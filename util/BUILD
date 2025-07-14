@@ -52,7 +52,6 @@ DISABLE_X86_TAGS = [
 bzl_library(
     name = "nolibc_bzl",
     srcs = ["nolibc.bzl"],
-    deps = ["@rules_cc//cc:core_rules"],
 )
 
 cc_library_plus_nolibc(
