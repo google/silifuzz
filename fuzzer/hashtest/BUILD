@@ -23,8 +23,6 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
-package(default_visibility = ["//visibility:public"])
-
 DISABLE_ARM_TAGS = [
     "not_build:arm",
     "not_run:arm",
