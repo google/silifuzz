@@ -16,12 +16,16 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstring>
 #include <string>
 
 #include "absl/strings/ascii.h"
+#include "absl/strings/str_format.h"
 #include "./instruction/disassembler.h"
 #include "./instruction/xed_util.h"
+#include "./util/arch.h"
 #include "./util/checks.h"
 
 extern "C" {
@@ -44,6 +48,11 @@ bool XedDisassembler::Disassemble(uint64_t address, const uint8_t* buffer,
   xed_decoded_inst_set_mode(&xedd_, XED_MACHINE_MODE_LONG_64,
                             XED_ADDRESS_WIDTH_64b);
   valid_ = xed_decode(&xedd_, buffer, buffer_size) == XED_ERROR_NONE;
+  if (!valid_) {
+    last_invalid_buffer_size_ =
+        std::min(buffer_size, X86_64::kMaxInstructionLength);
+    std::memcpy(last_invalid_buffer_.data(), buffer, last_invalid_buffer_size_);
+  }
   return valid_;
 }
 
@@ -91,7 +100,13 @@ std::string XedDisassembler::FullText() {
     CHECK(FormatInstruction(xedd_, address_, full_text_, sizeof(full_text_)));
     return full_text_;
   } else {
-    return kInvalidInstructionName;
+    std::string invalid_bytes_rep = kInvalidInstructionName;
+    for (int i = 0; i < last_invalid_buffer_size_; ++i) {
+      absl::StrAppend(&invalid_bytes_rep,
+                      absl::StrFormat(" %02x", last_invalid_buffer_[i]));
+    }
+
+    return invalid_bytes_rep;
   }
 }
 

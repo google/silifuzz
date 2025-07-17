@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
 #include "./instruction/capstone_disassembler.h"
 #include "./instruction/xed_disassembler.h"
 #include "./util/arch.h"
@@ -29,6 +30,7 @@ namespace silifuzz {
 namespace {
 
 using testing::HasSubstr;
+using testing::StrEq;
 
 struct DisassemblerTest {
   std::string bytes;
@@ -195,6 +197,55 @@ TEST(DisassemblerTest, Capstone_AArch64) {
   for (const DisassemblerTest& test : tests) {
     RunDisassemblerTest(disasm, test, LoadStorePrecision::kCapstone_AArch64);
   }
+}
+
+TEST(DisassemblerTest, XedInvalidInstruction) {
+  XedDisassembler disasm;
+  DisassemblerTest invalid_x86 = {
+      .bytes = {0x12, 0x34},
+      .opcode = disasm.InstructionIDName(disasm.InvalidInstructionID()),
+  };
+  constexpr uint64_t kArbitraryAddress = 0x10000;
+  EXPECT_FALSE(disasm.Disassemble(
+      kArbitraryAddress,
+      reinterpret_cast<const uint8_t*>(invalid_x86.bytes.data()),
+      invalid_x86.bytes.size()));
+
+  EXPECT_THAT(disasm.FullText(), StrEq("unknown 12 34"));
+}
+
+TEST(DisassemblerTest, CapstoneX86InvalidInstruction) {
+  CapstoneDisassembler<X86_64> disasm;
+  DisassemblerTest invalid_x86 = {
+      .bytes = {0x12, 0x34},
+      .opcode = disasm.InstructionIDName(disasm.InvalidInstructionID()),
+  };
+  constexpr uint64_t kArbitraryAddress = 0x10000;
+  EXPECT_FALSE(disasm.Disassemble(
+      kArbitraryAddress,
+      reinterpret_cast<const uint8_t*>(invalid_x86.bytes.data()),
+      invalid_x86.bytes.size()));
+
+  EXPECT_THAT(disasm.FullText(), StrEq("unknown 12 34"));
+}
+
+TEST(DisassemblerTest, CapstoneAArch64InvalidInstruction) {
+  CapstoneDisassembler<AArch64> disasm;
+  DisassemblerTest invalid_arm = {
+      // Taken from an invalid instruction in a snapshot.
+      .bytes = {0x82, 0x84, 0x84, 0x84},
+      .opcode = disasm.InstructionIDName(disasm.InvalidInstructionID()),
+  };
+  constexpr uint64_t kArbitraryAddress = 0x10000;
+  EXPECT_FALSE(disasm.Disassemble(
+      kArbitraryAddress,
+      reinterpret_cast<const uint8_t*>(invalid_arm.bytes.data()),
+      invalid_arm.bytes.size()));
+
+  EXPECT_THAT(
+      disasm.FullText(),
+      StrEq(absl::StrFormat("unknown %08x", *reinterpret_cast<uint32_t*>(
+                                                invalid_arm.bytes.data()))));
 }
 
 }  // namespace

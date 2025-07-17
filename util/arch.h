@@ -15,6 +15,8 @@
 #ifndef THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 #define THIRD_PARTY_SILIFUZZ_UTIL_ARCH_H_
 
+#include <cstddef>
+
 #include "./util/checks.h"
 #include "./util/itoa.h"
 
@@ -35,12 +37,14 @@ struct X86_64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kX86_64;
   static constexpr const char* arch_name = "x86_64";
   static constexpr const char* type_name = "X86_64";
+  static constexpr size_t kMaxInstructionLength = 15;
 };
 
 struct AArch64 {
   static constexpr ArchitectureId architecture_id = ArchitectureId::kAArch64;
   static constexpr const char* arch_name = "aarch64";
   static constexpr const char* type_name = "AArch64";
+  static constexpr size_t kMaxInstructionLength = 4;
 };
 
 template <>

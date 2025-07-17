@@ -78,6 +78,11 @@ class XedDisassembler : public Disassembler {
   uint64_t address_;
   char full_text_[96];
   bool valid_;
+
+  // Data containing the last bytes where disassembling failed.  The actual
+  // number of bytes in the array is stored in last_invalid_buffer_size_.
+  std::array<uint8_t, X86_64::kMaxInstructionLength> last_invalid_buffer_;
+  size_t last_invalid_buffer_size_;
 };
 
 }  // namespace silifuzz

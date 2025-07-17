@@ -133,6 +133,7 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
         "@capstone",
     ],
 )
@@ -147,6 +148,7 @@ cc_library(
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:str_format",
         "@libxed//:xed",
     ],
 )
@@ -169,6 +171,7 @@ cc_test(
         ":disassembler",
         ":xed_disassembler",
         "@silifuzz//util:arch",
+        "@abseil-cpp//absl/strings:str_format",
         "@googletest//:gtest_main",
     ],
 )

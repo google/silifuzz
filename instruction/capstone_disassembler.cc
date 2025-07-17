@@ -17,9 +17,11 @@
 #include <stdint.h>
 
 #include <cstddef>
+#include <cstring>
 #include <string>
 
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "third_party/capstone/arm64.h"
 #include "third_party/capstone/capstone.h"
 #include "third_party/capstone/x86.h"
@@ -158,11 +160,20 @@ template <typename Arch>
 bool CapstoneDisassembler<Arch>::Disassemble(uint64_t address,
                                              const uint8_t* buffer,
                                              size_t buffer_size) {
+  const uint8_t* original_buffer = buffer;
+  size_t original_buffer_size = buffer_size;
   // We use cs_disam_iter because it allows us to pre-allocate the buffer for
   // the decoded instruction. Note that this call will mutate `address`,
   // `buffer`, and `buffer_size` but this should not be visible to the caller.
   valid_ = cs_disasm_iter(capstone_handle_, &buffer, &buffer_size, &address,
                           decoded_insn_);
+  if (!valid_) {
+    last_invalid_buffer_size_ =
+        std::min(original_buffer_size, Arch::kMaxInstructionLength);
+
+    std::memcpy(last_invalid_buffer_.data(), original_buffer,
+                last_invalid_buffer_size_);
+  }
   return valid_;
 }
 
@@ -188,9 +199,10 @@ bool CapstoneDisassembler<Arch>::CanStore() const {
 
 template <typename Arch>
 std::string CapstoneDisassembler<Arch>::FullText() {
-  return valid_
-             ? absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str)
-             : kInvalidInstructionName;
+  if (valid_) {
+    return absl::StrCat(decoded_insn_->mnemonic, " ", decoded_insn_->op_str);
+  }
+  return StringifyInvalidInstruction();
 }
 
 template <typename Arch>
@@ -215,6 +227,25 @@ std::string CapstoneDisassembler<Arch>::InstructionIDName(uint32_t id) const {
     return kInvalidInstructionName;
   }
   return cs_insn_name(capstone_handle_, id);
+}
+
+template <>
+std::string CapstoneDisassembler<X86_64>::StringifyInvalidInstruction() const {
+  std::string invalid_bytes_hex_rep = kInvalidInstructionName;
+  for (int i = 0; i < last_invalid_buffer_size_; ++i) {
+    absl::StrAppend(&invalid_bytes_hex_rep,
+                    absl::StrFormat(" %02x", last_invalid_buffer_[i]));
+  }
+
+  return invalid_bytes_hex_rep;
+}
+
+template <>
+std::string CapstoneDisassembler<AArch64>::StringifyInvalidInstruction() const {
+  // Copy the bytes into a new uint32_t to prevent unaligned access.
+  uint32_t word;
+  std::memcpy(&word, last_invalid_buffer_.data(), last_invalid_buffer_size_);
+  return absl::StrFormat("%s %08x", kInvalidInstructionName, word);
 }
 
 template class CapstoneDisassembler<X86_64>;

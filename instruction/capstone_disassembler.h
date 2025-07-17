@@ -73,9 +73,19 @@ class CapstoneDisassembler : public Disassembler {
 
  private:
   csh capstone_handle_;
+  // Only access if valid_ == true. Otherwise does not contain valid data.
   cs_insn* decoded_insn_;
   uint32_t num_instruction_ids_;
   bool valid_;
+
+  // Data containing the last bytes where disassembling failed.  The actual
+  // number of bytes in the array is stored in last_invalid_buffer_size_.
+  size_t last_invalid_buffer_size_;
+  std::array<uint8_t, Arch::kMaxInstructionLength> last_invalid_buffer_;
+
+  // Textual representation of the last disassembled instruction if it was
+  // valid. Exact format differs based on architecture.
+  std::string StringifyInvalidInstruction() const;
 };
 
 }  // namespace silifuzz
