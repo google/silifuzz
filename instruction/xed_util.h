@@ -50,6 +50,10 @@ bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
 // cannot control.
 bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction);
 
+// Is this instruction part of an extension that is supported by Silifuzz?  Not
+// all instruction set extensions are supported.
+bool InstructionExtensionIsAllowedInRunner(const xed_inst_t* instruction);
+
 // Is this an unprivileged instruction? Useful for filtering instructions before
 // the run on hardware. Once they run on hardware, the answer should be obvious.
 bool InstructionCanRunInUserSpace(const xed_inst_t* instruction);

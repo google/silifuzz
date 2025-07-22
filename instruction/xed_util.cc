@@ -56,6 +56,7 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
 
 bool InstructionIsAllowedInRunner(const xed_inst_t* instruction) {
   return InstructionClassIsAllowedInRunner(instruction) &&
+         InstructionExtensionIsAllowedInRunner(instruction) &&
          InstructionCanRunInUserSpace(instruction) &&
          !InstructionRequiresIOPrivileges(instruction);
 }
@@ -164,6 +165,17 @@ bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
   }
 }
 
+bool InstructionExtensionIsAllowedInRunner(const xed_inst_t* instruction) {
+  switch (xed_inst_extension(instruction)) {
+    case XED_EXTENSION_AMX_FP16:
+    case XED_EXTENSION_AMX_TILE:
+      // These are AMX instructions that we do not plan to support (b/432543671)
+      return false;
+    default:
+      return true;
+  }
+}
+
 bool InstructionCanRunInUserSpace(const xed_inst_t* instruction) {
   return xed_inst_cpl(instruction) >= 3;
 }
@@ -192,6 +204,12 @@ bool InstructionIsSSE(const xed_inst_t* instruction) {
 
 bool InstructionIsAVX512EVEX(const xed_inst_t* instruction) {
   return xed_inst_extension(instruction) == XED_EXTENSION_AVX512EVEX;
+}
+
+bool InstructionIsAMX(const xed_inst_t* instruction) {
+  xed_extension_enum_t extension = xed_inst_extension(instruction);
+  return extension == XED_EXTENSION_AMX_FP16 ||
+         extension == XED_EXTENSION_AMX_TILE;
 }
 
 // Note: we use the "server" versions of each chips because we're primarily

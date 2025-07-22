@@ -50,6 +50,7 @@ struct XedTest {
   bool is_sse;
   bool is_x87;
   bool is_avx512_evex;
+  bool is_amx;
 };
 
 std::vector<XedTest> MakeXedTests() {
@@ -125,6 +126,16 @@ std::vector<XedTest> MakeXedTests() {
           .bytes = {0x62, 0x32, 0xfd, 0x48, 0x7c, 0xfc},
           .is_avx512_evex = true,
       },
+      {
+          .text = "tilerelease",
+          .bytes = {0xc4, 0xe2, 0x78, 0x49, 0xc0},
+          .is_amx = true,
+      },
+      {
+          .text = "tdpfp16ps tmm1, tmm2, tmm3",
+          .bytes = {0xc4, 0xe2, 0x63, 0x5c, 0xca},
+          .is_amx = true,
+      },
   };
 }
 
@@ -158,7 +169,8 @@ TEST_F(XedUtilTest, InstructionPredicates) {
       EXPECT_EQ(test.is_branch, InstructionIsBranch(instruction)) << test.text;
       EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(instruction))
           << test.text;
-      EXPECT_EQ(!test.not_deterministic && !test.is_io && !test.not_userspace,
+      EXPECT_EQ(!test.not_deterministic && !test.is_io && !test.not_userspace &&
+                    !test.is_amx,
                 InstructionIsAllowedInRunner(instruction))
           << test.text;
       EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
