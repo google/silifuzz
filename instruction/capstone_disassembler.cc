@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstring>
 #include <string>
