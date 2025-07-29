@@ -41,13 +41,13 @@ void DumpInstruction(const xed_inst_t* instruction) {
     }
   }
 
-  char buffer[4096];
   for (size_t operand_index = 0;
        operand_index < xed_inst_noperands(instruction); ++operand_index) {
     const xed_operand_t* const operand =
         xed_inst_operand(instruction, operand_index);
-    xed_operand_print(operand, buffer, sizeof(buffer));
-    std::cout << "    " << buffer << "\n";
+    std::cout << xed_operand_enum_t2str(
+                     static_cast<xed_operand_enum_t>(operand->_name))
+              << "\n";
   }
   std::cout << "\n";
 }
@@ -55,9 +55,10 @@ void DumpInstruction(const xed_inst_t* instruction) {
 void DieBecauseOperand(const xed_inst_t* instruction,
                        const xed_operand_t* operand) {
   DumpInstruction(instruction);
-  char buffer[4096];
-  xed_operand_print(operand, buffer, sizeof(buffer));
-  LOG_FATAL(xed_iclass_enum_t2str(xed_inst_iclass(instruction)), " / ", buffer);
+
+  LOG_FATAL(
+      xed_iclass_enum_t2str(xed_inst_iclass(instruction)), " / ",
+      xed_operand_enum_t2str(static_cast<xed_operand_enum_t>(operand->_name)));
 }
 
 }  // namespace silifuzz

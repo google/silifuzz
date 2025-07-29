@@ -37,6 +37,7 @@ COMMON_PUBLIC_HEADERS = [
     "gen/public-headers/xed-decoded-inst-api.h",
     "gen/public-headers/xed-decoded-inst.h",
     "gen/public-headers/xed-decode.h",
+    "gen/public-headers/xed-decoder-modes.h",
     "gen/public-headers/xed-disas.h",
     "gen/public-headers/xed-encode.h",
     "gen/public-headers/xed-encoder-gen-defs.h",
@@ -145,6 +146,8 @@ GENERATED_ENCODER_SOURCE = [
     "gen/sources/xed-encoder-3.c",
     "gen/sources/xed-encoder-4.c",
     "gen/sources/xed-encoder-5.c",
+    "gen/sources/xed-encoder-6.c",
+    "gen/sources/xed-encoder-7.c",
     "gen/sources/xed-encoder-iforms-init.c",
     "gen/sources/xed-encoder-init.c",
     "gen/sources/xed-encoder-order-init.c",
@@ -411,6 +414,7 @@ genrule(
         "include/public/xed/xed-decoded-inst-api.h",
         "include/public/xed/xed-decoded-inst.h",
         "include/public/xed/xed-decode.h",
+        "include/public/xed/xed-decoder-modes.h",
         "include/public/xed/xed-disas.h",
         "include/public/xed/xed-encode-check.h",
         "include/public/xed/xed-encode-direct.h",
@@ -498,6 +502,7 @@ py_binary(
     deps = [
         ":xed_build_common",
         ":xed_mbuild",
+        ":xed_pysrc",
         "@mbuild//:mbuild",
     ],
 )

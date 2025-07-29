@@ -167,7 +167,6 @@ bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
 
 bool InstructionExtensionIsAllowedInRunner(const xed_inst_t* instruction) {
   switch (xed_inst_extension(instruction)) {
-    case XED_EXTENSION_AMX_FP16:
     case XED_EXTENSION_AMX_TILE:
       // These are AMX instructions that we do not plan to support (b/432543671)
       return false;
@@ -208,8 +207,7 @@ bool InstructionIsAVX512EVEX(const xed_inst_t* instruction) {
 
 bool InstructionIsAMX(const xed_inst_t* instruction) {
   xed_extension_enum_t extension = xed_inst_extension(instruction);
-  return extension == XED_EXTENSION_AMX_FP16 ||
-         extension == XED_EXTENSION_AMX_TILE;
+  return extension == XED_EXTENSION_AMX_TILE;
 }
 
 // Note: we use the "server" versions of each chips because we're primarily
