@@ -596,6 +596,45 @@ TEST(DecodedInsn, canonical_evex_sp) {
   }
 }
 
+// Register-based vpalignr is fine.
+TEST(DecodedInsn, vpalign_registers_allowed) {
+  DecodedInsn insn("\x62\x83\x45\x05\x0f\xc8\xff");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "vpalignr xmm17{k5}, xmm23, xmm24, 0xff");
+  EXPECT_TRUE(insn.is_allowed_in_runner());
+}
+
+// A vpalignr with memory operand _could_ trigger a GP fault if the address is
+// non-canonical. This case can confuse the Linux kernel, resulting in it
+// identifying it as a disallowed STR instruction and in some cases emulating it
+// as if it were a STR instruction.
+TEST(DecodedInsn, vpalign_memory_not_allowed) {
+  DecodedInsn insn("\x62\x83\xc5\x05\x0f\x08\xff");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "vpalignr xmm17{k5}, xmm23, xmmword ptr [r8], 0xff");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
+// Register-based palignr is fine.
+TEST(DecodedInsn, palign_registers_allowed) {
+  DecodedInsn insn("\x66\x0f\x3a\x0f\xdc\xff");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "palignr xmm3, xmm4, 0xff");
+  EXPECT_TRUE(insn.is_allowed_in_runner());
+}
+
+// Memory-based palignr is suspect.
+TEST(DecodedInsn, palign_memory_allowed) {
+  DecodedInsn insn("\x66\x41\x0f\x3a\x0f\x18\xff");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "palignr xmm3, xmmword ptr [r8], 0xff");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
 // This test covers a special case where the string `raw_bytes` that used by the
 // DecodedInsn constructor is out of scope. In such case, calling xed's API
 // xed_decoded_inst_get_byte() within the DecodedInsn instance will return junk

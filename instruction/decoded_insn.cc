@@ -64,11 +64,34 @@ DecodedInsn::DecodedInsn(absl::string_view data, uint64_t address) {
 
 bool DecodedInsn::is_allowed_in_runner() const {
   DCHECK_STATUS(status_);
+  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(&xed_insn_);
   // Ban clzero with a prefix as it may crash some platforms (e.g. Turin) with
   // `SIGILL`.
-  if (xed_decoded_inst_get_iclass(&xed_insn_) == XED_ICLASS_CLZERO &&
+  if (iclass == XED_ICLASS_CLZERO &&
       xed_decoded_inst_get_nprefixes(&xed_insn_) > 0) {
     return false;
+  }
+  // If (V)PALIGNR instructions cause a general protection fault, this can
+  // trigger a bug in the linux kernel where it misidentifies them as STR
+  // instructions that need to be emulated. A (V)PALIGNR instruction with a
+  // memory operand can cause a GP by accessing a non-canonical address (top
+  // byte not all zeros or all ones). When this occurs, a 5.10 kernel will
+  // "emulate" the STR instruction and mask the GP, whereas a 4.15 kernel will
+  // cause a SEGV @ address 0. As long as Silifuzz is running on kernels with
+  // this bug, we need to filter out tests that can trigger it of there will be
+  // false positives, particularly if the tests are made on one kernel version
+  // and run on another. Trapping into the kernel also slows down execution. The
+  // narrowest way to fix this is to filter out all (V)PALIGNR instructions that
+  // try to access a non-canonical address.  This sort of filtering has a
+  // non-trivial implementation, however, so instead we're banning all
+  // (V)PALIGNR instructions with a memory operand and accepting a slight loss
+  // of coverage.
+  if (iclass == XED_ICLASS_PALIGNR || iclass == XED_ICLASS_VPALIGNR) {
+    // It was not verified that plain-old PALIGNR can trigger the bug, but it is
+    // filtered here out of an abundance of caution.
+    if (xed_decoded_inst_number_of_memory_operands(&xed_insn_) > 0) {
+      return false;
+    }
   }
   return InstructionIsAllowedInRunner(xed_decoded_inst_inst(&xed_insn_));
 }
