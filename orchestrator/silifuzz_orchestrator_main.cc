@@ -55,6 +55,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/raw_logging.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/functional/bind_front.h"
@@ -144,10 +145,10 @@ std::vector<int> AvailableCpus() {
 }
 
 // Initializes the orchestrator environment.
-ExecutionContext *OrchestratorInit(
+CpuExecutionContext* OrchestratorInit(
     absl::Time deadline, int num_threads,
-    const ExecutionContext::ResultCallback &result_cb) {
-  static ExecutionContext ctx(deadline, num_threads, result_cb);
+    const CpuExecutionContext::ResultCallback& result_cb) {
+  static CpuExecutionContext ctx(deadline, num_threads, result_cb);
 
   struct sigaction sigact = {};
   sigact.sa_handler = [](int) {
@@ -172,7 +173,7 @@ ExecutionContext *OrchestratorInit(
 }
 
 absl::Status ReadProtoFromTextFile(absl::string_view filename,
-                                   ::google::protobuf::Message *proto) {
+                                   ::google::protobuf::Message* proto) {
   ASSIGN_OR_RETURN_IF_NOT_OK(auto data, GetFileContents(filename));
   if (!google::protobuf::TextFormat::ParseFromString(data, proto)) {
     return absl::InternalError(absl::StrCat("Failed to parse ", filename,
@@ -204,9 +205,9 @@ bool SessionLoggingEnabled() {
   return enabled;
 }
 
-int OrchestratorMain(const OrchestratorResources &resources,
-                     const std::string &runner,
-                     const std::vector<std::string> &runner_extra_argv) {
+int OrchestratorMain(const OrchestratorResources& resources,
+                     const std::string& runner,
+                     const std::vector<std::string>& runner_extra_argv) {
   LOG_INFO("SiliFuzz Orchestrator started");
 
   const absl::Time start_time = absl::Now();
@@ -282,7 +283,7 @@ int OrchestratorMain(const OrchestratorResources &resources,
     }
   }
 
-  ExecutionContext *ctx = OrchestratorInit(
+  CpuExecutionContext* ctx = OrchestratorInit(
       deadline, num_threads,
       absl::bind_front(&ResultCollector::operator(), &result_collector));
 
@@ -290,7 +291,7 @@ int OrchestratorMain(const OrchestratorResources &resources,
   // Create worker threads.
   std::vector<std::thread> threads;
   threads.reserve(num_threads);
-  for (const RunnerThreadArgs &args : thread_args) {
+  for (const RunnerThreadArgs& args : thread_args) {
     if (ctx->ShouldStop()) {
       break;
     }
@@ -324,7 +325,7 @@ int OrchestratorMain(const OrchestratorResources &resources,
 }
 
 std::vector<std::string> LoadShardFilenames(
-    const std::filesystem::path &shard_list_file) {
+    const std::filesystem::path& shard_list_file) {
   std::ifstream ifs;
   ifs.open(shard_list_file);
   VLOG_INFO(0, "Loading shards from ", shard_list_file.c_str());
@@ -351,8 +352,8 @@ std::vector<std::string> LoadShardFilenames(
 }  // namespace
 }  // namespace silifuzz
 
-int main(int argc, char **argv) {
-  std::vector<char *> remaining_args = absl::ParseCommandLine(argc, argv);
+int main(int argc, char** argv) {
+  std::vector<char*> remaining_args = absl::ParseCommandLine(argc, argv);
   absl::InitializeLog();
   std::string runner = absl::GetFlag(FLAGS_runner);
   if (runner.empty()) {

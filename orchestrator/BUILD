@@ -61,15 +61,13 @@ cc_library(
     hdrs = ["silifuzz_orchestrator.h"],
     deps = [
         ":corpus_util",
+        ":execution_context",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//runner/driver:runner_options",
         "@silifuzz//util:checks",
-        "@abseil-cpp//absl/base:core_headers",
-        "@abseil-cpp//absl/base:log_severity",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
-        "@abseil-cpp//absl/synchronization",
         "@abseil-cpp//absl/time",
     ],
 )
@@ -81,8 +79,6 @@ cc_test(
     srcs = ["silifuzz_orchestrator_test.cc"],
     deps = [
         ":silifuzz_orchestrator",
-        "@silifuzz//runner/driver:runner_driver",
-        "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
     ],
 )
@@ -260,6 +256,22 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "execution_context",
+    srcs = ["execution_context.cc"],
+    hdrs = ["execution_context.h"],
+    deps = [
+        "@silifuzz//runner/driver:runner_driver",
+        "@silifuzz//util:checks",
+        "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/base:log_severity",
+        "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings:string_view",
+        "@abseil-cpp//absl/synchronization",
+        "@abseil-cpp//absl/time",
+    ],
+)
+
 cc_test(
     name = "binary_log_channel_test",
     srcs = ["binary_log_channel_test.cc"],
@@ -276,6 +288,17 @@ cc_test(
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/time",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "execution_context_test",
+    srcs = ["execution_context_test.cc"],
+    deps = [
+        ":execution_context",
+        "@silifuzz//runner/driver:runner_driver",
         "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
     ],

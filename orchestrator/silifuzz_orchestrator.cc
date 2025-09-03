@@ -14,18 +14,14 @@
 
 #include "./orchestrator/silifuzz_orchestrator.h"
 
-#include <functional>
 #include <random>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/base/log_severity.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/string_view.h"
-#include "absl/synchronization/mutex.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./orchestrator/corpus_util.h"
@@ -52,79 +48,6 @@ std::string RunResultToDebugString(const RunnerDriver::RunResult &run_result) {
 }
 }  // namespace
 
-ExecutionContext::~ExecutionContext() {
-  absl::MutexLock l(&mu_);
-  if (!invocation_results_.empty()) {
-    absl::string_view error =
-        "The result queue is not empty. Did you call ProcessResultQueue()?";
-    if (DEBUG_MODE) {
-      LOG_FATAL(error);
-    } else {
-      LOG_ERROR(error);
-    }
-  }
-}
-
-// Attempts to post RunResult on the result queue. Returns true if the element
-// was added, false otherwise.
-bool ExecutionContext::OfferRunResult(
-    absl::StatusOr<RunnerDriver::RunResult> &&result) {
-  absl::MutexLock l(&mu_);
-  if (!result.ok()) {
-    // Currently, no-Ok() results are not reported to the result queue. It is
-    // important however this code executed with mu_ held b/c this allows
-    // EventLoop() to wake up and catch deadline events sooner.
-    return true;
-  }
-
-  // Allow at most 1 result slot per thread.
-  if (invocation_results_.size() >= num_threads_) {
-    return false;
-  }
-  invocation_results_.emplace_back(*result);
-  return true;
-}
-
-// Runs the orchestrator event loop.
-// NOTE: This method is not reentrant. Must be called by the main thread.
-void ExecutionContext::EventLoop() {
-  constexpr absl::Duration kTimeout = absl::Seconds(10);
-  while (!ShouldStop()) {
-    std::vector<RunnerDriver::RunResult> current_results;
-    current_results.reserve(num_threads_);
-    {
-      bool timed_out = mu_.LockWhenWithTimeout(
-          absl::Condition(this, &ExecutionContext::ShouldWakeUp), kTimeout);
-      VLOG_INFO(2, "Result processor woke up, queue size = ",
-                invocation_results_.size(), " due to timeout? = ", timed_out);
-      invocation_results_.swap(current_results);
-      mu_.Unlock();
-    }
-
-    ProcessResultQueueImpl(current_results);
-  }
-}
-
-// Processes the event queue on the calling thread.
-// This method needs to be called to process any late-arriving events after
-// all worker thread have been joined.
-void ExecutionContext::ProcessResultQueue() {
-  absl::MutexLock l(&mu_);
-  ProcessResultQueueImpl(invocation_results_);
-  invocation_results_.clear();
-}
-
-void ExecutionContext::ProcessResultQueueImpl(
-    const std::vector<RunnerDriver::RunResult> &results) {
-  for (const auto &result : results) {
-    if (result_cb_(result)) {
-      Stop();
-    }
-  }
-}
-
-// ==================================================================
-
 NextCorpusGenerator::NextCorpusGenerator(int size, bool sequential_mode,
                                          int seed)
     : size_(size),
@@ -146,7 +69,7 @@ int NextCorpusGenerator::operator()() {
 //
 // The main worker thread. Each such thread executes runners with corpora in a
 // loop until it is told to stop.
-void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args) {
+void RunnerThread(CpuExecutionContext* ctx, const RunnerThreadArgs& args) {
   VLOG_INFO(0, "T", args.thread_idx, " started");
   NextCorpusGenerator next_corpus_generator(
       args.corpora->shards.size(), args.runner_options.sequential_mode(),

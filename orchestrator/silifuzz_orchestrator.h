@@ -15,18 +15,12 @@
 #ifndef THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_SILIFUZZ_ORCHESTRATOR_H_
 #define THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_SILIFUZZ_ORCHESTRATOR_H_
 
-#include <atomic>
-#include <functional>
 #include <random>
 #include <string>
 #include <vector>
 
-#include "absl/base/thread_annotations.h"
-#include "absl/status/statusor.h"
-#include "absl/synchronization/mutex.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "./orchestrator/corpus_util.h"
+#include "./orchestrator/execution_context.h"
 #include "./runner/driver/runner_driver.h"
 #include "./runner/driver/runner_options.h"
 
@@ -51,91 +45,6 @@ struct RunnerThreadArgs {
   RunnerOptions runner_options = RunnerOptions::Default();
 };
 
-// Orchestrator execution context.
-//
-// This class encapsulates the orchestrator event queue (consisting of runner
-// execution results). Worker threads publish their results via OfferRunResult()
-// in a while (!ShouldStop()) {} loop.
-//
-// This class is thread-safe.
-class ExecutionContext {
- public:
-  // Callback that is invoked for every RunResult produced by any of the worker
-  // threads.
-  // The return value of the callback indicates whether the event loop should
-  // stop.
-  using ResultCallback = std::function<bool(const RunnerDriver::RunResult &)>;
-
-  // Constructs an ExecutionContext with the given deadline. Once the deadline
-  // is reached ShouldStop() will return true.
-  // num_threads is a hint used to size internal data structures.
-  // The `result_cb` callback will be invoked by EventLoop() for each RunResult
-  // produced by any of the worker threads.
-  ExecutionContext(absl::Time deadline, int num_threads,
-                   const ResultCallback &result_cb)
-      : deadline_(deadline),
-        num_threads_(num_threads),
-        result_cb_(result_cb),
-        mu_(),
-        stop_execution_(false),
-        invocation_results_() {
-    invocation_results_.reserve(num_threads);
-  }
-
-  // Not copyable or moveable -- not just a data holder.
-  ExecutionContext(const ExecutionContext &) = delete;
-  ExecutionContext(ExecutionContext &&) = delete;
-  ExecutionContext &operator=(const ExecutionContext &) = delete;
-  ExecutionContext &operator=(ExecutionContext &&) = delete;
-
-  ~ExecutionContext();
-
-  // Attempts to post RunResult on the result queue. Returns true if the element
-  // was added, false otherwise.
-  bool OfferRunResult(absl::StatusOr<RunnerDriver::RunResult> &&result);
-
-  // Returns true if the execution should stop.
-  bool ShouldStop() const { return stop_execution_ || absl::Now() > deadline_; }
-
-  // Stops the orchestrator.
-  // This method is async-signal-safe.
-  void Stop() { stop_execution_ = true; }
-
-  // Runs the orchestrator event loop.
-  // NOTE: This method is not reentrant. Must be called by the main thread.
-  void EventLoop();
-
-  // Processes the event queue on the calling thread.
-  // This method needs to be called to process any late-arriving events after
-  // all worker thread have been joined.
-  void ProcessResultQueue();
-
-  absl::Time deadline() const { return deadline_; }
-
- private:
-  void ProcessResultQueueImpl(
-      const std::vector<RunnerDriver::RunResult> &results);
-
-  // EventLoop() helper. Returns true iif the EventLoop() should wake up.
-  bool ShouldWakeUp() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
-    return !invocation_results_.empty() || ShouldStop();
-  }
-
-  // C-tor parameters.
-  const absl::Time deadline_;
-  const int num_threads_;
-  ResultCallback result_cb_;
-
-  // Mutex guarding all mutable state of this class.
-  mutable absl::Mutex mu_;
-
-  // Global atomic flag to indicate that the orchestrator should stop.
-  std::atomic<bool> stop_execution_;
-
-  // A queue of execution results.
-  std::vector<RunnerDriver::RunResult> invocation_results_ ABSL_GUARDED_BY(mu_);
-};
-
 // Helper class to generate the next corpus file name.
 class NextCorpusGenerator {
  public:
@@ -156,8 +65,10 @@ class NextCorpusGenerator {
   int next_index_;
 };
 
+using CpuExecutionContext = ExecutionContext<RunnerDriver::RunResult>;
+
 // Worker thread main function.
-void RunnerThread(ExecutionContext *ctx, const RunnerThreadArgs &args);
+void RunnerThread(CpuExecutionContext* ctx, const RunnerThreadArgs& args);
 
 }  // namespace silifuzz
 
