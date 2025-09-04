@@ -28,7 +28,7 @@ namespace silifuzz {
 
 template <typename RunResultT>
 ExecutionContext<RunResultT>::~ExecutionContext() {
-  absl::MutexLock l(mu_);
+  absl::MutexLock l(&mu_);  // NOLINT: deprecated-declarations
   if (!invocation_results_.empty()) {
     absl::string_view error =
         "The result queue is not empty. Did you call ProcessResultQueue()?";
@@ -45,7 +45,7 @@ ExecutionContext<RunResultT>::~ExecutionContext() {
 template <typename RunResultT>
 bool ExecutionContext<RunResultT>::OfferRunResult(
     absl::StatusOr<RunResultT>&& result) {
-  absl::MutexLock l(mu_);
+  absl::MutexLock l(&mu_);  // NOLINT: deprecated-declarations
   if (!result.ok()) {
     // Currently, no-Ok() results are not reported to the result queue. It is
     // important however this code executed with mu_ held b/c this allows
@@ -75,7 +75,7 @@ void ExecutionContext<RunResultT>::EventLoop() {
       VLOG_INFO(2, "Result processor woke up, queue size = ",
                 invocation_results_.size(), " due to timeout? = ", timed_out);
       invocation_results_.swap(current_results);
-      mu_.unlock();
+      mu_.Unlock();  // NOLINT: deprecated-declarations
     }
 
     ProcessResultQueueImpl(current_results);
@@ -87,7 +87,7 @@ void ExecutionContext<RunResultT>::EventLoop() {
 // all worker thread have been joined.
 template <typename RunResultT>
 void ExecutionContext<RunResultT>::ProcessResultQueue() {
-  absl::MutexLock l(mu_);
+  absl::MutexLock l(&mu_);  // NOLINT: deprecated-declarations
   ProcessResultQueueImpl(invocation_results_);
   invocation_results_.clear();
 }
