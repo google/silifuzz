@@ -104,5 +104,4 @@ void ExecutionContext<RunResultT>::ProcessResultQueueImpl(
 
 // template instantiation for CPU RunnerDriver::RunResult.
 template class ExecutionContext<RunnerDriver::RunResult>;
-
 }  // namespace silifuzz
