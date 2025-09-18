@@ -65,8 +65,6 @@ void MayAccessRegionRandomInsnAndRegs(const std::string& bytes, uintptr_t start,
                                       uintptr_t size, uintptr_t error_margin,
                                       const std::string& regs) {
   DecodedInsn insn(bytes);
-  // If bytes contain a valid locking instruction, may_have_split_lock()
-  // should not fail.
   if (insn.is_valid()) {
     struct user_regs_struct regs_struct;
     memcpy(&regs_struct, regs.data(), sizeof(regs_struct));

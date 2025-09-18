@@ -203,8 +203,16 @@ absl::Status DecodedInsn::Decode(absl::string_view data,
   xed_decoded_inst_zero(&xed_insn_);
   xed_decoded_inst_set_mode(&xed_insn_, XED_MACHINE_MODE_LONG_64,
                             XED_ADDRESS_WIDTH_64b);
-  xed_error_enum_t xed_error = xed_decode(
-      &xed_insn_, reinterpret_cast<const uint8_t*>(data.data()), data.length());
+  xed_chip_features_t chip_features;
+  // TODO: b/445746264 - Re-enable APX and use `xed_decode()` without the
+  // modified `chip_features` once GRTE is updated.
+  // XED is able to decode APX instructions, but we are unable to read the value
+  // of the new registers (e.g. R24) due to lack of GRTE support.
+  xed_get_chip_features(&chip_features, XED_CHIP_ALL);
+  xed_modify_chip_features(&chip_features, XED_ISA_SET_APX_F, 0);
+  xed_error_enum_t xed_error = xed_decode_with_features(
+      &xed_insn_, reinterpret_cast<const uint8_t*>(data.data()), data.length(),
+      &chip_features);
   if (xed_error != XED_ERROR_NONE) {
     return absl::InvalidArgumentError(xed_error_enum_t2str(xed_error));
   }
@@ -262,6 +270,7 @@ absl::StatusOr<uint64_t> DecodedInsn::get_reg(
   // those in user_regs_struct.
   xed_reg_enum_t widest_reg = xed_get_largest_enclosing_register(reg);
   uint64_t value;
+  // TODO: b/445746264 - Add support for new APX registers once GRTE is updated.
   switch (widest_reg) {
     case XED_REG_RAX:
       value = regs.rax;
