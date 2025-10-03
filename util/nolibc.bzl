@@ -45,6 +45,7 @@ NOLIBC_COPTS = [
 
 NOLIBC_FEATURES = [
     "-use_header_modules",  # incompatible with -fno-rtti
+    "-use_pthread",  # incompatible with -nostdlib
 ]
 
 NOLIBC_LINKOPTS = [
