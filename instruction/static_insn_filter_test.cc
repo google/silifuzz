@@ -1718,6 +1718,90 @@ TEST(StaticInsnFilter, FloatingPointImmediate) {
   EXPECT_AARCH64_FILTER_REJECT({0x9e38b2d0});
 }
 
+TEST(StaticInsnFilter, AllPAC) {
+  // pacga    x24, x1, x2
+  EXPECT_AARCH64_FILTER_REJECT({0x9ac23038});
+  // pacda x10, x15
+  EXPECT_AARCH64_FILTER_REJECT({0xdac109ea});
+  // pacdb x31, x4
+  EXPECT_AARCH64_FILTER_REJECT({0xdac10c9f});
+  // pacdza x6
+  EXPECT_AARCH64_FILTER_REJECT({0xdac12be6});
+  // pacdza x7
+  EXPECT_AARCH64_FILTER_REJECT({0xdac12be7});
+  // pacia x3 ,x4
+  EXPECT_AARCH64_FILTER_REJECT({0xdac10083});
+  // pacia1716
+  EXPECT_AARCH64_FILTER_REJECT({0xd503211f});
+  // paciasp
+  EXPECT_AARCH64_FILTER_REJECT({0xd503233f});
+  // paciaz
+  EXPECT_AARCH64_FILTER_REJECT({0xd503231f});
+  // paciza x22
+  EXPECT_AARCH64_FILTER_REJECT({0xdac123f6});
+  // pacia171615
+  EXPECT_AARCH64_FILTER_REJECT({0xdac18bfe});
+  // paciasppc
+  EXPECT_AARCH64_FILTER_REJECT({0xdac1a3fe});
+  // pacib x28, x11
+  EXPECT_AARCH64_FILTER_REJECT({0xdac1057c});
+  // pacib1716
+  EXPECT_AARCH64_FILTER_REJECT({0xd503215f});
+  // pacibsp
+  EXPECT_AARCH64_FILTER_REJECT({0xd503237f});
+  // pacibz
+  EXPECT_AARCH64_FILTER_REJECT({0xd503235f});
+  // pacizb x30
+  EXPECT_AARCH64_FILTER_REJECT({0xdac127fe});
+  // pacib171615
+  EXPECT_AARCH64_FILTER_REJECT({0xdac18ffe});
+  // pacibsppc
+  EXPECT_AARCH64_FILTER_REJECT({0xdac1a7fe});
+  // pacnbiasppc
+  EXPECT_AARCH64_FILTER_REJECT({0xdac183fe});
+  // pacnbibsppc
+  EXPECT_AARCH64_FILTER_REJECT({0xdac187fe});
+}
+
+TEST(StaticInsnFilter, AllAUT) {
+  // autda x1, x2
+  EXPECT_AARCH64_FILTER_REJECT({0xdac11841});
+  // autdb x3, x4
+  EXPECT_AARCH64_FILTER_REJECT({0xdac11c83});
+  // autdza x5
+  EXPECT_AARCH64_FILTER_REJECT({0xdac13be5});
+  // autdzb x6
+  EXPECT_AARCH64_FILTER_REJECT({0xdac13fe6});
+  // autia x7, x8
+  EXPECT_AARCH64_FILTER_REJECT({0xdac11107});
+  // autia1716
+  EXPECT_AARCH64_FILTER_REJECT({0xd503219f});
+  // autia171615
+  EXPECT_AARCH64_FILTER_REJECT({0xdac1bbfe});
+  // autiasp
+  EXPECT_AARCH64_FILTER_REJECT({0xd50323bf});
+  // autiasppcr x13
+  EXPECT_AARCH64_FILTER_REJECT({0xdac191be});
+  // autiaz
+  EXPECT_AARCH64_FILTER_REJECT({0xd503239f});
+  // autib x9, x10
+  EXPECT_AARCH64_FILTER_REJECT({0xdac11549});
+  // autib1716
+  EXPECT_AARCH64_FILTER_REJECT({0xd50321df});
+  // autib171615
+  EXPECT_AARCH64_FILTER_REJECT({0xdac1bffe});
+  // autibsp
+  EXPECT_AARCH64_FILTER_REJECT({0xd50323ff});
+  // autibsppcr x14
+  EXPECT_AARCH64_FILTER_REJECT({0xdac195de});
+  // autibz
+  EXPECT_AARCH64_FILTER_REJECT({0xd50323df});
+  // autiza x11
+  EXPECT_AARCH64_FILTER_REJECT({0xdac133eb});
+  // autizb x12
+  EXPECT_AARCH64_FILTER_REJECT({0xdac137ec});
+}
+
 }  // namespace
 
 }  // namespace silifuzz

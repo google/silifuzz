@@ -37,9 +37,11 @@ namespace {
 // instruction encoding:  https://developer.arm.com/documentation/ddi0487/latest
 // Start here: C4.1 A64 instruction set encoding
 
-// In general, we need to ban PAC until we can control the PAC keys for the
-// runner and set them to known constants. Otherwise the PAC instructions
-// are effectively non-deterministic.
+// In general, we need to ban PAC because we do not have a way to control the
+// PAC keys for the runner and set them to known constants, so these
+// instructions are effectively non-deterministic.
+// An alternative to banning PAC is to disable PAC keys. see
+// https://docs.kernel.org/arch/arm64/pointer-authentication.html#enabling-and-disabling-keys.
 
 constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
     //
@@ -47,7 +49,9 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
     // and making processes, and then cause a problem in the runner. If they are
     // not filtered, the runner will not be reliable.
     //
-    // See: C4.1.66 Loads and Stores
+    // Note: the chapters and sections in the ARM manual are subject to change
+    // between ARM revisions.
+    // See: C4.1.96 Loads and Stores
     // Should cover STLXR, STLXRB, STLXRH, and STLXP but not LDAXR, STR, etc.
     // Bit 22 => 0, this is a store.
     // Bit 21 => X, cover both store register and store pair.
@@ -60,7 +64,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b0011'1111'1100'0000'0000'0000'0000'0000,
         .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
     },
-    // C4.1.66 Loads and Stores
+    // C4.1.96 Loads and Stores
     // Load/store register (pac)
     // Filter out PAC memory ops
     // Older versions of QEMU also treat these loads and stores as if they were
@@ -74,7 +78,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         // size (bits 30:31) != 11 is "unallocated"
         // V (bit 26) != 0 is "unallocated"
     },
-    // C4.1.66 Branches, Exception Generating and System instructions
+    // C4.1.93 Branches, Exception Generating and System instructions
     // Unconditional branch (register)
     // Filter out PAC branches
     // This should cover:
@@ -91,7 +95,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1110'0000'0000'0000'1000'0000'0000,
         .bits = 0b1101'0110'0000'0000'0000'1000'0000'0000,
     },
-    // C4.1.66 Branches, Exception Generating and System instructions
+    // C4.1.93 Branches, Exception Generating and System instructions
     // Hints
     // Should cover zero argument AUT* and PAC*
     // CRm = 00x1, op2=xxx
@@ -99,17 +103,27 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1111'1111'1111'1111'1101'0001'1111,
         .bits = 0b1101'0101'0000'0011'0010'0001'0001'1111,
     },
-    // C4.1.68 Data Processing -- Register
+    // C4.1.94 Data Processing -- Register
     // Data-processing (1 source)
     // Should cover single argument AUT* and PAC*
-    // opcode2 = xxxx1 covers the PAC instructions because there is a large
-    // amount of unallocated instructions in this part of the instruction space.
+    // sf = 1, S=0, opcode2 = 00001,
+    // Setting opcode = xxxxx so this would cover PAC*, AUT*, XPAC*, "PAuth_LR"
+    // instructions and a large range of unallocated instruction space. We
+    // probably don't want to ban XPAC* because they are deterministic. But this
+    // makes the filter simpler.
     {
-        .mask = 0b0101'1111'1110'0001'0000'0000'0000'0000,
-        .bits = 0b0101'1010'1100'0001'0000'0000'0000'0000,
+        .mask = 0b1111'1111'1111'1111'0000'0000'0000'0000,
+        .bits = 0b1101'1010'1100'0001'0000'0000'0000'0000,
+        //      0b1101'1010'1100'0001'xxxx'xxxx'xxxx'xxxx
     },
-    // C4.1.66 Branches, Exception Generating and System instructions
-    // Hints
+    // C4.1.94.1 Data-processing (2 source)
+    // - Pointer Authentication Code, using Generic key: PACGA
+    // sf = 1, S=0, opcode = 001100
+    {
+        .mask = 0b1111'1111'1110'0000'1111'1100'0000'0000,
+        .bits = 0b1001'1010'1100'0000'0011'0000'0000'0000,
+        //      0b1001'1010'110x'xxxx'0011'00xx'xxxx'xxxx
+    },
     // WFE is problematic because it can cause a snapshot to wait in userspace
     // for an event that no one is explicitly sending. Empirically, this can
     // cause some corpuses to run 2-3 orders of magnitude slower. It may also
