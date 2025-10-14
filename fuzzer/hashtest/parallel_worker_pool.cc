@@ -23,7 +23,7 @@
 namespace silifuzz {
 
 bool ParallelWorkerPool::WorkSynchonizer::WaitForWork() {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Store the current epoch on this thread's stack.
   // Releasing/aquiring the mutex inside .wait() should create a barrier that
@@ -47,7 +47,7 @@ bool ParallelWorkerPool::WorkSynchonizer::WaitForWork() {
 }
 
 void ParallelWorkerPool::WorkSynchonizer::SignalWorkers(bool work_available) {
-  absl::MutexLock lock(&mutex_);
+  absl::MutexLock lock(mutex_);
 
   // Newly created worker threads may not have checked in, yet. Wait for them.
   while (num_workers_running_) {
