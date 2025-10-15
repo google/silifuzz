@@ -165,7 +165,7 @@ void ResultReporter::CheckIn(absl::Time now) {
   if (!printing_allowed) {
     return;
   }
-  absl::MutexLock lock(mutex);
+  absl::MutexLock lock(&mutex);
   if (now >= next_update) {
     std::cout << (hits.size() - num_hits_reported) << " hits @ "
               << (now - test_started) << std::endl;
@@ -176,7 +176,7 @@ void ResultReporter::CheckIn(absl::Time now) {
 
 void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
                                size_t input_index, const Input& input) {
-  absl::MutexLock lock(mutex);
+  absl::MutexLock lock(&mutex);
 
   hits.push_back({
       .cpu = cpu,
