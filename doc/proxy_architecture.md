@@ -61,11 +61,6 @@ for userspace. The xmm register is a workaround for
 
 TODO(ncbray): Document AArch64 requirements.
 
-To help the fuzzing engine reach better coverage faster we can pre-seed the
-dictionary with instructions to initialize GP registers. For example, we can add
-sequences like `mov DATA1_start, %rax` and similar to help discover writable
-memory pages.
-
 ##### Expected end state
 
 For any input instruction sequence with size X the expected PC value is
