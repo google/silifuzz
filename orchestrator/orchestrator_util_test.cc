@@ -23,6 +23,8 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "./util/data_dependency.h"
 #include "./util/subprocess.h"
 #include "./util/testing/status_macros.h"
