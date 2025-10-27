@@ -270,6 +270,24 @@ absl::StatusOr<PMUEventList> GetUniqueCPUCorePMUEvents() {
           absl::StrCat("pfm_get_event_info() failed: ",
                        pfm_strerror(get_event_info_result)));
     }
+// Skip `CHAIN` and `COUNTER_OVERFLOW` events.
+//
+// These events only work when paired with an adjacent counter, and it never
+// makes sense to open one in isolation, as they'll be rotated arbitrarily.
+// This also returns an invalid argument error for certain kernel versions.
+//
+// These are actually the same event, but they have different names under
+// different platforms.`CHAIN` is used in Ampere Siryn / Cavium TX2
+// and `COUNTER_OVERFLOW` is used in ARM Neoverse platforms.
+//
+// Use strcmp to avoid comparing the string address instead.
+#if defined(__aarch64__)
+    if (strcmp(event_info.name, "CHAIN") == 0 ||
+        strcmp(event_info.name, "COUNTER_OVERFLOW") == 0) {
+      LOG(INFO) << "Skipping " << event_info.name << " event";
+      continue;
+    }
+#endif
     RETURN_IF_NOT_OK(AddEventAndSubEvents(event_info, events));
   }
 
