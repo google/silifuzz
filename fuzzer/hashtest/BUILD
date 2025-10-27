@@ -28,13 +28,6 @@ DISABLE_ARM_TAGS = [
     "not_run:arm",
 ]
 
-package_group(
-    name = "hashtest_internal",
-    packages = [
-        "@silifuzz//fuzzer/hashtest/...",
-    ],
-)
-
 cc_binary(
     name = "hashtest_generator",
     srcs = [
