@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SNAPSHOT_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SNAPSHOT_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SNAPSHOT_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SNAPSHOT_H_
 
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/synthesize_test.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 
 namespace silifuzz {
 
@@ -28,4 +28,4 @@ absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SNAPSHOT_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTES_TESTGENERATIONT_SYNTHESIZE_SNAPSHOT_H_

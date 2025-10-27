@@ -27,11 +27,11 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
-#include "./fuzzer/hashtest/instruction_pool.h"
 #include "./fuzzer/hashtest/json.h"
-#include "./fuzzer/hashtest/mxcsr.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/synthesize_test.h"
+#include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
+#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
 
@@ -156,10 +156,9 @@ TEST(Runner, EndToEnd) {
   };
 
   Corpus corpus = AllocateCorpus(rng, 1);
-  size_t used =
-      SynthesizeTests(absl::MakeSpan(corpus.tests),
-                      reinterpret_cast<uint8_t *>(corpus.mapping.Ptr()), chip,
-                      synthesis_config);
+  size_t used = SynthesizeTests(
+      absl::MakeSpan(corpus.tests),
+      reinterpret_cast<uint8_t*>(corpus.mapping.Ptr()), chip, synthesis_config);
   FinalizeCorpus(corpus, used);
 
   std::vector<Input> inputs;

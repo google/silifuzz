@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_XED_OPERAND_UTIL_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_XED_OPERAND_UTIL_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_XED_OPERAND_UTIL_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_XED_OPERAND_UTIL_H_
 
 #include <cstddef>
 
@@ -86,4 +86,4 @@ size_t VectorWidth(const xed_operand_t* operand);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_XED_OPERAND_UTIL_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_XED_OPERAND_UTIL_H_

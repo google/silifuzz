@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_BASE_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_BASE_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_BASE_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_BASE_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -22,7 +22,7 @@
 
 #include "absl/base/attributes.h"
 #include "absl/strings/string_view.h"
-#include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
 #include "./instruction/xed_util.h"
 
 extern "C" {
@@ -89,4 +89,4 @@ xed_encoder_operand_t MMXRegOperand(unsigned int index);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_BASE_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_BASE_H_

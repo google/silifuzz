@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/synthesize_snapshot.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_snapshot.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -22,13 +22,12 @@
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
-#include "./fuzzer/hashtest/instruction_pool.h"
-#include "./fuzzer/hashtest/mxcsr.h"
-#include "./fuzzer/hashtest/rand_util.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/synthesize_shuffle.h"
-#include "./fuzzer/hashtest/synthesize_test.h"
-#include "./fuzzer/hashtest/version.h"
+#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/testgeneration/rand_util.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_shuffle.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
+#include "./fuzzer/hashtest/testgeneration/version.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
 #include "./util/arch.h"

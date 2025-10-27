@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/synthesize_instruction.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_instruction.h"
 
 #include <bitset>
 #include <cstddef>
@@ -21,12 +21,12 @@
 #include <utility>
 #include <vector>
 
-#include "./fuzzer/hashtest/candidate.h"
-#include "./fuzzer/hashtest/debugging.h"
-#include "./fuzzer/hashtest/rand_util.h"
-#include "./fuzzer/hashtest/register_info.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/xed_operand_util.h"
+#include "./fuzzer/hashtest/testgeneration/candidate.h"
+#include "./fuzzer/hashtest/testgeneration/debugging.h"
+#include "./fuzzer/hashtest/testgeneration/rand_util.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/xed_operand_util.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
 

@@ -27,10 +27,10 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "./fuzzer/hashtest/instruction_pool.h"
-#include "./fuzzer/hashtest/mxcsr.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/synthesize_test.h"
+#include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
+#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 
 namespace silifuzz {
 

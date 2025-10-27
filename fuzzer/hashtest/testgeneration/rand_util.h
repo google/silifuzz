@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_RAND_UTIL_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_RAND_UTIL_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_RAND_UTIL_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_RAND_UTIL_H_
 
 #include <bitset>
 #include <cstddef>
@@ -91,4 +91,4 @@ unsigned int PopRandomBit(Rng& rng, std::bitset<N>& bits) {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_RAND_UTIL_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_RAND_UTIL_H_

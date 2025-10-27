@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_REGISTER_INFO_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_REGISTER_INFO_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_REGISTER_INFO_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_REGISTER_INFO_H_
 
 #include <bitset>
 #include <cstddef>
@@ -88,4 +88,4 @@ xed_reg_enum_t RegisterIDToXedReg(RegisterID id, unsigned int width);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_REGISTER_INFO_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_REGISTER_INFO_H_

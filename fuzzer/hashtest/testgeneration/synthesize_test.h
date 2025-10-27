@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_TEST_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_TEST_H_
 
 #include <cstddef>
 #include <cstdint>
 
-#include "./fuzzer/hashtest/instruction_pool.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 namespace silifuzz {
 
@@ -92,4 +92,4 @@ void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_TEST_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_TEST_H_

@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/synthesize_shuffle.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_shuffle.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <random>
 
-#include "./fuzzer/hashtest/rand_util.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
-#include "./fuzzer/hashtest/weighted_choose_one.h"
+#include "./fuzzer/hashtest/testgeneration/rand_util.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/weighted_choose_one.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
 

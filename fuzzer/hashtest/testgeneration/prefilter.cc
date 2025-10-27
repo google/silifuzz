@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/prefilter.h"
+#include "./fuzzer/hashtest/testgeneration/prefilter.h"
 
 #include <cstddef>
 
-#include "./fuzzer/hashtest/xed_operand_util.h"
+#include "./fuzzer/hashtest/testgeneration/xed_operand_util.h"
 #include "./instruction/xed_util.h"
 
 extern "C" {

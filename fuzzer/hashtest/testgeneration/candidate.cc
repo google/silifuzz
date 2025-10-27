@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/candidate.h"
+#include "./fuzzer/hashtest/testgeneration/candidate.h"
 
 #include <algorithm>
 #include <cstddef>
 
-#include "./fuzzer/hashtest/debugging.h"
-#include "./fuzzer/hashtest/register_info.h"
-#include "./fuzzer/hashtest/xed_operand_util.h"
+#include "./fuzzer/hashtest/testgeneration/debugging.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/xed_operand_util.h"
 #include "./util/checks.h"
 
 extern "C" {

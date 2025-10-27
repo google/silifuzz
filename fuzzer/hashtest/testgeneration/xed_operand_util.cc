@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/xed_operand_util.h"
+#include "./fuzzer/hashtest/testgeneration/xed_operand_util.h"
 
 #include <algorithm>
 #include <cstddef>

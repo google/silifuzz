@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_INSTRUCTION_POOL_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_INSTRUCTION_POOL_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_INSTRUCTION_POOL_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_INSTRUCTION_POOL_H_
 
 #include <algorithm>
 #include <iterator>
 #include <vector>
 
-#include "./fuzzer/hashtest/candidate.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/candidate.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -97,4 +97,4 @@ void GenerateInstructionPool(Rng& rng, xed_chip_enum_t chip,
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_INSTRUCTION_POOL_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_INSTRUCTION_POOL_H_

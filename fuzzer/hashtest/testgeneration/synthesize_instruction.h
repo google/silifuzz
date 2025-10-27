@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_INSTRUCTION_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_INSTRUCTION_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_INSTRUCTION_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_INSTRUCTION_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <vector>
 
-#include "./fuzzer/hashtest/candidate.h"
-#include "./fuzzer/hashtest/register_info.h"
-#include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/candidate.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 namespace silifuzz {
 
@@ -34,4 +34,4 @@ namespace silifuzz {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_INSTRUCTION_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_INSTRUCTION_H_

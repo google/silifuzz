@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_CANDIDATE_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_CANDIDATE_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_CANDIDATE_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_CANDIDATE_H_
 
 #include <cstddef>
 
-#include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -70,4 +70,4 @@ bool IsCandidate(const xed_inst_t* instruction,
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_CANDIDATE_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_CANDIDATE_H_

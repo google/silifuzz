@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_PREFILTER_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_PREFILTER_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_PREFILTER_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_PREFILTER_H_
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -29,4 +29,4 @@ bool PrefilterInstruction(const xed_inst_t* instruction);
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_PREFILTER_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_PREFILTER_H_

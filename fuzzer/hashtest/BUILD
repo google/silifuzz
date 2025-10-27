@@ -28,57 +28,10 @@ DISABLE_ARM_TAGS = [
     "not_run:arm",
 ]
 
-cc_library(
-    name = "hashtest_generator_lib",
-    srcs = [
-        "candidate.cc",
-        "debugging.cc",
-        "instruction_pool.cc",
-        "prefilter.cc",
-        "register_info.cc",
-        "synthesize_base.cc",
-        "synthesize_instruction.cc",
-        "synthesize_shuffle.cc",
-        "synthesize_test.cc",
-        "xed_operand_util.cc",
-    ],
-    hdrs = [
-        "candidate.h",
-        "debugging.h",
-        "instruction_pool.h",
-        "mxcsr.h",
-        "prefilter.h",
-        "rand_util.h",
-        "register_info.h",
-        "synthesize_base.h",
-        "synthesize_instruction.h",
-        "synthesize_shuffle.h",
-        "synthesize_test.h",
-        "version.h",
-        "weighted_choose_one.h",
-        "xed_operand_util.h",
-    ],
-    deps = [
-        "@silifuzz//instruction:xed_util",
-        "@silifuzz//util:checks",
-        "@abseil-cpp//absl/base:core_headers",
-        "@abseil-cpp//absl/strings:string_view",
-        "@abseil-cpp//absl/types:span",
-        "@libxed//:xed",
-    ],
-)
-
-cc_test(
-    name = "hashtest_generator_test",
-    srcs = [
-        "hashtest_generator_test.cc",
-    ],
-    deps = [
-        ":hashtest_generator_lib",
-        "@silifuzz//instruction:xed_util",
-        "@abseil-cpp//absl/strings",
-        "@googletest//:gtest_main",
-        "@libxed//:xed",
+package_group(
+    name = "hashtest_internal",
+    packages = [
+        "@silifuzz//fuzzer/hashtest/...",
     ],
 )
 
@@ -86,32 +39,24 @@ cc_binary(
     name = "hashtest_generator",
     srcs = [
         "hashtest_generator_main.cc",
-        "synthesize_snapshot.cc",
-        "synthesize_snapshot.h",
     ],
     deps = [
-        ":hashtest_generator_lib",
-        "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_file_util",
         "@silifuzz//common:snapshot_printer",
+        "@silifuzz//fuzzer/hashtest/testgeneration:snapshot_generation",
+        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
-        "@silifuzz//runner:make_snapshot",
-        "@silifuzz//runner:runner_provider",
-        "@silifuzz//util:arch",
         "@silifuzz//util:checks",
         "@silifuzz//util:enum_flag_types",
         "@silifuzz//util:itoa",
         "@silifuzz//util:line_printer",
         "@silifuzz//util:platform",
-        "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status",
-        "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
-        "@abseil-cpp//absl/strings:string_view",
         "@libxed//:xed",
     ],
 )
@@ -152,7 +97,7 @@ cc_library(
         "json.h",
     ],
     deps = [
-        ":hashtest_generator_lib",
+        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:page_util",
@@ -172,8 +117,8 @@ cc_test(
         "hashtest_runner_test.cc",
     ],
     deps = [
-        ":hashtest_generator_lib",
         ":hashtest_runner_lib",
+        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
         "@abseil-cpp//absl/time",
@@ -214,10 +159,10 @@ cc_binary(
         "hashtest_runner_main.cc",
     ],
     deps = [
-        ":hashtest_generator_lib",
         ":hashtest_result_cc_proto",
         ":hashtest_runner_lib",
         ":parallel_worker_pool",
+        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:enum_flag_types",

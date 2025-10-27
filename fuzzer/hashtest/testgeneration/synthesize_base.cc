@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 #include <cstddef>
 #include <cstdint>
 
-#include "./fuzzer/hashtest/register_info.h"
+#include "./fuzzer/hashtest/testgeneration/register_info.h"
 #include "./instruction/xed_util.h"
 #include "./util/checks.h"
 

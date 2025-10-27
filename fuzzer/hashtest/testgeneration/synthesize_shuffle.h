@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SHUFFLE_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SHUFFLE_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SHUFFLE_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SHUFFLE_H_
 
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
-#include "./fuzzer/hashtest/synthesize_base.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 namespace silifuzz {
 
@@ -154,4 +154,4 @@ size_t RandomPermutationMask(Rng& rng) {
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_SYNTHESIZE_SHUFFLE_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SHUFFLE_H_

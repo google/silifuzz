@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_DEBUGGING_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_DEBUGGING_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_DEBUGGING_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_DEBUGGING_H_
 
 #include "absl/base/attributes.h"
 
@@ -34,4 +34,4 @@ ABSL_ATTRIBUTE_NORETURN void DieBecauseOperand(const xed_inst_t* instruction,
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_DEBUGGING_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_DEBUGGING_H_
