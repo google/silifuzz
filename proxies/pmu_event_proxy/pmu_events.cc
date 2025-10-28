@@ -20,6 +20,7 @@
 #include <cstring>
 #include <queue>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
@@ -30,11 +31,14 @@
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./util/checks.h"
 #include "./util/x86_cpuid.h"
 #include "perfmon/pfmlib.h"
 #include "perfmon/pfmlib_perf_event.h"
+#include "util/task/status_macros.h"
 
 namespace silifuzz {
 
@@ -251,9 +255,50 @@ absl::StatusOr<PMUEventList> DeduplicateEvents(const PMUEventList& events) {
   return unique_pmu_events;
 }
 
+// Filters out events that are not supported by the proxy in-place. This is
+// best-effort and non-exhaustive.
+//
+// For example, the proxy opens counters one at a time, so events that need to
+// be grouped together are removed.
+void FilterEvents(PMUEventList& events) {
+  std::erase_if(events, [](absl::string_view event) {
+#if defined(__aarch64__)
+    // Skip `CHAIN` and `COUNTER_OVERFLOW` events.
+    //
+    // These events only work when paired with an adjacent counter, and it never
+    // makes sense to open one in isolation (which is what the proxy does), as
+    // they'll be rotated arbitrarily. This also returns an invalid argument
+    // error for certain kernel versions.
+    //
+    // These are actually the same event, but they have different names under
+    // different platforms.`CHAIN` is used in Ampere Siryn / Cavium TX2 and
+    // `COUNTER_OVERFLOW` is used in ARM Neoverse platforms.
+    if (event == "CHAIN" || event == "COUNTER_OVERFLOW") {
+      LOG(INFO) << "Skipping " << event << " event";
+      return true;
+    }
+#elif defined(__x86_64__)
+    // Skip `TOPDOWN_M` events.
+    //
+    // From libpfm4: All TOPDOWN_M events must be in a Linux perf_events
+    // group and SLOTS must be the first event for the kernel to program the
+    // events onto the PERF_METRICS MSR.
+    //
+    // The fuzzer opens each event as a single counter, not as part of a group,
+    // so we skip `TOPDOWN_M` events that will return an invalid argument error
+    // here.
+    if (absl::StartsWith(event, "TOPDOWN_M")) {
+      LOG(INFO) << "Skipping " << event << " event";
+      return true;
+    }
+#endif
+    return false;
+  });
+}
+
 }  // namespace
 
-absl::StatusOr<PMUEventList> GetUniqueCPUCorePMUEvents() {
+absl::StatusOr<PMUEventList> GetUniqueFilteredCPUCorePMUEvents() {
   RETURN_IF_NOT_OK(InitializeIfNecessary());
   const pfm_pmu_t pmu = GetCPUCorePMUOrDie();
   ASSIGN_OR_RETURN_IF_NOT_OK(pfm_pmu_info_t pmu_info, GetPMUInfo(pmu));
@@ -270,24 +315,6 @@ absl::StatusOr<PMUEventList> GetUniqueCPUCorePMUEvents() {
           absl::StrCat("pfm_get_event_info() failed: ",
                        pfm_strerror(get_event_info_result)));
     }
-// Skip `CHAIN` and `COUNTER_OVERFLOW` events.
-//
-// These events only work when paired with an adjacent counter, and it never
-// makes sense to open one in isolation, as they'll be rotated arbitrarily.
-// This also returns an invalid argument error for certain kernel versions.
-//
-// These are actually the same event, but they have different names under
-// different platforms.`CHAIN` is used in Ampere Siryn / Cavium TX2
-// and `COUNTER_OVERFLOW` is used in ARM Neoverse platforms.
-//
-// Use strcmp to avoid comparing the string address instead.
-#if defined(__aarch64__)
-    if (strcmp(event_info.name, "CHAIN") == 0 ||
-        strcmp(event_info.name, "COUNTER_OVERFLOW") == 0) {
-      LOG(INFO) << "Skipping " << event_info.name << " event";
-      continue;
-    }
-#endif
     RETURN_IF_NOT_OK(AddEventAndSubEvents(event_info, events));
   }
 
@@ -295,7 +322,9 @@ absl::StatusOr<PMUEventList> GetUniqueCPUCorePMUEvents() {
     return absl::FailedPreconditionError("No PMU found.");
   }
 
-  return DeduplicateEvents(events);
+  ASSIGN_OR_RETURN(events, DeduplicateEvents(events));
+  FilterEvents(events);
+  return events;
 }
 
 absl::StatusOr<std::vector<PMUEventList>> ScheduleEventsForCounters(

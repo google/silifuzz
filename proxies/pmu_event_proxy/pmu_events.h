@@ -27,7 +27,15 @@ using PMUEventList = std::vector<std::string>;
 // and sub-events on the current platform. Event aliases are de-duped. The names
 // of events and sub events returned are the same in version 4 of perform2
 // library on Linux (libpfm4).
-absl::StatusOr<PMUEventList> GetUniqueCPUCorePMUEvents();
+//
+// Events that are not supported by the proxy are filtered out as well. For
+// example, events that need to be grouped together are removed since the proxy
+// opens counters one at a time.
+//
+// However, this filter is best-effort and non-exhaustive. Callers should not
+// assume that all returned events can be accessed (e.g. kernel may restrict
+// access).
+absl::StatusOr<PMUEventList> GetUniqueFilteredCPUCorePMUEvents();
 
 // Returns a list of event groups, each of which contains events that can
 // be measured together based on the number of variable counters in their

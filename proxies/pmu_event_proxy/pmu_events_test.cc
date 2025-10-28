@@ -35,7 +35,7 @@ namespace {
 char dummy = 0;
 
 TEST(PMUEvents, CanOpenAllEvents) {
-  auto events = GetUniqueCPUCorePMUEvents();
+  auto events = GetUniqueFilteredCPUCorePMUEvents();
   LOG(INFO) << "Found " << events.value().size() << " events";
   ASSERT_OK(events);
   size_t opened_counters = 0;
@@ -70,7 +70,7 @@ TEST(PMUEvents, CanOpenAllEvents) {
 }
 
 TEST(PMUEvents, ScheduleEventsForCounters) {
-  auto events = GetUniqueCPUCorePMUEvents();
+  auto events = GetUniqueFilteredCPUCorePMUEvents();
   ASSERT_OK(events);
   auto event_groups = ScheduleEventsForCounters(events.value());
   ASSERT_OK(event_groups);

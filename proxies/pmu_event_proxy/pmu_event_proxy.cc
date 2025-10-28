@@ -142,10 +142,10 @@ absl::Status PMUEventProxyInitialize(int *argc, char ***argv) {
   RETURN_IF_NOT_OK(proxies::SetProcessDumpable());
 
   // Get PMU perf events.
-  // TODO(dougkwan): Instead of calling GetUniqueCPUCorePMUEvents(), use a
-  // file containing events to fuzz.
+  // TODO(dougkwan): Instead of calling GetUniqueFilteredCPUCorePMUEvents(), use
+  // a file containing events to fuzz.
   ASSIGN_OR_RETURN_IF_NOT_OK(std::vector<std::string> events,
-                             GetUniqueCPUCorePMUEvents());
+                             GetUniqueFilteredCPUCorePMUEvents());
   pmu_events = new std::vector<std::string>();
   pmu_events->swap(events);
 
