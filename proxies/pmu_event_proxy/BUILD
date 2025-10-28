@@ -46,7 +46,6 @@ cc_library(
     deps = [
         "@silifuzz//util:checks",
         "@silifuzz//util:x86_cpuid",
-        "//util/task:status",
         "@abseil-cpp//absl/algorithm:container",
         "@abseil-cpp//absl/base",
         "@abseil-cpp//absl/container:flat_hash_map",

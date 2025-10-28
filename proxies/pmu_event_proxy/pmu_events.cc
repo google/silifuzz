@@ -38,7 +38,6 @@
 #include "./util/x86_cpuid.h"
 #include "perfmon/pfmlib.h"
 #include "perfmon/pfmlib_perf_event.h"
-#include "util/task/status_macros.h"
 
 namespace silifuzz {
 
@@ -322,7 +321,7 @@ absl::StatusOr<PMUEventList> GetUniqueFilteredCPUCorePMUEvents() {
     return absl::FailedPreconditionError("No PMU found.");
   }
 
-  ASSIGN_OR_RETURN(events, DeduplicateEvents(events));
+  ASSIGN_OR_RETURN_IF_NOT_OK(events, DeduplicateEvents(events));
   FilterEvents(events);
   return events;
 }
