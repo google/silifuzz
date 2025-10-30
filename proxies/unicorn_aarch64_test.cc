@@ -20,8 +20,8 @@
 
 #include "gtest/gtest.h"
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv);
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 namespace {
 
@@ -38,7 +38,7 @@ static int run_instructions(std::vector<uint32_t>&& data) {
   for (size_t i = 0; i < data.size(); ++i) {
     data[i] = htole32(data[i]);
   }
-  return LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t *>(data.data()),
+  return LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(data.data()),
                                 data.size() * sizeof(uint32_t));
 }
 

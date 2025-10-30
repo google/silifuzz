@@ -151,8 +151,7 @@ void ZeroOutUnimplementedRegs<X86_64>(UContext<X86_64>& ucontext) {
 }
 
 template <>
-void ZeroOutUnimplementedRegs<AArch64>(UContext<AArch64>& ucontext) {
-}
+void ZeroOutUnimplementedRegs<AArch64>(UContext<AArch64>& ucontext) {}
 
 // Not ever reg can accept arbitrary bit patterns, fix up the randomized values
 // so that they will be accepted.

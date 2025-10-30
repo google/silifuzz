@@ -61,7 +61,7 @@ constexpr uint32_t kEntrySequence[] = {
 // Use an address outside the configured memory ranges.
 constexpr uint64_t kEntrySequenceAddress = 0x123'4567'0000;
 
-void SetupCPUState(uc_engine *uc) {
+void SetupCPUState(uc_engine* uc) {
   // Inject the entry sequence.
   UNICORN_CHECK(uc_mem_map(uc, kEntrySequenceAddress, kPageSize, UC_PROT_EXEC));
   UNICORN_CHECK(uc_mem_write(uc, kEntrySequenceAddress, kEntrySequence,
@@ -165,10 +165,10 @@ const int kUnicornAArch64RegNames[] = {
 
 static_assert(std::size(kUnicornAArch64RegNames) == kNumUnicornAArch64Reg);
 
-std::array<const void *, kNumUnicornAArch64Reg> UnicornAArch64RegValue(
-    const UContext<AArch64> &ucontext) {
-  const GRegSet<AArch64> &gregs = ucontext.gregs;
-  const FPRegSet<AArch64> &fpregs = ucontext.fpregs;
+std::array<const void*, kNumUnicornAArch64Reg> UnicornAArch64RegValue(
+    const UContext<AArch64>& ucontext) {
+  const GRegSet<AArch64>& gregs = ucontext.gregs;
+  const FPRegSet<AArch64>& fpregs = ucontext.fpregs;
 
   return {
       // GP Reg
@@ -272,7 +272,7 @@ uint64_t UnicornTracer<AArch64>::GetStackPointer() {
 
 template <>
 void UnicornTracer<AArch64>::InitUnicorn(
-    const TracerConfig<AArch64> &tracer_config) {
+    const TracerConfig<AArch64>& tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc_));
   UNICORN_CHECK(uc_ctl_set_cpu_model(uc_, tracer_config.unicorn_force_a72
                                               ? UC_CPU_ARM64_A72
@@ -282,9 +282,9 @@ void UnicornTracer<AArch64>::InitUnicorn(
 
 template <>
 void UnicornTracer<AArch64>::SetupSnippetMemory(
-    const Snapshot &snapshot, const UContext<AArch64> &ucontext,
-    const FuzzingConfig<AArch64> &fuzzing_config) {
-  for (const Snapshot::MemoryMapping &mm : snapshot.memory_mappings()) {
+    const Snapshot& snapshot, const UContext<AArch64>& ucontext,
+    const FuzzingConfig<AArch64>& fuzzing_config) {
+  for (const Snapshot::MemoryMapping& mm : snapshot.memory_mappings()) {
     memory_mappings_.push_back(mm);
   }
   // These mappings are currently not represented in the Snapshot.
@@ -295,13 +295,13 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
       fuzzing_config.data2_range.start_address,
       fuzzing_config.data2_range.num_bytes, MemoryPerms::RW()));
 
-  for (const Snapshot::MemoryMapping &mm : memory_mappings_) {
+  for (const Snapshot::MemoryMapping& mm : memory_mappings_) {
     MapMemory(mm.start_address(), mm.num_bytes(),
               MemoryPermsToUnicorn(mm.perms()));
   }
 
-  for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
-    const Snapshot::ByteData &data = mb.byte_values();
+  for (const Snapshot::MemoryBytes& mb : snapshot.memory_bytes()) {
+    const Snapshot::ByteData& data = mb.byte_values();
     UNICORN_CHECK(
         uc_mem_write(uc_, mb.start_address(), data.data(), data.size()));
   }
@@ -315,28 +315,28 @@ void UnicornTracer<AArch64>::SetupSnippetMemory(
 
 template <>
 void UnicornTracer<AArch64>::GetRegisters(
-    UContext<AArch64> &ucontext, RegisterGroupIOBuffer<AArch64> *eregs) {
+    UContext<AArch64>& ucontext, RegisterGroupIOBuffer<AArch64>* eregs) {
   if (eregs != nullptr) {
     memset(eregs, 0, sizeof(*eregs));
     LOG_ERROR("extension registers are not supported on Unicorn");
   }
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
-  std::array<const void *, kNumUnicornAArch64Reg> ptrs =
+  std::array<const void*, kNumUnicornAArch64Reg> ptrs =
       UnicornAArch64RegValue(ucontext);
   for (size_t i = 0; i < kNumUnicornAArch64Reg; ++i) {
     // It's a bit hackish to cast away the constness of UnicornAArch64RegValue,
     // but it's cleaner than having two const and non-const versions of the
     // function.
-    uc_reg_read(uc_, kUnicornAArch64RegNames[i], const_cast<void *>(ptrs[i]));
+    uc_reg_read(uc_, kUnicornAArch64RegNames[i], const_cast<void*>(ptrs[i]));
   }
 }
 
 template <>
-void UnicornTracer<AArch64>::SetRegisters(const UContext<AArch64> &ucontext) {
+void UnicornTracer<AArch64>::SetRegisters(const UContext<AArch64>& ucontext) {
   // uc_reg_write_batch appears to work fine for aarch64, but we're writing the
   // registers one by one to match the x86_64 implementation.
-  std::array<const void *, kNumUnicornAArch64Reg> ptrs =
+  std::array<const void*, kNumUnicornAArch64Reg> ptrs =
       UnicornAArch64RegValue(ucontext);
   for (size_t i = 0; i < kNumUnicornAArch64Reg; ++i) {
     uc_reg_write(uc_, kUnicornAArch64RegNames[i], ptrs[i]);
@@ -345,7 +345,7 @@ void UnicornTracer<AArch64>::SetRegisters(const UContext<AArch64> &ucontext) {
 
 template <>
 void UnicornTracer<AArch64>::SetInitialRegisters(
-    const UContext<AArch64> &ucontext) {
+    const UContext<AArch64>& ucontext) {
   SetRegisters(ucontext);
 }
 

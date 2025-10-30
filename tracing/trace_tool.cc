@@ -79,59 +79,58 @@ void LogTrace(Disassembler& disasm, ExecutionTrace<Arch>& execution_trace,
               bool fault_injection, LinePrinter& out) {
   uint64_t expected_next = execution_trace.EntryAddress();
   bool last_valid = false;
-  execution_trace.ForEach(
-      [&](size_t index, ExtUContext<Arch>& prev, InstructionInfo<Arch>& info) {
-        bool valid = info.instruction_id != disasm.InvalidInstructionID();
+  execution_trace.ForEach([&](size_t index, ExtUContext<Arch>& prev,
+                              InstructionInfo<Arch>& info) {
+    bool valid = info.instruction_id != disasm.InvalidInstructionID();
 
-        // Did we see something other than linear execution?
-        if (last_valid && info.address != expected_next) {
-          out.Line("    branch");
-        }
+    // Did we see something other than linear execution?
+    if (last_valid && info.address != expected_next) {
+      out.Line("    branch");
+    }
 
-        // Note: we disassemble the instruction a second time to recover the
-        // full textual disassembly. In most cases we don't store this because
-        // it's only needed for human-readable output.
-        disasm.Disassemble(info.address, info.bytes, info.size);
+    // Note: we disassemble the instruction a second time to recover the
+    // full textual disassembly. In most cases we don't store this because
+    // it's only needed for human-readable output.
+    disasm.Disassemble(info.address, info.bytes, info.size);
 
-        // Display information about the next instruction.
-        // Note: formatting assumes the code addresses are in the lower 4GB so
-        // that it can omit 8 leading zeros and be a bit prettier.
-        std::string metadata = absl::StrCat(
-            absl::Dec(index, absl::kZeroPad4),
-            " addr=", absl::Hex(info.address, absl::kZeroPad8), " offset=",
-            absl::Dec(info.address - execution_trace.EntryAddress(),
-                      absl::kZeroPad4),
-            " size=", absl::Dec(info.size, absl::kZeroPad2), " ",
-            info.can_load ? "L" : "-", info.can_store ? "S" : "-",
-            info.can_branch ? "B" : "-");
+    // Display information about the next instruction.
+    // Note: formatting assumes the code addresses are in the lower 4GB so
+    // that it can omit 8 leading zeros and be a bit prettier.
+    std::string metadata = absl::StrCat(
+        absl::Dec(index, absl::kZeroPad4),
+        " addr=", absl::Hex(info.address, absl::kZeroPad8), " offset=",
+        absl::Dec(info.address - execution_trace.EntryAddress(),
+                  absl::kZeroPad4),
+        " size=", absl::Dec(info.size, absl::kZeroPad2), " ",
+        info.can_load ? "L" : "-", info.can_store ? "S" : "-",
+        info.can_branch ? "B" : "-");
 
-        // How many bits changed?
-        ExtUContext<Arch> diff;
-        BitDiff(prev, info.ucontext, diff);
-        // Ignore instruction pointer changes.
-        diff.gregs.SetInstructionPointer(0);
-        absl::StrAppend(&metadata,
-                        " diff=", absl::Dec(PopCount(diff), absl::kZeroPad3));
+    // How many bits changed?
+    ExtUContext<Arch> diff;
+    BitDiff(prev, info.ucontext, diff);
+    // Ignore instruction pointer changes.
+    diff.gregs.SetInstructionPointer(0);
+    absl::StrAppend(&metadata,
+                    " diff=", absl::Dec(PopCount(diff), absl::kZeroPad3));
 
-        // Fault injection metrics.
-        if (fault_injection) {
-          absl::StrAppend(&metadata, " crit=", info.critical);
-        }
-        out.Line(metadata, "    ", disasm.FullText());
+    // Fault injection metrics.
+    if (fault_injection) {
+      absl::StrAppend(&metadata, " crit=", info.critical);
+    }
+    out.Line(metadata, "    ", disasm.FullText());
 
-        // Print the contents of any registers that changed.
-        diff = prev;
-        // Avoid printing a diff for the instruction pointer, this is assumed.
-        diff.gregs.SetInstructionPointer(
-            info.ucontext.gregs.GetInstructionPointer());
-        LogGRegs(info.ucontext.gregs, PrintRegister, &out, &diff.gregs);
-        LogFPRegs(info.ucontext.fpregs, true, PrintRegister, &out,
-                  &diff.fpregs);
-        LogERegs(info.ucontext.eregs, PrintRegister, &out, &diff.eregs);
+    // Print the contents of any registers that changed.
+    diff = prev;
+    // Avoid printing a diff for the instruction pointer, this is assumed.
+    diff.gregs.SetInstructionPointer(
+        info.ucontext.gregs.GetInstructionPointer());
+    LogGRegs(info.ucontext.gregs, PrintRegister, &out, &diff.gregs);
+    LogFPRegs(info.ucontext.fpregs, true, PrintRegister, &out, &diff.fpregs);
+    LogERegs(info.ucontext.eregs, PrintRegister, &out, &diff.eregs);
 
-        last_valid = valid;
-        expected_next = info.address + info.size;
-      });
+    last_valid = valid;
+    expected_next = info.address + info.size;
+  });
 }
 
 // Stats for a specific type of instruction in the trace.

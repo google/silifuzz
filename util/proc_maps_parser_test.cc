@@ -22,7 +22,7 @@
 namespace silifuzz {
 namespace {
 
-const char *kSampleProcMaps =
+const char* kSampleProcMaps =
     R"(456700000000-4567001fd000 r-xp 00000000 00:30 4478                       /tmp/runner_main_nolibc
 4567003fc000-45670042a000 rw-p 001fc000 00:30 4478                       /tmp/runner_main_nolibc
 456700629000-45670062a000 rw-p 00229000 00:30 4478                       /tmp/runner_main_nolibc

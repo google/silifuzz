@@ -42,17 +42,17 @@ TEST(ToolUtilTest, ConsumeArg) {
   std::string arg0 = "arg0";
   std::string arg1 = "arg1";
   std::string arg2 = "arg2";
-  std::vector<char *> args = {arg0.data(), arg1.data(), arg2.data()};
-  const char *removed_arg = ConsumeArg(args);
+  std::vector<char*> args = {arg0.data(), arg1.data(), arg2.data()};
+  const char* removed_arg = ConsumeArg(args);
   EXPECT_EQ(removed_arg, arg0.c_str());
-  std::vector<char *> expected_args = {arg1.data(), arg2.data()};
+  std::vector<char*> expected_args = {arg1.data(), arg2.data()};
   EXPECT_EQ(args, expected_args);
 }
 
 TEST(ToolUtilTest, ExtraArgs) {
   std::string arg0 = "arg0";
-  std::vector<char *> full_args = {arg0.data()};
-  std::vector<char *> empty_args = {};
+  std::vector<char*> full_args = {arg0.data()};
+  std::vector<char*> empty_args = {};
   EXPECT_EQ(ExtraArgs(full_args), true);
   EXPECT_EQ(ExtraArgs(empty_args), false);
 }

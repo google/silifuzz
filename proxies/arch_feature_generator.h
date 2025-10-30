@@ -46,8 +46,8 @@ constexpr ArchFeatureDomains kDefaultArchFeatureDomains;
 // Emit a feature if bitmap == 1 for each bit.
 template <typename T>
 inline std::enable_if_t<!std::is_pointer<T>::value, uint64_t>
-EmitSetBitFeatures(uint64_t domain, uint64_t base, const T &bitmap,
-                   UserFeatures &user_features) {
+EmitSetBitFeatures(uint64_t domain, uint64_t base, const T& bitmap,
+                   UserFeatures& user_features) {
   ForEachSetBit(bitmap, [&](size_t index) {
     user_features.EmitFeature(domain, base + index);
   });
@@ -59,10 +59,10 @@ EmitSetBitFeatures(uint64_t domain, uint64_t base, const T &bitmap,
 // registers, register groups information, and inactive regions (should be all
 // zero already because all ExtUContext are zero-initialized).
 template <typename Arch>
-inline void PrepareToEmit(ExtUContext<Arch> &uctx);
+inline void PrepareToEmit(ExtUContext<Arch>& uctx);
 
 template <>
-inline void PrepareToEmit(ExtUContext<X86_64> &uctx) {
+inline void PrepareToEmit(ExtUContext<X86_64>& uctx) {
   // XMM registers are aliased to YMM and ZMM registers.
   if (uctx.HasERegs()) {
     memset(uctx.fpregs.xmm, 0, sizeof(uctx.fpregs.xmm));
@@ -77,7 +77,7 @@ inline void PrepareToEmit(ExtUContext<X86_64> &uctx) {
 }
 
 template <>
-inline void PrepareToEmit(ExtUContext<AArch64> &uctx) {
+inline void PrepareToEmit(ExtUContext<AArch64>& uctx) {
   if (uctx.HasERegs()) {
     memset(uctx.fpregs.v, 0, sizeof(uctx.fpregs.v));
   }
@@ -87,8 +87,8 @@ inline void PrepareToEmit(ExtUContext<AArch64> &uctx) {
 // Emit a feature if a^b == 1 for each bit.
 template <typename T>
 inline std::enable_if_t<!std::is_pointer<T>::value, uint64_t>
-EmitDiffBitFeatures(uint64_t domain, uint64_t base, const T &a, const T &b,
-                    UserFeatures &user_features) {
+EmitDiffBitFeatures(uint64_t domain, uint64_t base, const T& a, const T& b,
+                    UserFeatures& user_features) {
   ForEachDiffBit(a, b, [&](size_t index, bool value) {
     user_features.EmitFeature(domain, base + index);
   });
@@ -100,8 +100,8 @@ EmitDiffBitFeatures(uint64_t domain, uint64_t base, const T &a, const T &b,
 template <typename T>
 inline std::enable_if_t<!std::is_pointer<T>::value, uint64_t>
 EmitToggleBitFeatures(uint64_t zero_one_domain, uint64_t one_zero_domain,
-                      uint64_t base, const T &a, const T &b,
-                      UserFeatures &user_features) {
+                      uint64_t base, const T& a, const T& b,
+                      UserFeatures& user_features) {
   ForEachDiffBit(a, b, [&](size_t index, bool value) {
     user_features.EmitFeature(value ? zero_one_domain : one_zero_domain,
                               base + index);
@@ -142,10 +142,10 @@ class ArchFeatureGenerator {
   ~ArchFeatureGenerator() { delete[] op_info_; }
 
   // Disallow copy and move.
-  ArchFeatureGenerator(const ArchFeatureGenerator &) = delete;
-  ArchFeatureGenerator(ArchFeatureGenerator &&) = delete;
-  ArchFeatureGenerator &operator=(const ArchFeatureGenerator &) = delete;
-  ArchFeatureGenerator &operator=(ArchFeatureGenerator &&) = delete;
+  ArchFeatureGenerator(const ArchFeatureGenerator&) = delete;
+  ArchFeatureGenerator(ArchFeatureGenerator&&) = delete;
+  ArchFeatureGenerator& operator=(const ArchFeatureGenerator&) = delete;
+  ArchFeatureGenerator& operator=(ArchFeatureGenerator&&) = delete;
 
   // Called before processing any inputs. Potentially does setup work that we
   // do not want to do per input for efficiency reasons and / or do not want to
@@ -173,7 +173,7 @@ class ArchFeatureGenerator {
   // Called after the tracer has been set up, but before executing.
   // Records the initial state before execution. Inactive regions of
   // `current_registers` need to be zeroed out before calling this function.
-  void BeforeExecution(ExtUContext<Arch> &current_registers) {
+  void BeforeExecution(ExtUContext<Arch>& current_registers) {
     prev_instruction_id_ = kInvalidInstructionId;
     initial_registers_ = current_registers;
     prev_registers_ = current_registers;
@@ -187,7 +187,7 @@ class ArchFeatureGenerator {
   // executed. Inactive regions of `current_registers` need to be zeroed out
   // before calling this function. May emit user features.
   void AfterInstruction(uint32_t instruction_id,
-                        ExtUContext<Arch> &current_registers) {
+                        ExtUContext<Arch>& current_registers) {
     if (instruction_id != kInvalidInstructionId) {
       CHECK_LT(instruction_id, num_instruction_ids_);
       op_info_[instruction_id].count++;
@@ -279,7 +279,7 @@ class ArchFeatureGenerator {
 
   // Per-instruction-ID information.
   uint32_t num_instruction_ids_;
-  OpInfo *op_info_;
+  OpInfo* op_info_;
 
   // Initial register state.
   ExtUContext<Arch> initial_registers_;

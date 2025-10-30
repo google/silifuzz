@@ -40,8 +40,8 @@ class ThreadPool {
     }
   }
 
-  ThreadPool(const ThreadPool &) = delete;
-  ThreadPool &operator=(const ThreadPool &) = delete;
+  ThreadPool(const ThreadPool&) = delete;
+  ThreadPool& operator=(const ThreadPool&) = delete;
 
   ~ThreadPool() {
     {
@@ -50,7 +50,7 @@ class ThreadPool {
         queue_.push(nullptr);  // Shutdown signal.
       }
     }
-    for (auto &thread : threads_) {
+    for (auto& thread : threads_) {
       thread.join();
     }
   }

@@ -102,7 +102,7 @@ void SigtrapHandler(int sig, siginfo_t* info, void* ucontext) {
 // inactive mode (tests SIGTRAP only). Tries multiple different variants of
 // triggering SIGTRAP.
 int SignalHelper() {
-  struct kernel_sigaction action {};
+  struct kernel_sigaction action{};
   action.sa_sigaction_ = SigtrapHandler;
   // Must set SA_NODEFER otherwise the handler gets reset to SIG_DFL
   // https://bugzilla.redhat.com/show_bug.cgi?id=227693
@@ -135,7 +135,7 @@ void Sigusr1Handler(int sig, siginfo_t* info, void* ucontext) { _exit(1); }
 // Verifies that the tracer can inject a signal (SIGUSR1) into
 // the tracee when a certain condition is met (getcpu syscall in this case).
 int SignalInjectionHelper() {
-  struct kernel_sigaction action {};
+  struct kernel_sigaction action{};
   action.sa_sigaction_ = Sigusr1Handler;
   action.sa_flags = SA_RESTART | SA_SIGINFO;
   sys_sigaction(SIGUSR1, &action, nullptr);

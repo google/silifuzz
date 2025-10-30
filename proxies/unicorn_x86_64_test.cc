@@ -19,12 +19,12 @@
 
 #include "gtest/gtest.h"
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv);
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 namespace {
 
-static int run_bytes(std::vector<uint8_t> &&data) {
+static int run_bytes(std::vector<uint8_t>&& data) {
   // HACK to make sure initialize function is called once.
   static int initialize = LLVMFuzzerInitialize(nullptr, nullptr);
   (void)initialize;  // Yes, it's unused.

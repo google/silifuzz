@@ -74,8 +74,8 @@ TEST(PathUtil, CreateTempFileFail) {
   };
   // The `test` above messes with the environment so we have to run it
   // in a separate process.
-  ASSERT_EXIT({ test(); }, KilledBySignal(SIGABRT),
-              "File creation failed as expected");
+  ASSERT_EXIT(
+      { test(); }, KilledBySignal(SIGABRT), "File creation failed as expected");
 }
 
 }  // namespace

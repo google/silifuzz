@@ -56,7 +56,7 @@ class BatchState {
   ArchFeatureGenerator<AArch64> feature_gen;
 };
 
-BatchState *batch;
+BatchState* batch;
 
 void BeforeBatch() {
   CHECK_EQ(batch, nullptr);
@@ -65,7 +65,7 @@ void BeforeBatch() {
 
 absl::Status RunAArch64Instructions(
     absl::string_view instructions,
-    const FuzzingConfig<AArch64> &fuzzing_config, size_t max_inst_executed) {
+    const FuzzingConfig<AArch64>& fuzzing_config, size_t max_inst_executed) {
   // Require at least one instruction.
   if (instructions.size() < 4) {
     return absl::InvalidArgumentError("Input too short");
@@ -75,8 +75,8 @@ absl::Status RunAArch64Instructions(
   // TODO(ncbray) why do atomic ops using the initial stack pointer not fault?
   // 1000000: 787f63fc ldumaxlh    wzr, w28, [sp]
 
-  DefaultDisassembler<AArch64> &disasm = batch->disasm;
-  ArchFeatureGenerator<AArch64> &feature_gen = batch->feature_gen;
+  DefaultDisassembler<AArch64>& disasm = batch->disasm;
+  ArchFeatureGenerator<AArch64>& feature_gen = batch->feature_gen;
 
   TracerConfig<AArch64> tracer_config{.unicorn_force_a72 = true};
   UnicornTracer<AArch64> tracer;
@@ -96,7 +96,7 @@ absl::Status RunAArch64Instructions(
   // initialized and does not contain garbage when counting bit-diff and
   // bit-toggle features.
   ExtUContext<AArch64> registers{};
-  auto after_instruction = [&](TracerControl<AArch64> &control) {
+  auto after_instruction = [&](TracerControl<AArch64>& control) {
     if (instruction_pending) {
       control.GetRegisters(registers);
       feature_gen.AfterInstruction(instruction_id, registers);
@@ -104,12 +104,12 @@ absl::Status RunAArch64Instructions(
     }
   };
 
-  tracer.SetBeforeExecutionCallback([&](TracerControl<AArch64> &control) {
+  tracer.SetBeforeExecutionCallback([&](TracerControl<AArch64>& control) {
     control.GetRegisters(registers);
     feature_gen.BeforeExecution(registers);
   });
 
-  tracer.SetBeforeInstructionCallback([&](TracerControl<AArch64> &control) {
+  tracer.SetBeforeInstructionCallback([&](TracerControl<AArch64>& control) {
     after_instruction(control);
 
     // Read the next instruction.
@@ -128,7 +128,7 @@ absl::Status RunAArch64Instructions(
     instruction_pending = true;
   });
 
-  tracer.SetAfterExecutionCallback([&](TracerControl<AArch64> &control) {
+  tracer.SetAfterExecutionCallback([&](TracerControl<AArch64>& control) {
     // Flush the last instruction.
     after_instruction(control);
 
@@ -164,15 +164,15 @@ absl::Status RunAArch64Instructions(
 
 }  // namespace silifuzz
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
+extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   silifuzz::BeforeBatch();
   return 0;
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   const size_t max_inst_executed = 0x1000;
   absl::Status status = silifuzz::RunAArch64Instructions(
-      absl::string_view(reinterpret_cast<const char *>(data), size),
+      absl::string_view(reinterpret_cast<const char*>(data), size),
       silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::AArch64>, max_inst_executed);
   if (!status.ok()) {
     LOG_ERROR(status.message());

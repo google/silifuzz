@@ -117,26 +117,26 @@ TYPED_TEST(ExecutionTraceTest, Simple) {
 
   // Check the trace.
   size_t count = 0;
-  execution_trace.ForEach([&](size_t i, UContext<Arch>& prev,
-                              InstructionInfo<Arch>& info) {
-    // Check it's in bounds.
-    ASSERT_LT(i, 3);
+  execution_trace.ForEach(
+      [&](size_t i, UContext<Arch>& prev, InstructionInfo<Arch>& info) {
+        // Check it's in bounds.
+        ASSERT_LT(i, 3);
 
-    // Check it's sequential.
-    EXPECT_EQ(i, count);
-    count++;
+        // Check it's sequential.
+        EXPECT_EQ(i, count);
+        count++;
 
-    EXPECT_EQ(info.address,
-              execution_trace.EntryAddress() + i * instruction_size);
+        EXPECT_EQ(info.address,
+                  execution_trace.EntryAddress() + i * instruction_size);
 
-    EXPECT_EQ(info.size, instruction_size);
-    EXPECT_EQ(memcmp(info.bytes, &instructions[0] + i * instruction_size,
-                     instruction_size),
-              0);
+        EXPECT_EQ(info.size, instruction_size);
+        EXPECT_EQ(memcmp(info.bytes, &instructions[0] + i * instruction_size,
+                         instruction_size),
+                  0);
 
-    // Check the registers.
-    CheckInstructionInfo(disasm, i, prev, info);
-  });
+        // Check the registers.
+        CheckInstructionInfo(disasm, i, prev, info);
+      });
   EXPECT_EQ(count, 3);
 
   // Make sure Reset works.

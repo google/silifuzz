@@ -55,18 +55,18 @@ off_t lseek(int fd, off_t offset, int whence) {
   return sys_lseek(fd, offset, whence);
 }
 
-void *mmap(void *addr, size_t length, int prot, int flags, int fd,
+void* mmap(void* addr, size_t length, int prot, int flags, int fd,
            off_t offset) {
   return sys_mmap(addr, length, prot, flags, fd, offset);
 }
 
-int mprotect(void *addr, size_t len, int prot) {
+int mprotect(void* addr, size_t len, int prot) {
   return sys_mprotect(addr, len, prot);
 }
 
-int munmap(void *addr, size_t length) { return sys_munmap(addr, length); }
+int munmap(void* addr, size_t length) { return sys_munmap(addr, length); }
 
-int open(const char *pathname, int flags, ...) {
+int open(const char* pathname, int flags, ...) {
   int mode = 0;
 
   // `mode` is ignored unless one of O_CREAT|O_TMPFILE is given. The Linux man
@@ -98,17 +98,17 @@ int prctl(int option, ...) {
   return sys_prctl(option, arg2, arg3, arg4, arg5);
 }
 
-ssize_t read(int fd, void *buf, size_t count) {
+ssize_t read(int fd, void* buf, size_t count) {
   return sys_read(fd, buf, count);
 }
 
 pid_t setsid() { return sys_setsid(); }
 
-int sigaltstack(const stack_t *ss, stack_t *old_ss) {
+int sigaltstack(const stack_t* ss, stack_t* old_ss) {
   return sys_sigaltstack(ss, old_ss);
 }
 
-ssize_t write(int fd, const void *buf, size_t count) {
+ssize_t write(int fd, const void* buf, size_t count) {
   return sys_write(fd, buf, count);
 }
 

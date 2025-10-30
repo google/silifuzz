@@ -26,7 +26,7 @@ namespace {
 
 TEST(FlagMatcher, Constructor) {
   constexpr int kArgc = 1;
-  const char *kArgv[kArgc] = {"foo"};
+  const char* kArgv[kArgc] = {"foo"};
   CommandLineFlagMatcher matcher(kArgc, kArgv);
   CHECK_EQ(matcher.optind(), 1);
   CHECK_EQ(matcher.optarg(), nullptr);
@@ -39,7 +39,7 @@ TEST(FlagMatcher, ConstructorNonConstPointers) {
       {'f', 'o', 'o', '\0'},
       {'-', '-', 'b', 'a', 'r', '\0'},
   };
-  char *argv[kArgc] = {
+  char* argv[kArgc] = {
       non_const_arguments[0],
       non_const_arguments[1],
   };
@@ -50,8 +50,9 @@ TEST(FlagMatcher, ConstructorNonConstPointers) {
 
 TEST(FlagMatcher, FlagWithoutArgument) {
   constexpr int kArgc = 3;
-  const char *kArgv[kArgc] = {
-      "foo", "--abc",
+  const char* kArgv[kArgc] = {
+      "foo",
+      "--abc",
       "-abc",  // malformed with one '-'.
   };
   CommandLineFlagMatcher matcher(kArgc, kArgv);
@@ -65,7 +66,7 @@ TEST(FlagMatcher, FlagWithoutArgument) {
 
 TEST(FlagMatcher, FlagWithFollowingArgument) {
   constexpr int kArgc = 4;
-  const char *kArgv[kArgc] = {"foo", "--abc", "123", "not-a-flag"};
+  const char* kArgv[kArgc] = {"foo", "--abc", "123", "not-a-flag"};
   CommandLineFlagMatcher matcher(kArgc, kArgv);
   CHECK(matcher.Match("abc", CommandLineFlagMatcher::kRequiredArgument));
   CHECK_EQ(matcher.optind(), 3);
@@ -74,7 +75,7 @@ TEST(FlagMatcher, FlagWithFollowingArgument) {
 
 TEST(FlagMatcher, FlagWithEmbeddedArgument) {
   constexpr int kArgc = 3;
-  const char *kArgv[kArgc] = {"foo", "--abc=123", "not-a-flag"};
+  const char* kArgv[kArgc] = {"foo", "--abc=123", "not-a-flag"};
   CommandLineFlagMatcher matcher(kArgc, kArgv);
   CHECK(matcher.Match("abc", CommandLineFlagMatcher::kRequiredArgument));
   CHECK_EQ(matcher.optind(), 2);
@@ -83,7 +84,7 @@ TEST(FlagMatcher, FlagWithEmbeddedArgument) {
 
 TEST(FlagMatcher, FlagWithEmptyArgument) {
   constexpr int kArgc = 3;
-  const char *kArgv[kArgc] = {"foo", "--empty=", "--abc=123"};
+  const char* kArgv[kArgc] = {"foo", "--empty=", "--abc=123"};
   CommandLineFlagMatcher matcher(kArgc, kArgv);
   CHECK(matcher.Match("empty", CommandLineFlagMatcher::kRequiredArgument));
   CHECK_EQ(matcher.optind(), 2);
@@ -95,7 +96,7 @@ TEST(FlagMatcher, FlagWithEmptyArgument) {
 
 TEST(FlagMatcher, EndOfCommandLine) {
   constexpr int kArgc = 2;
-  const char *kArgv[kArgc] = {"foo", "--abc"};
+  const char* kArgv[kArgc] = {"foo", "--abc"};
   CommandLineFlagMatcher matcher(kArgc, kArgv);
   CHECK(matcher.Match("abc", CommandLineFlagMatcher::kNoArgument));
   CHECK(!matcher.Match("abc", CommandLineFlagMatcher::kNoArgument));

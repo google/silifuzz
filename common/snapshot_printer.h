@@ -57,7 +57,7 @@ class SnapshotPrinter : private SnapshotTypeNames {
     EndRegsMode end_state_regs_mode = kChangedEndRegs;
     EndStateMode end_state_mode = kEndStateDiffs;
     int64_t bytes_limit = 150;  // max # of ByteData bytes to print
-    bool stats = false;       // whether to print summary stats
+    bool stats = false;         // whether to print summary stats
   };
   static Options DefaultOptions() { return Options(); }
 

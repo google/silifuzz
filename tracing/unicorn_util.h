@@ -37,10 +37,10 @@ namespace silifuzz {
   } while (0);
 
 // Translate Silifuzz's MemoryPerms into Unicorn's protection flags.
-uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms);
+uint32_t MemoryPermsToUnicorn(const MemoryPerms& perms);
 
 // Determine where the Snapshot will stop executing.
-uint64_t GetExitPoint(const Snapshot &snapshot);
+uint64_t GetExitPoint(const Snapshot& snapshot);
 
 }  // namespace silifuzz
 

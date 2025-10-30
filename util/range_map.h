@@ -124,7 +124,7 @@ namespace silifuzz {
 // RangeMap<> is not thread-safe.
 // TODO(ksteuck): [design] Maybe should allow callers to specify what to use
 // instead of current map<> as the representation.
-template<typename Key, typename Value, typename MethodsArg>
+template <typename Key, typename Value, typename MethodsArg>
 class RangeMap {
  public:
   typedef MethodsArg Methods;
@@ -170,9 +170,9 @@ class RangeMap {
     typedef typename IterRep::difference_type difference_type;
     typedef typename IterRep::iterator_category iterator_category;
 
-    iterator() : rep_() { }
+    iterator() : rep_() {}
 
-    iterator(const iterator& x) : rep_(x.rep_) { }
+    iterator(const iterator& x) : rep_(x.rep_) {}
     iterator& operator=(const iterator& x) {
       rep_ = x.rep_;
       return *this;
@@ -197,7 +197,7 @@ class RangeMap {
 
    private:
     friend class RangeMap;
-    explicit iterator(const IterRep& rep) : rep_(rep) { }
+    explicit iterator(const IterRep& rep) : rep_(rep) {}
     IterRep rep_;
   };
 
@@ -207,13 +207,12 @@ class RangeMap {
     typedef value_type& reference;
     typedef value_type* pointer;
     typedef typename ConstIterRep::difference_type difference_type;
-    typedef typename ConstIterRep::iterator_category
-        iterator_category;
+    typedef typename ConstIterRep::iterator_category iterator_category;
 
-    const_iterator() : rep_() { }
+    const_iterator() : rep_() {}
 
-    const_iterator(const const_iterator& x) : rep_(x.rep_) { }
-    const_iterator(const iterator& x) : rep_(x.rep_) { }  // NOLINT
+    const_iterator(const const_iterator& x) : rep_(x.rep_) {}
+    const_iterator(const iterator& x) : rep_(x.rep_) {}  // NOLINT
     const_iterator& operator=(const const_iterator& x) {
       rep_ = x.rep_;
       return *this;
@@ -242,7 +241,7 @@ class RangeMap {
 
    private:
     friend class RangeMap;
-    explicit const_iterator(const ConstIterRep& rep) : rep_(rep) { }
+    explicit const_iterator(const ConstIterRep& rep) : rep_(rep) {}
     ConstIterRep rep_;
   };
 
@@ -251,10 +250,11 @@ class RangeMap {
   class const_reverse_iterator : public std::reverse_iterator<const_iterator> {
    private:
     typedef std::reverse_iterator<const_iterator> Rep;
+
    public:
-    const_reverse_iterator(const const_iterator& x) : Rep(x) { }  // NOLINT
-    const_reverse_iterator() : Rep() { }
-    const_reverse_iterator(const const_reverse_iterator& x) : Rep(x) { }
+    const_reverse_iterator(const const_iterator& x) : Rep(x) {}  // NOLINT
+    const_reverse_iterator() : Rep() {}
+    const_reverse_iterator(const const_reverse_iterator& x) : Rep(x) {}
     const_reverse_iterator& operator=(const const_reverse_iterator& x) {
       Rep::operator=(x);
       return *this;
@@ -279,25 +279,28 @@ class RangeMap {
 
   bool empty() const { return map_.empty(); }
 
-  RangeMap() : map_() { }
+  RangeMap() : map_() {}
 
   // There's no RangeMap(const key_compare& comp).
   template <class InputIterator>
-  RangeMap(InputIterator f, InputIterator l) : map_() { insert(f, l); }
+  RangeMap(InputIterator f, InputIterator l) : map_() {
+    insert(f, l);
+  }
   // There's no
   // RangeMap(InputIterator f, InputIterator l, const key_compare& comp).
 
   // It's copyable:
-  RangeMap(const RangeMap& x) : map_(x.map_) { }
+  RangeMap(const RangeMap& x) : map_(x.map_) {}
   RangeMap& operator=(const RangeMap& x) {
     map_ = x.map_;
     return *this;
   }
 
   // Can convert from a different RangeMap<Key, ValueX, MethodsX> map type.
-  template<typename ValueX, typename MethodsX>
-  explicit RangeMap(const RangeMap<Key, ValueX, MethodsX>& x)
-      : map_() { AddRangeMap(x); }
+  template <typename ValueX, typename MethodsX>
+  explicit RangeMap(const RangeMap<Key, ValueX, MethodsX>& x) : map_() {
+    AddRangeMap(x);
+  }
 
   // Insertion; semantics differ slightly from map<>::insert(): see Add() below.
   // 'usage' if non-NULL gets changed accordingly.
@@ -490,12 +493,8 @@ class RangeMap {
     return {LowerBound(start), UpperBound(limit)};
   }
 
-  IteratorRange FindAll() {
-    return {begin(), end()};
-  }
-  ConstIteratorRange FindAll() const {
-    return {begin(), end()};
-  }
+  IteratorRange FindAll() { return {begin(), end()}; }
+  ConstIteratorRange FindAll() const { return {begin(), end()}; }
 
   // Returns the iterator for the range->value mapping containing key if it
   // exists, or end() if key is in no range with a value.
@@ -549,11 +548,11 @@ class RangeMap {
   // assuming operations on values are O(1).
   // post_merge determines whether Merge() is called on the affected range
   // after the addition.
-  template<typename ValueX, typename MethodsX, typename ValueY>
+  template <typename ValueX, typename MethodsX, typename ValueY>
   void AddIntersectionOf(const RangeMap<Key, ValueX, MethodsX>& map_x,
                          const Key& start, const Key& limit,
-                         const ValueY& value_y,
-                         Size* usage = NULL, bool post_merge = true);
+                         const ValueY& value_y, Size* usage = NULL,
+                         bool post_merge = true);
 
   // Adds the intersection of map_x and map_y to *this.
   // Adjusts *usage appropriately if non-NULL.
@@ -564,10 +563,11 @@ class RangeMap {
   void AddIntersectionOf(const RangeMap<Key, ValueX, MethodsX>& map_x,
                          const RangeMap<Key, ValueY, MethodsY>& map_y,
                          Size* usage = nullptr, bool post_merge = true) {
-    for (typename RangeMap<Key, ValueY, MethodsY>::const_iterator
-         i = map_y.begin(); i != map_y.end(); ++i) {
-      AddIntersectionOf(map_x, i.start(), i.limit(), i.value(),
-                        usage, post_merge);
+    for (typename RangeMap<Key, ValueY, MethodsY>::const_iterator i =
+             map_y.begin();
+         i != map_y.end(); ++i) {
+      AddIntersectionOf(map_x, i.start(), i.limit(), i.value(), usage,
+                        post_merge);
     }
   }
 
@@ -577,7 +577,7 @@ class RangeMap {
   // assuming operations on values are O(1).
   // post_merge determines whether Merge() is called on the affected range
   // after the addition.
-  template<typename ValueX, typename ValueY, typename MethodsY>
+  template <typename ValueX, typename ValueY, typename MethodsY>
   void AddDifferenceOf(const Key& start, const Key& limit,
                        const ValueX& value_x,
                        const RangeMap<Key, ValueY, MethodsY>& map_y,
@@ -592,10 +592,11 @@ class RangeMap {
   void AddDifferenceOf(const RangeMap<Key, ValueX, MethodsX>& map_x,
                        const RangeMap<Key, ValueY, MethodsY>& map_y,
                        Size* usage = nullptr, bool post_merge = true) {
-    for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator
-         i = map_x.begin(); i != map_x.end(); ++i) {
-      AddDifferenceOf(i.start(), i.limit(), i.value(), map_y,
-                      usage, post_merge);
+    for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator i =
+             map_x.begin();
+         i != map_x.end(); ++i) {
+      AddDifferenceOf(i.start(), i.limit(), i.value(), map_y, usage,
+                      post_merge);
     }
   }
 
@@ -603,8 +604,8 @@ class RangeMap {
   // each line with line_prefix.
   void LogTo(std::ostream* stream, const char* line_prefix) const {
     for (const_iterator i = begin(); i != end(); ++i) {
-      (*stream) << line_prefix << "[ " << i.start() << " .. "
-                << i.limit() << " ) : " << i.value() << "\n";
+      (*stream) << line_prefix << "[ " << i.start() << " .. " << i.limit()
+                << " ) : " << i.value() << "\n";
     }
   }
 
@@ -614,25 +615,26 @@ class RangeMap {
   // Implements Add() and Remove().
   // post_merge determines whether Merge() is called on the affected range
   // after the addition/removal.
-  template<typename ValueX>
+  template <typename ValueX>
   bool Change(const Key& start, const Key& limit, const ValueX& value_x,
               ChangeMode mode, Size* usage, bool post_merge);
 
   // Implements AddToEach() and RemoveFromEach().
-  template<typename ValueX>
+  template <typename ValueX>
   bool ChangeEach(const ValueX& value_x, ChangeMode mode, Size* usage);
 
   // Implements AddRangeMap() and RemoveRangeMap().
   // post_merge determines whether Merge() is called on the affected range
   // after the addition/removal.
-  template<typename ValueX, typename MethodsX>
+  template <typename ValueX, typename MethodsX>
   bool ChangeRangeMap(const RangeMap<Key, ValueX, MethodsX>& range_map,
                       ChangeMode mode, Size* usage, bool post_merge);
 
   // Converts value of another type ValueX to Value.
   // Need to make it a struct to make C++ allow us to specialize it.
   // is_same is true if ValueX is the same type as Value.
-  template<typename ValueX, bool is_same> struct Convertor;
+  template <typename ValueX, bool is_same>
+  struct Convertor;
 
   // Helpers to adding/subtracting from *usage.
   void AddUsage(const IterRep& iter, Size* usage) {
@@ -674,14 +676,14 @@ std::ostream& operator<<(std::ostream& stream,
 
 // ========================================================================= //
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX>  // ValueX is always Value here
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX>  // ValueX is always Value here
 struct RangeMap<Key, Value, Methods>::Convertor<ValueX, true> {
   static const Value& Convert(const Value& value) { return value; }
 };
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX>
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX>
 struct RangeMap<Key, Value, Methods>::Convertor<ValueX, false> {
   static Value Convert(const ValueX& value_x) {
     return Methods::Convert(value_x);
@@ -806,10 +808,10 @@ bool RangeMap<Key, Value, Methods>::Change(const Key& start, const Key& limit,
   return result;
 }
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX>
-bool RangeMap<Key, Value, Methods>::ChangeEach(
-    const ValueX& value_x, ChangeMode mode, Size* usage) {
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX>
+bool RangeMap<Key, Value, Methods>::ChangeEach(const ValueX& value_x,
+                                               ChangeMode mode, Size* usage) {
   // This can be a reference to a temporary, but compiler extends the life of
   // the temporary to match that of the reference:
   const Value& value =
@@ -837,8 +839,8 @@ bool RangeMap<Key, Value, Methods>::ChangeEach(
   return result;
 }
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX, typename MethodsX>
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX, typename MethodsX>
 bool RangeMap<Key, Value, Methods>::ChangeRangeMap(
     const RangeMap<Key, ValueX, MethodsX>& range_map, ChangeMode mode,
     Size* usage, bool post_merge) {
@@ -854,10 +856,11 @@ bool RangeMap<Key, Value, Methods>::ChangeRangeMap(
   // that the ranges in range_map are non-overlapping and ordered:
   // Maybe can speed-up range search in Change() a little.
   bool result = mode == kRemove;
-  for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator
-       i = range_map.begin(); i != range_map.end(); ++i) {
-    const bool changed = Change(i.start(), i.limit(), i.value(),
-                                mode, usage, !merge_whole_range && post_merge);
+  for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator i =
+           range_map.begin();
+       i != range_map.end(); ++i) {
+    const bool changed = Change(i.start(), i.limit(), i.value(), mode, usage,
+                                !merge_whole_range && post_merge);
     if (mode == kAdd) {
       if (changed) result = true;
     } else {
@@ -870,7 +873,7 @@ bool RangeMap<Key, Value, Methods>::ChangeRangeMap(
   return result;
 }
 
-template<typename Key, typename Value, typename Methods>
+template <typename Key, typename Value, typename Methods>
 void RangeMap<Key, Value, Methods>::Merge(IteratorRange range, Size* usage) {
   if (range.second != end()) ++range.second;  // to merge with what's after
   IterRep prev = range.first.rep_;
@@ -916,18 +919,17 @@ bool RangeMap<Key, Value, Methods>::Covers(
   return result;
 }
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX, typename MethodsX, typename ValueY>
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX, typename MethodsX, typename ValueY>
 void RangeMap<Key, Value, Methods>::AddIntersectionOf(
-    const RangeMap<Key, ValueX, MethodsX>& map_x,
-    const Key& start, const Key& limit, const ValueY& value_y,
-    Size* usage, bool post_merge) {
+    const RangeMap<Key, ValueX, MethodsX>& map_x, const Key& start,
+    const Key& limit, const ValueY& value_y, Size* usage, bool post_merge) {
   // merge_whole_range is explained in ChangeRangeMap() above.
   const bool merge_whole_range = false;
-  typename RangeMap<Key, ValueX, MethodsX>::ConstIteratorRange range
-      = map_x.Find(start, limit);
-  for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator
-       i = range.first; i != range.second; ++i) {
+  typename RangeMap<Key, ValueX, MethodsX>::ConstIteratorRange range =
+      map_x.Find(start, limit);
+  for (typename RangeMap<Key, ValueX, MethodsX>::const_iterator i = range.first;
+       i != range.second; ++i) {
     const Key s = Methods::Compare(start, i.start()) < 0 ? i.start() : start;
     const Key l = Methods::Compare(i.limit(), limit) < 0 ? i.limit() : limit;
     auto i_v = Methods::Slice(i.start(), i.limit(), i.value(), s, l);
@@ -943,19 +945,19 @@ void RangeMap<Key, Value, Methods>::AddIntersectionOf(
   if (merge_whole_range && post_merge) Merge(Find(start, limit), usage);
 }
 
-template<typename Key, typename Value, typename Methods>
-template<typename ValueX, typename ValueY, typename MethodsY>
+template <typename Key, typename Value, typename Methods>
+template <typename ValueX, typename ValueY, typename MethodsY>
 void RangeMap<Key, Value, Methods>::AddDifferenceOf(
     const Key& start, const Key& limit, const ValueX& value_x,
-    const RangeMap<Key, ValueY, MethodsY>& map_y,
-    Size* usage, bool post_merge) {
+    const RangeMap<Key, ValueY, MethodsY>& map_y, Size* usage,
+    bool post_merge) {
   // merge_whole_range is explained in ChangeRangeMap() above.
   const bool merge_whole_range = false;
-  typename RangeMap<Key, ValueY, MethodsY>::ConstIteratorRange range
-      = map_y.Find(start, limit);
+  typename RangeMap<Key, ValueY, MethodsY>::ConstIteratorRange range =
+      map_y.Find(start, limit);
   Key prev = start;
-  for (typename RangeMap<Key, ValueY, MethodsY>::const_iterator
-       i = range.first; i != range.second; ++i) {
+  for (typename RangeMap<Key, ValueY, MethodsY>::const_iterator i = range.first;
+       i != range.second; ++i) {
     const Key s = Methods::Compare(start, i.start()) < 0 ? i.start() : start;
     const Key l = Methods::Compare(i.limit(), limit) < 0 ? i.limit() : limit;
     auto i_v = Methods::Slice(i.start(), i.limit(), i.value(), s, l);

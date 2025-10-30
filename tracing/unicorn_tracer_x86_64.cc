@@ -118,10 +118,10 @@ const int kUnicornX86_64RegNames[] = {
 
 static_assert(std::size(kUnicornX86_64RegNames) == kNumUnicornX86_64Reg);
 
-std::array<const void *, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
-    const UContext<X86_64> &ucontext) {
-  const GRegSet<X86_64> &gregs = ucontext.gregs;
-  const FPRegSet<X86_64> &fpregs = ucontext.fpregs;
+std::array<const void*, kNumUnicornX86_64Reg> UnicornX86_64RegValue(
+    const UContext<X86_64>& ucontext) {
+  const GRegSet<X86_64>& gregs = ucontext.gregs;
+  const FPRegSet<X86_64>& fpregs = ucontext.fpregs;
 
   return {
       // GP Reg
@@ -215,7 +215,7 @@ uint64_t UnicornTracer<X86_64>::GetStackPointer() {
 
 template <>
 void UnicornTracer<X86_64>::InitUnicorn(
-    const TracerConfig<X86_64> &tracer_config) {
+    const TracerConfig<X86_64>& tracer_config) {
   UNICORN_CHECK(uc_open(UC_ARCH_X86, UC_MODE_64, &uc_));
 
   // TODO(ncbray): make this configurable.
@@ -231,9 +231,9 @@ void UnicornTracer<X86_64>::InitUnicorn(
 
 template <>
 void UnicornTracer<X86_64>::SetupSnippetMemory(
-    const Snapshot &snapshot, const UContext<X86_64> &ucontext,
-    const FuzzingConfig<X86_64> &fuzzing_config) {
-  for (const Snapshot::MemoryMapping &mm : snapshot.memory_mappings()) {
+    const Snapshot& snapshot, const UContext<X86_64>& ucontext,
+    const FuzzingConfig<X86_64>& fuzzing_config) {
+  for (const Snapshot::MemoryMapping& mm : snapshot.memory_mappings()) {
     // The stack is aliased with data1, and Unicorn doesn't like mapping the
     // same memory twice. Hack around this by skipping RW mappings.
     if (mm.perms() == MemoryPerms::RW()) continue;
@@ -247,13 +247,13 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
       fuzzing_config.data2_range.start_address,
       fuzzing_config.data2_range.num_bytes, MemoryPerms::RW()));
 
-  for (const Snapshot::MemoryMapping &mm : memory_mappings_) {
+  for (const Snapshot::MemoryMapping& mm : memory_mappings_) {
     MapMemory(mm.start_address(), mm.num_bytes(),
               MemoryPermsToUnicorn(mm.perms()));
   }
 
-  for (const Snapshot::MemoryBytes &mb : snapshot.memory_bytes()) {
-    const Snapshot::ByteData &data = mb.byte_values();
+  for (const Snapshot::MemoryBytes& mb : snapshot.memory_bytes()) {
+    const Snapshot::ByteData& data = mb.byte_values();
     UNICORN_CHECK(
         uc_mem_write(uc_, mb.start_address(), data.data(), data.size()));
   }
@@ -266,8 +266,8 @@ void UnicornTracer<X86_64>::SetupSnippetMemory(
 }
 
 template <>
-void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64> &ucontext,
-                                         RegisterGroupIOBuffer<X86_64> *eregs) {
+void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64>& ucontext,
+                                         RegisterGroupIOBuffer<X86_64>* eregs) {
   if (eregs != nullptr) {
     memset(eregs, 0, sizeof(*eregs));
     LOG_ERROR("extension registers are not supported on Unicorn");
@@ -275,22 +275,22 @@ void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64> &ucontext,
   // Not all registers will be read. Unicorn also does not set the upper bits of
   // st registers. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
-  std::array<const void *, kNumUnicornX86_64Reg> ptrs =
+  std::array<const void*, kNumUnicornX86_64Reg> ptrs =
       UnicornX86_64RegValue(ucontext);
   for (size_t i = 0; i < kNumUnicornX86_64Reg; ++i) {
     // It's a bit hackish to cast away the constness of UnicornX86_64RegValue,
     // but it's cleaner than having two const and non-const versions of the
     // function.
-    uc_reg_read(uc_, kUnicornX86_64RegNames[i], const_cast<void *>(ptrs[i]));
+    uc_reg_read(uc_, kUnicornX86_64RegNames[i], const_cast<void*>(ptrs[i]));
   }
 }
 
 template <>
-void UnicornTracer<X86_64>::SetRegisters(const UContext<X86_64> &ucontext) {
+void UnicornTracer<X86_64>::SetRegisters(const UContext<X86_64>& ucontext) {
   // uc_reg_write_batch does not seem to set all of the registers correctly,
   // (the higher XMM registers for example) but individual uc_reg_write calls
   // seem to work fine.
-  std::array<const void *, kNumUnicornX86_64Reg> ptrs =
+  std::array<const void*, kNumUnicornX86_64Reg> ptrs =
       UnicornX86_64RegValue(ucontext);
   for (size_t i = 0; i < kNumUnicornX86_64Reg; ++i) {
     uc_reg_write(uc_, kUnicornX86_64RegNames[i], ptrs[i]);
@@ -299,8 +299,8 @@ void UnicornTracer<X86_64>::SetRegisters(const UContext<X86_64> &ucontext) {
 
 template <>
 void UnicornTracer<X86_64>::SetInitialRegisters(
-    const UContext<X86_64> &ucontext) {
-  const FPRegSet<X86_64> &fpregs = ucontext.fpregs;
+    const UContext<X86_64>& ucontext) {
+  const FPRegSet<X86_64>& fpregs = ucontext.fpregs;
 
   constexpr size_t kFPRegsSize = sizeof(fpregs);
   static_assert(kFPRegsSize == 512,

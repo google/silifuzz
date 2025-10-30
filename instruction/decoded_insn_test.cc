@@ -169,7 +169,7 @@ TEST(DecodedInsn, get_reg) {
   const uint64_t kFSBaseValue = GenTestValue(17);
   const uint64_t kGSBaseValue = GenTestValue(18);
 
-  struct user_regs_struct regs {};
+  struct user_regs_struct regs{};
   regs.rax = kRAXValue;
   regs.rcx = kRCXValue;
   regs.rdx = kRDXValue;
@@ -250,7 +250,7 @@ TEST(DecodedInsn, memory_operand_address) {
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
             "add dword ptr fs:[rsi+rax*4+0x78], 0x1");
-  struct user_regs_struct regs {};
+  struct user_regs_struct regs{};
   regs.fs_base = 0x12000000;
   regs.rsi = 0x340000;
   regs.rax = 0x5600 >> 2;
@@ -284,7 +284,7 @@ TEST(DecodedInsn, may_have_split_lock) {
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
             "lock add dword ptr [rsi+rax*4+0x78], 0x1");
-  struct user_regs_struct regs {};
+  struct user_regs_struct regs{};
   regs.rsi = 0x340000;
   regs.rax = 0x5600 >> 2;
   // Address: 0x345678
@@ -413,7 +413,7 @@ TEST(DecodedInsn, may_access_region) {
   ASSERT_TRUE(insn.is_valid());
   EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
             "vcvtps2pd ymm11, xmmword ptr [rdx-0xa1000e]");
-  struct user_regs_struct regs {};
+  struct user_regs_struct regs{};
   regs.rdx = 0x10ff5;
   constexpr uintptr_t kVSyscallStart = 0xffffffffff600000ULL;
   constexpr uintptr_t kVSyscallSize = 0x800000;

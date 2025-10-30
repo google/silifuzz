@@ -25,7 +25,7 @@
 
 namespace silifuzz {
 
-uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms) {
+uint32_t MemoryPermsToUnicorn(const MemoryPerms& perms) {
   uint32_t prot = 0;
   if (perms.Has(MemoryPerms::kReadable)) {
     prot |= UC_PROT_READ;
@@ -39,11 +39,11 @@ uint32_t MemoryPermsToUnicorn(const MemoryPerms &perms) {
   return prot;
 }
 
-uint64_t GetExitPoint(const Snapshot &snapshot) {
-  const Snapshot::EndStateList &end_states = snapshot.expected_end_states();
+uint64_t GetExitPoint(const Snapshot& snapshot) {
+  const Snapshot::EndStateList& end_states = snapshot.expected_end_states();
   CHECK(!end_states.empty());
   uint64_t exit_point = end_states[0].endpoint().instruction_address();
-  for (const Snapshot::EndState &end_state : end_states) {
+  for (const Snapshot::EndState& end_state : end_states) {
     // Note: this should never happen for Snapshots produced with
     // InstructionsToSnapshot, but in theory it could happen for old x86_64
     // Snapshots.

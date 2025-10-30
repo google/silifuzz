@@ -33,7 +33,9 @@ TEST(TextProtoPrinter, TestBasic) {
 
   {
     TextProtoPrinter p;
-    { auto m = p.Message("foo"); }
+    {
+      auto m = p.Message("foo");
+    }
     EXPECT_STR_EQ(p.c_str(), "foo:{ } ");
   }
   {

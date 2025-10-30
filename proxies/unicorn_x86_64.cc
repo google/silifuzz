@@ -55,7 +55,7 @@ class BatchState {
   ArchFeatureGenerator<X86_64> feature_gen;
 };
 
-BatchState *batch;
+BatchState* batch;
 
 void BeforeBatch() {
   CHECK_EQ(batch, nullptr);
@@ -63,10 +63,10 @@ void BeforeBatch() {
 }
 
 absl::Status RunInstructions(absl::string_view instructions,
-                             const FuzzingConfig<X86_64> &fuzzing_config,
+                             const FuzzingConfig<X86_64>& fuzzing_config,
                              size_t max_inst_executed) {
-  DefaultDisassembler<X86_64> &disasm = batch->disasm;
-  ArchFeatureGenerator<X86_64> &feature_gen = batch->feature_gen;
+  DefaultDisassembler<X86_64>& disasm = batch->disasm;
+  ArchFeatureGenerator<X86_64>& feature_gen = batch->feature_gen;
 
   TracerConfig<X86_64> tracer_config{};
   UnicornTracer<X86_64> tracer;
@@ -86,7 +86,7 @@ absl::Status RunInstructions(absl::string_view instructions,
   // initialized and does not contain garbage when counting bit-diff and
   // bit-toggle features.
   ExtUContext<X86_64> registers{};
-  auto after_instruction = [&](TracerControl<X86_64> &control) {
+  auto after_instruction = [&](TracerControl<X86_64>& control) {
     if (instruction_pending) {
       control.GetRegisters(registers);
       feature_gen.AfterInstruction(instruction_id, registers);
@@ -96,12 +96,12 @@ absl::Status RunInstructions(absl::string_view instructions,
 
   bool instructions_are_in_range = true;
 
-  tracer.SetBeforeExecutionCallback([&](TracerControl<X86_64> &control) {
+  tracer.SetBeforeExecutionCallback([&](TracerControl<X86_64>& control) {
     control.GetRegisters(registers);
     feature_gen.BeforeExecution(registers);
   });
 
-  tracer.SetBeforeInstructionCallback([&](TracerControl<X86_64> &control) {
+  tracer.SetBeforeInstructionCallback([&](TracerControl<X86_64>& control) {
     after_instruction(control);
 
     // Read the next instruction.
@@ -131,7 +131,7 @@ absl::Status RunInstructions(absl::string_view instructions,
     instruction_pending = true;
   });
 
-  tracer.SetAfterExecutionCallback([&](TracerControl<X86_64> &control) {
+  tracer.SetAfterExecutionCallback([&](TracerControl<X86_64>& control) {
     // Flush the last instruction.
     after_instruction(control);
 
@@ -167,15 +167,15 @@ absl::Status RunInstructions(absl::string_view instructions,
 
 }  // namespace silifuzz
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
+extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
   silifuzz::BeforeBatch();
   return 0;
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   const size_t max_inst_executed = 1000;
   absl::Status status = silifuzz::RunInstructions(
-      absl::string_view(reinterpret_cast<const char *>(data), size),
+      absl::string_view(reinterpret_cast<const char*>(data), size),
       silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::X86_64>, max_inst_executed);
   if (!status.ok()) {
     LOG_ERROR(status.message());
