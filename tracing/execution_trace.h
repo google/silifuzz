@@ -172,26 +172,26 @@ absl::Status CaptureTrace(Tracer<Arch>* tracer, Disassembler& disasm,
   // and force page alignment in case we add a preamble later.
   bool insn_out_of_bounds = false;
   execution_trace.Reset();
-  tracer->SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
-    // The instruction hasn't executed yet, capture the previous state.
-    control.GetRegisters(execution_trace.LastContext(),
-                         &execution_trace.LastContext().eregs);
+  tracer->SetBeforeInstructionCallback(
+      [&](TracerControl<Arch>& control, uint64_t address) {
+        // The instruction hasn't executed yet, capture the previous state.
+        control.GetRegisters(execution_trace.LastContext(),
+                             &execution_trace.LastContext().eregs);
 
-    InstructionInfo<Arch>& info = execution_trace.NextInfo();
-    DisassembleCurrentInstruction(control, disasm, info.bytes);
-    const uint64_t address = control.GetInstructionPointer();
-    if (!control.InstructionIsInRange(address, disasm.InstructionSize())) {
-      control.Stop();
-      insn_out_of_bounds = true;
-    }
+        InstructionInfo<Arch>& info = execution_trace.NextInfo();
+        DisassembleCurrentInstruction(control, disasm, info.bytes, address);
+        if (!control.InstructionIsInRange(address, disasm.InstructionSize())) {
+          control.Stop();
+          insn_out_of_bounds = true;
+        }
 
-    info.address = address;
-    info.instruction_id = disasm.InstructionID();
-    info.size = disasm.InstructionSize();
-    info.can_branch = disasm.CanBranch();
-    info.can_load = disasm.CanLoad();
-    info.can_store = disasm.CanStore();
-  });
+        info.address = address;
+        info.instruction_id = disasm.InstructionID();
+        info.size = disasm.InstructionSize();
+        info.can_branch = disasm.CanBranch();
+        info.can_load = disasm.CanLoad();
+        info.can_store = disasm.CanStore();
+      });
   // Capture the final state.
   tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
     control.GetRegisters(execution_trace.LastContext(),
@@ -211,11 +211,11 @@ absl::Status CaptureTrace(Tracer<Arch>* tracer, Disassembler& disasm,
 
 template <typename Arch>
 void DisassembleCurrentInstruction(TracerControl<Arch>& tracer,
-                                   Disassembler& disasm, uint8_t* buf) {
-  const uint64_t addr = tracer.GetInstructionPointer();
+                                   Disassembler& disasm, uint8_t* buf,
+                                   uint64_t address) {
   const uint64_t max_size = MaxInstructionLength<Arch>();
-  tracer.ReadMemory(addr, buf, max_size);
-  disasm.Disassemble(addr, buf, max_size);
+  tracer.ReadMemory(address, buf, max_size);
+  disasm.Disassemble(address, buf, max_size);
 }
 
 }  // namespace silifuzz

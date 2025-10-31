@@ -46,18 +46,17 @@ absl::Status TraceSnippetWithSkip(TracerType tracer_type,
   DefaultDisassembler<Arch> disasm;
   RETURN_IF_NOT_OK(tracer->InitSnippet(instructions));
 
-  tracer->SetBeforeInstructionCallback([&](TracerControl<Arch>& control) {
-    if (instructions_executed == skip) {
-      uint8_t buf[16];  // enough for 15 bytes
-      DisassembleCurrentInstruction(control, disasm, buf);
-      const uint64_t address = control.GetInstructionPointer();
-      control.SetInstructionPointer(address + disasm.InstructionSize());
-    }
-    const uint64_t address = control.GetInstructionPointer();
-    if (control.IsInsideCode(address)) {
-      instructions_executed++;
-    }
-  });
+  tracer->SetBeforeInstructionCallback(
+      [&](TracerControl<Arch>& control, uint64_t address) {
+        if (instructions_executed == skip) {
+          uint8_t buf[16];  // enough for 15 bytes
+          DisassembleCurrentInstruction(control, disasm, buf, address);
+          control.SetInstructionPointer(address + disasm.InstructionSize());
+        }
+        if (control.IsInsideCode(address)) {
+          instructions_executed++;
+        }
+      });
   tracer->SetAfterExecutionCallback([&](TracerControl<Arch>& control) -> void {
     control.GetRegisters(ucontext, &ucontext.eregs);
     memory_checksum = control.PartialChecksumOfMutableMemory();

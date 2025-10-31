@@ -78,6 +78,8 @@ template <typename Arch>
 class Tracer {
  public:
   using UserCallback = std::function<void(TracerControl<Arch>& tracer)>;
+  using BeforeInstructionCallback =
+      std::function<void(TracerControl<Arch>&, uint64_t addr)>;
   Tracer<Arch>() {
     tracer_control_ =
         std::unique_ptr<TracerControl<Arch>>(new TracerControl<Arch>(*this));
@@ -102,7 +104,7 @@ class Tracer {
     }
     before_execution_callback_ = std::move(callback);
   }
-  void SetBeforeInstructionCallback(UserCallback callback) {
+  void SetBeforeInstructionCallback(BeforeInstructionCallback callback) {
     if (before_instruction_callback_) {
       LOG_FATAL("BeforeInstruction callback already set");
     }
@@ -165,9 +167,13 @@ class Tracer {
       before_execution_callback_(*tracer_control_);
     }
   }
-  void BeforeInstruction() {
+  // Include the address in our callback.  There is a bug (b/456493432) in our
+  // version of unicorn that can cause the address returned by the tracer to be
+  // different than the value of GetInstructionPointer, so we need to rely on
+  // the tracer's value rather than the value of GetInstructionPointer()
+  void BeforeInstruction(uint64_t addr) {
     if (before_instruction_callback_) {
-      before_instruction_callback_(*tracer_control_);
+      before_instruction_callback_(*tracer_control_, addr);
     }
   }
   void AfterExecution() {
@@ -200,7 +206,7 @@ class Tracer {
 
  private:
   Tracer<Arch>::UserCallback before_execution_callback_;
-  Tracer<Arch>::UserCallback before_instruction_callback_;
+  Tracer<Arch>::BeforeInstructionCallback before_instruction_callback_;
   Tracer<Arch>::UserCallback after_execution_callback_;
 
   std::unique_ptr<TracerControl<Arch>> tracer_control_;

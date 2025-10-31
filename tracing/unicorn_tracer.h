@@ -145,6 +145,9 @@ class UnicornTracer final : public Tracer<Arch> {
     if (pc != code_end_address_) {
       return absl::InternalError("execution did not reach end of code snippet");
     }
+    if (desynced_pc_) {
+      return absl::InternalError("Execution diverged, erroring out of caution");
+    }
 
     RETURN_IF_NOT_OK(ValidateArchEndState());
 
@@ -268,7 +271,10 @@ class UnicornTracer final : public Tracer<Arch> {
   absl::Status ValidateArchEndState();
 
   void HookCode(uint64_t address, uint32_t size) {
-    if (num_instructions_ >= max_instructions_) {
+    if (address != GetInstructionPointer()) {
+      Stop();
+      desynced_pc_ = true;
+    } else if (num_instructions_ >= max_instructions_) {
       // QEMU x86_64 may not always respect uc_emu_stop().
       // Similar to Unicorn, we'll call stop repeatedly once the limit has been
       // passed.
@@ -278,7 +284,7 @@ class UnicornTracer final : public Tracer<Arch> {
     } else if (!should_be_stopped_) {
       // If Stop() has been called, we suppress further callbacks. Unicorn may
       // not stop immediately.
-      BeforeInstruction();
+      BeforeInstruction(address);
     }
     num_instructions_++;
   }
@@ -294,6 +300,9 @@ class UnicornTracer final : public Tracer<Arch> {
   uc_hook hook_code_;
 
   std::vector<MemoryMapping> memory_mappings_;
+
+  // Has the program counter desynced?
+  bool desynced_pc_ = false;
 };
 
 }  // namespace silifuzz

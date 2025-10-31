@@ -101,35 +101,35 @@ absl::Status RunInstructions(absl::string_view instructions,
     feature_gen.BeforeExecution(registers);
   });
 
-  tracer.SetBeforeInstructionCallback([&](TracerControl<X86_64>& control) {
-    after_instruction(control);
+  tracer.SetBeforeInstructionCallback(
+      [&](TracerControl<X86_64>& control, uint64_t address) {
+        after_instruction(control);
 
-    // Read the next instruction.
-    // 16 bytes should hold any x86-64 instruction. The actual limit should
-    // be 15 bytes, but keep things as nice powers of two.
-    uint8_t insn[16];
-    uint64_t address = control.GetInstructionPointer();
-    // Sometimes Unicorn will invoke this function with an invalid max_size
-    // when it has absolutely no idea what the instruction does. (AVX512 for
-    // example.) It appears to be some sort of error code gone wrong?
-    control.ReadMemory(address, insn, kMaxX86InsnLength);
+        // Read the next instruction.
+        // 16 bytes should hold any x86-64 instruction. The actual limit should
+        // be 15 bytes, but keep things as nice powers of two.
+        uint8_t insn[16];
+        // Sometimes Unicorn will invoke this function with an invalid max_size
+        // when it has absolutely no idea what the instruction does. (AVX512 for
+        // example.) It appears to be some sort of error code gone wrong?
+        control.ReadMemory(address, insn, kMaxX86InsnLength);
 
-    // Decompile the next instruction.
-    if (disasm.Disassemble(address, insn, kMaxX86InsnLength)) {
-      instruction_id = disasm.InstructionID();
-      CHECK_LT(instruction_id, disasm.NumInstructionIDs());
-      // If an instruction doesn't entirely lie within the code snippet,
-      // we're likely executing an incomplete instruction that includes
-      // bytes immediately after the snippet. We try to filter out this
-      // case because it can make the snippet hard to disassemble.
-      instructions_are_in_range &=
-          control.InstructionIsInRange(address, disasm.InstructionSize());
-    } else {
-      instruction_id = kInvalidInstructionId;
-    }
+        // Disassemble the next instruction.
+        if (disasm.Disassemble(address, insn, kMaxX86InsnLength)) {
+          instruction_id = disasm.InstructionID();
+          CHECK_LT(instruction_id, disasm.NumInstructionIDs());
+          // If an instruction doesn't entirely lie within the code snippet,
+          // we're likely executing an incomplete instruction that includes
+          // bytes immediately after the snippet. We try to filter out this
+          // case because it can make the snippet hard to disassemble.
+          instructions_are_in_range &=
+              control.InstructionIsInRange(address, disasm.InstructionSize());
+        } else {
+          instruction_id = kInvalidInstructionId;
+        }
 
-    instruction_pending = true;
-  });
+        instruction_pending = true;
+      });
 
   tracer.SetAfterExecutionCallback([&](TracerControl<X86_64>& control) {
     // Flush the last instruction.

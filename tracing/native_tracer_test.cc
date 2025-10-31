@@ -62,7 +62,9 @@ TEST(NativeTracerTest, NoInstructions) {
   tracer.SetBeforeExecutionCallback(
       [&](TracerControl<Host>& tracer) { before_execution_count++; });
   tracer.SetBeforeInstructionCallback(
-      [&](TracerControl<Host>& tracer) { before_instruction_count++; });
+      [&](TracerControl<Host>& tracer, uint64_t address) {
+        before_instruction_count++;
+      });
   tracer.SetAfterExecutionCallback(
       [&](TracerControl<Host>& tracer) { after_execution_count++; });
   ASSERT_THAT(tracer.Run(0), IsOk());
@@ -82,7 +84,9 @@ TEST(NativeTracerTest, Callbacks) {
   tracer.SetBeforeExecutionCallback(
       [&](TracerControl<Host>& tracer) { before_execution_count++; });
   tracer.SetBeforeInstructionCallback(
-      [&](TracerControl<Host>& tracer) { before_instruction_count++; });
+      [&](TracerControl<Host>& tracer, uint64_t address) {
+        before_instruction_count++;
+      });
   tracer.SetAfterExecutionCallback(
       [&](TracerControl<Host>& tracer) { after_execution_count++; });
   ASSERT_THAT(tracer.Run(3), IsOk());
@@ -104,9 +108,10 @@ TEST(NativeTracerTest, UserStop) {
       GetTestSnippet<Host>(TestSnapshot::kSetThreeRegisters);
   NativeTracer tracer;
   int count = 0;
-  tracer.SetBeforeInstructionCallback([&](TracerControl<Host>& tracer) {
-    if (++count == 2) tracer.Stop();
-  });
+  tracer.SetBeforeInstructionCallback(
+      [&](TracerControl<Host>& tracer, uint64_t address) {
+        if (++count == 2) tracer.Stop();
+      });
   ASSERT_THAT(tracer.InitSnippet(instructions), IsOk());
   ASSERT_THAT(tracer.Run(1000), IsOk());
   EXPECT_EQ(count, 2);
@@ -356,14 +361,14 @@ TEST(NativeTracerTest, SkipInstruction) {
     tracer.SetBeforeExecutionCallback([&](TracerControl<Host>& tracer) {
       tracer.GetRegisters(init_ucontext);
     });
-    tracer.SetBeforeInstructionCallback([&](TracerControl<Host>& tracer) {
-      uint64_t address = tracer.GetInstructionPointer();
-      if (instruction == skip) {
-        address += size;
-        tracer.SetInstructionPointer(address);
-      }
-      if (tracer.IsInsideCode(address)) instruction++;
-    });
+    tracer.SetBeforeInstructionCallback(
+        [&](TracerControl<Host>& tracer, uint64_t address) {
+          if (instruction == skip) {
+            address += size;
+            tracer.SetInstructionPointer(address);
+          }
+          if (tracer.IsInsideCode(address)) instruction++;
+        });
     // Get final register state.
     UContext<Host> final_ucontext;
     tracer.SetAfterExecutionCallback([&](TracerControl<Host>& tracer) {

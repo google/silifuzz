@@ -109,24 +109,24 @@ absl::Status RunAArch64Instructions(
     feature_gen.BeforeExecution(registers);
   });
 
-  tracer.SetBeforeInstructionCallback([&](TracerControl<AArch64>& control) {
-    after_instruction(control);
+  tracer.SetBeforeInstructionCallback(
+      [&](TracerControl<AArch64>& control, uint64_t address) {
+        after_instruction(control);
 
-    // Read the next instruction.
-    uint8_t insn[4];
-    uint64_t address = control.GetInstructionPointer();
-    control.ReadMemory(address, insn, sizeof(insn));
+        // Read the next instruction.
+        uint8_t insn[4];
+        control.ReadMemory(address, insn, sizeof(insn));
 
-    // Decompile the next instruction.
-    if (disasm.Disassemble(address, insn, sizeof(insn))) {
-      instruction_id = disasm.InstructionID();
-      CHECK_LT(instruction_id, disasm.NumInstructionIDs());
-    } else {
-      instruction_id = kInvalidInstructionId;
-    }
+        // Disassemble the next instruction.
+        if (disasm.Disassemble(address, insn, sizeof(insn))) {
+          instruction_id = disasm.InstructionID();
+          CHECK_LT(instruction_id, disasm.NumInstructionIDs());
+        } else {
+          instruction_id = kInvalidInstructionId;
+        }
 
-    instruction_pending = true;
-  });
+        instruction_pending = true;
+      });
 
   tracer.SetAfterExecutionCallback([&](TracerControl<AArch64>& control) {
     // Flush the last instruction.

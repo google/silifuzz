@@ -302,7 +302,7 @@ absl::Status NativeTracer::Run(size_t max_insn_executed) {
             if (++traced_insn_count > max_insn_executed) {
               insn_limit_reached_ = true;
             } else {
-              BeforeInstruction();
+              BeforeInstruction(addr);
               addr = GetInstructionPointer();
             }
           }
