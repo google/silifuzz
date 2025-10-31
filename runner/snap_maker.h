@@ -19,8 +19,10 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/time/time.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./player/play_options.h"
 #include "./player/trace_options.h"
 #include "./util/cpu_id.h"
 
@@ -54,6 +56,10 @@ class SnapMaker {
 
     // See: make_snapshot.h
     int cpu = kAnyCPUId;
+
+    // Amount of CPU that snapshot's execution is allowed to spend before
+    // we consider it a runaway.
+    absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget;
 
     // If true, the snap maker does not rely on the runner to
     // discover data mapping. There are still use cases for old runner

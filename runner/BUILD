@@ -383,6 +383,7 @@ cc_library(
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//common:snapshot_printer",
+        "@silifuzz//player:play_options",
         "@silifuzz//player:trace_options",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//snap/gen:reserved_memory_mappings",
@@ -399,6 +400,7 @@ cc_library(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
     ],
 )
 
@@ -450,6 +452,7 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
+        "@silifuzz//player:play_options",
         "@silifuzz//player:trace_options",
         "@silifuzz//runner:snap_maker",
         "@silifuzz//util:arch",
@@ -459,6 +462,7 @@ cc_library(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
     ],
 )
 

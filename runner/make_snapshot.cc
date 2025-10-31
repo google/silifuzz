@@ -52,6 +52,7 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot,
   opts.max_pages_to_add = making_config.max_pages_to_add;
   opts.num_verify_attempts = making_config.num_verify_attempts;
   opts.cpu = making_config.cpu;
+  opts.cpu_time_budget = making_config.cpu_time_budget;
   opts.enforce_fuzzing_config = making_config.enforce_fuzzing_config;
   SnapMaker maker(opts);
 

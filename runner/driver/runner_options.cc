@@ -22,17 +22,12 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "./player/play_options.h"
 #include "./util/checks.h"
 
 namespace silifuzz {
 namespace {
 
-// Amount of CPU that snapshot's execution is allowed to spend before
-// we consider it a runaway.
-// NOTE: there's no true "per-snapshot" timeout in the runner, only per-process
-// timeout. In case of *One() family of methods exactly one snapshot gets
-// executed so the per-process timeout is more or less the same as per-snapshot.
-constexpr inline absl::Duration kPerSnapPlayCpuTimeBudget = absl::Seconds(1);
 // Tracing is much slower so allocate more time.
 constexpr inline absl::Duration kPerSnapTraceCpuTimeBudget = absl::Seconds(10);
 
@@ -45,16 +40,26 @@ const RunnerOptions& RunnerOptions::Default() {
 
 RunnerOptions RunnerOptions::PlayOptions(absl::string_view snap_id, int cpu) {
   return RunnerOptions()
-      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(PlayOptions::Default().run_time_budget)
       .set_cpu(cpu)
-      .set_extra_argv({"--snap_id", std::string(snap_id),
-                       // TODO(b/227770288): [bug] Play more than once to ensure
-                       // determinism.
-                       "--num_iterations", "3"});
+      .set_extra_argv(
+          {"--snap_id", std::string(snap_id),
+           // Play more than once to ensure determinism.
+           //
+           // We previously observed snapshots that pass the first iteration but
+           // fail subsequently. For example, one such snapshot has a
+           // non-deterministic ES (segment register) end state. The x86 `iret`
+           // instruction has a particular arcane detail: it may clear the
+           // segment selector value on return to user, causing any segment
+           // register read to return an invalid value. This happens
+           // occasionally if an interrupt (e.g. minor page fault) happens
+           // during execution.
+           "--num_iterations", "3"});
 }
 
 RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
-                                         size_t max_pages_to_add, int cpu) {
+                                         size_t max_pages_to_add, int cpu,
+                                         absl::Duration cpu_time_budget) {
   std::vector<std::string> extra_argv = {"--snap_id", std::string(snap_id),
                                          "--num_iterations", "1", "--make"};
 
@@ -66,7 +71,7 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
   }
 
   return RunnerOptions()
-      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(cpu_time_budget)
       .set_cpu(cpu)
       .set_extra_argv(extra_argv)
       // Unless VLOG is on discard human-readable failure details
@@ -75,9 +80,10 @@ RunnerOptions RunnerOptions::MakeOptions(absl::string_view snap_id,
       .set_map_stderr_to_dev_null(!VLOG_IS_ON(3));
 }
 
-RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id, int cpu) {
+RunnerOptions RunnerOptions::VerifyOptions(absl::string_view snap_id, int cpu,
+                                           absl::Duration cpu_time_budget) {
   return RunnerOptions()
-      .set_cpu_time_budget(kPerSnapPlayCpuTimeBudget)
+      .set_cpu_time_budget(cpu_time_budget)
       .set_cpu(cpu)
       .set_extra_argv(
           {"--snap_id", std::string(snap_id), "--num_iterations", "3"})

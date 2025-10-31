@@ -60,6 +60,7 @@ cc_library(
     deps = [
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_util",
+        "@silifuzz//player:play_options",
         "@silifuzz//player:trace_options",
         "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
@@ -73,6 +74,7 @@ cc_library(
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/time",
     ],
 )
 

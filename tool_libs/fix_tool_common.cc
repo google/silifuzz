@@ -52,6 +52,7 @@ absl::StatusOr<Snapshot> RemakeAndVerify(const Snapshot& snapshot,
   config.enforce_fuzzing_config = options.enforce_fuzzing_config;
   config.trace.x86_filter_non_canonical_evex_sp =
       options.x86_filter_non_canonical_evex_sp;
+  config.cpu_time_budget = options.cpu_time_budget;
 
   return MakeSnapshot(snapshot, config);
 }

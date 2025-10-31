@@ -134,7 +134,7 @@ absl::StatusOr<Snapshot> SnapMaker::RecordEndState(const Snapshot& snapshot) {
       RunnerDriver recorder,
       RunnerDriverFromSnapshot(snapified, opts_.runner_path));
   RunnerDriver::RunResult record_result =
-      recorder.MakeOne(snapified.id(), 0, opts_.cpu);
+      recorder.MakeOne(snapified.id(), 0, opts_.cpu, opts_.cpu_time_budget);
   if (record_result.success()) {
     RETURN_IF_NOT_OK(snapified.IsComplete());
     return snapified;
@@ -200,8 +200,9 @@ absl::Status SnapMaker::VerifyPlaysDeterministically(
   // Current code plays the snapshot several times with ASLR enabled which
   // takes care of vDSO mappings and stack but the runner code itself is
   // always placed at the fixed address (--image-base linker arg).
-  RunnerDriver::RunResult verify_result = driver.VerifyOneRepeatedly(
-      snapified.id(), opts_.num_verify_attempts, opts_.cpu);
+  RunnerDriver::RunResult verify_result =
+      driver.VerifyOneRepeatedly(snapified.id(), opts_.num_verify_attempts,
+                                 opts_.cpu, opts_.cpu_time_budget);
   if (!verify_result.success()) {
     if (VLOG_IS_ON(1)) {
       LinePrinter lp(LinePrinter::StdErrPrinter);
@@ -310,8 +311,9 @@ absl::StatusOr<Endpoint> SnapMaker::MakeLoop(Snapshot* snapshot,
     const int runner_max_pages_to_add =
         opts_.compatibility_mode ? 0 : opts_.max_pages_to_add;
 
-    RunnerDriver::RunResult make_result = runner_driver.MakeOne(
-        snapshot->id(), runner_max_pages_to_add, opts_.cpu);
+    RunnerDriver::RunResult make_result =
+        runner_driver.MakeOne(snapshot->id(), runner_max_pages_to_add,
+                              opts_.cpu, opts_.cpu_time_budget);
     if (make_result.success()) {
       // In practice this can happen if the snapshot hits just the right
       // sequence of instructions to call _exit(0) either by jumping into

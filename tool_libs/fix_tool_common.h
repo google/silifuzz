@@ -23,7 +23,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "./common/snapshot.h"
+#include "./player/play_options.h"
 
 namespace silifuzz {
 namespace fix_tool_internal {
@@ -126,6 +128,10 @@ struct FixupSnapshotOptions {
   // pointer, write to AVX registers, and are non-canonical (i.e. x_bar bit is
   // clear).
   bool x86_filter_non_canonical_evex_sp = false;
+
+  // Amount of CPU that snapshot's execution is allowed to spend before
+  // we consider it a runaway.
+  absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget;
 };
 
 // Fixes up `input` and updates fix tool statistics in `*counters`.

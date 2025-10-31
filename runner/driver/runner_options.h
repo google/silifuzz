@@ -21,6 +21,7 @@
 
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
+#include "./player/play_options.h"
 #include "./util/cpu_id.h"
 
 namespace silifuzz {
@@ -85,11 +86,15 @@ class RunnerOptions {
                                    int cpu = kAnyCPUId);
   // If 'max_pages_to_add' is not 0, the runner adds up to that many pages
   // during making.
-  static RunnerOptions MakeOptions(absl::string_view snap_id,
-                                   size_t max_pages_to_add = 0,
-                                   int cpu = kAnyCPUId);
-  static RunnerOptions VerifyOptions(absl::string_view snap_id,
-                                     int cpu = kAnyCPUId);
+  // `cpu_time_budget` is the amount of CPU that snapshot's execution is allowed
+  // to spend before we consider it a runaway.
+  static RunnerOptions MakeOptions(
+      absl::string_view snap_id, size_t max_pages_to_add = 0,
+      int cpu = kAnyCPUId,
+      absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget);
+  static RunnerOptions VerifyOptions(
+      absl::string_view snap_id, int cpu = kAnyCPUId,
+      absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget);
   static RunnerOptions TraceOptions(absl::string_view snap_id,
                                     size_t num_iterations = 1,
                                     int cpu = kAnyCPUId);

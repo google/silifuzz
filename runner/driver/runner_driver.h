@@ -27,9 +27,11 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "./common/harness_tracer.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./player/play_options.h"
 #include "./runner/driver/runner_options.h"
 #include "./util/checks.h"
 #include "./util/cpu_id.h"
@@ -195,8 +197,12 @@ class RunnerDriver {
   // Making fails if more pages are required. If 'max_pages_to_add' is 0,
   // the runner does not add any new page and the caller of the runner driver
   // need to add necessary pages in the making process.
+  // `cpu_time_budget` is the amount of CPU that snapshot's execution is allowed
+  // to spend before we consider it a runaway.
   RunResult MakeOne(absl::string_view snap_id, size_t max_pages_to_add = 0,
-                    int cpu = kAnyCPUId) const;
+                    int cpu = kAnyCPUId,
+                    absl::Duration cpu_time_budget =
+                        PlayOptions::Default().run_time_budget) const;
 
   // Traces `snap_id` in single-step mode and invokes the provided callback for
   // every instruction of the snapshot. This runs the snapshot `num_iterations`
@@ -206,8 +212,12 @@ class RunnerDriver {
 
   // Ensures that `snap_id` replays deterministically.
   // REQUIRES snap_id is not empty.
-  RunResult VerifyOneRepeatedly(absl::string_view snap_id, int num_attempts,
-                                int cpu = kAnyCPUId) const;
+  // `cpu_time_budget` is the amount of CPU that snapshot's execution is allowed
+  // to spend before we consider it a runaway.
+  RunResult VerifyOneRepeatedly(
+      absl::string_view snap_id, int num_attempts, int cpu = kAnyCPUId,
+      absl::Duration cpu_time_budget =
+          PlayOptions::Default().run_time_budget) const;
 
   // Runs the runner binary with the provided runner_options.
   //

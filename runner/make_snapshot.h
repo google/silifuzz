@@ -15,12 +15,15 @@
 #ifndef THIRD_PARTY_SILIFUZZ_RUNNER_MAKE_SNAPSHOT_H_
 #define THIRD_PARTY_SILIFUZZ_RUNNER_MAKE_SNAPSHOT_H_
 
+#include <optional>
 #include <string>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/time/time.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./player/play_options.h"
 #include "./player/trace_options.h"
 #include "./util/arch.h"
 #include "./util/cpu_id.h"
@@ -46,6 +49,10 @@ struct MakingConfig {
   // on a machine with a known bad CPU and need to run the making process on a
   // known good CPU.
   int cpu = kAnyCPUId;
+
+  // Amount of CPU that snapshot's execution is allowed to spend before
+  // we consider it a runaway.
+  absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget;
 
   // If true, enforce fuzzing config. Snapshots with non-conforming
   // mappings are rejected.

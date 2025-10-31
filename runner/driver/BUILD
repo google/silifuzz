@@ -26,6 +26,7 @@ cc_library(
     srcs = ["runner_options.cc"],
     hdrs = ["runner_options.h"],
     deps = [
+        "@silifuzz//player:play_options",
         "@silifuzz//util:checks",
         "@silifuzz//util:cpu_id",
         "@abseil-cpp//absl/log",
@@ -43,6 +44,7 @@ cc_library(
         "@silifuzz//common:harness_tracer",
         "@silifuzz//common:snapshot",
         "@silifuzz//common:snapshot_enums",
+        "@silifuzz//player:play_options",
         "@silifuzz//player:player_result_proto",
         "@silifuzz//proto:snapshot_execution_result_cc_proto",
         "@silifuzz//snap/gen:relocatable_snap_generator",
