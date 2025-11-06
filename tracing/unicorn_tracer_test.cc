@@ -20,7 +20,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/log/check.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
