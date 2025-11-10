@@ -64,7 +64,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b0011'1111'1100'0000'0000'0000'0000'0000,
         .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
     },
-    // C4.1.96 Loads and Stores
+    // Section: Loads and Stores
     // Load/store register (pac)
     // Filter out PAC memory ops
     // Older versions of QEMU also treat these loads and stores as if they were
@@ -78,7 +78,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         // size (bits 30:31) != 11 is "unallocated"
         // V (bit 26) != 0 is "unallocated"
     },
-    // C4.1.93 Branches, Exception Generating and System instructions
+    // Section: Branches, Exception Generating and System instructions
     // Unconditional branch (register)
     // Filter out PAC branches
     // This should cover:
@@ -95,7 +95,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1110'0000'0000'0000'1000'0000'0000,
         .bits = 0b1101'0110'0000'0000'0000'1000'0000'0000,
     },
-    // C4.1.93 Branches, Exception Generating and System instructions
+    // Section: Branches, Exception Generating and System instructions
     // Hints
     // Should cover zero argument AUT* and PAC*
     // CRm = 00x1, op2=xxx
@@ -103,7 +103,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1111'1111'1111'1111'1101'0001'1111,
         .bits = 0b1101'0101'0000'0011'0010'0001'0001'1111,
     },
-    // C4.1.94 Data Processing -- Register
+    // Section: Data Processing -- Register
     // Data-processing (1 source)
     // Should cover single argument AUT* and PAC*
     // sf = 1, S=0, opcode2 = 00001,
@@ -116,7 +116,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .bits = 0b1101'1010'1100'0001'0000'0000'0000'0000,
         //      0b1101'1010'1100'0001'xxxx'xxxx'xxxx'xxxx
     },
-    // C4.1.94.1 Data-processing (2 source)
+    // Section: Data-processing (2 source)
     // - Pointer Authentication Code, using Generic key: PACGA
     // sf = 1, S=0, opcode = 001100
     {
@@ -132,7 +132,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1111'1111'1111'1111'1111'1111'1111,
         .bits = 0b1101'0101'0000'0011'0010'0000'0101'1111,
     },
-    // C4.1.66 Branches, Exception Generating and System instructions
+    // Section: Branches, Exception Generating and System instructions
     // Hints
     // WFI is problematic because it either will wait for an interrupt or it
     // will trap into the kernel. Waiting will cause some proxies to deadlock,
@@ -144,7 +144,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1111'1111'1111'1111'1111'1111'1111,
         .bits = 0b1101'0101'0000'0011'0010'0000'0111'1111,
     },
-    // C4.1.66 Branches, Exception Generating and System instructions
+    // Section: Branches, Exception Generating and System instructions
     // System instructions with register argument
     // This should cover WFET and WFIT, which are WFE and WFI with timeouts and
     // are banned for the same reason as WFE and WFI.
@@ -157,19 +157,19 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
     // The following parts of the instruction space either do not have specified
     // instructions or contain instructions that should always fault.
     //
-    // C4.1.1 Reserved
+    // Section: Reserved
     // UDF will always fault
     {
         .mask = 0b1001'1110'0000'0000'0000'0000'0000'0000,
         .bits = 0b0000'0000'0000'0000'0000'0000'0000'0000,
     },
-    // C4.1 A64 instruction set encoding
+    // Section: A64 instruction set encoding
     // op1 = 0001 is "unallocated"
     {
         .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
         .bits = 0b0000'0010'0000'0000'0000'0000'0000'0000,
     },
-    // C4.1 A64 instruction set encoding
+    // Section: A64 instruction set encoding
     // op1 = 0011 is "unallocated"
     {
         .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
@@ -180,7 +180,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
     // instructions but more complicated and don't cover as much of the space as
     // the previous section.
     //
-    // C4.1.67 Loads and Stores
+    // Section: Loads and Stores
     // Atomic memory operations
     // The allocated / unallocated boundary for atomics is complicated, but we
     // want to cut out the big chunks of unallocated space to increase the
@@ -204,7 +204,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b0011'1111'0010'0000'0000'1100'0000'0000,
         .bits = 0b0011'1100'0010'0000'0000'0000'0000'0000,
     },
-    // C4.1.78 SVE Memory - Contiguous Load
+    // Section: SVE Memory - Contiguous Load
     // SVE contiguous non-fault load (scalar plus immediate)
     // Non-faulting memory operations mean that the making process will not know
     // all the memory pages a test may touch. When a test containing a
@@ -218,7 +218,7 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1110'0001'0000'1110'0000'0000'0000,
         .bits = 0b1010'0100'0001'0000'1010'0000'0000'0000,
     },
-    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // Section: SVE Memory - 32-bit Gather and Unsized Contiguous
     // SVE 32-bit gather load halfwords (scalar plus 32-bit scaled offsets)
     // "First fault" loads have similar problems to non-faulting loads because
     // any load after the first one will not explicitly fault.
@@ -226,13 +226,13 @@ constexpr BitMatcher<uint32_t> kBannedInstructions[] = {
         .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
         .bits = 0b1000'0100'1010'0000'0010'0000'0000'0000,
     },
-    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // Section: SVE Memory - 32-bit Gather and Unsized Contiguous
     // SVE 32-bit gather load words (scalar plus 32-bit scaled offsets)
     {
         .mask = 0b1111'1111'1010'0000'1010'0000'0000'0000,
         .bits = 0b1000'0101'0010'0000'0010'0000'0000'0000,
     },
-    // C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
+    // Section: SVE Memory - 32-bit Gather and Unsized Contiguous
     // SVE 32-bit gather load (scalar plus 32-bit unscaled offsets)
     // This is a bit complicated to define because if bits 24 and 23 are both 1,
     // this would be a prefetch. So we define the three masks around this case.
@@ -400,7 +400,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.68 Data Processing -- Register
+        // Section: Data Processing -- Register
         // Data-processing (1 source)
         .pattern =
             {
@@ -416,7 +416,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.68 Data Processing -- Register
+        // Section: Data Processing -- Register
         // Data-processing (1 source)
         .pattern =
             {
@@ -433,7 +433,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.68 Data Processing -- Register
+        // Section: Data Processing -- Register
         // Add/subtract (extended register)
         .pattern =
             {
@@ -449,7 +449,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.68 Data Processing -- Register
+        // Section: Data Processing -- Register
         // Floating-point data-processing (2 source)
         .pattern =
             {
@@ -465,7 +465,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.68 Data Processing -- Register
+        // Section: Data Processing -- Register
         // Floating-point data-processing (3 source)
         .pattern =
             {
@@ -481,7 +481,7 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
             },
     },
     {
-        // C4.1.69 Data Processing -- Scalar Floating-Point and Advanced SIMD
+        // Section: Data Processing -- Scalar Floating-Point and Advanced SIMD
         // Floating-point immediate
         .pattern =
             {
@@ -499,14 +499,14 @@ constexpr RequiredBits<uint32_t> kRequiredInstructionBits[] = {
     },
 };
 
-// C4.1 A64 instruction set encoding
+// Section: A64 instruction set encoding
 // op1 = 0010 is SVE encodings
 constexpr BitMatcher<uint32_t> kSVEInstruction = {
     .mask = 0b0001'1110'0000'0000'0000'0000'0000'0000,
     .bits = 0b0000'0100'0000'0000'0000'0000'0000'0000,
 };
 
-// C4.1.66 Branches, Exception Generating and System instructions
+// Section: Branches, Exception Generating and System instructions
 // System register move
 // Should match MRS and MSR instructions.  Bit 21 controls if this is a read or
 // a write.  Bit 20 is technically redundant with the high bit of op0. It needs
@@ -517,14 +517,14 @@ constexpr BitMatcher<uint32_t> kSysregInstruction = {
     .bits = 0b1101'0101'0001'0000'0000'0000'0000'0000,
 };
 
-// C4.1 A64 instruction set encoding
+// Section: A64 instruction set encoding
 // op1 = x1x0 is a Load/Store instruction.
 constexpr BitMatcher<uint32_t> kLoadStoreInstruction = {
     .mask = 0b0000'1010'0000'0000'0000'0000'0000'0000,
     .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
 };
 
-// C4.1.30 SVE encodings for memory operations.
+// Section: SVE encodings for memory operations.
 //  1000010 C4.1.77 SVE Memory - 32-bit Gather and Unsized Contiguous
 //  1010010 C4.1.78 SVE Memory - Contiguous Load
 //  1100010 C4.1.79 SVE Memory - 64-bit Gather
@@ -534,7 +534,7 @@ constexpr BitMatcher<uint32_t> kSVEMemoryOperationInstruction = {
     .bits = 0b1000'0100'0000'0000'0000'0000'0000'0000,
 };
 
-// C4.1.29 SME Memory operations.
+// Section: SME Memory operations.
 constexpr BitMatcher<uint32_t> kSMEMemoryOperationInstruction = {
     .mask = 0b1111'1110'0000'0000'0000'0000'0000'0000,
     .bits = 0b1110'0000'0000'0000'0000'0000'0000'0000,
