@@ -82,9 +82,15 @@ TEST(StaticInsnFilter, SystemRegister) {
   EXPECT_AARCH64_FILTER_REJECT({0xd53b2420});
 }
 
+// Data cache is banned because it's one of the system instructions.
 TEST(StaticInsnFilter, DataCache) {
   // dc    cvac, x0
-  EXPECT_AARCH64_FILTER_ACCEPT({0xd50b7a20});
+  EXPECT_AARCH64_FILTER_REJECT({0xd50b7a20});
+}
+
+TEST(StaticInsnFilter, SystemInstruction) {
+  // sys #3, c7, c3, #7, x30
+  EXPECT_AARCH64_FILTER_REJECT({0xd50b73fe});
 }
 
 TEST(StaticInsnFilter, LDXRB) {

@@ -517,6 +517,14 @@ constexpr BitMatcher<uint32_t> kSysregInstruction = {
     .bits = 0b1101'0101'0001'0000'0000'0000'0000'0000,
 };
 
+// Section: System instructions
+// All system instructions should be filtered out.
+constexpr BitMatcher<uint32_t> kSystemInstruction = {
+    .mask = 0b1111'1111'1101'1000'0000'0000'0000'0000,
+    .bits = 0b1101'0101'0000'1000'0000'0000'0000'0000,
+    //      0b1101'0101'00x0'1xxx'xxxx'xxxx'xxxx'xxxx
+};
+
 // Section: A64 instruction set encoding
 // op1 = x1x0 is a Load/Store instruction.
 constexpr BitMatcher<uint32_t> kLoadStoreInstruction = {
@@ -544,6 +552,10 @@ constexpr bool is_load_store_insn(uint32_t insn) {
   return kLoadStoreInstruction.matches(insn) ||
          kSMEMemoryOperationInstruction.matches(insn) ||
          kSVEMemoryOperationInstruction.matches(insn);
+}
+
+constexpr bool is_system_insn(uint32_t insn) {
+  return kSystemInstruction.matches(insn);
 }
 
 constexpr uint32_t sysreg(uint32_t op0, uint32_t op1, uint32_t CRn,
@@ -635,6 +647,9 @@ constexpr bool InstructionIsOK(uint32_t insn,
     for (uint32_t sysreg : kAllowedSysregs) {
       if ((insn & kSysregMask) == sysreg) return true;
     }
+    return false;
+  }
+  if (is_system_insn(insn)) {
     return false;
   }
   return true;
