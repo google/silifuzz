@@ -84,14 +84,49 @@ cc_library(
 )
 
 cc_test(
-    name = "hashtest_generator_test",
-    srcs = [
-        "hashtest_generator_test.cc",
+    name = "rand_util_test",
+    srcs = ["rand_util_test.cc"],
+    deps = [
+        ":test_generation_lib",
+        "@googletest//:gtest_main",
     ],
+)
+
+cc_test(
+    name = "register_info_test",
+    srcs = ["register_info_test.cc"],
+    deps = [
+        ":test_generation_lib",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "xed_operand_util_test",
+    srcs = ["xed_operand_util_test.cc"],
     deps = [
         ":test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@abseil-cpp//absl/strings",
+        "@googletest//:gtest_main",
+        "@libxed//:xed",
+    ],
+)
+
+cc_test(
+    name = "weighted_choose_one_test",
+    srcs = ["weighted_choose_one_test.cc"],
+    deps = [
+        ":test_generation_lib",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "synthesize_shuffle_test",
+    srcs = ["synthesize_shuffle_test.cc"],
+    deps = [
+        ":test_generation_lib",
         "@googletest//:gtest_main",
         "@libxed//:xed",
     ],
