@@ -14,11 +14,11 @@
 
 #include "./fuzzer/hashtest/testgeneration/xed_operand_util.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/ascii.h"
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
