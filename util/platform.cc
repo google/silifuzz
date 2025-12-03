@@ -52,6 +52,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAmdTurin:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
+    case PlatformId::kArmNeoverseN2:
     case PlatformId::kAmpereOne:
     case PlatformId::kArmNeoverseV2:
     case PlatformId::kArmNeoverseN3:
@@ -141,6 +142,8 @@ PlatformId ArmPlatformIdFromMainId(uint32_t implementer, uint32_t part_number) {
     switch (part_number) {
       case 0xd0c:
         return PlatformId::kArmNeoverseN1;
+      case 0xd49:
+        return PlatformId::kArmNeoverseN2;
       case 0xd4f:
         return PlatformId::kArmNeoverseV2;
       case 0xd8e:

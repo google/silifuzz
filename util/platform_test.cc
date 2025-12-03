@@ -158,6 +158,7 @@ struct ArmMainId {
 const absl::flat_hash_map<PlatformId, ArmMainId> kArmPlatformToCpuId = {
     {PlatformId::kArmNeoverseN1, {0x41, 0xd0c, PlatformId::kArmNeoverseN1}},
     {PlatformId::kArmNeoverseV2, {0x41, 0xd4f, PlatformId::kArmNeoverseV2}},
+    {PlatformId::kArmNeoverseN2, {0x41, 0xd49, PlatformId::kArmNeoverseN2}},
     {PlatformId::kArmNeoverseN3, {0x41, 0xd8e, PlatformId::kArmNeoverseN3}},
     {PlatformId::kAmpereOne, {0xc0, 0xac3, PlatformId::kAmpereOne}},
 };
