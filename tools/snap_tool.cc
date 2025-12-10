@@ -413,6 +413,12 @@ bool SnapToolMain(std::vector<char*>& args) {
                         &line_printer);
   } else if (command == "play") {
     if (ExtraArgs(args)) return false;
+    // Need to restrict the end_states to the expected one as the RunnerDriver
+    // expects only a single end state.
+    if (platform_id == PlatformId::kUndefined) {
+      platform_id = CurrentPlatformId();
+    }
+    snapshot.limit_end_states_to_platform(platform_id);
 
     absl::StatusOr<RunnerDriver> runner_or =
         RunnerDriverFromSnapshot(snapshot, RunnerLocation());

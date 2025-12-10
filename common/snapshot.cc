@@ -747,6 +747,12 @@ void Snapshot::remove_expected_end_state(const EndState* x) {
   LOG_DFATAL("Given EndState not present");
 }
 
+void Snapshot::limit_end_states_to_platform(PlatformId platform) {
+  std::erase_if(expected_end_states_, [platform](const EndState& e) {
+    return !e.has_platform(platform);
+  });
+}
+
 // ----------------------------------------------------------------------- //
 
 // static

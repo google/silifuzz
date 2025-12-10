@@ -352,6 +352,9 @@ class Snapshot final {
   // REQUIRES: x must refer to one of expected_end_states()
   void remove_expected_end_state(const EndState* x);
 
+  // Removes all end states that do not support `platform`
+  void limit_end_states_to_platform(PlatformId platform);
+
   // ----------------------------------------------------------------------- //
   // Simple whole-snapshot manipulation.
 
