@@ -30,7 +30,6 @@
 #include "./common/snapshot_file_util.h"
 #include "./common/snapshot_printer.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_snapshot.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./instruction/xed_util.h"
@@ -56,7 +55,7 @@ ABSL_FLAG(std::optional<uint64_t>, seed, std::nullopt,
 
 namespace silifuzz {
 
-absl::Status SynthesizeSnapshots(Rng& rng, xed_chip_enum_t chip,
+absl::Status SynthesizeSnapshots(std::mt19937_64& rng, xed_chip_enum_t chip,
                                  const InstructionPool& ipool) {
   // If we aren't writing the snapshots to disk, we print them out so they can
   // be inspected. The FP registers matter, so make sure they are printed out.
@@ -111,7 +110,7 @@ int ToolMain(std::vector<char*> positional_args) {
   std::random_device hardware_rng{};
   uint64_t seed = maybe_seed.value_or(
       std::uniform_int_distribution<uint64_t>()(hardware_rng));
-  Rng rng(seed);
+  std::mt19937_64 rng(seed);
 
   bool verbose = absl::GetFlag(FLAGS_verbose);
 

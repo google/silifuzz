@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <random>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -30,7 +31,6 @@
 #include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
 #include "./fuzzer/hashtest/testgeneration/mxcsr.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
@@ -136,7 +136,7 @@ TEST(Runner, EndToEnd) {
     GTEST_SKIP() << "Unsupported chip.";
   }
 
-  Rng rng(0);
+  std::mt19937_64 rng(0);
 
   const RunConfig run_config = {
       .test =

@@ -74,8 +74,9 @@ void PrepareFixedRegisters(const RegisterReadWrite& fixed_reg,
 }
 
 template <size_t N>
-unsigned int HandleOperand(RegisterBank bank, Rng& rng, std::bitset<N>& tmp,
-                           std::bitset<N>& entropy, bool read, bool written,
+unsigned int HandleOperand(RegisterBank bank, std::mt19937_64& rng,
+                           std::bitset<N>& tmp, std::bitset<N>& entropy,
+                           bool read, bool written,
                            std::vector<RegisterID>& needs_init,
                            std::vector<unsigned int>& is_written) {
   if (written) {
@@ -95,8 +96,9 @@ unsigned int HandleOperand(RegisterBank bank, Rng& rng, std::bitset<N>& tmp,
 }  // namespace
 
 [[nodiscard]] bool SynthesizeTestInstruction(
-    const InstructionCandidate& candidate, RegisterPool& rpool, Rng& rng,
-    unsigned int effective_op_width, std::vector<RegisterID>& needs_init,
+    const InstructionCandidate& candidate, RegisterPool& rpool,
+    std::mt19937_64& rng, unsigned int effective_op_width,
+    std::vector<RegisterID>& needs_init,
     std::vector<unsigned int>& reg_is_written, uint8_t* ibuf,
     size_t& ibuf_len) {
   const RegisterBank mode = candidate.OutputMode();

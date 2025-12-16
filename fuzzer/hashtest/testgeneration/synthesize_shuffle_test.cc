@@ -16,10 +16,12 @@
 
 #include <cstddef>
 #include <functional>
+#include <random>
 
 #include "gtest/gtest.h"
 #include "./fuzzer/hashtest/testgeneration/rand_util.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
+#include "./instruction/xed_util.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -31,7 +33,7 @@ namespace {
 
 TEST(SynthesizeShuffleTest, RandomPermutationMask) {
   InitXedIfNeeded();
-  Rng rng(0);
+  std::mt19937_64 rng(0);
   // Generate a bunch of random permutation masks and make sure they match
   // expected invariant.
   constexpr size_t num_bits = 2;
@@ -53,9 +55,9 @@ TEST(SynthesizeShuffleTest, RandomPermutationMask) {
   }
 }
 
-void TestShuffleFunc(
-    std::function<void(Rng&, RegisterPool&, InstructionBlock&)>&& f) {
-  Rng rng(0);
+void TestShuffleFunc(std::function<void(std::mt19937_64&, RegisterPool&,
+                                        InstructionBlock&)>&& f) {
+  std::mt19937_64 rng(0);
 
   // Sweep through different vector widths.
   for (size_t vec_width = 128; vec_width <= 512; vec_width *= 2) {
@@ -100,39 +102,44 @@ void TestShuffleFunc(
 
 TEST(SynthesizeShuffleTest, GPRegPermute) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeGPRegPermute(rng, PopRandomBit(rng, rpool.tmp.gp), block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeGPRegPermute(rng, PopRandomBit(rng, rpool.tmp.gp), block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, GPRegMix) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeGPRegMix(rng, PopRandomBit(rng, rpool.tmp.gp),
-                       PopRandomBit(rng, rpool.tmp.gp), block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeGPRegMix(rng, PopRandomBit(rng, rpool.tmp.gp),
+                           PopRandomBit(rng, rpool.tmp.gp), block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, VecRegPermute) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeVecRegPermute(rng, PopRandomBit(rng, rpool.tmp.vec),
-                            PopRandomBit(rng, rpool.tmp.vec), rpool, block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeVecRegPermute(rng, PopRandomBit(rng, rpool.tmp.vec),
+                                PopRandomBit(rng, rpool.tmp.vec), rpool, block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, VecRegMix) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeVecRegMix(rng, PopRandomBit(rng, rpool.tmp.vec),
-                        PopRandomBit(rng, rpool.tmp.vec),
-                        PopRandomBit(rng, rpool.tmp.vec), rpool, block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeVecRegMix(rng, PopRandomBit(rng, rpool.tmp.vec),
+                            PopRandomBit(rng, rpool.tmp.vec),
+                            PopRandomBit(rng, rpool.tmp.vec), rpool, block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, MaskRegPermute) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
+  TestShuffleFunc([](std::mt19937_64& rng, RegisterPool& rpool,
+                     InstructionBlock& block) {
     SynthesizeMaskRegPermute(rng, PopRandomBit(rng, rpool.tmp.mask),
                              PopRandomBit(rng, rpool.tmp.mask), rpool, block);
   });
@@ -140,28 +147,31 @@ TEST(SynthesizeShuffleTest, MaskRegPermute) {
 
 TEST(SynthesizeShuffleTest, MaskRegMix) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeMaskRegMix(rng, PopRandomBit(rng, rpool.tmp.mask),
-                         PopRandomBit(rng, rpool.tmp.mask),
-                         PopRandomBit(rng, rpool.tmp.mask), rpool, block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeMaskRegMix(rng, PopRandomBit(rng, rpool.tmp.mask),
+                             PopRandomBit(rng, rpool.tmp.mask),
+                             PopRandomBit(rng, rpool.tmp.mask), rpool, block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, MMXRegPermute) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeMMXRegPermute(rng, PopRandomBit(rng, rpool.tmp.mmx),
-                            PopRandomBit(rng, rpool.tmp.mmx), RandomBool(rng),
-                            block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeMMXRegPermute(rng, PopRandomBit(rng, rpool.tmp.mmx),
+                                PopRandomBit(rng, rpool.tmp.mmx),
+                                RandomBool(rng), block);
+      });
 }
 
 TEST(SynthesizeShuffleTest, MMXRegMix) {
   InitXedIfNeeded();
-  TestShuffleFunc([](Rng& rng, RegisterPool& rpool, InstructionBlock& block) {
-    SynthesizeMMXRegMix(rng, PopRandomBit(rng, rpool.tmp.mmx),
-                        PopRandomBit(rng, rpool.tmp.mmx), block);
-  });
+  TestShuffleFunc(
+      [](std::mt19937_64& rng, RegisterPool& rpool, InstructionBlock& block) {
+        SynthesizeMMXRegMix(rng, PopRandomBit(rng, rpool.tmp.mmx),
+                            PopRandomBit(rng, rpool.tmp.mmx), block);
+      });
 }
 
 }  // namespace

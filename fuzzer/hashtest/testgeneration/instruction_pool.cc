@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -74,7 +75,7 @@ enum class EncodeResult {
   kEncodeError,
 };
 
-EncodeResult TryToEncodeWidth(Rng& rng, xed_chip_enum_t chip,
+EncodeResult TryToEncodeWidth(std::mt19937_64& rng, xed_chip_enum_t chip,
                               InstructionCandidate& candidate,
                               unsigned int effective_op_width) {
   RegisterPool base_rpool{};
@@ -132,7 +133,7 @@ struct InstructionStats {
   size_t num_accepted;
 };
 
-bool TryToEncode(Rng& rng, xed_chip_enum_t chip,
+bool TryToEncode(std::mt19937_64& rng, xed_chip_enum_t chip,
                  InstructionCandidate& candidate, InstructionStats& stats,
                  bool verbose = false) {
   if (!candidate.width_16 && !candidate.width_32 && !candidate.width_64) {
@@ -185,7 +186,7 @@ bool TryToEncode(Rng& rng, xed_chip_enum_t chip,
 }
 }  // namespace
 
-void GenerateInstructionPool(Rng& rng, xed_chip_enum_t chip,
+void GenerateInstructionPool(std::mt19937_64& rng, xed_chip_enum_t chip,
                              InstructionPool& ipool, bool verbose) {
   // There may be duplicate iforms in the instruction table, so we keep track of
   // which iforms we've already seen.

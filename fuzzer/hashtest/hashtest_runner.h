@@ -146,7 +146,7 @@ struct Corpus {
 constexpr inline size_t kMaxTestBytes = 2048;
 
 // Created a corpus of the specified size and generate the test seeds.
-Corpus AllocateCorpus(Rng& rng, size_t num_tests);
+Corpus AllocateCorpus(std::mt19937_64& rng, size_t num_tests);
 
 // Synthesize the code for each test into `code_buffer`.
 // `code_buffer` must be at least `tests`.size() * kMaxTestsBytes bytes large.

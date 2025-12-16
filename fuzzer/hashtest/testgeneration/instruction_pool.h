@@ -17,10 +17,10 @@
 
 #include <algorithm>
 #include <iterator>
+#include <random>
 #include <vector>
 
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
 extern "C" {
 #include "third_party/libxed/xed-interface.h"
@@ -92,7 +92,7 @@ struct InstructionPool {
   }
 };
 
-void GenerateInstructionPool(Rng& rng, xed_chip_enum_t chip,
+void GenerateInstructionPool(std::mt19937_64& rng, xed_chip_enum_t chip,
                              InstructionPool& ipool, bool verbose = false);
 
 }  // namespace silifuzz

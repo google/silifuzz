@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <random>
 
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 
@@ -63,12 +64,12 @@ void SynthesizeGPRegMov(unsigned int src, unsigned int dst,
                         InstructionBlock& block);
 
 // Permute `dst` in place.
-void SynthesizeGPRegPermute(Rng& rng, unsigned int dst,
+void SynthesizeGPRegPermute(std::mt19937_64& rng, unsigned int dst,
                             InstructionBlock& block);
 
 // Mix `src` into `dst`, in place.
-void SynthesizeGPRegMix(Rng& rng, unsigned int src, unsigned int dst,
-                        InstructionBlock& block);
+void SynthesizeGPRegMix(std::mt19937_64& rng, unsigned int src,
+                        unsigned int dst, InstructionBlock& block);
 
 // Functions for manipulating vector registers.
 // Mixing and permutation overwrite the destination.
@@ -78,11 +79,12 @@ void SynthesizeVecRegMov(unsigned int src, unsigned int dst,
                          RegisterPool& rpool, InstructionBlock& block);
 
 // Permute `src` into `dst`.
-void SynthesizeVecRegPermute(Rng& rng, unsigned int src, unsigned int dst,
-                             RegisterPool& rpool, InstructionBlock& block);
+void SynthesizeVecRegPermute(std::mt19937_64& rng, unsigned int src,
+                             unsigned int dst, RegisterPool& rpool,
+                             InstructionBlock& block);
 
 // Mix `a` and `b` into `dst`.
-void SynthesizeVecRegMix(Rng& rng, unsigned int a, unsigned int b,
+void SynthesizeVecRegMix(std::mt19937_64& rng, unsigned int a, unsigned int b,
                          unsigned int dst, RegisterPool& rpool,
                          InstructionBlock& block);
 
@@ -100,11 +102,12 @@ void SynthesizeMaskRegMov(unsigned int src, unsigned int dst,
                           RegisterPool& rpool, InstructionBlock& block);
 
 // Permute `src` into `dst`.
-void SynthesizeMaskRegPermute(Rng& rng, unsigned int src, unsigned int dst,
-                              RegisterPool& rpool, InstructionBlock& block);
+void SynthesizeMaskRegPermute(std::mt19937_64& rng, unsigned int src,
+                              unsigned int dst, RegisterPool& rpool,
+                              InstructionBlock& block);
 
 // Mix `a` and `b` into `dst`.
-void SynthesizeMaskRegMix(Rng& rng, unsigned int a, unsigned int b,
+void SynthesizeMaskRegMix(std::mt19937_64& rng, unsigned int a, unsigned int b,
                           unsigned int dst, RegisterPool& rpool,
                           InstructionBlock& block);
 
@@ -118,18 +121,19 @@ void SynthesizeMMXRegMov(unsigned int src, unsigned int dst,
 // Permute `dst` in place.
 // Requires temp register `tmp`.
 // If `tmp` happens to be a copy of `dst`, we can emit one fewer instructions.
-void SynthesizeMMXRegPermute(Rng& rng, unsigned int dst, unsigned int tmp,
-                             bool tmp_is_copy_of_dst, InstructionBlock& block);
+void SynthesizeMMXRegPermute(std::mt19937_64& rng, unsigned int dst,
+                             unsigned int tmp, bool tmp_is_copy_of_dst,
+                             InstructionBlock& block);
 
 // Mix `src` into `dst`, in place.
-void SynthesizeMMXRegMix(Rng& rng, unsigned int src, unsigned int dst,
-                         InstructionBlock& block);
+void SynthesizeMMXRegMix(std::mt19937_64& rng, unsigned int src,
+                         unsigned int dst, InstructionBlock& block);
 
 // Generate a completely random permutation mask.
 // Exposed for testing.
 // TODO(ncbray): generate permutation cycles?
 template <size_t ElementBits>
-size_t RandomPermutationMask(Rng& rng) {
+size_t RandomPermutationMask(std::mt19937_64& rng) {
   constexpr size_t element_count = 1 << ElementBits;
   static_assert(ElementBits * element_count <= sizeof(size_t) * 8,
                 "Mask is too wide");

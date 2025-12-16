@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <random>
 #include <vector>
 
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
@@ -28,9 +29,10 @@ namespace silifuzz {
 // Synthesize a randomized instruction based on `candidate`.
 // Used temp and entropy registers will be removed from `rpool`.
 [[nodiscard]] bool SynthesizeTestInstruction(
-    const InstructionCandidate& candidate, RegisterPool& rpool, Rng& rng,
-    unsigned int effective_op_width, std::vector<RegisterID>& needs_init,
-    std::vector<unsigned int>& is_written, uint8_t* ibuf, size_t& ibuf_len);
+    const InstructionCandidate& candidate, RegisterPool& rpool,
+    std::mt19937_64& rng, unsigned int effective_op_width,
+    std::vector<RegisterID>& needs_init, std::vector<unsigned int>& is_written,
+    uint8_t* ibuf, size_t& ibuf_len);
 
 }  // namespace silifuzz
 

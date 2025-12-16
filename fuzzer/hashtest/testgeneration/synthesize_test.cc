@@ -40,7 +40,7 @@ namespace silifuzz {
 
 namespace {
 
-const InstructionCandidate& ChooseRandomCandidate(Rng& rng,
+const InstructionCandidate& ChooseRandomCandidate(std::mt19937_64& rng,
                                                   const InstructionPool* ipool,
                                                   RegisterBank bank) {
   switch (bank) {
@@ -65,7 +65,8 @@ const InstructionCandidate& ChooseRandomCandidate(Rng& rng,
 // 2) the register is a fixed input register. The entropy pool was placed in
 // registers that will never be fixed inputs or outputs, so a test instruction
 // with a fixed input cannot read directly from the entropy pool.
-void SynthesizeInits(Rng& rng, const std::vector<RegisterID>& needs_init,
+void SynthesizeInits(std::mt19937_64& rng,
+                     const std::vector<RegisterID>& needs_init,
                      RegisterPool& rpool, InstructionBlock& block) {
   // Initialize tmp registers that are read from.
   for (RegisterID reg : needs_init) {
@@ -99,7 +100,7 @@ void SynthesizeInits(Rng& rng, const std::vector<RegisterID>& needs_init,
 // `entropy_output`.
 // The output collection sequences tend to be fairly formulaic, so we try to
 // make random choices in the few situations that we have choices.
-void SynthesizeOutputCollection(Rng& rng, RegisterID entropy_output,
+void SynthesizeOutputCollection(std::mt19937_64& rng, RegisterID entropy_output,
                                 RegisterID entropy_mixin,
                                 const std::vector<unsigned int>& is_written,
                                 RegisterPool& rpool, InstructionBlock& block) {
@@ -212,7 +213,7 @@ void SynthesizeOutputCollection(Rng& rng, RegisterID entropy_output,
 
 // Choose a random effective op with that is supported by the instruction
 // candidate.
-unsigned int RandomEffectiveOpWidth(Rng& rng,
+unsigned int RandomEffectiveOpWidth(std::mt19937_64& rng,
                                     const InstructionCandidate& candidate) {
   std::vector<unsigned int> possible_widths;
   if (candidate.width_16) {
@@ -272,7 +273,8 @@ void SynthesizeFlagSave(unsigned int dst, bool mask_trap_flag,
 // Synthesize a test instruction, the necessary initialization instructions to
 // make it work correctly, and the output collection instruction to fold the
 // results back into the entropy pool.
-void SynthesizeTestStep(Rng& rng, const InstructionCandidate& candidate,
+void SynthesizeTestStep(std::mt19937_64& rng,
+                        const InstructionCandidate& candidate,
                         const RegisterPool& original_rpool,
                         RegisterID entropy_output, RegisterID entropy_mixin,
                         const SynthesisConfig& config,
@@ -360,7 +362,7 @@ struct TestRegisters {
 // loop.
 template <size_t N>
 std::vector<TestRegisters> GenerateRegisterSchedule(
-    Rng& rng, RegisterBank bank, const std::bitset<N>& entropy) {
+    std::mt19937_64& rng, RegisterBank bank, const std::bitset<N>& entropy) {
   std::vector<TestRegisters> schedule;
   if (entropy.any()) {
     std::bitset<N> entropy_copy = entropy;
@@ -463,7 +465,7 @@ void SynthesizeBreakpointTraps(size_t count, InstructionBlock& block) {
 }
 
 // Forward declaration.
-static size_t SynthesizeBlock(Rng& rng,
+static size_t SynthesizeBlock(std::mt19937_64& rng,
                               absl::Span<const TestRegisters> schedule,
                               size_t duplication_budget,
                               RegisterPool& dead_pool,
@@ -472,11 +474,12 @@ static size_t SynthesizeBlock(Rng& rng,
 
 // Randomly select the number of instructions to duplicate, up to the maximum
 // budget.
-static size_t PartitionDuplicationBudget(Rng& rng, size_t duplication_budget) {
+static size_t PartitionDuplicationBudget(std::mt19937_64& rng,
+                                         size_t duplication_budget) {
   return std::uniform_int_distribution<size_t>(0, duplication_budget)(rng);
 }
 
-static size_t SynthesizeBranch(Rng& rng,
+static size_t SynthesizeBranch(std::mt19937_64& rng,
                                absl::Span<const TestRegisters> schedule,
                                size_t duplication_budget,
                                RegisterPool& dead_pool,
@@ -550,7 +553,7 @@ static size_t SynthesizeBranch(Rng& rng,
 // Note that splitting does not change anything in of itself. It helps define
 // different regions of the test schedule that can have different randomized
 // branch structures applied to them.
-static size_t SynthesizeSplit(Rng& rng,
+static size_t SynthesizeSplit(std::mt19937_64& rng,
                               absl::Span<const TestRegisters> schedule,
                               size_t duplication_budget,
                               RegisterPool& dead_pool,
@@ -577,7 +580,7 @@ static size_t SynthesizeSplit(Rng& rng,
 }
 
 // Generate straight-line code.
-static size_t SynthesizeBasicBlock(Rng& rng,
+static size_t SynthesizeBasicBlock(std::mt19937_64& rng,
                                    absl::Span<const TestRegisters> schedule,
                                    RegisterPool& dead_pool,
                                    const SynthesisConfig& config,
@@ -596,7 +599,7 @@ static size_t SynthesizeBasicBlock(Rng& rng,
   return block.num_instructions - existing_instructions;
 }
 
-static size_t SynthesizeBlock(Rng& rng,
+static size_t SynthesizeBlock(std::mt19937_64& rng,
                               absl::Span<const TestRegisters> schedule,
                               size_t duplication_budget,
                               RegisterPool& dead_pool,
@@ -627,7 +630,7 @@ static size_t SynthesizeBlock(Rng& rng,
   }
 }
 
-size_t SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
+size_t SynthesizeLoopBody(std::mt19937_64& rng, const RegisterPool& rpool,
                           const SynthesisConfig& config,
                           InstructionBlock& block) {
   std::vector<TestRegisters> greg_schedule =

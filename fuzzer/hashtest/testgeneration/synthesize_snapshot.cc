@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <random>
 #include <string>
 
 #include "absl/strings/str_cat.h"
@@ -89,7 +90,8 @@ void SetGPReg(unsigned int index, UContext<X86_64>& ucontext, uint64_t value) {
   GetGPReg(index, ucontext) = value;
 }
 
-void RandomizeGPReg(unsigned int index, UContext<X86_64>& ucontext, Rng& rng) {
+void RandomizeGPReg(unsigned int index, UContext<X86_64>& ucontext,
+                    std::mt19937_64& rng) {
   // Relies on rng producing 64 bits of entropy.
   SetGPReg(index, ucontext, rng());
 }
@@ -104,7 +106,8 @@ void SetVecReg(unsigned int index, UContext<X86_64>& ucontext,
 }
 
 // Note: only randomizes XMM, effectively.
-void RandomizeVecReg(unsigned int index, UContext<X86_64>& ucontext, Rng& rng) {
+void RandomizeVecReg(unsigned int index, UContext<X86_64>& ucontext,
+                     std::mt19937_64& rng) {
   SetVecReg(index, ucontext, (static_cast<__uint128_t>(rng()) << 64) | rng());
 }
 
@@ -117,7 +120,8 @@ void SetSTReg(unsigned int index, UContext<X86_64>& ucontext,
   GetSTReg(index, ucontext) = value;
 }
 
-void RandomizeSTReg(unsigned int index, UContext<X86_64>& ucontext, Rng& rng) {
+void RandomizeSTReg(unsigned int index, UContext<X86_64>& ucontext,
+                    std::mt19937_64& rng) {
   // 80-bit random value.
   __uint128_t value =
       (static_cast<__uint128_t>(static_cast<uint16_t>(rng())) << 64) | rng();
@@ -126,7 +130,8 @@ void RandomizeSTReg(unsigned int index, UContext<X86_64>& ucontext, Rng& rng) {
 
 }  // namespace
 
-absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
+absl::StatusOr<Snapshot> CreateSnapshot(std::mt19937_64& rng,
+                                        const RegisterPool& rpool,
                                         size_t iteration_count,
                                         const InstructionBlock& block,
                                         bool make) {
@@ -188,7 +193,8 @@ absl::StatusOr<Snapshot> CreateSnapshot(Rng& rng, const RegisterPool& rpool,
   }
 }
 
-absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
+absl::StatusOr<Snapshot> SynthesizeTestSnapshot(std::mt19937_64& rng,
+                                                xed_chip_enum_t chip,
                                                 const SynthesisConfig& config,
                                                 bool make) {
   RegisterPool rpool{};

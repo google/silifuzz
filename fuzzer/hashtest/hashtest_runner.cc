@@ -53,7 +53,8 @@ std::string FormatSeed(uint64_t seed) {
 }
 
 void RandomizeEntropyBuffer(uint64_t seed, EntropyBuffer& buffer) {
-  std::independent_bits_engine<Rng, sizeof(uint8_t) * 8, uint8_t> engine(seed);
+  std::independent_bits_engine<std::mt19937_64, sizeof(uint8_t) * 8, uint8_t>
+      engine(seed);
   std::generate(std::begin(buffer.bytes), std::end(buffer.bytes), engine);
 }
 
@@ -89,7 +90,7 @@ void DumpTest(uint64_t start_address, InstructionBlock& body) {
 
 void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
                     const SynthesisConfig& config, InstructionBlock& body) {
-  Rng rng(seed);
+  std::mt19937_64 rng(seed);
   RegisterPool rpool{};
   InitRegisterLayout(chip, rpool);
 
@@ -107,7 +108,7 @@ void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
   SynthesizeBreakpointTraps(16 + padding, body);
 }
 
-Corpus AllocateCorpus(Rng& rng, size_t num_tests) {
+Corpus AllocateCorpus(std::mt19937_64& rng, size_t num_tests) {
   size_t mapping_size = RoundUpToPageAlignment(kMaxTestBytes * num_tests);
   void* ptr = mmap(0, mapping_size, PROT_READ | PROT_WRITE,
                    MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);

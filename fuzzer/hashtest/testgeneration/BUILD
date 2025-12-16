@@ -127,6 +127,7 @@ cc_test(
     srcs = ["synthesize_shuffle_test.cc"],
     deps = [
         ":test_generation_lib",
+        "@silifuzz//instruction:xed_util",
         "@googletest//:gtest_main",
         "@libxed//:xed",
     ],

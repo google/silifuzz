@@ -17,6 +17,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <random>
 
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
@@ -71,7 +72,7 @@ struct SynthesisConfig {
 // generating instructions to iterate the loop body multiple times.
 // Returns the maximum number of instructions that can be executed in the loop
 // body.
-size_t SynthesizeLoopBody(Rng& rng, const RegisterPool& rpool,
+size_t SynthesizeLoopBody(std::mt19937_64& rng, const RegisterPool& rpool,
                           const SynthesisConfig& config,
                           InstructionBlock& block);
 

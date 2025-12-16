@@ -44,7 +44,6 @@
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
 #include "./fuzzer/hashtest/testgeneration/mxcsr.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./fuzzer/hashtest/testgeneration/version.h"
 #include "./instruction/xed_util.h"
@@ -84,7 +83,7 @@ namespace silifuzz {
 
 namespace {
 
-std::vector<Input> GenerateInputs(Rng& rng, size_t num_inputs) {
+std::vector<Input> GenerateInputs(std::mt19937_64& rng, size_t num_inputs) {
   std::vector<Input> inputs;
   inputs.resize(num_inputs);
   for (size_t i = 0; i < num_inputs; i++) {
@@ -273,7 +272,7 @@ struct CorpusStats {
   }
 };
 
-void RunTestCorpus(size_t test_index, Rng& test_rng,
+void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
                    ParallelWorkerPool& workers,
                    const CorpusConfig& corpus_config, CorpusStats& corpus_stats,
                    absl::Duration run_time, ResultReporter& result,
@@ -552,9 +551,9 @@ int TestMain(std::vector<char*> positional_args) {
   // Create separate test and input RNGs so that we can get predictable
   // sequences, given a fixed seed. If we don't do this, small changes to the
   // program could wildly perturb the tests generated, etc.
-  Rng rng(seed);
-  Rng test_rng(GetSeed(rng));
-  Rng input_rng(GetSeed(rng));
+  std::mt19937_64 rng(seed);
+  std::mt19937_64 test_rng(GetSeed(rng));
+  std::mt19937_64 input_rng(GetSeed(rng));
 
   // Find the instructions that are valid for this chip.
   InstructionPool ipool{};

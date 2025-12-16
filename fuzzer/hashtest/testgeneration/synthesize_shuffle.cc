@@ -44,7 +44,7 @@ void SynthesizeGPRegMov(unsigned int src, unsigned int dst,
   Emit(builder, block);
 }
 
-void SynthesizeGPRegPermute(Rng& rng, unsigned int dst,
+void SynthesizeGPRegPermute(std::mt19937_64& rng, unsigned int dst,
                             InstructionBlock& block) {
   WeightedChooseOne(
       rng,
@@ -81,8 +81,8 @@ void SynthesizeGPRegPermute(Rng& rng, unsigned int dst,
       });
 }
 
-void SynthesizeGPRegMix(Rng& rng, unsigned int src, unsigned int dst,
-                        InstructionBlock& block) {
+void SynthesizeGPRegMix(std::mt19937_64& rng, unsigned int src,
+                        unsigned int dst, InstructionBlock& block) {
   WeightedChooseOne(
       rng,
       // XOR
@@ -129,8 +129,9 @@ void SynthesizeVecRegMov(unsigned int src, unsigned int dst,
   Emit(builder, block);
 }
 
-void SynthesizeVecRegPermute(Rng& rng, unsigned int src, unsigned int dst,
-                             RegisterPool& rpool, InstructionBlock& block) {
+void SynthesizeVecRegPermute(std::mt19937_64& rng, unsigned int src,
+                             unsigned int dst, RegisterPool& rpool,
+                             InstructionBlock& block) {
   // There are a variety of ways to permute vector registers. For simplicity and
   // performance, we're currently restricting our choices to permutations that
   // can be implemented with a single instruction. These instructions encode the
@@ -214,7 +215,7 @@ void SynthesizeVecRegPermute(Rng& rng, unsigned int src, unsigned int dst,
       });
 }
 
-void SynthesizeVecRegMix(Rng& rng, unsigned int a, unsigned int b,
+void SynthesizeVecRegMix(std::mt19937_64& rng, unsigned int a, unsigned int b,
                          unsigned int dst, RegisterPool& rpool,
                          InstructionBlock& block) {
   // Randomize the order of arguments passed to the mixing instructions.
@@ -375,8 +376,9 @@ void SynthesizeMaskRegMov(unsigned int src, unsigned int dst,
   Emit(builder, block);
 }
 
-void SynthesizeMaskRegPermute(Rng& rng, unsigned int src, unsigned int dst,
-                              RegisterPool& rpool, InstructionBlock& block) {
+void SynthesizeMaskRegPermute(std::mt19937_64& rng, unsigned int src,
+                              unsigned int dst, RegisterPool& rpool,
+                              InstructionBlock& block) {
   // Choose a random shift amount.
   std::uniform_int_distribution<unsigned int> dist(1, rpool.mask_width - 1);
   unsigned int shift = dist(rng);
@@ -409,7 +411,7 @@ void SynthesizeMaskRegPermute(Rng& rng, unsigned int src, unsigned int dst,
   rpool.tmp.mask[tmp] = true;
 }
 
-void SynthesizeMaskRegMix(Rng& rng, unsigned int a, unsigned int b,
+void SynthesizeMaskRegMix(std::mt19937_64& rng, unsigned int a, unsigned int b,
                           unsigned int dst, RegisterPool& rpool,
                           InstructionBlock& block) {
   // Randomize the order of arguments passed to the mixing instructions.
@@ -448,8 +450,9 @@ void SynthesizeMMXRegMov(unsigned int src, unsigned int dst,
   Emit(builder, block);
 }
 
-void SynthesizeMMXRegPermute(Rng& rng, unsigned int dst, unsigned int tmp,
-                             bool tmp_is_copy_of_dst, InstructionBlock& block) {
+void SynthesizeMMXRegPermute(std::mt19937_64& rng, unsigned int dst,
+                             unsigned int tmp, bool tmp_is_copy_of_dst,
+                             InstructionBlock& block) {
   // Synthesize a register rotate with two shifts and a combine.
   std::uniform_int_distribution<unsigned int> dist(1, 63);
   unsigned int shift = dist(rng);
@@ -480,8 +483,8 @@ void SynthesizeMMXRegPermute(Rng& rng, unsigned int dst, unsigned int tmp,
   }
 }
 
-void SynthesizeMMXRegMix(Rng& rng, unsigned int src, unsigned int dst,
-                         InstructionBlock& block) {
+void SynthesizeMMXRegMix(std::mt19937_64& rng, unsigned int src,
+                         unsigned int dst, InstructionBlock& block) {
   WeightedChooseOne(
       rng,
       // ADD/ SUB

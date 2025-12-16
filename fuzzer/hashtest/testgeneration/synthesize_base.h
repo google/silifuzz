@@ -17,7 +17,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <random>
 #include <vector>
 
 #include "absl/base/attributes.h"
@@ -30,9 +29,6 @@ extern "C" {
 }
 
 namespace silifuzz {
-
-// RNG used for random instruction and test generation.
-using Rng = std::mt19937_64;
 
 // The layout of registers for generating instructions and tests.
 // `tmp` registers can be used for any purpose. If a register is "fixed" for any

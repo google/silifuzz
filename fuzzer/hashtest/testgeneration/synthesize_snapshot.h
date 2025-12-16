@@ -15,14 +15,16 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SNAPSHOT_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_SYNTHESIZE_SNAPSHOT_H_
 
+#include <random>
+
 #include "absl/status/statusor.h"
 #include "./common/snapshot.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 
 namespace silifuzz {
 
-absl::StatusOr<Snapshot> SynthesizeTestSnapshot(Rng& rng, xed_chip_enum_t chip,
+absl::StatusOr<Snapshot> SynthesizeTestSnapshot(std::mt19937_64& rng,
+                                                xed_chip_enum_t chip,
                                                 const SynthesisConfig& config,
                                                 bool make);
 
