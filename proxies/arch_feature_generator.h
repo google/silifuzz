@@ -266,6 +266,14 @@ class ArchFeatureGenerator {
         domains_.mem_difference, current_memory_feature_, page, user_features_);
   }
 
+  // Similar to FinalMemory, but with a specified base index in the feature
+  // space.
+  template <size_t N>
+  inline uint64_t FinalMemoryWithIndex(uint64_t index, uint8_t (&page)[N]) {
+    return EmitSetBitFeatures(domains_.mem_difference, index, page,
+                              user_features_);
+  }
+
   void EmitFeature(uint32_t domain, uint32_t feature) {
     user_features_.EmitFeature(domain, feature);
   }
