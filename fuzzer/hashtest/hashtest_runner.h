@@ -27,70 +27,16 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "./fuzzer/hashtest/corpus_config.h"
+#include "./fuzzer/hashtest/entropy.h"
+#include "./fuzzer/hashtest/hit.h"
+#include "./fuzzer/hashtest/run_config.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
 #include "./fuzzer/hashtest/testgeneration/mxcsr.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 
 namespace silifuzz {
-
-// Extract 64-bits worth of entropy from an arbitrary RNG.
-template <typename R>
-inline uint64_t GetSeed(R& rng) {
-  std::uniform_int_distribution<uint64_t> dis;
-  return dis(rng);
-}
-
-// Format a seed for printing in a consistent, zero-padded way.
-std::string FormatSeed(uint64_t seed);
-
-// TODO(ncbray): should there be 8 GP entropy registers? The loop counter was
-// carved out of the entropy pool, resulting in 7 registers.
-// TODO(ncbray): should rbp be reserved as a frame pointer?
-inline constexpr size_t kGPEntropyRegs = 7;
-inline constexpr size_t kVecEntropyRegs = 8;
-inline constexpr size_t kMaskEntropyRegs = 4;
-inline constexpr size_t kMMXEntropyRegs = 4;
-
-inline constexpr size_t kEntropyBytes512 =
-    (kVecEntropyRegs * 512 + kMaskEntropyRegs * 64 + kGPEntropyRegs * 64 +
-     kMMXEntropyRegs * 64) /
-    8;
-
-inline constexpr size_t kEntropyBytes256 =
-    (kVecEntropyRegs * 256 + kGPEntropyRegs * 64 + kMMXEntropyRegs * 64) / 8;
-
-inline constexpr size_t kEntropyBytes128 =
-    (kVecEntropyRegs * 128 + kGPEntropyRegs * 64 + kMMXEntropyRegs * 64) / 8;
-
-// A buffer for holding the initial or final state of a test.
-// The number of bytes used depends on the microarch.
-struct EntropyBuffer {
-  // Alignment required for fast vector register load/store.
-  uint8_t bytes[kEntropyBytes512] __attribute__((aligned(64)));
-
-  size_t NumBytes(size_t vector_width) const {
-    switch (vector_width) {
-      case 512:
-        return kEntropyBytes512;
-      case 256:
-        return kEntropyBytes256;
-      case 128:
-        return kEntropyBytes128;
-      default:
-        LOG(FATAL) << "Unsupported vector width: " << vector_width;
-    }
-  }
-};
-
-// Fill the buffer with random bytes.
-void RandomizeEntropyBuffer(uint64_t seed, EntropyBuffer& buffer);
-
-// Initial state for a test.
-struct Input {
-  uint64_t seed;
-  EntropyBuffer entropy;
-};
 
 // Machine instructions for a test.
 struct Test {
@@ -158,12 +104,6 @@ size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
 // Do the final steps to make the corpus useable.
 void FinalizeCorpus(Corpus& corpus, size_t used_size);
 
-// The configuration for running a single test.
-struct TestConfig {
-  size_t vector_width;
-  size_t num_iterations;
-};
-
 // The expected end state of a test + input.
 struct EndState {
   // This field contains the hash of the entropy pool when the test exits.
@@ -198,25 +138,6 @@ void ComputeEndStates(absl::Span<const Test> tests, const TestConfig& config,
 size_t ReconcileEndStates(absl::Span<EndState> end_state,
                           absl::Span<const EndState> other1,
                           absl::Span<const EndState> other2);
-
-// All the information we want to remember about each hit.
-struct Hit {
-  // CPU the hit occurred on.
-  int cpu;
-  // A unique identifier in the range [0, num_tests_generated) where
-  // num_tests_generated is the total number of tests generated during this
-  // invocation of the runner. (Each test has a unique index.)
-  size_t test_index;
-  // A unique identifier that should be stable between runs, but is not densely
-  // packed like test_index.
-  uint64_t test_seed;
-  // A unique identifier in the range [0, num_inputs_generated) where
-  // num_inputs_generated is the total number of inputs generated during this
-  // invocation of the runner. (Each input has a unique index.)
-  size_t input_index;
-  // A unique identifier that should be stable between runs.
-  uint64_t input_seed;
-};
 
 // An interface for reporting the results of test execution.
 struct RunStopper {
@@ -295,24 +216,6 @@ struct ThreadStats {
   // Note this estimate needs to be done per core because different cores can
   // have different test execution rates for a variety of reasons.
   TimeEstimator time_estimator;
-};
-
-// The configuration for running multiple tests.
-struct RunConfig {
-  // How should the test be run?
-  TestConfig test;
-
-  // How many tests should you alternate between?
-  size_t batch_size;
-
-  // How many times should you run each test + input?
-  size_t num_repeat;
-
-  // Currently we set the MXCSR once per corpus.
-  // It would be possible to set it per test, but this would potentially consume
-  // more memory and CPU cycles.
-  // TODO(ncbray): is modulating the MXCSR per test worth it?
-  uint32_t mxcsr = kMXCSRMaskAll;
 };
 
 // Run each test with each input, and check the end state.

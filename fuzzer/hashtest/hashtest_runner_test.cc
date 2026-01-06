@@ -27,6 +27,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"

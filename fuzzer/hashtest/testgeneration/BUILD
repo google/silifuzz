@@ -41,6 +41,7 @@ cc_library(
         "prefilter.h",
         "rand_util.h",
         "register_info.h",
+        "synthesis_config.h",
         "synthesize_base.h",
         "synthesize_instruction.h",
         "synthesize_shuffle.h",

@@ -37,6 +37,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/hashtest_result.pb.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/json.h"
@@ -211,69 +212,12 @@ std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
   return end_states;
 }
 
-// All the configuration needed to run a single corpus.
-struct CorpusConfig {
-  // A human readable name used to identify this corpus.
-  std::string name;
-
-  // A list of strings identifying what experiments are active.
-  std::vector<std::string> tags;
-
-  // The chip to generate tests for.
-  xed_chip_enum_t chip;
-
-  // Settings for test synthesis.
-  SynthesisConfig synthesis_config;
-
-  // The number of tests to generate.
-  size_t num_tests;
-
-  // Test entry states.
-  absl::Span<const Input> inputs;
-
-  // How the tests should be run.
-  RunConfig run_config;
-};
-
 std::string TagsToName(const std::vector<std::string>& tags) {
   if (tags.empty()) {
     return "default";
   }
   return absl::StrJoin(tags, ":");
 }
-
-// The results of running a corpus.
-struct CorpusStats {
-  // Time consumed generated the test code.
-  absl::Duration code_gen_time;
-  // Time consumed determining the end state of each test.
-  absl::Duration end_state_gen_time;
-  // Time consumed running the tests.
-  absl::Duration test_time;
-
-  // The hits for this corpus
-  std::vector<Hit> hits;
-
-  // The number of different tests that were run.
-  size_t distinct_tests;
-  // The number of times a test was run.
-  size_t test_instance_run;
-  // The number of times all the tests iterated.
-  size_t test_iteration_run;
-  // The number of tests that did not produce the expected end state.
-  size_t test_instance_hit;
-
-  CorpusStats& operator+=(const CorpusStats& other) {
-    code_gen_time += other.code_gen_time;
-    end_state_gen_time += other.end_state_gen_time;
-    test_time += other.test_time;
-    distinct_tests += other.distinct_tests;
-    test_instance_run += other.test_instance_run;
-    test_iteration_run += other.test_iteration_run;
-    test_instance_hit += other.test_instance_hit;
-    return *this;
-  }
-};
 
 void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
                    ParallelWorkerPool& workers,

@@ -23,6 +23,8 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
+package(default_visibility = ["//visibility:public"])
+
 DISABLE_ARM_TAGS = [
     "not_build:arm",
     "not_run:arm",
@@ -78,6 +80,40 @@ py_proto_library(
     deps = [":hashtest_result"],
 )
 
+# "Temporary" home for types being pulled out of hashtest_runner_main.cc and hashtest_runner.* until their final locations are know.
+# TODO: b/473040142 - This shouldn't depend on types inside of test generation
+cc_library(
+    name = "api_types",
+    srcs = [
+        "entropy.cc",
+    ],
+    hdrs = [
+        "corpus_config.h",
+        "corpus_stats.h",
+        "entropy.h",
+        "hit.h",
+        "json.h",
+        "run_config.h",
+    ],
+    deps = [
+        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
+        "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_test(
+    name = "entropy_test",
+    srcs = ["entropy_test.cc"],
+    deps = [
+        ":api_types",
+        "@googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "hashtest_runner_lib",
     srcs = [
@@ -90,6 +126,7 @@ cc_library(
         "json.h",
     ],
     deps = [
+        ":api_types",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
@@ -110,6 +147,7 @@ cc_test(
         "hashtest_runner_test.cc",
     ],
     deps = [
+        ":api_types",
         ":hashtest_runner_lib",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
@@ -152,6 +190,7 @@ cc_binary(
         "hashtest_runner_main.cc",
     ],
     deps = [
+        ":api_types",
         ":hashtest_result_cc_proto",
         ":hashtest_runner_lib",
         ":parallel_worker_pool",

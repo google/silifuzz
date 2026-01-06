@@ -35,6 +35,7 @@
 #include "absl/time/time.h"
 #include "absl/types/span.h"
 #include "third_party/cityhash/city.h"
+#include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/hashtest_runner_widgits.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
@@ -47,16 +48,6 @@
 #endif
 
 namespace silifuzz {
-
-std::string FormatSeed(uint64_t seed) {
-  return absl::StrCat(absl::Hex(seed, absl::kZeroPad16));
-}
-
-void RandomizeEntropyBuffer(uint64_t seed, EntropyBuffer& buffer) {
-  std::independent_bits_engine<std::mt19937_64, sizeof(uint8_t) * 8, uint8_t>
-      engine(seed);
-  std::generate(std::begin(buffer.bytes), std::end(buffer.bytes), engine);
-}
 
 MemoryMapping::~MemoryMapping() {
   if (ptr_ != nullptr) {

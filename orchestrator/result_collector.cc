@@ -182,13 +182,13 @@ bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
   bool should_stop = false;
   if (!result.success()) {
     if (!result.execution_result().ok()) {
-      // TODO(kostik) Report the error to `binary_log_producer_`.
+      // TODO(ksteuck) Report the error to `binary_log_producer_`.
       VLOG_INFO(1, result.execution_result().DebugString());
     }
     if (result.has_failed_player_result()) {
       // Currently, only explicitly failed snapshots count towards the overall
       // failure status.
-      // TODO(kostik) Consider what non-successful execution_result codes
+      // TODO(ksteuck) Consider what non-successful execution_result codes
       // should be considered as failures.
       if (result.failed_player_result().outcome ==
           snapshot_types::PlaybackOutcome::kExecutionRunaway) {
