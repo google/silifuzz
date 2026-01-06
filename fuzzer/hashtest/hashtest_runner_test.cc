@@ -84,9 +84,9 @@ void SmokeTest(uint64_t seed, size_t vector_width) {
   RandomizeEntropyBuffer(seed, input);
 
   // NopTest should leave the registers undisturbed.
-  // Running it should result in the input being copied to the output, although
-  // bytes at the end of the input may be ignored if the vector width is not the
-  // maximum.
+  // Running it should result in the input being copied to the output,
+  // although bytes at the end of the input may be ignored if the vector width
+  // is not the maximum.
   RunHashTest(reinterpret_cast<void*>(&NopTest), config, input, output);
 
   // Check that the relevant part of the buffer has been copied and the rest has
@@ -171,13 +171,13 @@ TEST(Runner, EndToEnd) {
                    absl::MakeSpan(end_states));
 
   ThreadStats stats{};
-  ResultReporter result(absl::Now());
+  RunStopper run_stopper;
   absl::Duration testing_time = absl::Seconds(1);
   RunTests(corpus.tests, inputs, end_states, run_config, 0, testing_time, stats,
-           result);
+           run_stopper);
 
   EXPECT_EQ(stats.num_failed, 0);
-  EXPECT_EQ(result.hits.size(), 0);
+  EXPECT_EQ(stats.hits.size(), 0);
 }
 
 TEST(MXCSR, GetSet) {

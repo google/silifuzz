@@ -251,6 +251,9 @@ struct CorpusStats {
   // Time consumed running the tests.
   absl::Duration test_time;
 
+  // The hits for this corpus
+  std::vector<Hit> hits;
+
   // The number of different tests that were run.
   size_t distinct_tests;
   // The number of times a test was run.
@@ -275,7 +278,7 @@ struct CorpusStats {
 void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
                    ParallelWorkerPool& workers,
                    const CorpusConfig& corpus_config, CorpusStats& corpus_stats,
-                   absl::Duration run_time, ResultReporter& result,
+                   absl::Duration run_time, RunStopper& run_stopper,
                    bool printing_allowed) {
   // Generate tests corpus.
   if (printing_allowed) {
@@ -366,7 +369,8 @@ void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
   absl::Duration testing_time = run_time - (test_begin - corpus_begin);
   workers.DoWork(stats, [&](ThreadStats& s) {
     RunTests(corpus.tests, corpus_config.inputs, end_states,
-             corpus_config.run_config, test_index, testing_time, s, result);
+             corpus_config.run_config, test_index, testing_time, s,
+             run_stopper);
   });
 
   // Aggregate thread stats.
@@ -375,6 +379,9 @@ void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
     corpus_stats.test_iteration_run +=
         s.num_run * corpus_config.run_config.test.num_iterations;
     corpus_stats.test_instance_hit += s.num_failed;
+    for (const auto& h : s.hits) {
+      corpus_stats.hits.push_back(h);
+    }
   }
   corpus_stats.test_time += absl::Now() - test_begin;
   corpus_stats.distinct_tests += corpus.tests.size();
@@ -701,19 +708,19 @@ int TestMain(std::vector<char*> positional_args) {
   std::shuffle(corpus_config.begin(), corpus_config.end(), rng);
 
   // Static so the signal handler callback can access it.
-  static ResultReporter result(test_started, printing_allowed);
+  static RunStopper run_stopper(printing_allowed);
 
   absl::Duration testing_time = absl::GetFlag(FLAGS_time);
   absl::Duration corpus_time = absl::GetFlag(FLAGS_corpus_time);
 
-  signal(SIGTERM, [](int) { result.StopRunning(); });
-  signal(SIGINT, [](int) { result.StopRunning(); });
+  signal(SIGTERM, [](int) { run_stopper.StopRunning(); });
+  signal(SIGINT, [](int) { run_stopper.StopRunning(); });
 
   size_t test_index = 0;
   std::vector<CorpusStats> corpus_stats(corpus_config.size());
   size_t current_variant = 0;
   while (true) {
-    if (result.ShouldStopRunning()) {
+    if (run_stopper.ShouldStopRunning()) {
       break;
     }
     absl::Time corpus_started = absl::Now();
@@ -724,9 +731,15 @@ int TestMain(std::vector<char*> positional_args) {
     }
     absl::Duration clamped_corpus_time =
         std::min(corpus_time, testing_time_remaining);
+    auto entering_hits = corpus_stats[current_variant].hits.size();
     RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
-                  corpus_stats[current_variant], clamped_corpus_time, result,
-                  printing_allowed);
+                  corpus_stats[current_variant], clamped_corpus_time,
+                  run_stopper, printing_allowed);
+    if (printing_allowed) {
+      std::cout << (corpus_stats[current_variant].hits.size() - entering_hits)
+                << " hits in " << (absl::Now() - corpus_started);
+      std::cout << std::endl;
+    }
     test_index += corpus_config[current_variant].num_tests;
     current_variant = (current_variant + 1) % corpus_config.size();
   }
@@ -741,9 +754,12 @@ int TestMain(std::vector<char*> positional_args) {
   absl::btree_map<int,
                   absl::btree_map<uint64_t, absl::btree_map<uint64_t, size_t>>>
       hit_counts;
-  for (const Hit& hit : result.hits) {
-    ++test_hit_counts[hit.test_seed];
-    ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
+
+  for (const auto& corpus_stat : corpus_stats) {
+    for (const auto& hit : corpus_stat.hits) {
+      ++test_hit_counts[hit.test_seed];
+      ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
+    }
   }
 
   std::vector<uint64_t> suspected_cpus;
@@ -783,8 +799,10 @@ int TestMain(std::vector<char*> positional_args) {
 
     // Print stats.
     for (size_t i = 0; i < corpus_config.size(); ++i) {
-      PrintCorpusStats(corpus_config[i].name, corpus_stats[i],
-                       workers.NumWorkers());
+      if (corpus_stats[i].test_instance_run > 0) {
+        PrintCorpusStats(corpus_config[i].name, corpus_stats[i],
+                         workers.NumWorkers());
+      }
     }
     PrintCorpusStats("all", all_stats, workers.NumWorkers());
 
@@ -798,6 +816,7 @@ int TestMain(std::vector<char*> positional_args) {
 
     // Print machine readable stats.
     std::cout << std::endl;
+
     std::cout << "BEGIN_JSON" << std::endl;
     JSONFormatter out(std::cout);
     out.Object([&] {

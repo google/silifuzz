@@ -153,38 +153,12 @@ void FinalizeCorpus(Corpus& corpus, size_t used_size) {
   corpus.mapping.SetUsedSize(used_size);
 }
 
-bool ResultReporter::ShouldStopRunning() {
+bool RunStopper::ShouldStopRunning() {
   return stop_running.load(std::memory_order_relaxed);
 }
 
-void ResultReporter::StopRunning() {
+void RunStopper::StopRunning() {
   stop_running.store(true, std::memory_order_relaxed);
-}
-
-void ResultReporter::CheckIn(absl::Time now) {
-  if (!printing_allowed) {
-    return;
-  }
-  absl::MutexLock lock(&mutex);
-  if (now >= next_update) {
-    std::cout << (hits.size() - num_hits_reported) << " hits @ "
-              << (now - test_started) << std::endl;
-    num_hits_reported = hits.size();
-    next_update = now + update_period;
-  }
-}
-
-void ResultReporter::ReportHit(int cpu, size_t test_index, const Test& test,
-                               size_t input_index, const Input& input) {
-  absl::MutexLock lock(&mutex);
-
-  hits.push_back({
-      .cpu = cpu,
-      .test_index = test_index,
-      .test_seed = test.seed,
-      .input_index = input_index,
-      .input_seed = input.seed,
-  });
 }
 
 void RunHashTest(void* test, const TestConfig& config,
@@ -258,7 +232,7 @@ size_t ReconcileEndStates(absl::Span<EndState> end_state,
 
 void RunTest(size_t test_index, const Test& test, const TestConfig& config,
              size_t input_index, const Input& input, const EndState& expected,
-             ThreadStats& stats, ResultReporter& result) {
+             ThreadStats& stats) {
   // Run the test.
   EntropyBuffer actual;
   RunHashTest(test.code, config, input.entropy, actual);
@@ -270,14 +244,20 @@ void RunTest(size_t test_index, const Test& test, const TestConfig& config,
 
   if (!ok) {
     ++stats.num_failed;
-    result.ReportHit(GetCPUId(), test_index, test, input_index, input);
+    stats.hits.push_back({
+        .cpu = GetCPUId(),
+        .test_index = test_index,
+        .test_seed = test.seed,
+        .input_index = input_index,
+        .input_seed = input.seed,
+    });
   }
 }
 
 bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
               size_t test_offset, absl::Time time_limit, ThreadStats& stats,
-              ResultReporter& result) {
+              RunStopper& run_stopper) {
   // Repeat the batch.
   for (size_t r = 0; r < config.num_repeat; ++r) {
     // Sweep through each input.
@@ -293,21 +273,14 @@ bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
           continue;
         }
         size_t test_index = test_offset + t;
-        RunTest(test_index, test, config.test, i, input, expected, stats,
-                result);
+        RunTest(test_index, test, config.test, i, input, expected, stats);
         // This should occur ~4 times a second.
-        // We're balancing a few things, here.
-        // First, reading the clock has overhead / may disrupt the
-        // microarchitectural state. Second, checking in with the result
-        // reporter acquires a lock that could be contended.
-        // On the other hand, we want to check in often enough so that we have a
-        // fairly accurate notion of when we should stop executing and also have
-        // a timely heat beat.
+        // reading the clock has overhead / may disrupt the
+        // microarchitectural state.
         if (stats.time_estimator.ShouldUpdate()) {
           absl::Time now = absl::Now();
           stats.time_estimator.Update(now, time_limit);
-          result.CheckIn(now);
-          if (result.ShouldStopRunning()) {
+          if (run_stopper.ShouldStopRunning()) {
             return false;
           }
           if (now >= time_limit) {
@@ -323,7 +296,7 @@ bool RunBatch(absl::Span<const Test> tests, absl::Span<const Input> inputs,
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
               size_t test_offset, absl::Duration testing_time,
-              ThreadStats& stats, ResultReporter& result) {
+              ThreadStats& stats, RunStopper& run_stopper) {
   absl::Time begin_time = absl::Now();
   absl::Time time_limit = begin_time + testing_time;
   stats.time_estimator.Reset(begin_time, time_limit);
@@ -335,7 +308,7 @@ void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
       if (!RunBatch(
               tests.subspan(g, batch_size), inputs,
               end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
-              config, test_offset + g, time_limit, stats, result)) {
+              config, test_offset + g, time_limit, stats, run_stopper)) {
         return;
       }
     }

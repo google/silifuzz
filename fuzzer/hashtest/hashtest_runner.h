@@ -219,32 +219,9 @@ struct Hit {
 };
 
 // An interface for reporting the results of test execution.
-struct ResultReporter {
-  ResultReporter(absl::Time test_started, bool printing_allowed = true,
-                 absl::Duration update_period = absl::Seconds(10))
-      : num_hits_reported(0),
-        test_started(test_started),
-        update_period(update_period),
-        next_update(test_started + update_period),
-        printing_allowed(printing_allowed) {}
-  // Called periodically to produce a heartbeat.
-  void CheckIn(absl::Time now);
-
-  // Called for every hit.
-  void ReportHit(int cpu, size_t test_index, const Test& test,
-                 size_t input_index, const Input& input);
-
-  absl::Mutex mutex;
-
-  // It's usually much more compact to collect each hit rather than keep
-  // per-test statistics. We can always recreate those statistics later from the
-  // hits.
-  std::vector<Hit> hits;
-  size_t num_hits_reported;
-
-  absl::Time test_started;
-  absl::Duration update_period;
-  absl::Time next_update;
+struct RunStopper {
+  RunStopper(bool printing_allowed = true)
+      : printing_allowed(printing_allowed) {}
 
   // Should stop running tests earlier than we were otherwise planning to?
   bool ShouldStopRunning();
@@ -309,6 +286,7 @@ struct TimeEstimator {
 struct ThreadStats {
   size_t num_run;
   size_t num_failed;
+  std::vector<Hit> hits;
 
   // A short-term internal stat used to estimate how many tests are being
   // executed per second. May fluctuate if the machine comes under load, etc.
@@ -345,7 +323,7 @@ struct RunConfig {
 void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               absl::Span<const EndState> end_states, const RunConfig& config,
               size_t test_offset, absl::Duration testing_time,
-              ThreadStats& stats, ResultReporter& result);
+              ThreadStats& stats, RunStopper& result);
 
 // Internal function, exported for testing.
 void RunHashTest(void* test, const TestConfig& config,
