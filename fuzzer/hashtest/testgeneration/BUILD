@@ -54,6 +54,7 @@ cc_library(
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/base:core_headers",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/types:span",
         "@libxed//:xed",

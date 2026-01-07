@@ -123,7 +123,6 @@ cc_library(
     hdrs = [
         "hashtest_runner.h",
         "hashtest_runner_widgits.h",
-        "json.h",
     ],
     deps = [
         ":api_types",
@@ -194,6 +193,7 @@ cc_binary(
         ":hashtest_result_cc_proto",
         ":hashtest_runner_lib",
         ":parallel_worker_pool",
+        "@silifuzz//fuzzer/hashtest/resultsrecorder:results_recorder",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
@@ -202,7 +202,6 @@ cc_binary(
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@silifuzz//util:time_proto_util",
-        "@abseil-cpp//absl/container:btree",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log:check",

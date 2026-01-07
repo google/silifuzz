@@ -183,8 +183,7 @@ absl::StatusOr<Snapshot> CreateSnapshot(std::mt19937_64& rng,
   snapshot.set_id(id);
   snapshot.set_metadata(
       Snapshot::Metadata(Snapshot::Metadata::Origin::kUseString,
-                         absl::StrCat("HashTestV", kHashTestVersionMajor, ".",
-                                      kHashTestVersionMinor)));
+                         absl::StrCat("HashTestV", GetVersionString())));
 
   if (make) {
     return MakeSnapshot(snapshot, MakingConfig::Default(RunnerLocation()));

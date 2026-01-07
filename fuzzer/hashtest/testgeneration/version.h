@@ -15,11 +15,21 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_VERSION_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_VERSION_H_
 
+#include <string>
+
+#include "absl/strings/str_cat.h"
+
 namespace silifuzz {
 
 inline constexpr unsigned int kHashTestVersionMajor = 1;
 inline constexpr unsigned int kHashTestVersionMinor = 2;
 inline constexpr unsigned int kHashTestVersionPatch = 2;
+
+// Gets the version number as a string, format is "major.minor.patch"
+inline std::string GetVersionString() {
+  return absl::StrCat(kHashTestVersionMajor, ".", kHashTestVersionMinor, ".",
+                      kHashTestVersionPatch);
+}
 
 }  // namespace silifuzz
 
