@@ -154,14 +154,14 @@ For Bazel, use the following commands.
 
 ```shell
 cd "${SILIFUZZ_SRC_DIR}"
-COV_FLAGS_FILE="$(bazel info output_base)/external/com_google_fuzztest/centipede/clang-flags.txt"
+COV_FLAGS_FILE="$(bazel info output_base)/external/fuzztest+/centipede/clang-flags.txt"
 bazel build -c opt --copt=-UNDEBUG --dynamic_mode=off \
   --per_file_copt=unicorn/.*@$(xargs < "${COV_FLAGS_FILE}" |sed -e 's/,/\\,/g' -e 's/ /,/g') @//proxies:unicorn_x86_64
-bazel build -c opt @com_google_fuzztest//centipede:centipede
+bazel build -c opt @fuzztest//centipede:centipede
 mkdir -p /tmp/wd
 
 # Fuzz the Unicorn proxy under Centipede 1000 times with parallelism of 30.
-"${SILIFUZZ_BIN_DIR}/external/com_google_fuzztest/centipede/centipede" \
+"${SILIFUZZ_BIN_DIR}/external/fuzztest+/centipede/centipede" \
   --binary="${SILIFUZZ_BIN_DIR}/proxies/unicorn_x86_64" \
   --workdir=/tmp/wd \
   -j=30 --num_runs=1000
@@ -170,14 +170,6 @@ mkdir -p /tmp/wd
 NOTE: Please refer to
 [Centipede](https://github.com/google/fuzztest/blob/main/centipede/README.md#run-centipede-locally-)
 documentation on how to efficiently run the fuzzing engine.
-
-### Using pre-generated corpus
-
-You can download Centipede corpus files that have been generated using the
-instructions above
-[here](https://storage.googleapis.com/silifuzz/corpus-unicorn-20221212.tar.bz2).
-The data can be processed by `simple_fix_tool` or used to seed future fuzzing
-runs.
 
 ## Tools
 
@@ -398,6 +390,7 @@ cd "${SILIFUZZ_BIN_DIR}"
 "${SILIFUZZ_BIN_DIR}/tools/simple_fix_tool_main" \
   --num_output_shards=10 \
   --output_path_prefix=/tmp/wd/runnable-corpus \
+  --runner="${SILIFUZZ_BIN_DIR}/runner/reading_runner_main_nolibc" \
   /tmp/wd/corpus.*
 ```
 
@@ -427,12 +420,14 @@ The orchestrator will cycle through all the shards listed in the file passed in
 `--shard_list_file` argument.
 
 ```shell
-$ ls -1 /tmp/wd/runnable-corpus.* > /tmp/shard_list
+$ ls -1 /tmp/wd/runnable-corpus.* > /tmp/wd/shard_list
+$ echo 'version: "local_corpus"' > /tmp/wd/corpus_metadata
 # Will repeatedly run the corpus on all available CPU cores for 30s using
 # /tmp/wd/runnable-corpus.* selected randomly.
-$ ./orchestrator/silifuzz_orchestrator_main --duration=30s \
-     --runner=./runner/reading_runner_main_nolibc \
-     --shard_list_file=/tmp/shard_list
+$ ${SILIFUZZ_BIN_DIR}/orchestrator/silifuzz_orchestrator_main --duration=30s \
+     --runner=${SILIFUZZ_BIN_DIR}/runner/reading_runner_main_nolibc \
+     --shard_list_file=/tmp/wd/shard_list \
+     --corpus_metadata_file=/tmp/wd/corpus_metadata
 ```
 
 NOTE: The orchestrator can also load XZ-compressed corpus shards from files
