@@ -53,9 +53,11 @@ cc_test(
         "@silifuzz//fuzzer/hashtest:hashtest_result_cc_proto",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//util:time_proto_util",
+        "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/time",
+        "@abseil-cpp//absl/types:span",
         "@googletest//:gtest_main",
     ],
 )

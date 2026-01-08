@@ -18,10 +18,33 @@
 #include <cstddef>
 #include <vector>
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "./fuzzer/hashtest/hit.h"
 
 namespace silifuzz {
+
+// Information about execution of tests on a single thread.
+struct PerThreadExecutionStats {
+  int cpu_id = 0;
+  absl::Duration testing_duration;
+  std::vector<Hit> hits;
+
+  // The number of times a test was run.
+  size_t tests_run = 0;
+
+  // The number of tests that did not produce the expected end state.
+  size_t tests_hit = 0;
+
+  PerThreadExecutionStats& operator+=(const PerThreadExecutionStats& other) {
+    testing_duration += other.testing_duration;
+    hits.insert(hits.end(), other.hits.cbegin(), other.hits.cend());
+    tests_run += other.tests_run;
+    tests_hit += other.tests_hit;
+    return *this;
+  }
+};
+
 // The results of running a corpus.
 struct CorpusStats {
   // Time consumed generated the test code.
@@ -31,28 +54,32 @@ struct CorpusStats {
   // Time consumed running the tests.
   absl::Duration test_time;
 
-  // The hits for this corpus
-  std::vector<Hit> hits;
-
-  // The number of different tests that were run.
-  size_t distinct_tests = 0;
-  // The number of times a test was run.
-  size_t test_instance_run = 0;
-  // The number of times all the tests iterated.
-  size_t test_iteration_run = 0;
-  // The number of tests that did not produce the expected end state.
-  size_t test_instance_hit = 0;
+  // Maps CPU id to stats for the execution on that cpu core.
+  absl::flat_hash_map<int, PerThreadExecutionStats> per_thread_stats;
 
   CorpusStats& operator+=(const CorpusStats& other) {
     code_gen_time += other.code_gen_time;
     end_state_gen_time += other.end_state_gen_time;
     test_time += other.test_time;
-    hits.insert(hits.end(), other.hits.cbegin(), other.hits.cend());
-    distinct_tests += other.distinct_tests;
-    test_instance_run += other.test_instance_run;
-    test_iteration_run += other.test_iteration_run;
-    test_instance_hit += other.test_instance_hit;
+    for (const auto& [cpu_id, thread_stats] : other.per_thread_stats) {
+      per_thread_stats[cpu_id] += thread_stats;
+    }
     return *this;
+  }
+
+  size_t num_runs() const {
+    size_t num_runs = 0;
+    for (const auto& [_, thread_stats] : per_thread_stats) {
+      num_runs += thread_stats.tests_run;
+    }
+    return num_runs;
+  }
+  size_t num_hits() const {
+    size_t num_hits = 0;
+    for (const auto& [_, thread_stats] : per_thread_stats) {
+      num_hits += thread_stats.tests_hit;
+    }
+    return num_hits;
   }
 };
 

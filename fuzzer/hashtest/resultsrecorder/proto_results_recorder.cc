@@ -61,9 +61,23 @@ void ProtoResultsRecorder::RecordChipStats(size_t vector_width,
 
 void ProtoResultsRecorder::RecordConfigurationInformation(
     size_t num_tests, size_t num_inputs, size_t num_repeat,
-    size_t num_iterations, size_t batch_size, size_t seed) {}
+    size_t num_iterations, size_t batch_size, size_t seed,
+    absl::Duration alotted_time, absl::Duration per_corpus_time) {
+  proto::ConfigurationInfo* config = results_.mutable_config();
+  config->set_tests_per_corpus(num_tests);
+  config->set_batch_size(batch_size);
+  config->set_inputs_per_test(num_inputs);
+  config->set_test_input_combination_repeats(num_repeat);
+  config->set_iterations_per_test(num_iterations);
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(
+      alotted_time, config->mutable_allotted_test_time()));
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(per_corpus_time,
+                                          config->mutable_per_corpus_time()));
+  config->set_seed(seed);
+}
 
 void ProtoResultsRecorder::RecordThreadInformation(absl::Span<const int> cpus) {
+  results_.mutable_config()->set_threads_attempted(cpus.size());
   for (int cpu : cpus) {
     results_.add_tested_cpus(cpu);
   }
@@ -83,8 +97,33 @@ void ProtoResultsRecorder::RecordStartingTestExecution() {}
 void ProtoResultsRecorder::RecordNumFailedEndStateReconciliations(
     size_t failed_reconciliations) {}
 
-void ProtoResultsRecorder::RecordCorpusStats(const CorpusStats& stats,
-                                             absl::Time corpus_start_time) {}
+void ProtoResultsRecorder::RecordCorpusStats(const CorpusConfig& config,
+                                             const CorpusStats& stats,
+                                             absl::Time corpus_start_time) {
+  proto::CorpusResults* corpus_results = results_.add_per_corpus_results();
+  corpus_results->set_corpus_configuration(config.name);
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(
+      stats.code_gen_time, corpus_results->mutable_test_generation_duration()));
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(
+      stats.end_state_gen_time,
+      corpus_results->mutable_end_state_generation_duration()));
+  CHECK_OK(silifuzz::EncodeGoogleApiProto(
+      stats.test_time, corpus_results->mutable_testing_duration()));
+
+  for (const auto& [_, per_thread] : stats.per_thread_stats) {
+    auto* thread_results = corpus_results->add_per_thread_results();
+    thread_results->set_cpu_id(per_thread.cpu_id);
+    CHECK_OK(silifuzz::EncodeGoogleApiProto(
+        per_thread.testing_duration,
+        thread_results->mutable_testing_duration()));
+    thread_results->set_tests_executed(per_thread.tests_run);
+    for (const Hit& h : per_thread.hits) {
+      auto* hit_result = thread_results->add_hits();
+      hit_result->set_test_seed(h.test_seed);
+      hit_result->set_input_seed(h.input_seed);
+    }
+  }
+}
 
 void ProtoResultsRecorder::RecordFinalStats(
     const std::vector<CorpusConfig>& corpus_configs,
@@ -96,10 +135,12 @@ void ProtoResultsRecorder::RecordFinalStats(
 
   absl::flat_hash_set<int> suspected_cpus;
   for (const CorpusStats& stats : corpus_stats) {
-    tests_run += stats.test_instance_run;
-    tests_failed += stats.test_instance_hit;
-    for (const Hit& hit : stats.hits) {
-      suspected_cpus.insert(hit.cpu);
+    tests_run += stats.num_runs();
+    tests_failed += stats.num_hits();
+    for (const auto& [cpu_id, per_thread] : stats.per_thread_stats) {
+      if (!per_thread.hits.empty()) {
+        suspected_cpus.insert(cpu_id);
+      }
     }
   }
 

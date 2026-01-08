@@ -67,7 +67,10 @@ sh_test(
 proto_library(
     name = "hashtest_result",
     srcs = ["hashtest_result.proto"],
-    deps = ["@protobuf//:timestamp_proto"],
+    deps = [
+        "@protobuf//:duration_proto",
+        "@protobuf//:timestamp_proto",
+    ],
 )
 
 cc_proto_library(
@@ -97,6 +100,7 @@ cc_library(
     ],
     deps = [
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
+        "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
@@ -202,6 +206,7 @@ cc_binary(
         "@silifuzz//util:itoa",
         "@silifuzz//util:platform",
         "@silifuzz//util:time_proto_util",
+        "@abseil-cpp//absl/algorithm:container",
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/flags:parse",
         "@abseil-cpp//absl/log:check",

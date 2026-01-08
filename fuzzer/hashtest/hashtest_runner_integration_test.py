@@ -30,7 +30,7 @@ def get_data_dependency(name: str) -> str:
   )
 
 
-CURRENT_VERSION = '1.2.2'
+CURRENT_VERSION: str = '1.2.3'
 
 HASHTEST_RUNNER_PATH = get_data_dependency('fuzzer/hashtest/hashtest_runner')
 

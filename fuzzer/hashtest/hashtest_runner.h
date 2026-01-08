@@ -205,9 +205,11 @@ struct TimeEstimator {
 };
 
 struct ThreadStats {
+  int cpu_id;
   size_t num_run;
   size_t num_failed;
   std::vector<Hit> hits;
+  absl::Duration test_duration;
 
   // A short-term internal stat used to estimate how many tests are being
   // executed per second. May fluctuate if the machine comes under load, etc.

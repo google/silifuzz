@@ -45,20 +45,19 @@ void PrintCorpusStats(const std::string& name, const CorpusStats& corpus_stats,
   std::cout << corpus_stats.end_state_gen_time << " generating end states"
             << std::endl;
   std::cout << corpus_stats.test_time << " testing" << std::endl;
-  std::cout << corpus_stats.distinct_tests << " tests" << std::endl;
-  std::cout << corpus_stats.test_instance_run << " runs" << std::endl;
-  std::cout << (corpus_stats.test_iteration_run /
-                (absl::ToDoubleSeconds(corpus_stats.test_time) * num_workers))
+  size_t tests_run = corpus_stats.num_runs();
+  size_t tests_hit = corpus_stats.num_hits();
+
+  std::cout << tests_run << " runs" << std::endl;
+  std::cout << tests_run /
+                   (absl::ToDoubleSeconds(corpus_stats.test_time) * num_workers)
             << " iterations per second per core" << std::endl;
-  std::cout << corpus_stats.test_instance_hit << " hits" << std::endl;
-  std::cout << (corpus_stats.test_instance_hit /
-                absl::ToDoubleSeconds(corpus_stats.test_time))
+  std::cout << tests_hit << " hits" << std::endl;
+  std::cout << (tests_hit / absl::ToDoubleSeconds(corpus_stats.test_time))
             << " per second hit rate" << std::endl;
-  std::cout << (corpus_stats.test_instance_hit /
-                (double)corpus_stats.test_instance_run)
-            << " per run hit rate" << std::endl;
-  std::cout << (1e9 * corpus_stats.test_instance_hit /
-                (double)(corpus_stats.test_iteration_run))
+  std::cout << (tests_hit / (double)tests_run) << " per run hit rate"
+            << std::endl;
+  std::cout << (1e9 * tests_hit / (double)(tests_run))
             << " per billion iteration hit rate" << std::endl;
 }
 
@@ -100,10 +99,8 @@ void FormatCorpusStatsJSON(const CorpusStats& corpus_stats,
     out.Field("end_state_gen_time",
               absl::ToDoubleSeconds(corpus_stats.end_state_gen_time));
     out.Field("test_time", absl::ToDoubleSeconds(corpus_stats.test_time));
-    out.Field("distinct_tests", corpus_stats.distinct_tests);
-    out.Field("test_instance_run", corpus_stats.test_instance_run);
-    out.Field("test_iteration_run", corpus_stats.test_iteration_run);
-    out.Field("test_instance_hit", corpus_stats.test_instance_hit);
+    out.Field("tests_run", corpus_stats.num_runs());
+    out.Field("tests_hit", corpus_stats.num_hits());
   });
 }
 
@@ -141,7 +138,8 @@ void HumanReadableResultsRecorder::RecordChipStats(size_t vector_width,
 
 void HumanReadableResultsRecorder::RecordConfigurationInformation(
     size_t num_tests, size_t num_inputs, size_t num_repeat,
-    size_t num_iterations, size_t batch_size, size_t seed) {
+    size_t num_iterations, size_t batch_size, size_t seed,
+    absl::Duration alotted_time, absl::Duration per_corpus_time) {
   seed_ = seed;
   std::cout << std::endl;
   std::cout << "Tests: " << num_tests << std::endl;
@@ -149,6 +147,9 @@ void HumanReadableResultsRecorder::RecordConfigurationInformation(
   std::cout << "Inputs: " << num_inputs << std::endl;
   std::cout << "Repeat: " << num_repeat << std::endl;
   std::cout << "Iterations: " << num_iterations << std::endl;
+
+  std::cout << "Time Alotted: " << alotted_time << std::endl;
+  std::cout << "Per Corpus Alottment: " << per_corpus_time << std::endl;
 
   // Display seed so that we can recreate this run later, if needed.
   std::cout << std::endl;
@@ -194,8 +195,9 @@ void HumanReadableResultsRecorder::RecordNumFailedEndStateReconciliations(
 }
 
 void HumanReadableResultsRecorder::RecordCorpusStats(
-    const CorpusStats& stats, absl::Time corpus_start_time) {
-  std::cout << stats.hits.size() << " hits in "
+    const CorpusConfig& config, const CorpusStats& stats,
+    absl::Time corpus_start_time) {
+  std::cout << stats.num_hits() << " hits in "
             << (absl::Now() - corpus_start_time) << std::endl;
 }
 
@@ -217,9 +219,11 @@ void HumanReadableResultsRecorder::RecordFinalStats(
   CorpusStats all_stats{};
   for (const auto& corpus_stat : corpus_stats) {
     all_stats += corpus_stat;
-    for (const auto& hit : corpus_stat.hits) {
-      ++test_hit_counts[hit.test_seed];
-      ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
+    for (const auto& per_thread_kv : corpus_stat.per_thread_stats) {
+      for (const auto& hit : per_thread_kv.second.hits) {
+        ++test_hit_counts[hit.test_seed];
+        ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
+      }
     }
   }
 
@@ -252,14 +256,18 @@ void HumanReadableResultsRecorder::RecordFinalStats(
 
   // Print stats.
   for (size_t i = 0; i < corpus_configs.size(); ++i) {
-    if (corpus_stats[i].test_instance_run > 0) {
+    if (!corpus_stats[i].per_thread_stats.empty()) {
       PrintCorpusStats(corpus_configs[i].name, corpus_stats[i], num_threads_);
     }
   }
   PrintCorpusStats("all", all_stats, num_threads_);
 
+  size_t total_tests_run = 0;
+  for (const auto& [_, thread_stats] : all_stats.per_thread_stats) {
+    total_tests_run += thread_stats.tests_run;
+  }
   std::cout << std::endl;
-  std::cout << (test_hit_counts.size() / (double)all_stats.distinct_tests)
+  std::cout << (test_hit_counts.size() / (double)total_tests_run)
             << " per test hit rate" << std::endl;
   std::cout << "Total time: " << (test_end_time_ - test_start_time_)
             << std::endl;

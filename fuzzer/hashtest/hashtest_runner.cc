@@ -290,6 +290,7 @@ void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               ThreadStats& stats, RunStopper& run_stopper) {
   absl::Time begin_time = absl::Now();
   absl::Time time_limit = begin_time + testing_time;
+  stats.cpu_id = GetCPUId();
   stats.time_estimator.Reset(begin_time, time_limit);
   // Iterate until the time limit is reached.
   while (true) {
@@ -300,6 +301,7 @@ void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
               tests.subspan(g, batch_size), inputs,
               end_states.subspan(g * inputs.size(), batch_size * inputs.size()),
               config, test_offset + g, time_limit, stats, run_stopper)) {
+        stats.test_duration = absl::Now() - begin_time;
         return;
       }
     }

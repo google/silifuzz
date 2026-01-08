@@ -39,7 +39,9 @@ class ProtoResultsRecorder final : public ResultsRecorder {
 
   void RecordConfigurationInformation(size_t num_tests, size_t num_inputs,
                                       size_t num_repeat, size_t num_iterations,
-                                      size_t batch_size, size_t seed) override;
+                                      size_t batch_size, size_t seed,
+                                      absl::Duration alotted_time,
+                                      absl::Duration per_corpus_time) override;
 
   void RecordThreadInformation(absl::Span<const int> cpus) override;
 
@@ -51,7 +53,7 @@ class ProtoResultsRecorder final : public ResultsRecorder {
   void RecordEndStateSize(size_t bytes) override;
   void RecordStartingTestExecution() override;
 
-  void RecordCorpusStats(const CorpusStats& stats,
+  void RecordCorpusStats(const CorpusConfig& config, const CorpusStats& stats,
                          absl::Time corpus_start_time) override;
   void RecordFinalStats(const std::vector<CorpusConfig>& corpus_configs,
                         const std::vector<CorpusStats>& corpus_stats) override;

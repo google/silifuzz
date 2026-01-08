@@ -64,7 +64,8 @@ class ResultsRecorder {
   // (or deduced in the case of the seed).
   virtual void RecordConfigurationInformation(
       size_t num_tests, size_t num_inputs, size_t num_repeat,
-      size_t num_iterations, size_t batch_size, size_t seed) = 0;
+      size_t num_iterations, size_t batch_size, size_t seed,
+      absl::Duration alotted_time, absl::Duration per_corpus_time) = 0;
 
   // Records the CPUs that will actually be running the HashTests.
   virtual void RecordThreadInformation(absl::Span<const int> cpus) = 0;
@@ -93,7 +94,8 @@ class ResultsRecorder {
   virtual void RecordStartingTestExecution() = 0;
 
   // Records the statistics from a single execution of a corpus.
-  virtual void RecordCorpusStats(const CorpusStats& stats,
+  virtual void RecordCorpusStats(const CorpusConfig& config,
+                                 const CorpusStats& stats,
                                  absl::Time corpus_start_time) = 0;
 
   /*******************************************************************/

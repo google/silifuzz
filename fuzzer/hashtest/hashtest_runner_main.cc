@@ -29,6 +29,7 @@
 #include <vector>
 
 #include "google/protobuf/timestamp.pb.h"
+#include "absl/algorithm/container.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/log/check.h"
@@ -37,6 +38,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
+#include "./fuzzer/hashtest/corpus_config.h"
 #include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/hashtest_result.pb.h"
 #include "./fuzzer/hashtest/hashtest_runner.h"
@@ -220,11 +222,11 @@ std::string TagsToName(const std::vector<std::string>& tags) {
   return absl::StrJoin(tags, ":");
 }
 
-void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
-                   ParallelWorkerPool& workers,
-                   const CorpusConfig& corpus_config, CorpusStats& corpus_stats,
-                   absl::Duration run_time, RunStopper& run_stopper,
-                   ResultsRecorder* recorder) {
+CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
+                          ParallelWorkerPool& workers,
+                          const CorpusConfig& corpus_config,
+                          absl::Duration run_time, RunStopper& run_stopper,
+                          ResultsRecorder* recorder) {
   // Generate tests corpus.
   recorder->RecordGenerationInformation(corpus_config);
   absl::Time corpus_begin = absl::Now();
@@ -281,7 +283,8 @@ void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
   recorder->RecordCorpusSize(corpus.MemoryUse());
 
   absl::Time end_state_begin = absl::Now();
-  corpus_stats.code_gen_time += end_state_begin - corpus_begin;
+  CorpusStats corpus_stats;
+  corpus_stats.code_gen_time = end_state_begin - corpus_begin;
 
   // Generate test+input end states.
   recorder->RecordStartEndStateGeneration();
@@ -291,7 +294,7 @@ void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
   recorder->RecordEndStateSize(end_states.size() * sizeof(end_states[0]));
 
   absl::Time test_begin = absl::Now();
-  corpus_stats.end_state_gen_time += test_begin - end_state_begin;
+  corpus_stats.end_state_gen_time = test_begin - end_state_begin;
 
   // Run test corpus.
   recorder->RecordStartingTestExecution();
@@ -305,16 +308,18 @@ void RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
 
   // Aggregate thread stats.
   for (const ThreadStats& s : stats) {
-    corpus_stats.test_instance_run += s.num_run;
-    corpus_stats.test_iteration_run +=
-        s.num_run * corpus_config.run_config.test.num_iterations;
-    corpus_stats.test_instance_hit += s.num_failed;
+    PerThreadExecutionStats& per_thread =
+        corpus_stats.per_thread_stats[s.cpu_id];
+    per_thread.cpu_id = s.cpu_id;
+    per_thread.tests_run = s.num_run;
+    per_thread.tests_hit = s.num_failed;
+    per_thread.testing_duration = s.test_duration;
     for (const auto& h : s.hits) {
-      corpus_stats.hits.push_back(h);
+      per_thread.hits.push_back(h);
     }
   }
-  corpus_stats.test_time += absl::Now() - test_begin;
-  corpus_stats.distinct_tests += corpus.tests.size();
+  corpus_stats.test_time = absl::Now() - test_begin;
+  return corpus_stats;
 }
 
 void SetTestTimes(proto::HashTestResult& result_proto, absl::Time started,
@@ -377,8 +382,9 @@ int TestMain(std::vector<char*> positional_args) {
   std::random_device hardware_rng{};
   uint64_t seed = maybe_seed.value_or(GetSeed(hardware_rng));
 
-  recorder->RecordConfigurationInformation(num_tests, num_inputs, num_repeat,
-                                           num_iterations, batch_size, seed);
+  recorder->RecordConfigurationInformation(
+      num_tests, num_inputs, num_repeat, num_iterations, batch_size, seed,
+      absl::GetFlag(FLAGS_time), absl::GetFlag(FLAGS_corpus_time));
 
   // Create separate test and input RNGs so that we can get predictable
   // sequences, given a fixed seed. If we don't do this, small changes to the
@@ -539,7 +545,7 @@ int TestMain(std::vector<char*> positional_args) {
   signal(SIGINT, [](int) { run_stopper.StopRunning(); });
 
   size_t test_index = 0;
-  std::vector<CorpusStats> corpus_stats(corpus_config.size());
+  std::vector<CorpusStats> corpus_stats_list(corpus_config.size());
   size_t current_variant = 0;
   while (true) {
     if (run_stopper.ShouldStopRunning()) {
@@ -553,23 +559,21 @@ int TestMain(std::vector<char*> positional_args) {
     }
     absl::Duration clamped_corpus_time =
         std::min(corpus_time, testing_time_remaining);
-    CorpusStats stats_for_run;
-    RunTestCorpus(test_index, test_rng, workers, corpus_config[current_variant],
-                  stats_for_run, clamped_corpus_time, run_stopper,
-                  recorder.get());
-    corpus_stats[current_variant] += stats_for_run;
-    recorder->RecordCorpusStats(stats_for_run, corpus_started);
+    CorpusStats stats_for_run = RunTestCorpus(
+        test_index, test_rng, workers, corpus_config[current_variant],
+        clamped_corpus_time, run_stopper, recorder.get());
+    corpus_stats_list[current_variant] += stats_for_run;
+    recorder->RecordCorpusStats(corpus_config[current_variant], stats_for_run,
+                                corpus_started);
     test_index += corpus_config[current_variant].num_tests;
     current_variant = (current_variant + 1) % corpus_config.size();
   }
 
-  recorder->RecordFinalStats(corpus_config, corpus_stats);
+  recorder->RecordFinalStats(corpus_config, corpus_stats_list);
   recorder->FinalizeRecording();
 
-  bool failed = false;
-  for (size_t i = 0; !failed && i < corpus_stats.size(); ++i) {
-    failed = failed || corpus_stats[i].test_instance_hit > 0;
-  }
+  bool failed = absl::c_any_of(
+      corpus_stats_list, [](const CorpusStats& s) { return s.num_hits() > 0; });
 
   return failed ? EXIT_FAILURE : EXIT_SUCCESS;
 }

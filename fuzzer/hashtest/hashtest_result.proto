@@ -16,7 +16,43 @@ syntax = "proto2";
 
 package silifuzz.proto;
 
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
+
+message Hit {
+  optional uint64 test_seed = 1;
+  optional uint64 input_seed = 2;
+}
+
+message PerThreadResults {
+  optional uint64 cpu_id = 1;
+  optional google.protobuf.Duration testing_duration = 2;
+  optional uint64 tests_executed = 3;
+  repeated Hit hits = 4;
+}
+
+message CorpusResults {
+  // Information about the execution and generation of a single corpus
+  optional string corpus_configuration = 1;
+  optional google.protobuf.Duration test_generation_duration = 2;
+  optional google.protobuf.Duration end_state_generation_duration = 3;
+  optional google.protobuf.Duration testing_duration = 4;
+  repeated PerThreadResults per_thread_results = 5;
+}
+
+// Proto representation of the command line flags provided to
+// hashtest_runner_main.
+message ConfigurationInfo {
+  optional uint64 threads_attempted = 1;
+  optional uint64 tests_per_corpus = 2;
+  optional uint64 batch_size = 3;
+  optional uint64 inputs_per_test = 4;
+  optional uint64 test_input_combination_repeats = 5;
+  optional uint64 iterations_per_test = 6;
+  optional google.protobuf.Duration allotted_test_time = 7;
+  optional google.protobuf.Duration per_corpus_time = 8;
+  optional uint64 seed = 9;
+}
 
 message HashTestResult {
   enum Status {
@@ -47,10 +83,13 @@ message HashTestResult {
   optional google.protobuf.Timestamp testing_ended = 6;
 
   // Test statistics.
-  optional uint64 tests_run = 7;
-  optional uint64 tests_failed = 8;
+  optional uint64 tests_run = 7 [deprecated = true];
+  optional uint64 tests_failed = 8 [deprecated = true];
 
   // CPU statistics.
-  repeated uint32 tested_cpus = 9 [packed = true];
-  repeated uint32 suspected_cpus = 10 [packed = true];
+  repeated uint32 tested_cpus = 9 [packed = true, deprecated = true];
+  repeated uint32 suspected_cpus = 10 [packed = true, deprecated = true];
+
+  optional ConfigurationInfo config = 11;
+  repeated CorpusResults per_corpus_results = 12;
 }
