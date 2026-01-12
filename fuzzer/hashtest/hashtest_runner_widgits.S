@@ -270,7 +270,6 @@ RunHashTest256:
   test %al, %al
 
   // Invoke the test
-  // TODO(ncbray): this leaves RDI dirty, should it need to be cleared?
   call *%rdi
 
   // Recover output buffer

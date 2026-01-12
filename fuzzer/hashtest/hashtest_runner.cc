@@ -85,6 +85,13 @@ void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
   RegisterPool rpool{};
   InitRegisterLayout(chip, rpool);
 
+  // Clear rdi since it is dirty from jumping to the file.
+  // Setting it to the seed for the test adds entropy and embeds the seed in the
+  // test itself.
+  InstructionBuilder clear_rdi_builder(XED_ICLASS_MOV, 64U);
+  clear_rdi_builder.AddOperands(xed_reg(XED_REG_RDI), xed_imm0(seed, 64));
+  Emit(clear_rdi_builder, body);
+
   SynthesizeLoopBody(rng, rpool, config, body);
 
   // Decrement the loop counter at the end of the loop body.
