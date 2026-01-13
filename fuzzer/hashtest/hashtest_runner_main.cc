@@ -39,16 +39,21 @@
 #include "absl/types/span.h"
 #include "./fuzzer/hashtest/corpus_config.h"
 #include "./fuzzer/hashtest/corpus_stats.h"
+#include "./fuzzer/hashtest/execution_stopper.h"
 #include "./fuzzer/hashtest/hashtest_result.pb.h"
-#include "./fuzzer/hashtest/hashtest_runner.h"
 #include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/resultsrecorder/human_readable_results_recorder.h"
 #include "./fuzzer/hashtest/resultsrecorder/proto_results_recorder.h"
 #include "./fuzzer/hashtest/resultsrecorder/results_recorder.h"
+#include "./fuzzer/hashtest/runnable_corpus.h"
+#include "./fuzzer/hashtest/test_partition.h"
+#include "./fuzzer/hashtest/testexecution/execute_corpus.h"
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
 #include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/testgeneration/synthesis_config.h"
+#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"  // For kLoopIndex
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./fuzzer/hashtest/testgeneration/version.h"
 #include "./instruction/xed_util.h"
@@ -99,121 +104,6 @@ std::vector<Input> GenerateInputs(std::mt19937_64& rng, size_t num_inputs) {
   return inputs;
 }
 
-// A list of tests to compute end states for.
-struct EndStateSubtask {
-  absl::Span<const Test> tests;
-  absl::Span<EndState> end_states;
-};
-
-// Three lists of tests to compute end states for.
-struct EndStateTask {
-  absl::Span<const Input> inputs;
-  EndStateSubtask subtask0;
-  EndStateSubtask subtask1;
-  EndStateSubtask subtask2;
-};
-
-struct TestPartition {
-  // The first test included in the partition.
-  size_t offset;
-  // The number of tests in the partition.
-  size_t size;
-};
-
-// Divide the tests into `num_workers` groups and returns the `index`-th group
-// of tests.
-TestPartition GetParition(int index, size_t num_tests, size_t num_workers) {
-  CHECK_LT(index, num_workers);
-  size_t remainder = num_tests % num_workers;
-  size_t tests_in_chunk = num_tests / num_workers;
-  if (index < remainder) {
-    // The first `remainder` partitions have `tests_in_chunk` + 1 tests.
-    return TestPartition{
-        .offset = index * (tests_in_chunk + 1),
-        .size = tests_in_chunk + 1,
-    };
-  } else {
-    // The rest of the partitions have `tests_in_chunk` tests.
-    return TestPartition{
-        .offset = index * tests_in_chunk + remainder,
-        .size = tests_in_chunk,
-    };
-  }
-}
-
-EndStateSubtask MakeSubtask(int index, size_t num_inputs, size_t num_workers,
-                            absl::Span<const Test> tests,
-                            absl::Span<EndState> end_states) {
-  TestPartition partition = GetParition(index, tests.size(), num_workers);
-
-  return {
-      .tests = tests.subspan(partition.offset, partition.size),
-      .end_states = absl::MakeSpan(end_states)
-                        .subspan(partition.offset * num_inputs,
-                                 partition.size * num_inputs),
-  };
-}
-
-// For each test and input, compute an end state.
-// We compute each end state 3x, and choose an end state that occurred more than
-// once. If all the end states are different, the end state is marked as bad and
-// that test+input combination will be skipped when running tests.
-// In the future we will compute end states on different CPUs to reduce the
-// chance of the same data corruption occurring multiple times.
-std::vector<EndState> DetermineEndStates(ParallelWorkerPool& workers,
-                                         const absl::Span<const Test> tests,
-                                         const TestConfig& config,
-                                         const absl::Span<const Input> inputs,
-                                         ResultsRecorder* recorder) {
-  const size_t num_end_state = tests.size() * inputs.size();
-
-  // Redundant sets of end states.
-  std::vector<EndState> end_states(num_end_state);
-  std::vector<EndState> compare1(num_end_state);
-  std::vector<EndState> compare2(num_end_state);
-
-  size_t num_workers = workers.NumWorkers();
-
-  // Partition work.
-  std::vector<EndStateTask> tasks(num_workers);
-  for (size_t i = 0; i < num_workers; ++i) {
-    EndStateTask& task = tasks[i];
-    task.inputs = inputs;
-
-    // For each of the redundant set of end states, compute a different
-    // partition on this core.
-    // Generating end states is pretty fast. The reason we're doing it on
-    // multiple cores is to try and ensure (to the greatest extent possible)
-    // that different cores are computing each redudnant version of the end
-    // state. This makes it unlikely that the same SDC will corrupt the end
-    // state twice. In cases where we are running on fewer than three cores,
-    // some of the redundant end states will be computed on the same core.
-    task.subtask0 = MakeSubtask(i, inputs.size(), num_workers, tests,
-                                absl::MakeSpan(end_states));
-    task.subtask1 = MakeSubtask((i + 1) % num_workers, inputs.size(),
-                                num_workers, tests, absl::MakeSpan(compare1));
-    task.subtask2 = MakeSubtask((i + 2) % num_workers, inputs.size(),
-                                num_workers, tests, absl::MakeSpan(compare2));
-  }
-
-  // Execute.
-  workers.DoWork(tasks, [&](EndStateTask& task) {
-    ComputeEndStates(task.subtask0.tests, config, task.inputs,
-                     task.subtask0.end_states);
-    ComputeEndStates(task.subtask1.tests, config, task.inputs,
-                     task.subtask1.end_states);
-    ComputeEndStates(task.subtask2.tests, config, task.inputs,
-                     task.subtask2.end_states);
-  });
-
-  // Try to guess which end states are correct, based on the redundancy.
-  size_t bad =
-      ReconcileEndStates(absl::MakeSpan(end_states), compare1, compare2);
-  recorder->RecordNumFailedEndStateReconciliations(bad);
-
-  return end_states;
-}
-
 std::string TagsToName(const std::vector<std::string>& tags) {
   if (tags.empty()) {
     return "default";
@@ -221,29 +111,88 @@ std::string TagsToName(const std::vector<std::string>& tags) {
   return absl::StrJoin(tags, ":");
 }
 
+void SynthesizeTest(uint64_t seed, xed_chip_enum_t chip,
+                    const SynthesisConfig& config, InstructionBlock& body) {
+  std::mt19937_64 rng(seed);
+  RegisterPool rpool{};
+  InitRegisterLayout(chip, rpool);
+
+  // Clear rdi since it is dirty from jumping to the test.
+  // Setting it to the seed for the test adds entropy and embeds the seed in the
+  // test itself.
+  InstructionBuilder clear_rdi_builder(XED_ICLASS_MOV, 64U);
+  clear_rdi_builder.AddOperands(xed_reg(XED_REG_RDI), xed_imm0(seed, 64));
+  Emit(clear_rdi_builder, body);
+
+  SynthesizeLoopBody(rng, rpool, config, body);
+
+  // Decrement the loop counter at the end of the loop body.
+  SynthesizeGPRegDec(kLoopIndex, body);
+
+  // Using JNLE so that the loop will abort if an SDC causes us to miss zero
+  // or jump to a negative index.
+  SynthesizeBackwardJnle(-static_cast<int32_t>(body.bytes.size()), body);
+
+  SynthesizeReturn(body);
+  size_t padding = (16 - (body.bytes.size() % 16)) % 16;
+  SynthesizeBreakpointTraps(16 + padding, body);
+}
+
+size_t SynthesizeTests(absl::Span<Test> tests, uint8_t* code_buffer,
+                       uint8_t* buffer_limit, xed_chip_enum_t chip,
+                       const SynthesisConfig& config) {
+  size_t offset = 0;
+  for (Test& test : tests) {
+    InstructionBlock body{};
+    SynthesizeTest(test.seed, chip, config, body);
+
+    // Copy the test into the mapping.
+    // TODO(b/473040142): move the writing code into InstructionBlock or into an
+    // object that understands the limits of the buffer in a better way than
+    // passing around a buffer_limit pointer.
+    test.code = code_buffer + offset;
+    size_t test_size = body.bytes.size();
+    CHECK_LE(test_size, kMaxTestBytes);
+    CHECK_LE(reinterpret_cast<uint8_t*>(test.code) + test_size, buffer_limit);
+    memcpy(test.code, body.bytes.data(), test_size);
+    offset += test_size;
+  }
+  return offset;
+}
+
 CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
                           ParallelWorkerPool& workers,
                           const CorpusConfig& corpus_config,
-                          absl::Duration run_time, RunStopper& run_stopper,
+                          absl::Duration run_time,
+                          ExecutionStopper& execution_stopper,
                           ResultsRecorder* recorder) {
   // Generate tests corpus.
   recorder->RecordGenerationInformation(corpus_config);
   absl::Time corpus_begin = absl::Now();
 
   // Allocate the corpus.
-  Corpus corpus = AllocateCorpus(test_rng, corpus_config.num_tests);
+  RunnableCorpus corpus = AllocateCorpus(test_rng, corpus_config.num_tests);
+  corpus.run_config = corpus_config.run_config;
+
+  // Copy over the inputs
+  std::copy(corpus_config.inputs.begin(), corpus_config.inputs.end(),
+            std::back_inserter(corpus.inputs));
 
   // Generate the tests in parallel.
   // TODO(ncbray): generate tests redundantly to catch SDCs?
   struct SynthesizeTestsTask {
     absl::Span<Test> tests;
+    // The start of the buffer for this subtask.
     uint8_t* code_buffer;
+    // The limit address for this subtask.
+    uint8_t* buffer_limit;
     size_t used;
   };
+
   std::vector<SynthesizeTestsTask> tasks(workers.NumWorkers());
   for (size_t i = 0; i < tasks.size(); ++i) {
     TestPartition partition =
-        GetParition(i, corpus_config.num_tests, workers.NumWorkers());
+        GetPartition(i, corpus_config.num_tests, workers.NumWorkers());
     // Each task is given a chunk of the code mapping large enough to hold the
     // maximum code size for all the tests in the partition. In practice
     // almost all of the tests will be smaller than the maximum size and the
@@ -253,17 +202,24 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
     // partition.size * kMaxTestBytes.
     uint8_t* code_buffer = reinterpret_cast<uint8_t*>(corpus.mapping.Ptr()) +
                            partition.offset * kMaxTestBytes;
+
+    size_t tests_in_partition = partition.size;
+    uint8_t* max_addr_for_partition =
+        std::min(reinterpret_cast<uint8_t*>(corpus.mapping.Ptr()) +
+                     corpus.mapping.AllocatedSize(),
+                 code_buffer + tests_in_partition * kMaxTestBytes);
     tasks[i] = {
         .tests = absl::MakeSpan(corpus.tests)
                      .subspan(partition.offset, partition.size),
         .code_buffer = code_buffer,
+        .buffer_limit = max_addr_for_partition,
         .used = 0,
     };
   }
   workers.DoWork(tasks, [&](SynthesizeTestsTask& task) {
     task.used =
-        SynthesizeTests(task.tests, task.code_buffer, corpus_config.chip,
-                        corpus_config.synthesis_config);
+        SynthesizeTests(task.tests, task.code_buffer, task.buffer_limit,
+                        corpus_config.chip, corpus_config.synthesis_config);
 
     // Needs to be set on each worker thread.
     // Affects end state generation and test running.
@@ -277,6 +233,9 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
   }
 
   // Finish generating the corpus.
+  // TODO(b/473040142): This currently is an invalid number.  It assumes the
+  // test partitions have no space between them which is unlikely to be the
+  // case.
   FinalizeCorpus(corpus, used);
 
   recorder->RecordCorpusSize(corpus.MemoryUse());
@@ -287,36 +246,19 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
 
   // Generate test+input end states.
   recorder->RecordStartEndStateGeneration();
-  std::vector<EndState> end_states =
-      DetermineEndStates(workers, corpus.tests, corpus_config.run_config.test,
-                         corpus_config.inputs, recorder);
-  recorder->RecordEndStateSize(end_states.size() * sizeof(end_states[0]));
+  size_t unreconciled_end_states = GenerateEndStatesForCorpus(corpus, workers);
+  recorder->RecordNumFailedEndStateReconciliations(unreconciled_end_states);
+  recorder->RecordEndStateSize(corpus.end_states.size() *
+                               sizeof(corpus.end_states[0]));
 
   absl::Time test_begin = absl::Now();
   corpus_stats.end_state_gen_time = test_begin - end_state_begin;
 
   // Run test corpus.
   recorder->RecordStartingTestExecution();
-  std::vector<ThreadStats> stats(workers.NumWorkers());
   absl::Duration testing_time = run_time - (test_begin - corpus_begin);
-  workers.DoWork(stats, [&](ThreadStats& s) {
-    RunTests(corpus.tests, corpus_config.inputs, end_states,
-             corpus_config.run_config, test_index, testing_time, s,
-             run_stopper);
-  });
-
-  // Aggregate thread stats.
-  for (const ThreadStats& s : stats) {
-    PerThreadExecutionStats& per_thread =
-        corpus_stats.per_thread_stats[s.cpu_id];
-    per_thread.cpu_id = s.cpu_id;
-    per_thread.tests_run = s.num_run;
-    per_thread.tests_hit = s.num_failed;
-    per_thread.testing_duration = s.test_duration;
-    for (const auto& h : s.hits) {
-      per_thread.hits.push_back(h);
-    }
-  }
+  corpus_stats.per_thread_stats = ExecuteCorpus(
+      corpus, testing_time, test_index, execution_stopper, workers);
   corpus_stats.test_time = absl::Now() - test_begin;
   return corpus_stats;
 }
@@ -334,7 +276,6 @@ void SetTestTimes(proto::HashTestResult& result_proto, absl::Time started,
 
 int TestMain(std::vector<char*> positional_args) {
   const bool print_proto = absl::GetFlag(FLAGS_print_proto);
-  const bool printing_allowed = !print_proto;
   std::unique_ptr<ResultsRecorder> recorder;
   if (print_proto) {
     recorder = std::make_unique<ProtoResultsRecorder>();
@@ -535,19 +476,18 @@ int TestMain(std::vector<char*> positional_args) {
   std::shuffle(corpus_config.begin(), corpus_config.end(), rng);
 
   // Static so the signal handler callback can access it.
-  static RunStopper run_stopper(printing_allowed);
+  static ExecutionStopper execution_stopper;
+  signal(SIGTERM, [](int) { execution_stopper.StopExecution(); });
+  signal(SIGINT, [](int) { execution_stopper.StopExecution(); });
 
   absl::Duration testing_time = absl::GetFlag(FLAGS_time);
   absl::Duration corpus_time = absl::GetFlag(FLAGS_corpus_time);
-
-  signal(SIGTERM, [](int) { run_stopper.StopRunning(); });
-  signal(SIGINT, [](int) { run_stopper.StopRunning(); });
 
   size_t test_index = 0;
   std::vector<CorpusStats> corpus_stats_list(corpus_config.size());
   size_t current_variant = 0;
   while (true) {
-    if (run_stopper.ShouldStopRunning()) {
+    if (execution_stopper.ShouldStopExecuting()) {
       break;
     }
     absl::Time corpus_started = absl::Now();
@@ -560,7 +500,7 @@ int TestMain(std::vector<char*> positional_args) {
         std::min(corpus_time, testing_time_remaining);
     CorpusStats stats_for_run = RunTestCorpus(
         test_index, test_rng, workers, corpus_config[current_variant],
-        clamped_corpus_time, run_stopper, recorder.get());
+        clamped_corpus_time, execution_stopper, recorder.get());
     corpus_stats_list[current_variant] += stats_for_run;
     recorder->RecordCorpusStats(corpus_config[current_variant], stats_for_run,
                                 corpus_started);

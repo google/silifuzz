@@ -83,25 +83,44 @@ py_proto_library(
     deps = [":hashtest_result"],
 )
 
+cc_library(
+    name = "corpus_api",
+    srcs = [
+        "runnable_corpus.cc",
+    ],
+    hdrs = [
+        "runnable_corpus.h",
+    ],
+    deps = [
+        ":api_types",
+        "@silifuzz//util:page_util",
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
 # "Temporary" home for types being pulled out of hashtest_runner_main.cc and hashtest_runner.* until their final locations are know.
 # TODO: b/473040142 - This shouldn't depend on types inside of test generation
 cc_library(
     name = "api_types",
     srcs = [
         "entropy.cc",
+        "test_partition.cc",
     ],
     hdrs = [
         "corpus_config.h",
         "corpus_stats.h",
         "entropy.h",
+        "execution_stopper.h",
         "hit.h",
         "json.h",
         "run_config.h",
+        "test_partition.h",
     ],
     deps = [
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@abseil-cpp//absl/container:flat_hash_map",
         "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/time",
@@ -114,49 +133,6 @@ cc_test(
     srcs = ["entropy_test.cc"],
     deps = [
         ":api_types",
-        "@googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "hashtest_runner_lib",
-    srcs = [
-        "hashtest_runner.cc",
-        "hashtest_runner_widgits.S",
-    ],
-    hdrs = [
-        "hashtest_runner.h",
-        "hashtest_runner_widgits.h",
-    ],
-    deps = [
-        ":api_types",
-        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
-        "@silifuzz//instruction:xed_util",
-        "@silifuzz//util:cpu_id",
-        "@silifuzz//util:page_util",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/log:check",
-        "@abseil-cpp//absl/strings",
-        "@abseil-cpp//absl/synchronization",
-        "@abseil-cpp//absl/time",
-        "@abseil-cpp//absl/types:span",
-        "@cityhash",
-    ],
-)
-
-cc_test(
-    name = "hashtest_runner_test",
-    srcs = [
-        "hashtest_runner_test.cc",
-    ],
-    deps = [
-        ":api_types",
-        ":hashtest_runner_lib",
-        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
-        "@silifuzz//instruction:xed_util",
-        "@silifuzz//util:platform",
-        "@abseil-cpp//absl/time",
-        "@abseil-cpp//absl/types:span",
         "@googletest//:gtest_main",
     ],
 )
@@ -194,10 +170,11 @@ cc_binary(
     ],
     deps = [
         ":api_types",
+        ":corpus_api",
         ":hashtest_result_cc_proto",
-        ":hashtest_runner_lib",
         ":parallel_worker_pool",
         "@silifuzz//fuzzer/hashtest/resultsrecorder:results_recorder",
+        "@silifuzz//fuzzer/hashtest/testexecution:execution",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
