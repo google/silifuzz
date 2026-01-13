@@ -172,7 +172,6 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
 
   // Allocate the corpus.
   RunnableCorpus corpus = AllocateCorpus(test_rng, corpus_config.num_tests);
-  corpus.run_config = corpus_config.run_config;
 
   // Copy over the inputs
   std::copy(corpus_config.inputs.begin(), corpus_config.inputs.end(),
@@ -246,7 +245,8 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
 
   // Generate test+input end states.
   recorder->RecordStartEndStateGeneration();
-  size_t unreconciled_end_states = GenerateEndStatesForCorpus(corpus, workers);
+  size_t unreconciled_end_states =
+      GenerateEndStatesForCorpus(corpus_config.run_config, corpus, workers);
   recorder->RecordNumFailedEndStateReconciliations(unreconciled_end_states);
   recorder->RecordEndStateSize(corpus.end_states.size() *
                                sizeof(corpus.end_states[0]));
@@ -257,8 +257,9 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
   // Run test corpus.
   recorder->RecordStartingTestExecution();
   absl::Duration testing_time = run_time - (test_begin - corpus_begin);
-  corpus_stats.per_thread_stats = ExecuteCorpus(
-      corpus, testing_time, test_index, execution_stopper, workers);
+  corpus_stats.per_thread_stats =
+      ExecuteCorpus(corpus, corpus_config.run_config, testing_time, test_index,
+                    execution_stopper, workers);
   corpus_stats.test_time = absl::Now() - test_begin;
   return corpus_stats;
 }

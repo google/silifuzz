@@ -95,8 +95,6 @@ struct RunnableCorpus {
   // Empty until generated.
   std::vector<EndState> end_states;
 
-  RunConfig run_config;
-
   size_t MemoryUse() {
     return sizeof(RunnableCorpus) + tests.size() * sizeof(Test) +
            mapping.UsedSize() + sizeof(Input) * inputs.size() +

@@ -293,7 +293,8 @@ void RunTests(absl::Span<const Test> tests, absl::Span<const Input> inputs,
 }
 }  // namespace
 
-size_t GenerateEndStatesForCorpus(RunnableCorpus& corpus,
+size_t GenerateEndStatesForCorpus(const RunConfig& run_config,
+                                  RunnableCorpus& corpus,
                                   ParallelWorkerPool& worker_pool) {
   const size_t num_end_state = corpus.tests.size() * corpus.inputs.size();
 
@@ -330,11 +331,11 @@ size_t GenerateEndStatesForCorpus(RunnableCorpus& corpus,
 
   // Execute.
   worker_pool.DoWork(tasks, [&](EndStateTask& task) {
-    ComputeEndStates(task.subtask0.tests, corpus.run_config.test, task.inputs,
+    ComputeEndStates(task.subtask0.tests, run_config.test, task.inputs,
                      task.subtask0.end_states);
-    ComputeEndStates(task.subtask1.tests, corpus.run_config.test, task.inputs,
+    ComputeEndStates(task.subtask1.tests, run_config.test, task.inputs,
                      task.subtask1.end_states);
-    ComputeEndStates(task.subtask2.tests, corpus.run_config.test, task.inputs,
+    ComputeEndStates(task.subtask2.tests, run_config.test, task.inputs,
                      task.subtask2.end_states);
   });
 
@@ -346,12 +347,13 @@ size_t GenerateEndStatesForCorpus(RunnableCorpus& corpus,
 }
 
 absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
-    const RunnableCorpus& corpus, absl::Duration testing_time,
-    size_t test_offset, const ExecutionStopper& execution_stopper,
+    const RunnableCorpus& corpus, const RunConfig& run_config,
+    absl::Duration testing_time, size_t test_offset,
+    const ExecutionStopper& execution_stopper,
     ParallelWorkerPool& worker_pool) {
   std::vector<ThreadStats> stats(worker_pool.NumWorkers());
   worker_pool.DoWork(stats, [&](ThreadStats& s) {
-    RunTests(corpus.tests, corpus.inputs, corpus.end_states, corpus.run_config,
+    RunTests(corpus.tests, corpus.inputs, corpus.end_states, run_config,
              test_offset, testing_time, s, execution_stopper);
   });
   absl::flat_hash_map<int, PerThreadExecutionStats> per_thread_stats;

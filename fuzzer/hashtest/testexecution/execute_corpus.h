@@ -31,7 +31,8 @@ namespace silifuzz {
 // once. If all the end states are different, the end state is marked as bad and
 // that test+input combination will be skipped when running tests.
 // Returns the number of unreconcilable end states.
-size_t GenerateEndStatesForCorpus(RunnableCorpus& corpus,
+size_t GenerateEndStatesForCorpus(const RunConfig& run_config,
+                                  RunnableCorpus& corpus,
                                   ParallelWorkerPool& worker_pool);
 
 // TODO(danieljsnyder): Remove test_offset all that it does is track that a test was
@@ -39,9 +40,9 @@ size_t GenerateEndStatesForCorpus(RunnableCorpus& corpus,
 // TODO(danieljsnyder): Should execution_stopper be non-const since it can be
 // changed by another thread?
 absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
-    const RunnableCorpus& corpus, absl::Duration testing_time,
-    size_t test_offset, const ExecutionStopper& execution_stopper,
-    ParallelWorkerPool& worker_pool);
+    const RunnableCorpus& corpus, const RunConfig& run_config,
+    absl::Duration testing_time, size_t test_offset,
+    const ExecutionStopper& execution_stopper, ParallelWorkerPool& worker_pool);
 
 // Internal function, exported for testing.
 void RunHashTest(void* test, const TestConfig& config,
