@@ -100,7 +100,17 @@ struct RunnableCorpus {
            mapping.UsedSize() + sizeof(Input) * inputs.size() +
            sizeof(EndState) * end_states.size();
   }
+
+  // A debug only method used to check the equality of two corpuses across
+  // changes.
+  void PrintCorpusValuesForEqualityChecking();
 };
+
+// Approximates the size of a test, ensuring out of bounds access does not
+// occur.
+// Exposed for testing.
+size_t GetTestLength(const void* test_code, const void* start_of_allocation,
+                     size_t allocation_size);
 
 // TODO(b/473040142): Move these functions or their replacements into
 // testgeneration directory.

@@ -46,7 +46,6 @@ cc_library(
         "@abseil-cpp//absl/synchronization",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
-        "@cityhash",
     ],
 )
 

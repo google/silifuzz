@@ -15,6 +15,9 @@
 #ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_ENTROPY_H_
 #define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_ENTROPY_H_
 
+#include <cstddef>
+#include <cstdint>
+
 #include "absl/log/log.h"
 
 namespace silifuzz {
@@ -69,6 +72,8 @@ inline uint64_t GetSeed(R& rng) {
 std::string FormatSeed(uint64_t seed);
 // Fill the buffer with random bytes.
 void RandomizeEntropyBuffer(uint64_t seed, EntropyBuffer& buffer);
+
+uint64_t EntropyBufferHash(const EntropyBuffer& buffer, size_t vector_width);
 
 }  // namespace silifuzz
 

@@ -35,7 +35,6 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "absl/types/span.h"
-#include "third_party/cityhash/city.h"
 #include "./fuzzer/hashtest/corpus_config.h"
 #include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/entropy.h"
@@ -146,11 +145,6 @@ EndStateSubtask MakeSubtask(int index, size_t num_inputs, size_t num_workers,
                         .subspan(partition.offset * num_inputs,
                                  partition.size * num_inputs),
   };
-}
-
-uint64_t EntropyBufferHash(const EntropyBuffer& buffer, size_t vector_width) {
-  return CityHash64(reinterpret_cast<const char*>(&buffer.bytes),
-                    buffer.NumBytes(vector_width));
 }
 
 void ComputeEndStates(absl::Span<const Test> tests, const TestConfig& config,

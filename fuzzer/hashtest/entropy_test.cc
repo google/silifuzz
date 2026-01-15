@@ -39,6 +39,8 @@ TEST(EntropyTest, RandomyEntropyBufferTest) {
   }
 
   EXPECT_THAT(different, testing::IsTrue());
+
+  EXPECT_NE(EntropyBufferHash(buffer, 512), EntropyBufferHash(buffer2, 512));
 }
 
 }  // namespace

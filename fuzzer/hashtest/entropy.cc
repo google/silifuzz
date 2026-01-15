@@ -15,12 +15,14 @@
 #include "./fuzzer/hashtest/entropy.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <random>
 #include <string>
 
 #include "absl/strings/str_cat.h"
+#include "third_party/cityhash/city.h"
 
 namespace silifuzz {
 
@@ -32,6 +34,11 @@ void RandomizeEntropyBuffer(uint64_t seed, EntropyBuffer& buffer) {
   std::independent_bits_engine<std::mt19937_64, sizeof(uint8_t) * 8, uint8_t>
       engine(seed);
   std::generate(std::begin(buffer.bytes), std::end(buffer.bytes), engine);
+}
+
+uint64_t EntropyBufferHash(const EntropyBuffer& buffer, size_t vector_width) {
+  return CityHash64(reinterpret_cast<const char*>(&buffer.bytes),
+                    buffer.NumBytes(vector_width));
 }
 
 }  // namespace silifuzz

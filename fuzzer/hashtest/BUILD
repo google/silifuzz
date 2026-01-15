@@ -95,6 +95,16 @@ cc_library(
         ":api_types",
         "@silifuzz//util:page_util",
         "@abseil-cpp//absl/log:check",
+        "@cityhash",
+    ],
+)
+
+cc_test(
+    name = "runnable_corpus_test",
+    srcs = ["runnable_corpus_test.cc"],
+    deps = [
+        ":corpus_api",
+        "@googletest//:gtest_main",
     ],
 )
 
@@ -125,6 +135,7 @@ cc_library(
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/time",
         "@abseil-cpp//absl/types:span",
+        "@cityhash",
     ],
 )
 
