@@ -308,6 +308,9 @@ void HumanReadableResultsRecorder::PrintJSON(
 
     out.Field("variants").List([&] {
       for (size_t i = 0; i < corpus_configs.size(); ++i) {
+        if (corpus_stats[i].num_runs() == 0) {
+          continue;
+        }
         out.Object([&] {
           out.Field("config");
           FormatCorpusConfigJSON(corpus_configs[i], out);
