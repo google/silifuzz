@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_MXCSR_H_
-#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_MXCSR_H_
+#ifndef THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_MXCSR_H_
+#define THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_MXCSR_H_
 
 #include <cstdint>
 
@@ -61,4 +61,4 @@ static_assert(kMXCSRMaskAll == 0x1f80, "MXCSR mask all value is unexpected.");
 
 }  // namespace silifuzz
 
-#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_TESTGENERATION_MXCSR_H_
+#endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_MXCSR_H_

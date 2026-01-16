@@ -23,7 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "./common/raw_insns_util.h"
 #include "./common/snapshot.h"
-#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/testgeneration/rand_util.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_shuffle.h"

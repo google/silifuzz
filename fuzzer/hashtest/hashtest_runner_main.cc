@@ -42,6 +42,7 @@
 #include "./fuzzer/hashtest/execution_stopper.h"
 #include "./fuzzer/hashtest/hashtest_result.pb.h"
 #include "./fuzzer/hashtest/json.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/resultsrecorder/human_readable_results_recorder.h"
 #include "./fuzzer/hashtest/resultsrecorder/proto_results_recorder.h"
@@ -51,7 +52,6 @@
 #include "./fuzzer/hashtest/testexecution/execute_corpus.h"
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
 #include "./fuzzer/hashtest/testgeneration/instruction_pool.h"
-#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
 #include "./fuzzer/hashtest/testgeneration/synthesis_config.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"  // For kLoopIndex
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
@@ -219,10 +219,6 @@ CorpusStats RunTestCorpus(size_t test_index, std::mt19937_64& test_rng,
     task.used =
         SynthesizeTests(task.tests, task.code_buffer, task.buffer_limit,
                         corpus_config.chip, corpus_config.synthesis_config);
-
-    // Needs to be set on each worker thread.
-    // Affects end state generation and test running.
-    SetMxcsr(corpus_config.run_config.mxcsr);
   });
 
   // Calculate the amount of memory used.

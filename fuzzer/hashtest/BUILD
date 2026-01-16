@@ -123,6 +123,7 @@ cc_library(
         "execution_stopper.h",
         "hit.h",
         "json.h",
+        "mxcsr.h",
         "run_config.h",
         "test_partition.h",
     ],

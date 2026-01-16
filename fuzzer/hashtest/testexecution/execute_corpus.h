@@ -22,6 +22,7 @@
 #include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/execution_stopper.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
+#include "./fuzzer/hashtest/run_config.h"
 #include "./fuzzer/hashtest/runnable_corpus.h"
 
 namespace silifuzz {

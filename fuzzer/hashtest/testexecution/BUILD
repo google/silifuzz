@@ -36,7 +36,6 @@ cc_library(
         "@silifuzz//fuzzer/hashtest:api_types",
         "@silifuzz//fuzzer/hashtest:corpus_api",
         "@silifuzz//fuzzer/hashtest:parallel_worker_pool",
-        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:page_util",

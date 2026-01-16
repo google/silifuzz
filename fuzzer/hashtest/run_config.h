@@ -18,10 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// TODO: b/473040142 - A type named RunConfig using code from testgeneration/
-// feels like a mixing between test generation and execution.  Consider fully
-// replacing these usages with SynthesisConfig or some other type.
-#include "./fuzzer/hashtest/testgeneration/mxcsr.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 
 namespace silifuzz {
 // The configuration for running a single test.

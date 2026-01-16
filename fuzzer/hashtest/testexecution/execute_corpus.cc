@@ -40,12 +40,11 @@
 #include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/execution_stopper.h"
 #include "./fuzzer/hashtest/hit.h"
+#include "./fuzzer/hashtest/mxcsr.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/runnable_corpus.h"
 #include "./fuzzer/hashtest/test_partition.h"
 #include "./fuzzer/hashtest/testexecution/hashtest_runner_widgits.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
-#include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
 #include "./instruction/xed_util.h"
 #include "./util/cpu_id.h"
 #include "./util/page_util.h"
@@ -325,6 +324,7 @@ size_t GenerateEndStatesForCorpus(const RunConfig& run_config,
 
   // Execute.
   worker_pool.DoWork(tasks, [&](EndStateTask& task) {
+    SetMxcsr(run_config.mxcsr);
     ComputeEndStates(task.subtask0.tests, run_config.test, task.inputs,
                      task.subtask0.end_states);
     ComputeEndStates(task.subtask1.tests, run_config.test, task.inputs,
@@ -346,7 +346,9 @@ absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
     const ExecutionStopper& execution_stopper,
     ParallelWorkerPool& worker_pool) {
   std::vector<ThreadStats> stats(worker_pool.NumWorkers());
+  // Set MXCSR again here to ensure we are running with the correct value.
   worker_pool.DoWork(stats, [&](ThreadStats& s) {
+    SetMxcsr(run_config.mxcsr);
     RunTests(corpus.tests, corpus.inputs, corpus.end_states, run_config,
              test_offset, testing_time, s, execution_stopper);
   });
