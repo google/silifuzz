@@ -17,20 +17,15 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
-#include "absl/types/span.h"
-#include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/run_config.h"
-#include "./fuzzer/hashtest/testgeneration/synthesis_config.h"
+#include "./fuzzer/hashtest/testgeneration/candidate.h"
+#include "./fuzzer/hashtest/testgeneration/corpus_generator.h"
 
 namespace silifuzz {
-// Initial state for a test.
-struct Input {
-  uint64_t seed = 0;
-  EntropyBuffer entropy;
-};
 
 // All the configuration needed to run a single corpus.
 struct CorpusConfig {
@@ -40,17 +35,13 @@ struct CorpusConfig {
   // A list of strings identifying what experiments are active.
   std::vector<std::string> tags;
 
-  // The chip to generate tests for.
-  xed_chip_enum_t chip;
+  // Config used to generate this corpus
+  GenerationConfig generation_config;
 
-  // Settings for test synthesis.
-  SynthesisConfig synthesis_config;
-
-  // The number of tests to generate.
-  size_t num_tests = 0;
-
-  // Test entry states.
-  absl::Span<const Input> inputs;
+  // Filter for set of instructions that can be used to create test content. By
+  // default accepts all instructions.
+  std::function<bool(const InstructionCandidate&)> instruction_filter =
+      [](const InstructionCandidate&) { return true; };
 
   // How the tests should be run.
   RunConfig run_config;

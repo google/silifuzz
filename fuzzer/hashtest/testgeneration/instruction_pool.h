@@ -90,6 +90,11 @@ struct InstructionPool {
                  std::back_inserter(result.mmxreg), predicate);
     return result;
   }
+
+  bool empty() const {
+    return no_effect.empty() && flag_manipulation.empty() && compare.empty() &&
+           greg.empty() && vreg.empty() && mreg.empty() && mmxreg.empty();
+  }
 };
 
 void GenerateInstructionPool(std::mt19937_64& rng, xed_chip_enum_t chip,

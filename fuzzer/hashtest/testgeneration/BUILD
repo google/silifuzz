@@ -20,26 +20,61 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "test_generation_lib",
+    name = "corpus_generation",
+    srcs = [
+        "corpus_generator.cc",
+    ],
+    hdrs = [
+        "corpus_generator.h",
+    ],
+    deps = [
+        ":candidate_lib",
+        ":test_generation_lib",
+        "@silifuzz//fuzzer/hashtest:corpus_api",
+        "@silifuzz//fuzzer/hashtest:parallel_worker_pool",
+        "@silifuzz//instruction:xed_util",
+        "@silifuzz//util:page_util",
+        "@abseil-cpp//absl/functional:any_invocable",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "candidate_lib",
     srcs = [
         "candidate.cc",
         "debugging.cc",
-        "instruction_pool.cc",
-        "prefilter.cc",
         "register_info.cc",
-        "synthesize_base.cc",
-        "synthesize_instruction.cc",
-        "synthesize_shuffle.cc",
-        "synthesize_test.cc",
         "xed_operand_util.cc",
     ],
     hdrs = [
         "candidate.h",
         "debugging.h",
+        "register_info.h",
+        "xed_operand_util.h",
+    ],
+    deps = [
+        "@silifuzz//util:checks",
+        "@abseil-cpp//absl/base:core_headers",
+        "@libxed//:xed",
+    ],
+)
+
+cc_library(
+    name = "test_generation_lib",
+    srcs = [
+        "instruction_pool.cc",
+        "prefilter.cc",
+        "synthesize_base.cc",
+        "synthesize_instruction.cc",
+        "synthesize_shuffle.cc",
+        "synthesize_test.cc",
+    ],
+    hdrs = [
         "instruction_pool.h",
         "prefilter.h",
         "rand_util.h",
-        "register_info.h",
         "synthesis_config.h",
         "synthesize_base.h",
         "synthesize_instruction.h",
@@ -47,9 +82,9 @@ cc_library(
         "synthesize_test.h",
         "version.h",
         "weighted_choose_one.h",
-        "xed_operand_util.h",
     ],
     deps = [
+        ":candidate_lib",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/base:core_headers",
@@ -64,6 +99,7 @@ cc_library(
     name = "snapshot_generation",
     srcs = [
         "synthesize_snapshot.cc",
+        "@silifuzz//fuzzer/hashtest:api_types",
     ],
     hdrs = [
         "synthesize_snapshot.h",
@@ -98,7 +134,7 @@ cc_test(
     name = "register_info_test",
     srcs = ["register_info_test.cc"],
     deps = [
-        ":test_generation_lib",
+        ":candidate_lib",
         "@googletest//:gtest_main",
     ],
 )
@@ -107,6 +143,7 @@ cc_test(
     name = "xed_operand_util_test",
     srcs = ["xed_operand_util_test.cc"],
     deps = [
+        ":candidate_lib",
         ":test_generation_lib",
         "@silifuzz//instruction:xed_util",
         "@abseil-cpp//absl/strings",

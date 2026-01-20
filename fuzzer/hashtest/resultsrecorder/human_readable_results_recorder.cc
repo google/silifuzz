@@ -84,9 +84,10 @@ void FormatCorpusConfigJSON(const CorpusConfig& corpus_config,
   out.Object([&] {
     out.Field("name", corpus_config.name);
     out.Field("tags", corpus_config.tags);
-    out.Field("chip", xed_chip_enum_t2str(corpus_config.chip));
-    out.Field("num_tests", corpus_config.num_tests);
-    out.Field("num_inputs", corpus_config.inputs.size());
+    out.Field("chip",
+              xed_chip_enum_t2str(corpus_config.generation_config.chip));
+    out.Field("num_tests", corpus_config.generation_config.num_tests);
+    out.Field("num_inputs", corpus_config.generation_config.num_inputs);
     out.Field("run_config");
     FormatRunConfigJSON(corpus_config.run_config, out);
   });
@@ -167,8 +168,8 @@ void HumanReadableResultsRecorder::RecordThreadInformation(
 void HumanReadableResultsRecorder::RecordGenerationInformation(
     const CorpusConfig& config) {
   std::cout << std::endl;
-  std::cout << "Generating " << config.num_tests << " tests / " << config.name
-            << std::endl;
+  std::cout << "Generating " << config.generation_config.num_tests
+            << " tests / " << config.name << std::endl;
 }
 
 void HumanReadableResultsRecorder::RecordCorpusSize(size_t bytes) {

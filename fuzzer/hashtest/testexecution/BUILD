@@ -35,6 +35,7 @@ cc_library(
         ":hashtest_runner_widgets",
         "@silifuzz//fuzzer/hashtest:api_types",
         "@silifuzz//fuzzer/hashtest:corpus_api",
+        "@silifuzz//fuzzer/hashtest:corpus_config",
         "@silifuzz//fuzzer/hashtest:parallel_worker_pool",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
@@ -64,7 +65,7 @@ cc_test(
     deps = [
         ":execution",
         ":hashtest_runner_widgets",
-        "@silifuzz//fuzzer/hashtest:api_types",
+        "@silifuzz//fuzzer/hashtest:corpus_api",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
         "@googletest//:gtest_main",

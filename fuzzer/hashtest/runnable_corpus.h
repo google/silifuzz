@@ -20,13 +20,18 @@
 #include <random>
 #include <vector>
 
-#include "./fuzzer/hashtest/corpus_config.h"  // For Input
-#include "./fuzzer/hashtest/run_config.h"
+#include "./fuzzer/hashtest/entropy.h"
 
 namespace silifuzz {
 
 // We allocate this amount of executable memory per test.
 constexpr inline size_t kMaxTestBytes = 2048;
+
+// Initial state for a test.
+struct Input {
+  uint64_t seed = 0;
+  EntropyBuffer entropy;
+};
 
 // Machine instructions for a test.
 struct Test {
@@ -59,13 +64,12 @@ class MemoryMapping {
 
   size_t AllocatedSize() const { return allocated_size_; }
 
-  void SetUsedSize(size_t used) { used_size_ = used; }
   size_t UsedSize() const { return used_size_; }
 
  private:
-  void* ptr_;
-  size_t allocated_size_;
-  size_t used_size_;
+  void* const ptr_;
+  const size_t allocated_size_;
+  const size_t used_size_;
 };
 
 // The expected end state of a test + input.
@@ -111,18 +115,6 @@ struct RunnableCorpus {
 // Exposed for testing.
 size_t GetTestLength(const void* test_code, const void* start_of_allocation,
                      size_t allocation_size);
-
-// TODO(b/473040142): Move these functions or their replacements into
-// testgeneration directory.
-
-// Allocates the  memory needed for a corpus, and sets the seed of the initial
-// corpus
-RunnableCorpus AllocateCorpus(std::mt19937_64& rng, size_t num_tests);
-
-// Set the amount of memory used by the corpus and mark the memory as
-// read-only and executable.
-void FinalizeCorpus(RunnableCorpus& corpus, size_t used_size);
-
 }  // namespace silifuzz
 
 #endif  // THIRD_PARTY_SILIFUZZ_FUZZER_HASHTEST_RUNNABLE_CORPUS_H_

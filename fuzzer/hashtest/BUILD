@@ -86,15 +86,20 @@ py_proto_library(
 cc_library(
     name = "corpus_api",
     srcs = [
+        "entropy.cc",
         "runnable_corpus.cc",
+        "test_partition.cc",
     ],
     hdrs = [
+        "entropy.h",
         "runnable_corpus.h",
+        "test_partition.h",
     ],
     deps = [
-        ":api_types",
         "@silifuzz//util:page_util",
+        "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
         "@cityhash",
     ],
 )
@@ -108,35 +113,33 @@ cc_test(
     ],
 )
 
+cc_library(
+    name = "corpus_config",
+    hdrs = ["corpus_config.h"],
+    deps = [
+        ":api_types",
+        "@silifuzz//fuzzer/hashtest/testgeneration:candidate_lib",
+        "@silifuzz//fuzzer/hashtest/testgeneration:corpus_generation",
+    ],
+)
+
 # "Temporary" home for types being pulled out of hashtest_runner_main.cc and hashtest_runner.* until their final locations are know.
 # TODO: b/473040142 - This shouldn't depend on types inside of test generation
 cc_library(
     name = "api_types",
-    srcs = [
-        "entropy.cc",
-        "test_partition.cc",
-    ],
     hdrs = [
-        "corpus_config.h",
         "corpus_stats.h",
-        "entropy.h",
         "execution_stopper.h",
         "hit.h",
         "json.h",
         "mxcsr.h",
         "run_config.h",
-        "test_partition.h",
     ],
     deps = [
-        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@abseil-cpp//absl/container:flat_hash_map",
-        "@abseil-cpp//absl/log",
-        "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/time",
-        "@abseil-cpp//absl/types:span",
-        "@cityhash",
     ],
 )
 
@@ -144,7 +147,7 @@ cc_test(
     name = "entropy_test",
     srcs = ["entropy_test.cc"],
     deps = [
-        ":api_types",
+        ":corpus_api",
         "@googletest//:gtest_main",
     ],
 )
@@ -183,11 +186,13 @@ cc_binary(
     deps = [
         ":api_types",
         ":corpus_api",
+        ":corpus_config",
         ":hashtest_result_cc_proto",
         ":parallel_worker_pool",
         "@silifuzz//fuzzer/hashtest/resultsrecorder:results_recorder",
         "@silifuzz//fuzzer/hashtest/testexecution:execution",
-        "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
+        "@silifuzz//fuzzer/hashtest/testgeneration:candidate_lib",
+        "@silifuzz//fuzzer/hashtest/testgeneration:corpus_generation",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:cpu_id",
         "@silifuzz//util:enum_flag_types",

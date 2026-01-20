@@ -32,6 +32,8 @@ cc_library(
     ],
     deps = [
         "@silifuzz//fuzzer/hashtest:api_types",
+        "@silifuzz//fuzzer/hashtest:corpus_api",
+        "@silifuzz//fuzzer/hashtest:corpus_config",
         "@silifuzz//fuzzer/hashtest:hashtest_result_cc_proto",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//util:time_proto_util",
@@ -50,6 +52,7 @@ cc_test(
     deps = [
         ":results_recorder",
         "@silifuzz//fuzzer/hashtest:api_types",
+        "@silifuzz//fuzzer/hashtest:corpus_config",
         "@silifuzz//fuzzer/hashtest:hashtest_result_cc_proto",
         "@silifuzz//fuzzer/hashtest/testgeneration:test_generation_lib",
         "@silifuzz//util:time_proto_util",
