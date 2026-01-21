@@ -18,10 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
-#include <random>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "gtest/gtest.h"
 #include "./fuzzer/hashtest/entropy.h"
