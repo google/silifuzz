@@ -23,7 +23,6 @@
 #include "./fuzzer/hashtest/corpus_config.h"
 #include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/resultsrecorder/results_recorder.h"
-#include "./fuzzer/hashtest/testgeneration/version.h"
 
 namespace silifuzz {
 class HumanReadableResultsRecorder final : public ResultsRecorder {

@@ -28,7 +28,7 @@
 #include "./fuzzer/hashtest/testgeneration/synthesize_base.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_shuffle.h"
 #include "./fuzzer/hashtest/testgeneration/synthesize_test.h"
-#include "./fuzzer/hashtest/testgeneration/version.h"
+#include "./fuzzer/hashtest/versioning/version.h"
 #include "./runner/make_snapshot.h"
 #include "./runner/runner_provider.h"
 #include "./util/arch.h"

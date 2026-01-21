@@ -28,7 +28,7 @@
 #include "./fuzzer/hashtest/corpus_stats.h"
 #include "./fuzzer/hashtest/hashtest_result.pb.h"
 #include "./fuzzer/hashtest/hit.h"
-#include "./fuzzer/hashtest/testgeneration/version.h"
+#include "./fuzzer/hashtest/versioning/version.h"
 #include "./util/time_proto_util.h"
 
 namespace silifuzz {

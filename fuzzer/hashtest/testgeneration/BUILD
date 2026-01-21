@@ -80,7 +80,6 @@ cc_library(
         "synthesize_instruction.h",
         "synthesize_shuffle.h",
         "synthesize_test.h",
-        "version.h",
         "weighted_choose_one.h",
     ],
     deps = [
@@ -88,7 +87,6 @@ cc_library(
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/base:core_headers",
-        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/strings:string_view",
         "@abseil-cpp//absl/types:span",
         "@libxed//:xed",
@@ -109,6 +107,7 @@ cc_library(
         "@silifuzz//common:raw_insns_util",
         "@silifuzz//common:snapshot",
         "@silifuzz//fuzzer/hashtest:api_types",
+        "@silifuzz//fuzzer/hashtest/versioning:version",
         "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
         "@silifuzz//util:arch",

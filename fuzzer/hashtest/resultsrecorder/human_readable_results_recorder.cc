@@ -31,7 +31,7 @@
 #include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/json.h"
 #include "./fuzzer/hashtest/run_config.h"
-#include "./fuzzer/hashtest/testgeneration/version.h"
+#include "./fuzzer/hashtest/versioning/version.h"
 
 namespace silifuzz {
 
