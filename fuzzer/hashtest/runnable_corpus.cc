@@ -37,21 +37,20 @@ MemoryMapping::~MemoryMapping() {
   }
 }
 
+uint64_t Test::TestContentHash(const MemoryMapping& mapping) const {
+  size_t test_length =
+      GetTestLength(code, mapping.Ptr(), mapping.AllocatedSize());
+  return CityHash64(reinterpret_cast<const char*>(code), test_length);
+}
+
 void RunnableCorpus::PrintCorpusValuesForEqualityChecking() {
   for (int i = 0; i < inputs.size(); ++i) {
     std::cout << "input idx: " << i << "\tseed: " << inputs[i].seed
-              << "\tentropy_hash: " << EntropyBufferHash(inputs[i].entropy, 512)
-              << std::endl;
+              << "\tentropy_hash: " << inputs[i].BufferHash() << std::endl;
   }
   for (int i = 0; i < tests.size(); ++i) {
-    const auto& test = tests[i];
-    size_t test_length =
-        GetTestLength(test.code, mapping.Ptr(), mapping.AllocatedSize());
-    std::cout << "test idx: " << i << "\tseed: " << test.seed
-              << "\tlength: " << test_length << "\thash: "
-              << CityHash64(reinterpret_cast<const char*>(test.code),
-                            test_length)
-              << std::endl;
+    std::cout << "test idx: " << i << "\tseed: " << tests[i].seed
+              << "\thash: " << tests[i].TestContentHash(mapping) << std::endl;
   }
 
   for (int i = 0; i < end_states.size(); ++i) {

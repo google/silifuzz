@@ -27,22 +27,17 @@ namespace silifuzz {
 // We allocate this amount of executable memory per test.
 constexpr inline size_t kMaxTestBytes = 2048;
 
+constexpr inline size_t kMaxVectorRegWidth = 512;
+
 // Initial state for a test.
 struct Input {
   uint64_t seed = 0;
   EntropyBuffer entropy;
-};
 
-// Machine instructions for a test.
-struct Test {
-  // The seed that was used to generate the test.
-  // Provides a semi-stable name for the test (the test generation algorithm may
-  // be improved from time to time).
-  uint64_t seed;
-
-  // The entry point of the test. Jump here to run the test.
-  // This is a borrowed reference to memory owned by the RunnableCorpus struct.
-  void* code;
+  // Assumes the buffer is always full because for Inputs it currently is.
+  uint64_t BufferHash() const {
+    return EntropyBufferHash(entropy, kMaxVectorRegWidth);
+  }
 };
 
 class MemoryMapping {
@@ -70,6 +65,22 @@ class MemoryMapping {
   void* const ptr_;
   const size_t allocated_size_;
   const size_t used_size_;
+};
+
+// Machine instructions for a test.
+struct Test {
+  // The seed that was used to generate the test.
+  // Provides a semi-stable name for the test (the test generation algorithm may
+  // be improved from time to time).
+  uint64_t seed;
+
+  // The entry point of the test. Jump here to run the test.
+  // This is a borrowed reference to memory owned by the RunnableCorpus struct.
+  void* code;
+
+  //  Get the hash for the test content, assuming it is located within the
+  //  provided MemoryMapping.
+  uint64_t TestContentHash(const MemoryMapping& mapping) const;
 };
 
 // The expected end state of a test + input.

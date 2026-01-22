@@ -13,6 +13,8 @@
 # limitations under the License.
 
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 
 licenses(["notice"])
 
@@ -25,5 +27,26 @@ cc_library(
     ],
     deps = [
         "@abseil-cpp//absl/strings",
+    ],
+)
+
+proto_library(
+    name = "corpus_values",
+    srcs = ["corpus_values.proto"],
+)
+
+cc_proto_library(
+    name = "corpus_values_cc_proto",
+    deps = [":corpus_values"],
+)
+
+cc_library(
+    name = "corpus_valuation",
+    srcs = ["corpus_valuation.cc"],
+    hdrs = ["corpus_valuation.h"],
+    deps = [
+        ":corpus_values_cc_proto",
+        ":version",
+        "@silifuzz//fuzzer/hashtest:corpus_api",
     ],
 )
