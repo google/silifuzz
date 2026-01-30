@@ -26,6 +26,7 @@
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/runnable_corpus.h"
 #include "./fuzzer/hashtest/testgeneration/candidate.h"
