@@ -168,6 +168,7 @@ enum PlatformId {
   AMD_TURIN = 44;
   ARM_NEOVERSE_N3 = 45;
   ARM_NEOVERSE_N2 = 46;
+  AMD_VENICE = 47;
 }
 
 // Describes a specific endstate of executing a snapshot.

@@ -241,6 +241,9 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
     case PlatformId::kAmdTurin:
       // Should be ZEN5?
       return XED_CHIP_AMD_FUTURE;
+    case PlatformId::kAmdVenice:
+      // Should be ZEN6?
+      return XED_CHIP_AMD_FUTURE;
     case PlatformId::kIntelCoffeelake:
       // In this era of Intel chips, different process nodes were given
       // different code names. XED does not have enums for these names, however.

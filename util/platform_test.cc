@@ -104,6 +104,7 @@ const absl::flat_hash_map<PlatformId, CpuId> kAmdPlatformToCpuId = {
     {PlatformId::kAmdRyzenV3000, {25, 64, 0}},
     {PlatformId::kAmdSiena, {25, 160, 0}},
     {PlatformId::kAmdTurin, {26, 2, 0}},
+    {PlatformId::kAmdVenice, {26, 80, 0}},
 };
 const absl::flat_hash_map<PlatformId, CpuId> kIntelPlatformToCpuId = {
     {PlatformId::kIntelHaswell, {6, 60, 0}},
