@@ -66,11 +66,22 @@ constexpr std::pair<const GenerationConfig, const absl::string_view>
         std::pair(kHaswellConfig, kHaswellConfigFileName),
         std::pair(kSapphireRapidsConfig, kSapphireRapidsConfigFileName)};
 
+absl::string_view TrimPatchVersion(absl::string_view version) {
+  size_t trim_pos = version.rfind('.');
+  version.remove_suffix(version.size() - trim_pos);
+  return version;
+}
+
+bool MajorMinorVersionEquals(absl::string_view version_a,
+                             absl::string_view version_b) {
+  return TrimPatchVersion(version_a) == TrimPatchVersion(version_b);
+}
+
 }  // namespace
 
 int CompareCorpusValues(const proto::CorpusValues& generated,
                         const proto::CorpusValues& golden) {
-  if (generated.version() != golden.version()) {
+  if (!MajorMinorVersionEquals(generated.version(), golden.version())) {
     std::cerr << "Incompatible versions, please update golden values"
               << std::endl;
     return EXIT_FAILURE;
