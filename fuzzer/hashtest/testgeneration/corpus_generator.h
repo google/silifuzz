@@ -91,6 +91,13 @@ class CorpusGenerator {
       std::function<bool(const InstructionCandidate&)> instruction_filter,
       ParallelWorkerPool& workers);
 
+  // Helper function that removes the need to supply a filter
+  RunnableCorpus GenerateCorpusForConfig(const GenerationConfig& config,
+                                         ParallelWorkerPool& workers) {
+    return GenerateCorpusForConfig(
+        config, [](const InstructionCandidate&) { return true; }, workers);
+  }
+
  private:
   std::vector<Input> GenerateInputs(size_t num_inputs);
   RunnableCorpus AllocateCorpus(size_t num_tests);

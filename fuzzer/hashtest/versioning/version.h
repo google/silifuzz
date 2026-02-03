@@ -23,7 +23,7 @@ namespace silifuzz {
 
 inline constexpr unsigned int kHashTestVersionMajor = 1;
 inline constexpr unsigned int kHashTestVersionMinor = 4;
-inline constexpr unsigned int kHashTestVersionPatch = 0;
+inline constexpr unsigned int kHashTestVersionPatch = 1;
 
 // Gets the version number as a string, format is "major.minor.patch"
 inline std::string GetVersionString() {

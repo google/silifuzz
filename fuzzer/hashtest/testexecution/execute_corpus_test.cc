@@ -22,13 +22,27 @@
 
 #include "gtest/gtest.h"
 #include "./fuzzer/hashtest/entropy.h"
+#include "./fuzzer/hashtest/parallel_worker_pool.h"
+#include "./fuzzer/hashtest/runnable_corpus.h"
 #include "./fuzzer/hashtest/testexecution/hashtest_runner_widgits.h"
+#include "./fuzzer/hashtest/testgeneration/corpus_generator.h"
+#include "./fuzzer/hashtest/versioning/tested_corpus_configs.h"
 #include "./instruction/xed_util.h"
 #include "./util/platform.h"
 
 namespace silifuzz {
 
 namespace {
+
+constexpr RunConfig kRunConfig = {
+    .test =
+        {
+            .vector_width = 128,
+            .num_iterations = 10,
+        },
+    .batch_size = 4,
+    .num_repeat = 3,
+};
 
 size_t CurrentVectorWidth() {
   InitXedIfNeeded();
@@ -62,6 +76,16 @@ void SmokeTest(uint64_t seed, size_t vector_width) {
   }
 }
 
+RunnableCorpus GenerateCorpusForExecution(ParallelWorkerPool& worker_pool) {
+  InitXedIfNeeded();
+  CorpusGenerator corpus_generator;
+
+  GenerationConfig config = kBasicConfig;
+  config.chip = PlatformIdToChip(CurrentPlatformId());
+
+  return corpus_generator.GenerateCorpusForConfig(kBasicConfig, worker_pool);
+}
+
 TEST(RunHashTest, Run512) {
   constexpr size_t kVectorWidth = 512;
   if (CurrentVectorWidth() < kVectorWidth) {
@@ -92,6 +116,18 @@ TEST(RunHashTest, Run128) {
   // Test with two different bit patterns.
   SmokeTest(4, kVectorWidth);
   SmokeTest(5, kVectorWidth);
+}
+
+TEST(CorpusExecutionTests, EachThreadGetsAPerThreadExecutionStat) {
+  ParallelWorkerPool workers(10);
+  RunnableCorpus corpus = GenerateCorpusForExecution(workers);
+
+  EXPECT_EQ(GenerateEndStatesForCorpus(kRunConfig, corpus, workers), 0);
+
+  auto per_thread_stats = ExecuteCorpus(corpus, kRunConfig, absl::Seconds(1), 0,
+                                        ExecutionStopper(), workers);
+
+  EXPECT_EQ(per_thread_stats.size(), 10);
 }
 
 }  // namespace

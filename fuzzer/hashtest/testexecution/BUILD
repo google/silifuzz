@@ -62,10 +62,14 @@ cc_library(
 cc_test(
     name = "execute_corpus_test",
     srcs = ["execute_corpus_test.cc"],
+    local = True,
     deps = [
         ":execution",
         ":hashtest_runner_widgets",
         "@silifuzz//fuzzer/hashtest:corpus_api",
+        "@silifuzz//fuzzer/hashtest:parallel_worker_pool",
+        "@silifuzz//fuzzer/hashtest/testgeneration:corpus_generation",
+        "@silifuzz//fuzzer/hashtest/versioning:tested_corpus_configs",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
         "@googletest//:gtest_main",

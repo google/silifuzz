@@ -348,6 +348,7 @@ absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
   std::vector<ThreadStats> stats(worker_pool.NumWorkers());
   // Set MXCSR again here to ensure we are running with the correct value.
   worker_pool.DoWork(stats, [&](ThreadStats& s) {
+    s.cpu_id = GetCPUId();
     SetMxcsr(run_config.mxcsr);
     RunTests(corpus.tests, corpus.inputs, corpus.end_states, run_config,
              test_offset, testing_time, s, execution_stopper);
