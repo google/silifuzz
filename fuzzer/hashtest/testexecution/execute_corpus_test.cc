@@ -119,7 +119,7 @@ TEST(RunHashTest, Run128) {
 }
 
 TEST(CorpusExecutionTests, EachThreadGetsAPerThreadExecutionStat) {
-  ParallelWorkerPool workers(10);
+  ParallelWorkerPool workers(4);
   RunnableCorpus corpus = GenerateCorpusForExecution(workers);
 
   EXPECT_EQ(GenerateEndStatesForCorpus(kRunConfig, corpus, workers), 0);
@@ -127,7 +127,7 @@ TEST(CorpusExecutionTests, EachThreadGetsAPerThreadExecutionStat) {
   auto per_thread_stats = ExecuteCorpus(corpus, kRunConfig, absl::Seconds(1), 0,
                                         ExecutionStopper(), workers);
 
-  EXPECT_EQ(per_thread_stats.size(), 10);
+  EXPECT_EQ(per_thread_stats.size(), 4);
 }
 
 }  // namespace

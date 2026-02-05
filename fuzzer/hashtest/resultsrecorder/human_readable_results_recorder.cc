@@ -221,8 +221,8 @@ void HumanReadableResultsRecorder::RecordFinalStats(
   CorpusStats all_stats{};
   for (const auto& corpus_stat : corpus_stats) {
     all_stats += corpus_stat;
-    for (const auto& per_thread_kv : corpus_stat.per_thread_stats) {
-      for (const auto& hit : per_thread_kv.second.hits) {
+    for (const auto& per_thread : corpus_stat.per_thread_stats) {
+      for (const auto& hit : per_thread.hits) {
         ++test_hit_counts[hit.test_seed];
         ++hit_counts[hit.cpu][hit.test_seed][hit.input_seed];
       }
@@ -264,10 +264,8 @@ void HumanReadableResultsRecorder::RecordFinalStats(
   }
   PrintCorpusStats("all", all_stats, num_threads_);
 
-  size_t total_tests_run = 0;
-  for (const auto& [_, thread_stats] : all_stats.per_thread_stats) {
-    total_tests_run += thread_stats.tests_run;
-  }
+  size_t total_tests_run = all_stats.num_runs();
+
   std::cout << std::endl;
   std::cout << (test_hit_counts.size() / (double)total_tests_run)
             << " per test hit rate" << std::endl;

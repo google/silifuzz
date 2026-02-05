@@ -110,7 +110,7 @@ void ProtoResultsRecorder::RecordCorpusStats(const CorpusConfig& config,
   CHECK_OK(silifuzz::EncodeGoogleApiProto(
       stats.test_time, corpus_results->mutable_testing_duration()));
 
-  for (const auto& [_, per_thread] : stats.per_thread_stats) {
+  for (const auto& per_thread : stats.per_thread_stats) {
     auto* thread_results = corpus_results->add_per_thread_results();
     thread_results->set_cpu_id(per_thread.cpu_id);
     CHECK_OK(silifuzz::EncodeGoogleApiProto(
@@ -137,9 +137,9 @@ void ProtoResultsRecorder::RecordFinalStats(
   for (const CorpusStats& stats : corpus_stats) {
     tests_run += stats.num_runs();
     tests_failed += stats.num_hits();
-    for (const auto& [cpu_id, per_thread] : stats.per_thread_stats) {
+    for (const auto& per_thread : stats.per_thread_stats) {
       if (!per_thread.hits.empty()) {
-        suspected_cpus.insert(cpu_id);
+        suspected_cpus.insert(per_thread.cpu_id);
       }
     }
   }

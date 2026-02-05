@@ -58,21 +58,27 @@ constexpr size_t kBatchSize = 2;
 constexpr absl::Duration kAllottedDuration = absl::Seconds(100);
 constexpr absl::Duration kPerCorpusTime = absl::Seconds(9);
 
-absl::flat_hash_map<int, PerThreadExecutionStats> CreatePerThreadStats(
+std::vector<PerThreadExecutionStats> CreatePerThreadStats(
     size_t tests_run, const absl::Span<const int> tested_cpus,
     const absl::Span<const int> suspect_cpus) {
-  absl::flat_hash_map<int, PerThreadExecutionStats> output;
+  std::vector<PerThreadExecutionStats> output;
   for (int cpu : tested_cpus) {
-    output[cpu] = {
+    // Don't insert suspect cpus
+    if (std::find(suspect_cpus.begin(), suspect_cpus.end(), cpu) !=
+        suspect_cpus.end()) {
+      continue;
+    }
+
+    output.push_back({
         .cpu_id = cpu,
         .testing_duration = kTestDuration,
         .hits = {},
         .tests_run = tests_run,
         .tests_hit = 0,
-    };
+    });
   }
   for (int cpu : suspect_cpus) {
-    output[cpu] = {
+    output.push_back({
         .cpu_id = cpu,
         .testing_duration = kTestDuration,
         .hits = std::vector<Hit>({Hit({.cpu = cpu,
@@ -80,7 +86,7 @@ absl::flat_hash_map<int, PerThreadExecutionStats> CreatePerThreadStats(
                                        .input_seed = kHittingInputSeed})}),
         .tests_run = tests_run,
         .tests_hit = 1,
-    };
+    });
   }
   return output;
 }

@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/time/time.h"
 #include "./fuzzer/hashtest/hit.h"
 
@@ -55,28 +54,28 @@ struct CorpusStats {
   absl::Duration test_time;
 
   // Maps CPU id to stats for the execution on that cpu core.
-  absl::flat_hash_map<int, PerThreadExecutionStats> per_thread_stats;
+  std::vector<PerThreadExecutionStats> per_thread_stats;
 
   CorpusStats& operator+=(const CorpusStats& other) {
     code_gen_time += other.code_gen_time;
     end_state_gen_time += other.end_state_gen_time;
     test_time += other.test_time;
-    for (const auto& [cpu_id, thread_stats] : other.per_thread_stats) {
-      per_thread_stats[cpu_id] += thread_stats;
-    }
+    per_thread_stats.insert(per_thread_stats.end(),
+                            other.per_thread_stats.cbegin(),
+                            other.per_thread_stats.cend());
     return *this;
   }
 
   size_t num_runs() const {
     size_t num_runs = 0;
-    for (const auto& [_, thread_stats] : per_thread_stats) {
+    for (const auto& thread_stats : per_thread_stats) {
       num_runs += thread_stats.tests_run;
     }
     return num_runs;
   }
   size_t num_hits() const {
     size_t num_hits = 0;
-    for (const auto& [_, thread_stats] : per_thread_stats) {
+    for (const auto& thread_stats : per_thread_stats) {
       num_hits += thread_stats.tests_hit;
     }
     return num_hits;

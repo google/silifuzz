@@ -62,7 +62,6 @@ cc_library(
 cc_test(
     name = "execute_corpus_test",
     srcs = ["execute_corpus_test.cc"],
-    local = True,
     deps = [
         ":execution",
         ":hashtest_runner_widgets",

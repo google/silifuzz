@@ -40,7 +40,7 @@ size_t GenerateEndStatesForCorpus(const RunConfig& run_config,
 // the n'th test generated across all configs.
 // TODO(danieljsnyder): Should execution_stopper be non-const since it can be
 // changed by another thread?
-absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
+std::vector<PerThreadExecutionStats> ExecuteCorpus(
     const RunnableCorpus& corpus, const RunConfig& run_config,
     absl::Duration testing_time, size_t test_offset,
     const ExecutionStopper& execution_stopper, ParallelWorkerPool& worker_pool);

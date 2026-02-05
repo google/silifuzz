@@ -340,7 +340,7 @@ size_t GenerateEndStatesForCorpus(const RunConfig& run_config,
   return bad;
 }
 
-absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
+std::vector<PerThreadExecutionStats> ExecuteCorpus(
     const RunnableCorpus& corpus, const RunConfig& run_config,
     absl::Duration testing_time, size_t test_offset,
     const ExecutionStopper& execution_stopper,
@@ -353,16 +353,17 @@ absl::flat_hash_map<int, PerThreadExecutionStats> ExecuteCorpus(
     RunTests(corpus.tests, corpus.inputs, corpus.end_states, run_config,
              test_offset, testing_time, s, execution_stopper);
   });
-  absl::flat_hash_map<int, PerThreadExecutionStats> per_thread_stats;
+  std::vector<PerThreadExecutionStats> per_thread_stats;
   for (const ThreadStats& s : stats) {
-    PerThreadExecutionStats& per_thread = per_thread_stats[s.cpu_id];
-    per_thread.cpu_id = s.cpu_id;
-    per_thread.tests_run = s.num_run;
-    per_thread.tests_hit = s.num_failed;
-    per_thread.testing_duration = s.test_duration;
+    PerThreadExecutionStats per_thread = {.cpu_id = s.cpu_id,
+                                          .testing_duration = s.test_duration,
+                                          .tests_run = s.num_run,
+                                          .tests_hit = s.num_failed};
+
     for (const auto& h : s.hits) {
       per_thread.hits.push_back(h);
     }
+    per_thread_stats.push_back(per_thread);
   }
   return per_thread_stats;
 }
