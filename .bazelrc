@@ -1,5 +1,9 @@
 common --enable_bzlmod
 
+# Add BCR module mirrors
+# This is needed because the default mirror for some dependencies may be down.
+common --module_mirrors=https://bcr.cloudflaremirrors.com
+
 build --client_env=CC=clang
 
 # Building Unicorn v2 on x86 requires a CPU that supports CX16.
