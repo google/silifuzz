@@ -97,7 +97,6 @@ cc_library(
     name = "snapshot_generation",
     srcs = [
         "synthesize_snapshot.cc",
-        "@silifuzz//fuzzer/hashtest:api_types",
     ],
     hdrs = [
         "synthesize_snapshot.h",
