@@ -218,6 +218,7 @@ py_test(
     data = [
         ":hashtest_runner",
     ],
+    strict_deps = False,
     deps = [
         ":hashtest_result_py_proto",
         "@abseil-py//absl/testing:absltest",

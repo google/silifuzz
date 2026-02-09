@@ -367,6 +367,7 @@ py_test(
     name = "generate_tests",
     srcs = ["generate_tests.py"],
     args = ["--test"],
+    strict_deps = False,
 )
 
 cc_library(

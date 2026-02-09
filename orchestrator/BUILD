@@ -230,6 +230,7 @@ py_test(
         "@silifuzz//snap/testing:ends_as_expected_corpus",
         "@silifuzz//snap/testing:runaway_corpus",
     ],
+    strict_deps = False,
     deps = [
         "@abseil-py//absl/logging",
         "@abseil-py//absl/testing:absltest",
