@@ -21,9 +21,10 @@
 
 #include <cerrno>
 #include <csignal>  // IWYU pragma: keep
+#include <cstring>
 #include <string>
 
-#include "absl/base/internal/endian.h"
+#include "absl/numeric/bits.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -38,6 +39,23 @@
 namespace silifuzz {
 
 namespace {
+void LittleEndianStore64(void* dst, uint64_t value) {
+  // Swap bytes if host is big-endian.
+  if (absl::endian::native == absl::endian::big) {
+    value = absl::byteswap(value);  // NOLINT(clang-diagnostic-unreachable-code)
+  }
+  memcpy(dst, &value, sizeof(value));
+}
+
+uint64_t LittleEndianLoad64(const void* src) {
+  uint64_t value;
+  memcpy(&value, src, sizeof(uint64_t));
+  // Swap bytes if host is big-endian.
+  if (absl::endian::native == absl::endian::big) {
+    value = absl::byteswap(value);  // NOLINT(clang-diagnostic-unreachable-code)
+  }
+  return value;
+}
 
 // End-of-channel error status
 absl::Status EndOfChannelError() { return absl::OutOfRangeError("EOC"); }
@@ -92,7 +110,7 @@ absl::Status BinaryLogProducer::Send(const proto::BinaryLogEntry& entry) {
   const std::string serialized_proto = entry.SerializeAsString();
   const uint64_t proto_size = serialized_proto.size();
   char le_proto_size[sizeof(uint64_t)];
-  absl::little_endian::Store64(le_proto_size, proto_size);
+  LittleEndianStore64(le_proto_size, proto_size);
 
   // The whole message needs to be written into channel atomically.
   absl::MutexLock l(&lock_);
@@ -144,7 +162,7 @@ absl::StatusOr<proto::BinaryLogEntry> BinaryLogConsumer::Receive() {
                                             sizeof(le_proto_size), " but got ",
                                             bytes_read, " bytes"));
   }
-  const size_t proto_size = absl::little_endian::Load64(le_proto_size);
+  const size_t proto_size = LittleEndianLoad64(le_proto_size);
   std::string serialized_proto;
   serialized_proto.resize(proto_size);
   if (Read(fd_, serialized_proto.data(), proto_size) != proto_size) {

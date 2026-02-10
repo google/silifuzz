@@ -250,7 +250,7 @@ cc_library(
         "@silifuzz//util:checks",
         "@silifuzz//util:itoa",
         "@silifuzz//util:signals",
-        "@abseil-cpp//absl/base:endian",
+        "@abseil-cpp//absl/numeric:bits",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",

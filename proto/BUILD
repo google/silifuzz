@@ -16,7 +16,7 @@
 #   All SiliFuzz ptotocol messages are to live here.
 #   Exceptions are example or for-test protos with very local usage scope.
 
-load("@rules_cc//cc:defs.bzl", "cc_proto_library")
+load("@protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_python//python:proto.bzl", "py_proto_library")
 

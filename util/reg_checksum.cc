@@ -19,12 +19,31 @@
 #include <cstdint>
 #include <cstring>
 
-#include "absl/base/internal/endian.h"
-#include "./util/arch.h"
+#include "absl/numeric/bits.h"
+#include "./util/reg_group_set.h"
 
 namespace silifuzz {
 
 namespace internal {
+
+// Convert a host byte-order value to little-endian.
+uint64_t LittleEndianFromHost(uint64_t host_value) {
+  if (absl::endian::native == absl::endian::little) {
+    return host_value;
+  }
+  return absl::byteswap(
+      host_value);  // NOLINT(clang-diagnostic-unreachable-code)
+}
+
+// Convert a little-endian value to host byte-order. Note: this has the same
+// logic as the LittleEndianFromHost() function despite the different intents.
+// But readability is preferred over reducing to a single function in this case.
+uint64_t LittleEndianToHost(uint64_t le_value) {
+  if (absl::endian::native == absl::endian::little) {
+    return le_value;
+  }
+  return absl::byteswap(le_value);  // NOLINT(clang-diagnostic-unreachable-code)
+}
 
 constexpr char kRegisterChecksumMagic[] = {'R', 'C'};
 
@@ -60,8 +79,10 @@ ssize_t Serialize(const RegisterChecksum<Arch>& src, uint8_t* dst, size_t n) {
   header.version = 0;
   memcpy(dst, &header, sizeof(header));
 
-  le_uint64[0] = absl::little_endian::FromHost(src.register_groups.Serialize());
-  le_uint64[1] = absl::little_endian::FromHost(src.checksum);
+  // >
+  le_uint64[0] =
+      internal::LittleEndianFromHost(src.register_groups.Serialize());
+  le_uint64[1] = internal::LittleEndianFromHost(src.checksum);
   memcpy(dst + kHeaderSize, &le_uint64, sizeof(le_uint64));
 
   return kSerializedSize;
@@ -97,8 +118,8 @@ ssize_t Deserialize(const uint8_t* src, size_t n, RegisterChecksum<Arch>& dst) {
   memcpy(&le_uint64, src + kHeaderSize, sizeof(le_uint64));
   // Convert little-endian serialized data back to host byte-order.
   dst.register_groups = RegisterGroupSet<Arch>::Deserialize(
-      absl::little_endian::ToHost(le_uint64[0]));
-  dst.checksum = absl::little_endian::ToHost(le_uint64[1]);
+      internal::LittleEndianToHost(le_uint64[0]));
+  dst.checksum = internal::LittleEndianToHost(le_uint64[1]);
   return kSerializedSize;
 }
 

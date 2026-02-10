@@ -1339,7 +1339,7 @@ cc_library_plus_nolibc(
     srcs = ["reg_checksum.cc"],
     hdrs = ["reg_checksum.h"],
     as_is_deps = [
-        "@abseil-cpp//absl/base:endian",
+        "@abseil-cpp//absl/numeric:bits",
     ],
     deps = [
         ":arch",

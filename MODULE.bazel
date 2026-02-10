@@ -5,27 +5,11 @@ bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "protobuf", version = "30.2")
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_cc", version = "0.1.1")
-bazel_dep(name = "rules_python", version = "1.3.0")
+bazel_dep(name = "rules_python", version = "1.8.3")
 bazel_dep(name = "rules_shell", version = "0.4.1")
-
-# It appears we must match fuzztest's override or else version resolution fails.
-bazel_dep(name = "abseil-cpp", version = "20250127.1")
-git_override(
-    module_name = "abseil-cpp",
-    commit = "d04b964d82ed5146f7e5e34701a5ba69f9514c9a",
-    remote = "https://github.com/abseil/abseil-cpp.git",
-)
-
+bazel_dep(name = "abseil-cpp", version = "20260107.0")
 bazel_dep(name = "abseil-py", version = "2.1.0")
-
-# Override fuzztest because we need to stay in sync with changes to Centipede.
-bazel_dep(name = "fuzztest", version = "20250214.0")
-git_override(
-    module_name = "fuzztest",
-    commit = "bf10cc1bea112400004e14fa2e70f0ec2c4cdaa3",
-    remote = "https://github.com/google/fuzztest.git",
-)
-
+bazel_dep(name = "fuzztest", version = "20250805.0")
 bazel_dep(name = "googletest", version = "1.16.0")
 bazel_dep(name = "google_benchmark", version = "1.9.2")
 bazel_dep(name = "libpfm", version = "4.11.0.bcr.1")
