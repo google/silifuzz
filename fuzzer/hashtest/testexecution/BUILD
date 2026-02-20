@@ -71,6 +71,7 @@ cc_test(
         "@silifuzz//fuzzer/hashtest/versioning:tested_corpus_configs",
         "@silifuzz//instruction:xed_util",
         "@silifuzz//util:platform",
+        "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
     ],
 )

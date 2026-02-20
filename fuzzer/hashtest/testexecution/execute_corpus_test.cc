@@ -21,6 +21,7 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "absl/time/time.h"
 #include "./fuzzer/hashtest/entropy.h"
 #include "./fuzzer/hashtest/parallel_worker_pool.h"
 #include "./fuzzer/hashtest/runnable_corpus.h"
