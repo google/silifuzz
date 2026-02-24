@@ -46,6 +46,9 @@ NOLIBC_COPTS = [
 NOLIBC_FEATURES = [
     "-use_header_modules",  # incompatible with -fno-rtti
     "-use_pthread",  # incompatible with -nostdlib
+    # cl/869814816 breaks Rapid builds with `--config=release_no_debug` with linker errors like:
+    # `ld: error: undefined symbol: malloc`.
+    "-heap_partitioning",  # incompatible with -nostdlib
 ]
 
 NOLIBC_LINKOPTS = [
