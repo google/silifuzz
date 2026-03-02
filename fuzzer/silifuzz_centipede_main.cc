@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
@@ -24,7 +25,7 @@
 #include "centipede/config_file.h"
 #include "centipede/environment.h"
 #include "centipede/environment_flags.h"
-#include "centipede/mutation_input.h"
+#include "centipede/mutation_data.h"
 #include "centipede/util.h"
 #include "common/defs.h"
 #include "./fuzzer/program_batch_mutator.h"
@@ -50,8 +51,8 @@ class SilifuzzCentipedeCallbacks
         aarch64_mutator_(fuzztest::internal::GetRandomSeed(env.seed),
                          env.crossover_level / 100.0, env.max_len) {}
 
-  std::vector<fuzztest::internal::ByteArray> Mutate(
-      const std::vector<fuzztest::internal::MutationInputRef> &inputs,
+  std::vector<fuzztest::internal::Mutant> Mutate(
+      const std::vector<fuzztest::internal::MutationInputRef>& inputs,
       size_t num_mutants) override {
     // Fall back to the byte mutator if the architecture was not specified.
     if (arch_ == ArchitectureId::kUndefined) {
@@ -60,7 +61,7 @@ class SilifuzzCentipedeCallbacks
     }
 
     // Init
-    std::vector<fuzztest::internal::ByteArray> mutants{num_mutants};
+    std::vector<fuzztest::internal::Mutant> mutants{num_mutants};
     if (num_mutants == 0) return mutants;
 
     // Re-wrap the input vector so the mutator doesn't need to depend on
@@ -72,15 +73,20 @@ class SilifuzzCentipedeCallbacks
     }
 
     // Mutate
+    std::vector<fuzztest::internal::ByteArray> byte_array_mutants(num_mutants);
     switch (arch_) {
       case ArchitectureId::kX86_64:
-        x86_64_mutator_.Mutate(tmp, num_mutants, mutants);
+        x86_64_mutator_.Mutate(tmp, num_mutants, byte_array_mutants);
         break;
       case ArchitectureId::kAArch64:
-        aarch64_mutator_.Mutate(tmp, num_mutants, mutants);
+        aarch64_mutator_.Mutate(tmp, num_mutants, byte_array_mutants);
         break;
       default:
         LOG(FATAL) << "Unknown architecture: " << (int)arch_;
+    }
+
+    for (size_t i = 0; i < num_mutants; ++i) {
+      mutants[i].data = std::move(byte_array_mutants[i]);
     }
 
     return mutants;

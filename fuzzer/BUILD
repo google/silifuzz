@@ -88,7 +88,7 @@ cc_library(
         "@fuzztest//centipede:config_file",
         "@fuzztest//centipede:environment",
         "@fuzztest//centipede:environment_flags",
-        "@fuzztest//centipede:mutation_input",
+        "@fuzztest//centipede:mutation_data",
         "@fuzztest//centipede:util",
         "@fuzztest//common:defs",
     ],
