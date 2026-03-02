@@ -82,6 +82,7 @@ cc_library(
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:flags",
+        "@abseil-cpp//absl/types:span",
         "@fuzztest//centipede:centipede_callbacks",
         "@fuzztest//centipede:centipede_default_callbacks",
         "@fuzztest//centipede:centipede_interface",

@@ -19,6 +19,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/log/log.h"
+#include "absl/types/span.h"
 #include "centipede/centipede_callbacks.h"
 #include "centipede/centipede_default_callbacks.h"
 #include "centipede/centipede_interface.h"
@@ -52,7 +53,7 @@ class SilifuzzCentipedeCallbacks
                          env.crossover_level / 100.0, env.max_len) {}
 
   std::vector<fuzztest::internal::Mutant> Mutate(
-      const std::vector<fuzztest::internal::MutationInputRef>& inputs,
+      absl::Span<const fuzztest::internal::MutationInputRef> inputs,
       size_t num_mutants) override {
     // Fall back to the byte mutator if the architecture was not specified.
     if (arch_ == ArchitectureId::kUndefined) {
