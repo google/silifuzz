@@ -14,6 +14,13 @@ bazel_dep(name = "googletest", version = "1.17.0")
 bazel_dep(name = "google_benchmark", version = "1.9.2")
 bazel_dep(name = "libpfm", version = "4.11.0.bcr.1")
 
+# Override is required when fuzztest has not released a new version after making breaking changes.
+git_override(
+    module_name = "fuzztest",
+    commit = "2774d423cc62d44035ad8dd1651d15e4756a163f",
+    remote = "https://github.com/google/fuzztest",
+)
+
 # Non-module dependencies
 
 new_git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "new_git_repository")
