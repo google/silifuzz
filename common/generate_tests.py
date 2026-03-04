@@ -583,6 +583,19 @@ kmovw %eax, %k4
 """,
   )
 
+  b.snapshot(
+      name="NonCanonicalEvexSp",
+      arch=X86_64,
+      normal_end=True,
+      src="""\
+// This has to be in bytes because we use a non-canonical
+// EVEX prefix.
+//
+// vpbroadcastq %rsp, %zmm15
+.byte 0x62, 0x32, 0xfd, 0x48, 0x7c, 0xfc
+""",
+  )
+
 
 def build_test_snapshots_aarch64(b):
   b.snapshot(name="Empty", arch=AARCH64, normal_end=True, src="")
