@@ -112,6 +112,8 @@ void FixToolWorker(FixToolWorkerArgs& args) {
     options.enforce_fuzzing_config = args.options->enforce_fuzzing_config;
     options.x86_filter_non_canonical_evex_sp =
         args.options->x86_filter_non_canonical_evex_sp;
+    options.aarch64_filter_indirect_branches =
+        args.options->aarch64_filter_indirect_branches;
     auto remade_snapshot_or =
         FixupSnapshot(snapshot.value(), options, &platform_counters);
     if (!remade_snapshot_or.ok()) {

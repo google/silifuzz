@@ -129,6 +129,12 @@ struct FixupSnapshotOptions {
   // clear).
   bool x86_filter_non_canonical_evex_sp = false;
 
+  // If true, snapshots containing indirect branches are filtered.
+  // Currently only implemented on AArch64.
+  // This prevents false positives from occurring in certain micro-architectures
+  // due to known but unfixed errata.
+  bool aarch64_filter_indirect_branches = false;
+
   // Amount of CPU that snapshot's execution is allowed to spend before
   // we consider it a runaway.
   absl::Duration cpu_time_budget = PlayOptions::Default().run_time_budget;

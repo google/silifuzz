@@ -62,6 +62,11 @@ ABSL_FLAG(bool, x86_filter_non_canonical_evex_sp, true,
           "pointer, write to AVX registers, and are non-canonical (i.e. x_bar "
           "bit is clear).");
 
+// This prevents false positives from occurring in certain micro-architectures
+// due to known but unfixed errata.
+ABSL_FLAG(bool, aarch64_filter_indirect_branches, false,
+          "On AArch64, filter snaps with indirect branches.");
+
 namespace silifuzz {
 namespace {
 
@@ -90,6 +95,8 @@ int SimpleFixToolMain(int argc, char* argv[]) {
   options.enforce_fuzzing_config = absl::GetFlag(FLAGS_enforce_fuzzing_config);
   options.x86_filter_non_canonical_evex_sp =
       absl::GetFlag(FLAGS_x86_filter_non_canonical_evex_sp);
+  options.aarch64_filter_indirect_branches =
+      absl::GetFlag(FLAGS_aarch64_filter_indirect_branches);
 
   fix_tool_internal::SimpleFixToolCounters counters;
   FixupCorpus(options, inputs, absl::GetFlag(FLAGS_output_path_prefix),
