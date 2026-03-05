@@ -554,6 +554,20 @@ constexpr bool is_load_store_insn(uint32_t insn) {
          kSVEMemoryOperationInstruction.matches(insn);
 }
 
+// Section: Branches, Exception Generation and System Instruction.
+// This should cover the entire instruction group for branching to registers:
+//    Includes BR, BLR, RET, ERET, DRPS and their variants.
+constexpr BitMatcher<uint32_t> kBranchToRegisterInstructions = {
+    // Pattern that is matched:
+    //      0b1101'011x'xxxx'xxxx'xxxx'xxxx'xxxx'xxxx
+    .mask = 0b1111'1110'0000'0000'0000'0000'0000'0000,
+    .bits = 0b1101'0110'0000'0000'0000'0000'0000'0000,
+};
+
+constexpr bool is_indirect_branch_insn(uint32_t insn) {
+  return kBranchToRegisterInstructions.matches(insn);
+}
+
 constexpr bool is_system_insn(uint32_t insn) {
   return kSystemInstruction.matches(insn);
 }
@@ -636,6 +650,10 @@ constexpr bool InstructionIsOK(uint32_t insn,
     return false;
   }
   if (!config.sve_instructions_allowed && kSVEInstruction.matches(insn)) {
+    return false;
+  }
+  // TODO: b/489770771 - Remove this once this is no longer needed.
+  if (!config.indirect_branches_allowed && is_indirect_branch_insn(insn)) {
     return false;
   }
   for (const RequiredBits<uint32_t>& bits : kRequiredInstructionBits) {

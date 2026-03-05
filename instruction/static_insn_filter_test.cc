@@ -1808,6 +1808,26 @@ TEST(StaticInsnFilter, AllAUT) {
   EXPECT_AARCH64_FILTER_REJECT({0xdac137ec});
 }
 
+TEST(StaticInsnFilter, IndirectBranchesBanned) {
+  InstructionFilterConfig<AArch64> banned = {
+      .indirect_branches_allowed = false,
+  };
+  InstructionFilterConfig<AArch64> allowed = {
+      .indirect_branches_allowed = true,
+  };
+  std::vector<uint32_t> indirect_branches = {
+      0xd63f0060,  // blr      x3
+      0xd61f0060,  // br       x3
+  };
+  for (uint32_t instruction : indirect_branches) {
+    EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({instruction}, allowed)
+        << std::hex << instruction
+        << " must be accepted if indirect branches are not banned";
+    EXPECT_AARCH64_FILTER_REJECT_CONFIG({instruction}, banned)
+        << std::hex << instruction;
+  }
+}
+
 }  // namespace
 
 }  // namespace silifuzz
