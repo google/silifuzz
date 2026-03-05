@@ -100,7 +100,14 @@ class DisassemblingSnapTracer {
           options_(options),
           prev_instruction_addr_(0),
           prev_instruction_decoding_failed_(false),
-          trace_result_(trace_result) {}
+          trace_result_(trace_result) {
+      // Set up the address range of the snapshot.
+      snapshot_start_address_ = snapshot.ExtractRip(snapshot.registers());
+      CHECK_EQ(snapshot.expected_end_states().size(), 1);
+      const Snapshot::Endpoint& endpoint =
+          snapshot.expected_end_states()[0].endpoint();
+      snapshot_end_address_ = endpoint.instruction_address();
+    }
 
     // Not movable or copyable. Not just a data container.
     SnapshotStepper(const SnapshotStepper&) = delete;
@@ -118,6 +125,9 @@ class DisassemblingSnapTracer {
    private:
     // The snapshot being traced.
     const Snapshot& snapshot_;
+
+    Snapshot::Address snapshot_start_address_;
+    Snapshot::Address snapshot_end_address_;
 
     // Options controlling the tracer's behavior.
     const TraceOptions options_;

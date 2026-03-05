@@ -845,6 +845,18 @@ setffr
 """,
   )
 
+  b.snapshot(
+      name="IndirectBranch",
+      arch=AARCH64,
+      normal_end=True,
+      src="""
+bl .+4
+add x0, lr, #8
+br x0
+nop
+""",
+  )
+
 
 def generate_source(b, out):
   out.write(f"""\

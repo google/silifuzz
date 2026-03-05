@@ -82,6 +82,12 @@ class TraceOptions {
   // pointer, writes to AVX registers, and is non-canonical (i.e. x_bar bit is
   // clear).
   bool x86_filter_non_canonical_evex_sp = false;
+
+  // If true, tracer, injects a signal when an indirect branch is executed
+  // inside the snapshot. Currently only implemented on AArch64.
+  // This prevents false positives from occurring in certain micro-architectures
+  // due to known but unfixed errata.
+  bool aarch64_filter_indirect_branches = false;
 };
 
 }  // namespace silifuzz

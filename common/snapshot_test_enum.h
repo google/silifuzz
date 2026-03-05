@@ -136,6 +136,9 @@ enum class TestSnapshot {
   // stack pointer.
   kNonCanonicalEvexSp,
 
+  // Indirect branch inside the snapshot (aarch64 only)
+  kIndirectBranch,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot,
 };
@@ -179,6 +182,7 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kSetThreeAVX512Registers",
     "kSetThreeSVERegisters",
     "kNonCanonicalEvexSp",
+    "kIndirectBranch",
 };
 
 }  // namespace silifuzz

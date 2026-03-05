@@ -84,7 +84,22 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
   // This step should have minimal overhead, and thus we opt to apply it here
   // too for defense in depth (as opposed to relying on us remembering to delete
   // bad snapshots from the corpus).
-  if (!StaticInstructionFilter<AArch64>(*insn_or)) {
+  InstructionFilterConfig<AArch64> static_insn_filter_config;
+  // Disallow indirect branch inside the snapshot.
+  bool is_inside_snapshot =
+      addr >= snapshot_start_address_ && addr < snapshot_end_address_;
+  // Indirect branches are not allowed if the filter is enabled and current
+  // instruction is inside the snapshot.
+  //
+  // It is allowed outside of the snapshot (i.e. in the runner program) to
+  // orchestrate snapshot execution. The filter is only enabled to mitigate
+  // false positives from certain micro-architectures due to known but unfixed
+  // errata. We have found that the indirect branches outside the snapshot are
+  // safe and don't trigger the errata.
+  static_insn_filter_config.indirect_branches_allowed =
+      !(options_.aarch64_filter_indirect_branches && is_inside_snapshot);
+
+  if (!StaticInstructionFilter<AArch64>(*insn_or, static_insn_filter_config)) {
     trace_result_.early_termination_reason = "Has problematic instructions.";
     return HarnessTracer::kInjectSigusr1;
   }

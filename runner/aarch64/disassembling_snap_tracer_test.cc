@@ -107,5 +107,40 @@ TEST(DisassemblingSnapTracer, TraceMultipeTimes) {
           Insn("mov x0, #0xabcd0000"), Insn("blr x0")));
 }
 
+TEST(DisassemblingSnapTracer, RejectIndirectBranches) {
+  RunnerDriver driver = HelperDriver();
+  auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kIndirectBranch);
+  TraceOptions trace_options = TraceOptions::Default();
+  trace_options.aarch64_filter_indirect_branches = false;
+  DisassemblingSnapTracer tracer(snapshot);
+  auto result = driver.TraceOne(
+      snapshot.id(), absl::bind_front(&DisassemblingSnapTracer::Step, &tracer));
+  // We do not have the correct end state. So this is expected to fail.
+  // However, the traces should be valid.
+  EXPECT_FALSE(result.success());
+  const auto& trace_result = tracer.trace_result();
+  // The tracer should stop before executing the indirect branch 'br x0'.
+  EXPECT_EQ(trace_result.instructions_executed, 7);
+  EXPECT_THAT(trace_result.disassembly,
+              ElementsAre(InsnAtAddr("bl #0x324b5004", 0x324b5000),
+                          InsnAtAddr("add x0, x30, #8", 0x324b5004),
+                          Insn("br x0"), InsnAtAddr("nop ", 0x324b500c),
+                          Insn("stp x0, x30, [sp, #-0x10]"),
+                          Insn("mov x0, #0xabcd0000"), Insn("blr x0")));
+
+  TraceOptions trace_options_with_filter = TraceOptions::Default();
+  trace_options_with_filter.aarch64_filter_indirect_branches = true;
+  DisassemblingSnapTracer tracer_with_filter(snapshot,
+                                             trace_options_with_filter);
+  auto result_with_filter = driver.TraceOne(
+      snapshot.id(),
+      absl::bind_front(&DisassemblingSnapTracer::Step, &tracer_with_filter));
+  ASSERT_FALSE(result_with_filter.success());
+  const auto& trace_result_with_filter = tracer_with_filter.trace_result();
+  EXPECT_THAT(trace_result_with_filter.early_termination_reason,
+              ::testing::HasSubstr("Has problematic instructions."));
+}
+
 }  // namespace
 }  // namespace silifuzz

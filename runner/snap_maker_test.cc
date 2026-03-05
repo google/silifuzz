@@ -222,5 +222,24 @@ TEST(SnapMaker, FuzzingConfigNonconformance) {
                HasSubstr("Snapshot does not conform to fuzzing config")));
 }
 
+TEST(SnapMaker, MakeArmIndirectBranchTest) {
+#if !defined(__aarch64__)
+  GTEST_SKIP() << "Skipping test for non-ARM64 architecture.";
+#endif
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kIndirectBranch);
+  TraceOptions trace_options;
+  trace_options.aarch64_filter_indirect_branches = false;
+  EXPECT_OK(FixSnapshotInTest(snapshot, options, trace_options));
+
+  trace_options.aarch64_filter_indirect_branches = true;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(
+      result_or,
+      StatusIs(absl::StatusCode::kInternal,
+               HasSubstr("Tracing failed: Has problematic instructions.")));
+}
+
 }  // namespace
 }  // namespace silifuzz
