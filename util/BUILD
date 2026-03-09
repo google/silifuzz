@@ -1427,3 +1427,20 @@ cc_test_plus_nolibc(
         ":sve",
     ],
 )
+
+cc_library(
+    name = "stable_random",
+    hdrs = ["stable_random.h"],
+    deps = [
+        "@abseil-cpp//absl/log:check",
+    ],
+)
+
+cc_test(
+    name = "stable_random_test",
+    srcs = ["stable_random_test.cc"],
+    deps = [
+        ":stable_random",
+        "@googletest//:gtest_main",
+    ],
+)
