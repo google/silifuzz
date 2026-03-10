@@ -38,7 +38,7 @@ _start:
  * and calls also behave more similarly than on x86_64 since they do not modify
  * the stack pointer.
  */
-        b       _start_1@PLT
+        b       _start_1
 
         .cfi_endproc
         .size   _start, .-_start
