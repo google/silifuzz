@@ -90,5 +90,4 @@ sh_test(
     data = [
         ":versioning_tool",
     ] + glob(["goldens/**"]),
-    tags = ["manual"],
 )
