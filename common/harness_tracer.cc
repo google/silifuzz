@@ -71,7 +71,7 @@ void HarnessTracer::Attach() {
   CHECK(tracer_thread_ == nullptr);
   tracer_thread_ = std::make_unique<std::thread>([this] {
     std::optional<ProcessInfo> status = this->EventLoop();
-    absl::MutexLock l(&exit_status_mutex_);
+    absl::MutexLock l(exit_status_mutex_);
     exit_status_ = status;
   });
 }
@@ -84,7 +84,7 @@ std::optional<ProcessInfo> HarnessTracer::Join() {
   tracer_thread_ = nullptr;
   std::optional<ProcessInfo> status;
   {
-    absl::MutexLock l(&exit_status_mutex_);
+    absl::MutexLock l(exit_status_mutex_);
     status.swap(exit_status_);
   }
   VLOG_INFO(2, "Tracer on PID ", pid_, " exited");
