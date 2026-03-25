@@ -113,7 +113,7 @@ absl::Status BinaryLogProducer::Send(const proto::BinaryLogEntry& entry) {
   LittleEndianStore64(le_proto_size, proto_size);
 
   // The whole message needs to be written into channel atomically.
-  absl::MutexLock l(&lock_);
+  absl::MutexLock l(lock_);
 
   const ssize_t written_size = Write(fd_, le_proto_size, sizeof(le_proto_size));
   if (written_size == -1) {
@@ -148,7 +148,7 @@ absl::StatusOr<proto::BinaryLogEntry> BinaryLogConsumer::Receive() {
   char le_proto_size[sizeof(uint64_t)];
 
   // The whole message needs to be read from channel atomically.
-  absl::MutexLock l(&lock_);
+  absl::MutexLock l(lock_);
 
   const ssize_t bytes_read = Read(fd_, le_proto_size, sizeof(le_proto_size));
   if (bytes_read == 0) {
