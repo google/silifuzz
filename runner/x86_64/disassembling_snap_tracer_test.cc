@@ -17,7 +17,6 @@
 #include <sys/user.h>
 
 #include <cstddef>
-#include <optional>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
