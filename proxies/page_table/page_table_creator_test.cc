@@ -229,7 +229,9 @@ TYPED_TEST_P(PageTableCreatorTest, OnlyInsertPagesWhenNeeded) {
   EXPECT_NE(bits1, bits2);
 }
 
-TYPED_TEST_P(PageTableCreatorTest, MakeMappings) {
+TYPED_TEST_P(PageTableCreatorTest, MakeMappings)
+// &page_table must fit within 48 bits, so we need to disable HWASan.
+__attribute__((no_sanitize("hwaddress"))) {
   // Set aside space to copy the page table to.
   // Note: Page table must be 4KiB-aligned in order to use the address directly.
   constexpr uint64_t kPageSizeInUint64s =
