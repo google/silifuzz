@@ -76,10 +76,11 @@ enum class PlatformId {
   kArmNeoverseN3 = 45,
   kArmNeoverseN2 = 46,
   kAmdVenice = 47,
+  kReserved48 = 48,
   // The values below are meta-values that don't have proto::PlatformId
   // representation. Never persisted and can be renumbered as needed.
-  kAny = 48,          // any platform for platform selectors
-  kNonExistent = 49,  // for tests only
+  kAny = 49,          // any platform for platform selectors
+  kNonExistent = 50,  // for tests only
 };
 
 // Max valid value of PlatformId, min being kUndefined.
@@ -136,6 +137,7 @@ inline constexpr const char* EnumNameMap<PlatformId>[ToInt(kMaxPlatformId) +
     "arm-neoverse-n3",
     "arm-neoverse-n2",
     "amd-venice",
+    "reserved-48",
     "ANY-PLATFORM",
     "NON-EXISTENT-PLATFORM",
 };

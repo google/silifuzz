@@ -169,6 +169,7 @@ enum PlatformId {
   ARM_NEOVERSE_N3 = 45;
   ARM_NEOVERSE_N2 = 46;
   AMD_VENICE = 47;
+  RESERVED_48 = 48;
 }
 
 // Describes a specific endstate of executing a snapshot.
