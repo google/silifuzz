@@ -60,7 +60,8 @@ void BindToARandomCPU() {
   }
 }
 
-TEST(PerfEventBuffer, BasicTest) {
+// perf_event_open doesn't support tagged pointers for the attr struct.
+TEST(PerfEventBuffer, BasicTest) __attribute__((no_sanitize("hwaddress"))) {
   constexpr uint64_t kSampleType = PERF_SAMPLE_READ;
   constexpr uint64_t kReadFormat = 0;
 
@@ -118,7 +119,7 @@ TEST(PerfEventBuffer, BasicTest) {
 // This is similar to the basic test except that we create a separate thread to
 // generate perf events. To test memory ordering, the generator thread is bound
 // to a random CPU so there is likely to be cross-core memory traffic.
-TEST(PerfEventBuffer, MultiThreaded) {
+TEST(PerfEventBuffer, MultiThreaded) __attribute__((no_sanitize("hwaddress"))) {
   // Each record is 16-bytes, do this many events so that
   // event buffer wraps around at least once.
   const size_t page_size = getpagesize();
