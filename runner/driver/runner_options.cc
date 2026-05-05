@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
