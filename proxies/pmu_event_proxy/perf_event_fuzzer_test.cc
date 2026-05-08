@@ -119,7 +119,9 @@ TEST(PerfEventMeasurement, BasicTest) {
   EXPECT_EQ(m9, m6);
 }
 
-TEST(PerfEventGroup, BasicTest) {
+// perf_event_open does not correctly support the tagged address ABI, so
+// we need to work around.
+TEST(PerfEventGroup, BasicTest) __attribute__((no_sanitize("hwaddress"))) {
   // We set a data breakpoint to here.  The breakpoint is not triggered in this
   // test.
   volatile char dummy;

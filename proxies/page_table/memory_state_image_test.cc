@@ -41,6 +41,10 @@ TYPED_TEST_SUITE_P(MemoryStateImageTest);
 
 // Construct a minimal memory state image with 1 code and 1 data page.
 TYPED_TEST_P(MemoryStateImageTest, BasicTest) {
+#if defined(HWADDRESS_SANITIZER)
+  GTEST_SKIP() << "posix_memalign gives a tagged address, which is not "
+                  "supported by this test.";
+#endif
   Snapshot s(Snapshot::ArchitectureTypeToEnum<TypeParam>());
   const Snapshot::ByteSize kPageSize = s.page_size();
   constexpr Snapshot::Address kCodeAddr = 0x123400000;
