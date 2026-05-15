@@ -155,79 +155,6 @@ void SetTLSRegs(const pid_t pid, uint64_t data) {
 };
 #endif
 
-void DeserializeUserRegsStruct(const user_regs_struct& regs,
-                               GRegSet<Host>* dst) {
-#if defined(__x86_64__)
-  // This abuses the fact that the legacy format is a byte dump of
-  // user_regs_struct.
-  CHECK_EQ(
-      serialize_internal::DeserializeGRegs<X86_64>(&regs, sizeof(regs), dst),
-      sizeof(regs));
-#elif defined(__aarch64__)
-  for (size_t i = 0; i < 31; ++i) {
-    dst->x[i] = regs.regs[i];
-  }
-  dst->sp = regs.sp;
-  dst->pc = regs.pc;
-  dst->pstate = regs.pstate & kPStateMask;
-#else
-  LOG_FATAL(
-      "DeserializeUserRegsStruct is not supported only on this architecture");
-#endif
-}
-
-void SerializeUserRegsStruct(const GRegSet<Host>& regs, user_regs_struct* dst) {
-#if defined(__x86_64__)
-  // This abuses the fact that the legacy format is a byte dump of
-  // user_regs_struct.
-  CHECK_EQ(serialize_internal::SerializeLegacyGRegs(regs, dst, sizeof(*dst)),
-           sizeof(*dst));
-#elif defined(__aarch64__)
-  for (size_t i = 0; i < 31; ++i) {
-    dst->regs[i] = regs.x[i];
-  }
-  dst->sp = regs.sp;
-  dst->pc = regs.pc;
-  dst->pstate = regs.pstate;
-#else
-  LOG_FATAL("SerializeUserRegsStruct is not supported on this architecture");
-#endif
-}
-
-void SerializeUserFPRegsStruct(const FPRegSet<Host>& fp_reg_set,
-                               UserFPRegsStruct* dst) {
-#if defined(__x86_64__)
-  CHECK_EQ(
-      serialize_internal::SerializeLegacyFPRegs(fp_reg_set, dst, sizeof(*dst)),
-      sizeof(*dst));
-#elif defined(__aarch64__)
-  for (size_t i = 0; i < 32; ++i) {
-    dst->vregs[i] = fp_reg_set.v[i];
-  }
-  dst->fpsr = fp_reg_set.fpsr;
-  dst->fpcr = fp_reg_set.fpcr;
-#else
-  LOG_FATAL("SerializeUserRegsStruct is not supported on this architecture");
-#endif
-}
-
-void DeserializeUserFPRegsStruct(const UserFPRegsStruct& fp_regs,
-                                 FPRegSet<Host>* dst) {
-#if defined(__x86_64__)
-  CHECK_EQ(serialize_internal::DeserializeFPRegs<X86_64>(&fp_regs,
-                                                         sizeof(fp_regs), dst),
-           sizeof(fp_regs));
-#elif defined(__aarch64__)
-  for (size_t i = 0; i < 32; ++i) {
-    dst->v[i] = fp_regs.vregs[i];
-  }
-  dst->fpsr = fp_regs.fpsr;
-  dst->fpcr = fp_regs.fpcr;
-#else
-  LOG_FATAL(
-      "DeserializeUserFPRegsStruct is not supported on this architecture");
-#endif
-}
 
 }  // namespace
 
@@ -366,7 +293,7 @@ void NativeTracer::ReadMemory(uint64_t address, void* buffer, size_t size) {
 
 void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
   struct user_regs_struct regs;
-  SerializeUserRegsStruct(ucontext.gregs, &regs);
+  ConvertGRegSetToUserRegs(ucontext.gregs, &regs);
   SetGRegs(pid_, regs);
 #if defined(__aarch64__)
   SetTLSRegs(pid_, ucontext.gregs.tpidr);
@@ -377,7 +304,7 @@ void NativeTracer::SetRegisters(const UContext<Host>& ucontext) {
   // __uint128_t is 16-byte aligned. Memset the entire struct to avoid msan
   // complaints about reading uninitialized memory.
   memset(&fp_regs, 0, sizeof(fp_regs));
-  SerializeUserFPRegsStruct(ucontext.fpregs, &fp_regs);
+  ConvertFPRegSetToUserFPRegs(ucontext.fpregs, &fp_regs);
   SetFPRegs(pid_, fp_regs);
 
   // Ptrace may silently discard some bits of the register state.  If this
@@ -391,7 +318,7 @@ void NativeTracer::GetRegisters(UContext<Host>& ucontext,
   const user_regs_struct& regs = GetGRegStruct();
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
-  DeserializeUserRegsStruct(regs, &ucontext.gregs);
+  ConvertUserRegsToGRegSet(regs, &ucontext.gregs);
 #if defined(__aarch64__)
   GetTLSRegs(pid_, &ucontext.gregs.tpidr);
   // tpidrro is not easily accessible using ptrace.
@@ -399,7 +326,7 @@ void NativeTracer::GetRegisters(UContext<Host>& ucontext,
 
   UserFPRegsStruct fp_regs;
   GetFPRegs(pid_, fp_regs);
-  DeserializeUserFPRegsStruct(fp_regs, &ucontext.fpregs);
+  ConvertUserFPRegsToFPRegSet(fp_regs, &ucontext.fpregs);
 
   if (eregs != nullptr) {
     memset(eregs, 0, sizeof(*eregs));

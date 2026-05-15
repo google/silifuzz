@@ -1378,6 +1378,10 @@ cc_library(
 cc_library(
     name = "user_regs_util",
     hdrs = ["user_regs_util.h"],
+    deps = [
+        ":arch",
+        "@silifuzz//util/ucontext:ucontext_types",
+    ],
 )
 
 cc_test(
