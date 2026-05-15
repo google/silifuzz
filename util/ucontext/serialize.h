@@ -94,15 +94,6 @@ template <typename Arch>
 ABSL_MUST_USE_RESULT bool MayBeSerializedFPRegs(const void* data,
                                                 size_t data_size);
 
-#if defined(__x86_64__)
-
-// For testing only.
-ABSL_MUST_USE_RESULT ssize_t SerializeLegacyGRegs(const GRegSet<X86_64>& gregs,
-                                                  void* data, size_t data_size);
-ABSL_MUST_USE_RESULT ssize_t SerializeLegacyFPRegs(
-    const FPRegSet<X86_64>& fpregs, void* data, size_t data_size);
-
-#endif
 }  // namespace serialize_internal
 
 template <typename T>

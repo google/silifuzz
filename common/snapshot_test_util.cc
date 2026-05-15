@@ -107,40 +107,6 @@ void InitTestSnapshotRegs(const TestSnapshotConfig& config,
   ucontext.gregs.x[7] = config.data_addr;
 }
 
-Snapshot::RegisterState ConvertRegsToLegacySnapshot(
-    const GRegSet<X86_64>& gregs, const FPRegSet<X86_64>& fpregs) {
-  Snapshot::ByteData gregs_bytes, fpregs_bytes;
-#if defined(__x86_64__)
-  Serialized<GRegSet<X86_64>> gregs_serialized;
-  Serialized<FPRegSet<X86_64>> fpregs_serialized;
-  CHECK_GT(serialize_internal::SerializeLegacyGRegs(
-               gregs, &gregs_serialized.data, sizeof(gregs_serialized)),
-           0);
-  CHECK_GT(serialize_internal::SerializeLegacyFPRegs(
-               fpregs, &fpregs_serialized.data, sizeof(fpregs_serialized)),
-           0);
-  // Copied expected legacy register lengths from
-  // silifuzz/util/ucontext/x86_64/serialize.cc.
-  gregs_bytes.append(gregs_serialized.data, 216);
-  fpregs_bytes.append(fpregs_serialized.data, 512);
-#else
-  LOG(FATAL) << "Legacy register format is only supported on x86-64. Did you "
-                "forget to restrict the tests to run on x86-64 machines, or "
-                "accidentally set "
-                "`CreateTestSnapshotOptions.use_legacy_register_format`?";
-#endif
-
-  return Snapshot::RegisterState(gregs_bytes, fpregs_bytes);
-}
-
-Snapshot::RegisterState ConvertRegsToLegacySnapshot(
-    const GRegSet<AArch64>& gregs, const FPRegSet<AArch64>& fpregs) {
-  LOG(FATAL) << "Legacy register format is not supported in AArch64. Did you "
-                "forget to restrict the tests to run on x86-64 machines, or "
-                "accidentally set "
-                "`CreateTestSnapshotOptions.use_legacy_register_format`?";
-}
-
 // The bytes that RestoreUContext() will write into the stack of the
 // snapshot as a (presently unavoidable) part of doing its work
 // when jumping-in to start executing `snapshot`.
@@ -276,9 +242,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
   UContext<Arch> ucontext;
   InitTestSnapshotRegs(config, ucontext);
   Snapshot::RegisterState regs =
-      options.use_legacy_register_format
-          ? ConvertRegsToLegacySnapshot(ucontext.gregs, ucontext.fpregs)
-          : ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
+      ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
   snapshot.set_registers(regs);
   // We are expecting `bytecode` to execute fully:
   Snapshot::Endpoint endpoint(config.code_addr + bytecode_size);
@@ -287,9 +251,7 @@ Snapshot CreateTestSnapshot(TestSnapshot type,
     // expected value of rip when reaching `endpoint`
     ucontext.gregs.SetInstructionPointer(endpoint.instruction_address());
     Snapshot::RegisterState regs =
-        options.use_legacy_register_format
-            ? ConvertRegsToLegacySnapshot(ucontext.gregs, ucontext.fpregs)
-            : ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
+        ConvertRegsToSnapshot(ucontext.gregs, ucontext.fpregs);
     Snapshot::EndState end_state(endpoint, regs);
     end_state.add_platform(TestSnapshotPlatform<Arch>());
     auto end_state_with_sideeffects =
