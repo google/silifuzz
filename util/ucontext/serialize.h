@@ -37,10 +37,7 @@ constexpr size_t SerializedSizeMax();
 
 template <>
 inline constexpr size_t SerializedSizeMax<GRegSet<X86_64>>() {
-  // Note that the legacy serialization format is larger because it encodes
-  // every field as a 64-bit integer and also contains an extra field.
-  // 216 vs 8 + 176.
-  return 216;  // sizeof(struct user_regs_struct)
+  return kHeaderSize + sizeof(GRegSet<X86_64>);
 }
 
 template <>

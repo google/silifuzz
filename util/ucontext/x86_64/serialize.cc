@@ -38,9 +38,8 @@ namespace serialize_internal {
 static_assert(sizeof(FPRegSet<X86_64>) == sizeof(struct user_fpregs_struct),
               "fpregs structs do not match");
 
-// The serialization buffer should be able to contain a user_regs_struct.
 static_assert(SerializedSizeMax<GRegSet<X86_64>>() >=
-                  sizeof(struct user_regs_struct),
+                  sizeof(header) + sizeof(GRegSet<X86_64>),
               "SerializedSizeMax is wrong for GRegSet<X86_64>");
 #endif
 
