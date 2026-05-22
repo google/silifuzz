@@ -16,6 +16,7 @@
 
 #include <sys/types.h>
 
+#include <cstdint>
 #include <cstring>
 
 #include "./util/arch.h"
