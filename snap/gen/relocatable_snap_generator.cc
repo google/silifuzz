@@ -134,11 +134,11 @@ class Traversal {
                           HashByteData, ByteDataEq>;
 
   // Wrappers for Deserialize*Regs so that we can use them in templates.
-  inline bool DeserializeRegs(const std::string& src, GRegSet<Arch>* dst) {
+  bool DeserializeRegs(const std::string& src, GRegSet<Arch>* dst) {
     return DeserializeGRegs(src, dst);
   }
 
-  inline bool DeserializeRegs(const std::string& src, FPRegSet<Arch>* dst) {
+  bool DeserializeRegs(const std::string& src, FPRegSet<Arch>* dst) {
     return DeserializeFPRegs(src, dst);
   }
 
