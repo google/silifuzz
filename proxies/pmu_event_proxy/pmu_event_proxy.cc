@@ -154,15 +154,15 @@ void EmitMemoryFeatures(TracerControl<Arch>& control,
 }
 
 template <typename Arch>
-constexpr inline uint64_t MaxInstructionLength();
+constexpr uint64_t MaxInstructionLength();
 
 template <>
-constexpr inline uint64_t MaxInstructionLength<X86_64>() {
+constexpr uint64_t MaxInstructionLength<X86_64>() {
   return 15;
 }
 
 template <>
-[[maybe_unused]] constexpr inline uint64_t MaxInstructionLength<AArch64>() {
+[[maybe_unused]] constexpr uint64_t MaxInstructionLength<AArch64>() {
   return 4;
 }
 
