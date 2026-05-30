@@ -31,12 +31,12 @@ static constexpr uint64_t kInitializedBitMask = static_cast<uint64_t>(1) << 63;
 std::atomic<uint64_t> x86_cpu_features;
 static_assert(x86_cpu_features.is_always_lock_free);
 
-inline constexpr bool IsBitSet(uint64_t bitmask, size_t pos) {
+constexpr bool IsBitSet(uint64_t bitmask, size_t pos) {
   return (bitmask & (static_cast<uint64_t>(1) << pos)) != 0;
 }
 
 // Returns a bit mask for `feature`.
-inline constexpr uint64_t X86CPUFeatureBitmask(X86CPUFeatures feature) {
+constexpr uint64_t X86CPUFeatureBitmask(X86CPUFeatures feature) {
   return static_cast<uint64_t>(1) << static_cast<int>(feature);
 }
 
