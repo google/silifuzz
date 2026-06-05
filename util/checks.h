@@ -47,6 +47,7 @@
 #include <utility>  // for std::forward
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
+#include "absl/base/log_severity.h"  // for DEBUG_MODE
 #include "absl/log/check.h"        // IWYU pragma: export
 #include "absl/log/log.h"          // IWYU pragma: export
 #include "absl/log/vlog_is_on.h"   // IWYU pragma: export
@@ -148,17 +149,11 @@
 #endif
 
 // ========================================================================= //
-// Provide CHECK*, DCHECK*, and DEBUG_MODE.
+// Provide CHECK*, DCHECK*.
 
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
 // absl/log/log.h will provide CHECK*, DCHECK*.
-// Also provide DEBUG_MODE.
-#ifndef NDEBUG
-const bool DEBUG_MODE = true;
-#else   // defined(NDEBUG)
-const bool DEBUG_MODE = false;
-#endif  // defined(NDEBUG)
 
 #define CHECK_LOG(condition, log) CHECK(condition) << (log);
 #define CHECK_EQ_LOG(x, y, log) CHECK_EQ(x, y) << (log);
@@ -178,7 +173,7 @@ const bool DEBUG_MODE = false;
 
 #else  // defined(SILIFUZZ_BUILD_FOR_NOLIBC)
 
-// Define simple implementations of CHECK*, DCHECK* (and DEBUG_MODE)
+// Define simple implementations of CHECK*, DCHECK*
 // like in absl/log/log.h that do not need libc when
 // defined(SILIFUZZ_BUILD_FOR_NOLIBC), but do not support any << either.
 
@@ -220,7 +215,6 @@ const bool DEBUG_MODE = false;
 
 #ifndef NDEBUG
 
-const bool DEBUG_MODE = true;
 #define DCHECK(condition) CHECK(condition)
 #define DCHECK_EQ(x, y) CHECK_EQ(x, y)
 #define DCHECK_NE(x, y) CHECK_NE(x, y)
@@ -239,7 +233,6 @@ const bool DEBUG_MODE = true;
 
 #else  // defined(NDEBUG)
 
-const bool DEBUG_MODE = false;
 #define DCHECK(condition) \
   while (false) {         \
   }
@@ -435,6 +428,16 @@ const bool DEBUG_MODE = false;
 // Private implementation details of this library.
 
 namespace silifuzz {
+
+#if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
+inline constexpr bool kDebugMode = ::DEBUG_MODE;
+#else
+#ifndef NDEBUG
+inline constexpr bool kDebugMode = true;
+#else
+inline constexpr bool kDebugMode = false;
+#endif
+#endif
 
 // Set VLOG-level controlling the logging verbosity for nolibc/no-absl
 // binaries. Does nothing when #!defined (SILIFUZZ_BUILD_FOR_NOLIBC)

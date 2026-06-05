@@ -227,7 +227,7 @@ MemoryState::ByteData MemoryState::memory_bytes(Address start_address,
   // Precondition: exactly one range covers the request:
   DCHECK(iters.first != written_memory_bytes_.end());
   auto it = iters.first;
-  if (DEBUG_MODE) ++iters.first;  // for the next DCHECK
+  if (kDebugMode) ++iters.first;  // for the next DCHECK
   DCHECK(iters.first == iters.second);
   // Precondition: it covers the request fully:
   DCHECK_LE(it.start(), start_address);
@@ -500,7 +500,7 @@ MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
 
 MemoryState::MemoryBytesList MemoryState::DeltaMemoryBytes(
     const MemoryBytesList& bytes) const {
-  if (DEBUG_MODE) {  // DCHECK disjointness of `bytes`
+  if (kDebugMode) {  // DCHECK disjointness of `bytes`
     MemoryBytesSet bytes_set;
     for (const auto& b : bytes) {
       CHECK(bytes_set.IsDisjoint(b.start_address(), b.limit_address()));

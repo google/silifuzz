@@ -32,7 +32,7 @@ ExecutionContext<RunResultT>::~ExecutionContext() {
   if (!invocation_results_.empty()) {
     absl::string_view error =
         "The result queue is not empty. Did you call ProcessResultQueue()?";
-    if (DEBUG_MODE) {
+    if (kDebugMode) {
       LOG_FATAL(error);
     } else {
       LOG_ERROR(error);

@@ -48,7 +48,7 @@ TEST(ChecksTest, Log) {
   LOG_FATAL_IF(false, "fatal if off ", 88);
   EXPECT_DEATH_IF_SUPPORTED(
       { LOG_FATAL_IF(true, "fatal if on ", 88); }, "fatal if on 88");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
         { LOG_DFATAL("dfatal ", IntStr(99)); }, "dfatal 99");
     LOG_DFATAL_IF(false, "dfatal if off ", 111);
@@ -86,7 +86,7 @@ TEST(ChecksTest, Check) {
   ABSL_ATTRIBUTE_UNUSED bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED({ CHECK(my_false); }, "Check failed: my_false");
   EXPECT_DEATH_IF_SUPPORTED({ CHECK_LE(22, 11); }, "Check failed: 22 <= 11");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED({ DCHECK(my_false); }, "Check failed: my_false");
     EXPECT_DEATH_IF_SUPPORTED({ DCHECK_LE(22, 11); }, "Check failed: 22 <= 11");
   } else {
@@ -119,7 +119,7 @@ TEST(ChecksTest, CheckLog) {
   EXPECT_DEATH_IF_SUPPORTED(
       { CHECK_LE_LOG(22, 11, ", badger"); },
       "Check failed: 22 <= 11 .+ badger");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
         { DCHECK_LOG(my_false, ", fox"); }, "Check failed: my_false .+ fox");
     EXPECT_DEATH_IF_SUPPORTED(
@@ -144,7 +144,7 @@ TEST(ChecksTest, ASSLog) {
 
   EXPECT_DEATH_IF_SUPPORTED(
       { ASS_LOG_FATAL("fatal ", IntStr(55)); }, "fatal 55");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
         { ASS_LOG_DFATAL("dfatal ", IntStr(66)); }, "dfatal 66");
   } else {
@@ -158,7 +158,7 @@ TEST(ChecksTest, ASSCheck) {
 
   ABSL_ATTRIBUTE_UNUSED bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED({ ASS_CHECK(my_false); }, "Check failed: my_false");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
         { ASS_DCHECK(my_false); }, "Check failed: my_false");
   } else {
@@ -175,7 +175,7 @@ TEST(ChecksTest, CheckAndUse) {
   ABSL_ATTRIBUTE_UNUSED bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED(
       { v = CHECK_AND_USE(my_false, 33); }, "Check condition failed: my_false");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
         { v = DCHECK_AND_USE(my_false, 44); },
         "Check condition failed: my_false");
@@ -209,7 +209,7 @@ TEST(ChecksTest, Status) {
   DCHECK_STATUS(ok);
 
   EXPECT_DEATH_IF_SUPPORTED({ CHECK_STATUS(error); }, "My-error-event");
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED({ DCHECK_STATUS(error); }, "My-error-event");
   } else {
     DCHECK_STATUS(error);

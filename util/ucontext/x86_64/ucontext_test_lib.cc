@@ -410,7 +410,7 @@ void TestUContextVarious() {
 
   // Verify fpregs values against libc's getcontext()
   // -- the latter only saves these:
-  if (DEBUG_MODE) {
+  if (kDebugMode) {
     LOG_INFO("libc_ucontext FP registers vs ucontext:");
     // Layout should be the same since they are both based on fxrstor but
     // the alignment may be different. FPRegSet<X86_64> is 16-aligned as

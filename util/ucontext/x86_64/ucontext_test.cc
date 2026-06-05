@@ -194,7 +194,7 @@ TEST(UContextTest, Padding) {
   uc3.gregs.rdi = uc1.gregs.rdi;
   uc4.gregs.rdi = uc1.gregs.rdi;
 
-  if (DEBUG_MODE) {  // Only to help debugging EXPECT_TRUE-s below.
+  if (kDebugMode) {  // Only to help debugging EXPECT_TRUE-s below.
     LOG_INFO("uc4.gregs vs uc1:");
     LogGRegs(uc4.gregs, &uc1.gregs, true);
     LOG_INFO("uc4.fpregs vs uc1:");

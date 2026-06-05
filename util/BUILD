@@ -162,6 +162,7 @@ cc_library_plus_nolibc(
         "@abseil-cpp//absl/base:core_headers",
     ],
     libc_deps = [
+        "@abseil-cpp//absl/base:log_severity",
         "@abseil-cpp//absl/log:log",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/log:vlog_is_on",
@@ -327,8 +328,8 @@ cc_library(
     srcs = ["hostname.cc"],
     hdrs = ["hostname.h"],
     deps = [
-        "@silifuzz//util:checks",
-        "@silifuzz//util:itoa",
+        ":checks",
+        ":itoa",
         "@abseil-cpp//absl/strings",
     ],
 )
@@ -1033,8 +1034,8 @@ cc_library_plus_nolibc(
     name = "mmapped_memory_ptr",
     hdrs = ["mmapped_memory_ptr.h"],
     deps = [
+        ":checks",
         ":page_util",
-        "@silifuzz//util:checks",
     ],
 )
 
