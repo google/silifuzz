@@ -429,14 +429,10 @@
 
 namespace silifuzz {
 
-#if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
-inline constexpr bool kDebugMode = ::DEBUG_MODE;
-#else
 #ifndef NDEBUG
 inline constexpr bool kDebugMode = true;
 #else
 inline constexpr bool kDebugMode = false;
-#endif
 #endif
 
 // Set VLOG-level controlling the logging verbosity for nolibc/no-absl
