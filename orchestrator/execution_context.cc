@@ -16,7 +16,6 @@
 
 #include <vector>
 
-#include "absl/base/log_severity.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
