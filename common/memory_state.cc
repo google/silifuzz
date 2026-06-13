@@ -20,7 +20,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/base/log_severity.h"
 #include "absl/strings/str_cat.h"
 #include "./common/mapped_memory_map.h"
 #include "./common/memory_mapping.h"
