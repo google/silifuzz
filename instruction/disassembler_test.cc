@@ -232,8 +232,7 @@ TEST(DisassemblerTest, CapstoneX86InvalidInstruction) {
 TEST(DisassemblerTest, CapstoneAArch64InvalidInstruction) {
   CapstoneDisassembler<AArch64> disasm;
   DisassemblerTest invalid_arm = {
-      // Taken from an invalid instruction in a snapshot.
-      .bytes = {0x82, 0x84, 0x84, 0x84},
+      .bytes = {0xff, 0xff, 0xff, 0xff},
       .opcode = disasm.InstructionIDName(disasm.InvalidInstructionID()),
   };
   constexpr uint64_t kArbitraryAddress = 0x10000;
