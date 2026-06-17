@@ -28,8 +28,8 @@ DOCKER_IMAGE=ubuntu:noble
 
 docker run \
   --security-opt seccomp=unconfined \
-  -v ${KOKORO_ARTIFACTS_DIR}/github/silifuzz:/app \
-  -v ${KOKORO_ARTIFACTS_DIR}:/kokoro \
+  -v ${KOKORO_HOST_ROOT_DIR}/src/github/silifuzz:/app \
+  -v ${KOKORO_HOST_ROOT_DIR}/src:/kokoro \
   --env KOKORO_ARTIFACTS_DIR=/kokoro \
   -w /app \
   "${DOCKER_IMAGE}" \
