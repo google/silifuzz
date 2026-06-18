@@ -118,6 +118,7 @@ py_test(
         "@abseil-py//absl/testing:absltest",
         "@abseil-py//absl/testing:parameterized",
         "@silifuzz//proto:snapshot_py_proto",
+        "@typing_extensions",
     ],
 )
 
@@ -156,5 +157,6 @@ py_test(
         "@abseil-py//absl/testing:flagsaver",
         "@abseil-py//absl/testing:parameterized",
         "@silifuzz//proto:snapshot_py_proto",
+        "@typing_extensions",
     ],
 )

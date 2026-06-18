@@ -15,11 +15,12 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 import itertools
 import random
-from typing import Any, override
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from typing_extensions import override
 
 from proto import snapshot_pb2
 from tools.minimizer import engine

@@ -80,6 +80,15 @@ http_archive(
     ],
 )
 
+http_archive(
+    name = "typing_extensions",
+    build_file = "@silifuzz//:third_party/BUILD.typing_extensions",
+    strip_prefix = "typing_extensions-4.12.2/src",
+    urls = [
+        "https://github.com/python/typing_extensions/archive/4.12.2.tar.gz",
+    ],
+)
+
 # Capstone disassembler
 new_git_repository(
     name = "capstone",
