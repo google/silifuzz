@@ -31,6 +31,7 @@ struct InstructionFilterConfig<AArch64> {
   bool sve_instructions_allowed = true;
   bool load_store_instructions_allowed = true;
   bool indirect_branches_allowed = true;
+  bool scalar_fp_and_advanced_simd_allowed = true;
 };
 
 // Accept or reject this instruction sequence using simple static analysis.

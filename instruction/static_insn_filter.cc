@@ -506,6 +506,13 @@ constexpr BitMatcher<uint32_t> kSVEInstruction = {
     .bits = 0b0000'0100'0000'0000'0000'0000'0000'0000,
 };
 
+// Section C4.1: A64 instruction set encoding
+// op1 = x111 is "Data Processing -- Scalar Floating-Point and Advanced SIMD"
+constexpr BitMatcher<uint32_t> kScalarFpAndAdvancedSIMDInstruction = {
+    .mask = 0b0000'1110'0000'0000'0000'0000'0000'0000,
+    .bits = 0b0000'1110'0000'0000'0000'0000'0000'0000,
+};
+
 // Section: Branches, Exception Generating and System instructions
 // System register move
 // Should match MRS and MSR instructions.  Bit 21 controls if this is a read or
@@ -530,6 +537,12 @@ constexpr BitMatcher<uint32_t> kSystemInstruction = {
 constexpr BitMatcher<uint32_t> kLoadStoreInstruction = {
     .mask = 0b0000'1010'0000'0000'0000'0000'0000'0000,
     .bits = 0b0000'1000'0000'0000'0000'0000'0000'0000,
+};
+
+// FP/SIMD Load/Store instruction (V == 1, i.e. bit 26 == 1)
+constexpr BitMatcher<uint32_t> kFpSimdLoadStoreInstruction = {
+    .mask = 0b0000'1110'0000'0000'0000'0000'0000'0000,
+    .bits = 0b0000'1100'0000'0000'0000'0000'0000'0000,
 };
 
 // Section: SVE encodings for memory operations.
@@ -650,6 +663,11 @@ constexpr bool InstructionIsOK(uint32_t insn,
     return false;
   }
   if (!config.sve_instructions_allowed && kSVEInstruction.matches(insn)) {
+    return false;
+  }
+  if (!config.scalar_fp_and_advanced_simd_allowed &&
+      (kScalarFpAndAdvancedSIMDInstruction.matches(insn) ||
+       kFpSimdLoadStoreInstruction.matches(insn))) {
     return false;
   }
   // TODO: b/489770771 - Remove this once this is no longer needed.

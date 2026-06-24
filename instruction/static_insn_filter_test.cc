@@ -129,6 +129,46 @@ TEST(StaticInsnFilter, SVE) {
   EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x043ff90b}, allowed);
 }
 
+TEST(StaticInsnFilter, ScalarFpAndAdvancedSimd) {
+  InstructionFilterConfig<AArch64> banned = {
+      .scalar_fp_and_advanced_simd_allowed = false,
+  };
+  InstructionFilterConfig<AArch64> allowed = {
+      .scalar_fp_and_advanced_simd_allowed = true,
+  };
+  // fmin      s7, s16, s8
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x1e285a07}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x1e285a07}, allowed);
+
+  // fnmadd    s4, s20, s8, s22
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x1f285a84}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x1f285a84}, allowed);
+
+  // fmov     s16, #-1.640625000000000000e-01
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0x1e38b010}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0x1e38b010}, allowed);
+
+  // ldr s0, [x1] (FP/SIMD load)
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0xbd400020}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xbd400020}, allowed);
+
+  // ldr d0, [x1] (FP/SIMD load)
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0xfd400020}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xfd400020}, allowed);
+
+  // str s0, [x1] (FP/SIMD store)
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0xbd000020}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xbd000020}, allowed);
+
+  // str d0, [x1] (FP/SIMD store)
+  EXPECT_AARCH64_FILTER_REJECT_CONFIG({0xfd000020}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xfd000020}, allowed);
+
+  // str     w16, [x6] (GPR store, should always be accepted)
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xb90000d0}, banned);
+  EXPECT_AARCH64_FILTER_ACCEPT_CONFIG({0xb90000d0}, allowed);
+}
+
 struct TestInstruction {
   std::string text;
   uint32_t insn;
