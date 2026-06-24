@@ -55,6 +55,10 @@ class TraceOptions {
   // before the tracer stops it. 0 for unlimited.
   int instruction_count_limit = ArchDefaults<Host>::kInstructCountLimit;
 
+  // The following options control filtering behavior.  If an offending
+  // instruction is encountered, the tracer will inject a SIGUSR1 signal to
+  // terminate the snapshot.
+
   // If true, tracer injects a signal when a locking instruction accesses
   // memory across a cache line boundary. This has no effect on non-x86
   // platforms.  This option is used to work around a performance issue on
@@ -84,10 +88,14 @@ class TraceOptions {
   bool x86_filter_non_canonical_evex_sp = false;
 
   // If true, tracer, injects a signal when an indirect branch is executed
-  // inside the snapshot. Currently only implemented on AArch64.
+  // inside the snapshot.
   // This prevents false positives from occurring in certain micro-architectures
   // due to known but unfixed errata.
   bool aarch64_filter_indirect_branches = false;
+
+  // If true, tracer, injects a signal when an FP/SIMD instruction is executed
+  // inside the snapshot.
+  bool aarch64_filter_fp_and_advanced_simd = false;
 };
 
 }  // namespace silifuzz

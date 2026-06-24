@@ -139,6 +139,9 @@ enum class TestSnapshot {
   // Indirect branch inside the snapshot (aarch64 only)
   kIndirectBranch,
 
+  // Scalar FP / Advanced SIMD instruction inside the snapshot (aarch64 only)
+  kFpAndAdvancedSIMD,
+
   // Used to iterate over all possible TestSnapshots.
   kNumTestSnapshot,
 };
@@ -183,6 +186,7 @@ inline constexpr const char* EnumNameMap<TestSnapshot>[static_cast<int>(
     "kSetThreeSVERegisters",
     "kNonCanonicalEvexSp",
     "kIndirectBranch",
+    "kFpAndAdvancedSIMD",
 };
 
 }  // namespace silifuzz

@@ -241,5 +241,24 @@ TEST(SnapMaker, MakeArmIndirectBranchTest) {
                HasSubstr("Tracing failed: Has problematic instructions.")));
 }
 
+TEST(SnapMaker, MakeArmFpAndAdvancedSimdTest) {
+#if !defined(__aarch64__)
+  GTEST_SKIP() << "Skipping test for non-ARM64 architecture.";
+#endif
+  SnapMaker::Options options = DefaultSnapMakerOptionsForTest();
+  const auto snapshot =
+      MakeSnapRunnerTestSnapshot<Host>(TestSnapshot::kFpAndAdvancedSIMD);
+  TraceOptions trace_options;
+  trace_options.aarch64_filter_fp_and_advanced_simd = false;
+  EXPECT_OK(FixSnapshotInTest(snapshot, options, trace_options));
+
+  trace_options.aarch64_filter_fp_and_advanced_simd = true;
+  auto result_or = FixSnapshotInTest(snapshot, options, trace_options);
+  EXPECT_THAT(
+      result_or,
+      StatusIs(absl::StatusCode::kInternal,
+               HasSubstr("Tracing failed: Has problematic instructions.")));
+}
+
 }  // namespace
 }  // namespace silifuzz

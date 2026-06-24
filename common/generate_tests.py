@@ -857,6 +857,15 @@ nop
 """,
   )
 
+  b.snapshot(
+      name="FpAndAdvancedSIMD",
+      arch=AARCH64,
+      normal_end=True,
+      src="""
+fmov s7, #1.0
+""",
+  )
+
 
 def generate_source(b, out):
   out.write(f"""\

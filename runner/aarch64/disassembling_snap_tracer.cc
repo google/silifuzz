@@ -98,7 +98,10 @@ DisassemblingSnapTracer::SnapshotStepper::StepInstruction(
   // safe and don't trigger the errata.
   static_insn_filter_config.indirect_branches_allowed =
       !(options_.aarch64_filter_indirect_branches && is_inside_snapshot);
+  static_insn_filter_config.scalar_fp_and_advanced_simd_allowed =
+      !(options_.aarch64_filter_fp_and_advanced_simd && is_inside_snapshot);
 
+  // Static instruction filter returns true if the instruction is allowed.
   if (!StaticInstructionFilter<AArch64>(*insn_or, static_insn_filter_config)) {
     trace_result_.early_termination_reason = "Has problematic instructions.";
     return HarnessTracer::kInjectSigusr1;
