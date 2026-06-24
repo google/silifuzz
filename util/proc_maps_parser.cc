@@ -15,7 +15,6 @@
 #include "./util/proc_maps_parser.h"
 
 #include <algorithm>
-#include <cctype>
 #include <cstddef>
 #include <cstring>
 
@@ -25,16 +24,23 @@
 namespace silifuzz {
 namespace {
 
-// Find the first character inside ['begin', 'end') that causes 'pred' to return
-// 0, Returns the location or nullptr if all of the characters in range
-// satisfy 'pred'.
-const char* SkipWhile(int (*pred)(int), const char* begin, const char* end) {
+// Find the first character inside ['begin', 'end') that causes 'pred' to
+// return false. Returns the location or nullptr if all of the characters in
+// range satisfy 'pred'.
+const char* SkipWhile(bool (*pred)(int), const char* begin, const char* end) {
   for (const char* ptr = begin; ptr < end; ++ptr) {
-    if ((*pred)(*ptr) == 0) {
+    if (!(*pred)(*ptr)) {
       return ptr;
     }
   }
   return nullptr;
+}
+
+// We need to implement our own IsXDigit because we can't use
+// std::isxdigit from <cctype> in the nolibc environment.
+bool IsXDigit(int c) {
+  return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+         (c >= 'A' && c <= 'F');
 }
 
 }  // namespace
@@ -46,20 +52,20 @@ size_t ParseProcMaps(const char* maps, size_t maps_size,
   const char* ptr = maps;
   const char* end_of_file = maps + maps_size;
   while (ptr < end_of_file && num_entries < max_proc_maps_entries) {
-    auto is_not_end_of_line = [](int c) { return c != '\n' ? 1 : 0; };
+    auto is_not_end_of_line = [](int c) { return c != '\n'; };
     const char* end_of_line = SkipWhile(is_not_end_of_line, ptr, end_of_file);
     CHECK_NE(end_of_line, nullptr);
 
     // We expect a proc maps line to have the format:
     // "[0-9a-f]+\-[0-9a-f] .*"
     const char* hex1_begin = ptr;
-    const char* hex1_end = SkipWhile(isxdigit, hex1_begin, end_of_line);
+    const char* hex1_end = SkipWhile(IsXDigit, hex1_begin, end_of_line);
     CHECK_NE(hex1_end, nullptr);
 
     CHECK_EQ(*hex1_end, '-');
     const char* hex2_begin = hex1_end + 1;
     CHECK_NE(hex2_begin, nullptr);
-    const char* hex2_end = SkipWhile(isxdigit, hex2_begin, end_of_line);
+    const char* hex2_end = SkipWhile(IsXDigit, hex2_begin, end_of_line);
     CHECK_NE(hex2_end, nullptr);
 
     // Store parsed proc maps entry.
@@ -74,8 +80,8 @@ size_t ParseProcMaps(const char* maps, size_t maps_size,
 
     {
       proc_maps_entries[num_entries].name[0] = '\0';
-      auto is_not_space = [](int c) { return c != ' ' ? 1 : 0; };
-      auto is_space = [](int c) { return c == ' ' ? 1 : 0; };
+      auto is_not_space = [](int c) { return c != ' '; };
+      auto is_space = [](int c) { return c == ' '; };
       const char* p = hex2_end;
       // Skip perms, offset, dev and inode columns. The last one is the name.
       // https://www.kernel.org/doc/Documentation/filesystems/proc.txt
