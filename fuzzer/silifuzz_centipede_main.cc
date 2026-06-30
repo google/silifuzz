@@ -12,8 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <unistd.h>
+
+#include <csignal>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <utility>
 #include <vector>
 
@@ -27,6 +31,7 @@
 #include "centipede/environment.h"
 #include "centipede/environment_flags.h"
 #include "centipede/mutation_data.h"
+#include "centipede/stop.h"
 #include "centipede/util.h"
 #include "common/defs.h"
 #include "./fuzzer/program_batch_mutator.h"
@@ -37,6 +42,23 @@
 ABSL_FLAG(silifuzz::ArchitectureId, arch, silifuzz::ArchitectureId::kUndefined,
           "Architecture for instruction-aware fuzzing.");
 
+namespace {
+fuzztest::internal::StopCondition global_stop_condition;
+
+void SetSignalHandlers() {
+  struct sigaction sigact = {};
+  sigact.sa_flags = SA_ONSTACK;
+  sigact.sa_handler = [](int received_signum) {
+    if (received_signum != SIGINT) return;
+    const char msg[] = "\n[!] Ctrl-C pressed: winding down\n";
+    [[maybe_unused]] auto write_res =
+        write(STDERR_FILENO, msg, sizeof(msg) - 1);
+    global_stop_condition.RequestEarlyStop(EXIT_FAILURE);
+  };
+  sigaction(SIGINT, &sigact, nullptr);
+}
+}  // namespace
+
 namespace silifuzz {
 
 using fuzztest::internal::MutationInputRef;
@@ -44,8 +66,9 @@ using fuzztest::internal::MutationInputRef;
 class SilifuzzCentipedeCallbacks
     : public fuzztest::internal::CentipedeDefaultCallbacks {
  public:
-  SilifuzzCentipedeCallbacks(const fuzztest::internal::Environment &env)
-      : CentipedeDefaultCallbacks(env),
+  SilifuzzCentipedeCallbacks(const fuzztest::internal::Environment& env,
+                             fuzztest::internal::StopCondition& stop_condition)
+      : CentipedeDefaultCallbacks(env, stop_condition),
         arch_(absl::GetFlag(FLAGS_arch)),
         x86_64_mutator_(fuzztest::internal::GetRandomSeed(env.seed),
                         env.crossover_level / 100.0, env.max_len),
@@ -110,5 +133,6 @@ int main(int argc, char **argv) {
   fuzztest::internal::DefaultCallbacksFactory<
       silifuzz::SilifuzzCentipedeCallbacks>
       callbacks;
-  return CentipedeMain(env, callbacks);
+  SetSignalHandlers();
+  return CentipedeMain(env, callbacks, &global_stop_condition);
 }
