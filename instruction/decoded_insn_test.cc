@@ -509,6 +509,36 @@ TEST(DecodedInsn, clzero_with_prefix) {
   EXPECT_FALSE(insn.is_allowed_in_runner());
 }
 
+TEST(DecodedInsn, movbe_with_invalid_prefix) {
+  // 0x46: REX prefix
+  // 0x66: legacy prefix
+  // 0x4a: REX prefix
+  // This is an invalid prefix layout, there can only be 1 REX prefix, which
+  // follows after any legacy prefixes. This is from b/529508326.
+  DecodedInsn insn("\x46\x66\x4a\x0f\x38\xf0\x5f\x22");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "movbe rbx, qword ptr [rdi+0x22]");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
+TEST(DecodedInsn, movbe_with_valid_prefix) {
+  // 0x4a: REX prefix
+  DecodedInsn insn("\x4a\x0f\x38\xf0\x5f\x22");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "movbe rbx, qword ptr [rdi+0x22]");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
+TEST(DecodedInsn, movbe_with_no_prefix) {
+  DecodedInsn insn("\x0f\x38\xf0\x5f\x22");
+  ASSERT_TRUE(insn.is_valid());
+  EXPECT_EQ(absl::StripAsciiWhitespace(insn.DebugString()),
+            "movbe ebx, dword ptr [rdi+0x22]");
+  EXPECT_FALSE(insn.is_allowed_in_runner());
+}
+
 TEST(DecodedInsn, canonical_evex_sp) {
   struct TestCase {
     const char* raw_bytes = nullptr;    // instruction bytes.

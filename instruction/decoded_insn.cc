@@ -71,6 +71,23 @@ bool DecodedInsn::is_allowed_in_runner() const {
       xed_decoded_inst_get_nprefixes(&xed_insn_) > 0) {
     return false;
   }
+  // Ban `movbe` for internal reasons.
+  // copybara:strip_begin(g3 only)
+  //
+  // When running on Borg (e.g. making pipeline), the code is run in
+  // a VM. The VM may trap errors from malformed `movbe` instructions (e.g.
+  // invalid prefix layouts) and emulate the instruction instead.
+  //
+  // This causes divergence between code that is run on Borg and code that is
+  // run directly on the machines (e.g. manufacturing, qpool). This can cause
+  // false positives.
+  //
+  // See b/529508326 for more details.
+  //
+  // copybara:strip_end
+  if (iclass == XED_ICLASS_MOVBE) {
+    return false;
+  }
   // If (V)PALIGNR instructions cause a general protection fault, this can
   // trigger a bug in the linux kernel where it misidentifies them as STR
   // instructions that need to be emulated. A (V)PALIGNR instruction with a
