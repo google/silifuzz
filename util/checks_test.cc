@@ -83,7 +83,7 @@ TEST(ChecksTest, Check) {
   DCHECK_GT(22, 11);
 
   // A couple of failing cases:
-  ABSL_ATTRIBUTE_UNUSED bool my_false = false;
+  [[maybe_unused]] bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED({ CHECK(my_false); }, "Check failed: my_false");
   EXPECT_DEATH_IF_SUPPORTED({ CHECK_LE(22, 11); }, "Check failed: 22 <= 11");
   if (kDebugMode) {
@@ -113,7 +113,7 @@ TEST(ChecksTest, CheckLog) {
   DCHECK_GT_LOG(22, 11, "unused");
 
   // A couple of failing cases:
-  ABSL_ATTRIBUTE_UNUSED bool my_false = false;
+  [[maybe_unused]] bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED(
       { CHECK_LOG(my_false, ", llama"); }, "Check failed: my_false .+ llama");
   EXPECT_DEATH_IF_SUPPORTED(
@@ -156,7 +156,7 @@ TEST(ChecksTest, ASSCheck) {
   ASS_CHECK(true);
   ASS_DCHECK(true);
 
-  ABSL_ATTRIBUTE_UNUSED bool my_false = false;
+  [[maybe_unused]] bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED({ ASS_CHECK(my_false); }, "Check failed: my_false");
   if (kDebugMode) {
     EXPECT_DEATH_IF_SUPPORTED(
@@ -172,7 +172,7 @@ TEST(ChecksTest, CheckAndUse) {
   v = DCHECK_AND_USE(true, 11);
   CHECK_EQ(v, 11);
 
-  ABSL_ATTRIBUTE_UNUSED bool my_false = false;
+  [[maybe_unused]] bool my_false = false;
   EXPECT_DEATH_IF_SUPPORTED(
       { v = CHECK_AND_USE(my_false, 33); }, "Check condition failed: my_false");
   if (kDebugMode) {

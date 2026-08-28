@@ -79,7 +79,7 @@ TEST(TextProtoPrinter, Interleaving) {
 
 TEST(TextProtoPrinter, Overflow) {
   TextProtoPrinter p;
-  ABSL_ATTRIBUTE_UNUSED auto overflow = [&] {
+  [[maybe_unused]] auto overflow = [&] {
     for (int i = 0; i < 100000; ++i) {
       p.Int("bogus", 1);
     }
