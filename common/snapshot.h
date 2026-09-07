@@ -120,7 +120,7 @@ class Snapshot final {
 
   // Validates snapshot id.
   // Refer to snapshot.proto/Snapshot.id for details on what a valid ID is.
-  static absl::Status IsValidId(const Id& id) ABSL_MUST_USE_RESULT;
+  [[nodiscard]] static absl::Status IsValidId(const Id& id);
 
   // Returns the Architecture of the process executing this code,
   // i.e. the current host architecture.
@@ -162,11 +162,10 @@ class Snapshot final {
   // contents for the given `state`:
   // some memory_mappings(), some memory_bytes(), some expected_end_states(),
   // and registers() are present; otherwise encodes the error into the result.
-  absl::Status IsComplete(State state = kNormalState) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status IsComplete(State state = kNormalState) const;
 
   // Succeeds if IsComplete() succeeds for some `State`.
-  absl::Status IsCompleteSomeState() const ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status IsCompleteSomeState() const;
 
   // Identifier for this snapshot.
   const Id& id() const { return id_; }
@@ -196,8 +195,8 @@ class Snapshot final {
   const MemoryMappingList& memory_mappings() const;
 
   // Tells if the x can be added; encodes the error if not.
-  absl::Status can_add_memory_mapping(const MemoryMapping& x) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_memory_mapping(
+      const MemoryMapping& x) const;
 
   // Adds one more MemoryMapping to snapshot.
   // REQUIRES: can_add_memory_mapping(x)
@@ -214,8 +213,8 @@ class Snapshot final {
                                 int memory_mappings_index);
 
   // Tells if `x` can replace memory_mappings(); encodes the error if not.
-  absl::Status can_set_memory_mappings(const MemoryMappingList& x) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_set_memory_mappings(
+      const MemoryMappingList& x) const;
 
   // Replaces existing memory_mappings() by `x`.
   // REQUIRES: can_set_memory_mappings(x)
@@ -237,8 +236,8 @@ class Snapshot final {
   const MemoryMappingList& negative_memory_mappings() const;
 
   // Tells if the x can be added; encodes the error if not.
-  absl::Status can_add_negative_memory_mapping(const MemoryMapping& x) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_negative_memory_mapping(
+      const MemoryMapping& x) const;
 
   // Adds one more negative MemoryMapping to snapshot.
   // Prefer to use AddNegativeMemoryMappingsFor() below.
@@ -257,8 +256,7 @@ class Snapshot final {
   // For EndState-s with SIGSEGV (kSigSegv) in them this is essential to be
   // done to make an IsComplete() snapshot that plays correctly when we
   // reuse the harness subprocess.
-  absl::Status AddNegativeMemoryMappingsFor(const EndState& x)
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status AddNegativeMemoryMappingsFor(const EndState& x);
 
   // All the memory state that exists at the start of the snapshot.
   // Guaranteed to be disjoint and inside memory_mappings().
@@ -269,8 +267,7 @@ class Snapshot final {
   const MemoryBytesList& memory_bytes() const;
 
   // Tells if the x can be added; encodes the error if not.
-  absl::Status can_add_memory_bytes(const MemoryBytes& x) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_memory_bytes(const MemoryBytes& x) const;
 
   // Adds one more MemoryBytes to snapshot.
   // REQUIRES: can_add_memory_bytes(x)
@@ -300,9 +297,8 @@ class Snapshot final {
 
   // Tells if the x can be set; encodes the error if not.
   // is_end_state tells if this is for EndState or Snapshot.
-  absl::Status can_set_registers(const RegisterState& x,
-                                 bool is_end_state = false) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_set_registers(const RegisterState& x,
+                                               bool is_end_state = false) const;
 
   // Sets (replaces) RegisterState in the snapshot to `x`.
   // REQUIRES: can_set_registers(x)
@@ -325,9 +321,8 @@ class Snapshot final {
   // Endpoint::kInstruction that is not yet in memory_mappings().
   // Note that IsComplete(state) will still require this to be fixed-up for
   // any `state` but kMakingState.
-  absl::Status can_add_expected_end_state(
-      const EndState& x,
-      bool unmapped_endpoint_ok = false) const ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_expected_end_state(
+      const EndState& x, bool unmapped_endpoint_ok = false) const;
 
   // Adds one more EndState to snapshot.
   // You probably also want to call AddNegativeMemoryMappingsFor(x) above.
@@ -434,15 +429,14 @@ class Snapshot final {
 
   // Implements the public can_add_negative_memory_mapping()
   // as well as the precondition for add_negative_memory_mapping_overlap_ok().
-  absl::Status can_add_negative_memory_mapping(
-      const MemoryMapping& x, bool overlap_ok) const ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_negative_memory_mapping(
+      const MemoryMapping& x, bool overlap_ok) const;
 
   // Implements the public can_add_expected_end_state(),
   // while providing an option to ignore the case when `x` is a dup of an
   // existing end-state.
-  absl::Status can_add_expected_end_state(
-      const EndState& x, bool unmapped_endpoint_ok,
-      bool duplicate_ok) const ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_expected_end_state(
+      const EndState& x, bool unmapped_endpoint_ok, bool duplicate_ok) const;
 
   // A variant of add_negative_memory_mapping() that allows `x` to overlap
   // pre-existing negative_memory_mappings().
@@ -615,8 +609,8 @@ class Snapshot::MemoryBytes final {
  public:
   // Returns iff constructing MemoryBytes from these is valid:
   // byte_values needs to be non-empty.
-  static absl::Status CanConstruct(
-      Address start_address, const ByteData& byte_values) ABSL_MUST_USE_RESULT;
+  [[nodiscard]] static absl::Status CanConstruct(Address start_address,
+                                                 const ByteData& byte_values);
 
   // REQUIRES: CanConstruct(start_address, byte_values)
   MemoryBytes(Address start_address, const ByteData& byte_values);
@@ -708,8 +702,7 @@ class Snapshot::EndState final {
   // Returns ok status iff this EndState contains the minimally required
   // contents for the given `state`, otherwise encodes the error into
   // the result.
-  absl::Status IsComplete(State state = kNormalState) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status IsComplete(State state = kNormalState) const;
 
   // Expected execution endpoint that defines this EndState.
   const Endpoint& endpoint() const { return endpoint_; }
@@ -727,8 +720,7 @@ class Snapshot::EndState final {
   const MemoryBytesSet& changed_memory_set() const;
 
   // Tells if the x can be added; encodes the error if not.
-  absl::Status can_add_memory_bytes(const MemoryBytes& x) const
-      ABSL_MUST_USE_RESULT;
+  [[nodiscard]] absl::Status can_add_memory_bytes(const MemoryBytes& x) const;
 
   // Adds one more MemoryBytes to EndState.
   // REQUIRES: can_add_memory_bytes(x)

@@ -36,10 +36,10 @@ class MemoryMapping {
 
   // Returns iff making MemoryMapping from these is valid:
   // num_bytes needs to be positive.
-  static absl::Status CanMakeSized(Address start_address,
-                                   ByteSize num_bytes) ABSL_MUST_USE_RESULT;
-  static ABSL_MUST_USE_RESULT absl::Status CanMakeRanged(
-      Address start_address, Address limit_address) {
+  [[nodiscard]] static absl::Status CanMakeSized(Address start_address,
+                                                 ByteSize num_bytes);
+  [[nodiscard]] static absl::Status CanMakeRanged(Address start_address,
+                                                  Address limit_address) {
     return CanMakeSized(start_address, limit_address - start_address);
   }
 

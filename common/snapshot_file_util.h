@@ -24,14 +24,14 @@
 namespace silifuzz {
 
 // Writes `snapshot` to `filename` as a binary proto.Snapshot.
-absl::Status WriteSnapshotToFile(
-    const Snapshot& snapshot, absl::string_view filename) ABSL_MUST_USE_RESULT;
+[[nodiscard]] absl::Status WriteSnapshotToFile(const Snapshot& snapshot,
+                                               absl::string_view filename);
 void WriteSnapshotToFileOrDie(const Snapshot& snapshot,
                               absl::string_view filename);
 
 // Reads Snapshot from `filename` (must be a binary proto.Snapshot).
-absl::StatusOr<Snapshot> ReadSnapshotFromFile(absl::string_view filename)
-    ABSL_MUST_USE_RESULT;
+[[nodiscard]] absl::StatusOr<Snapshot> ReadSnapshotFromFile(
+    absl::string_view filename);
 Snapshot ReadSnapshotFromFileOrDie(absl::string_view filename);
 
 }  // namespace silifuzz
