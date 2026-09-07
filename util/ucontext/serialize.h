@@ -100,8 +100,8 @@ struct Serialized {
 };
 
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeGRegs(
-    const GRegSet<Arch>& src, Serialized<GRegSet<Arch>>* dst) {
+[[nodiscard]] inline bool SerializeGRegs(const GRegSet<Arch>& src,
+                                         Serialized<GRegSet<Arch>>* dst) {
   ssize_t sz =
       serialize_internal::SerializeGRegs(src, dst->data, sizeof(dst->data));
   if (sz < 0) {
@@ -112,8 +112,8 @@ inline ABSL_MUST_USE_RESULT bool SerializeGRegs(
 }
 
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(
-    const FPRegSet<Arch>& src, Serialized<FPRegSet<Arch>>* dst) {
+[[nodiscard]] inline bool SerializeFPRegs(const FPRegSet<Arch>& src,
+                                          Serialized<FPRegSet<Arch>>* dst) {
   ssize_t sz =
       serialize_internal::SerializeFPRegs(src, dst->data, sizeof(dst->data));
   if (sz < 0) {
@@ -127,8 +127,8 @@ inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(
 // A wrapper for serializing the register set into a string object.
 // Not suitable for the nolibc case because it requires dynamic allocation.
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeGRegs(const GRegSet<Arch>& src,
-                                                std::string* dst) {
+[[nodiscard]] inline bool SerializeGRegs(const GRegSet<Arch>& src,
+                                         std::string* dst) {
   CHECK(dst->empty());
   Serialized<GRegSet<Arch>> tmp;
   if (!SerializeGRegs(src, &tmp)) {
@@ -142,22 +142,22 @@ inline ABSL_MUST_USE_RESULT bool SerializeGRegs(const GRegSet<Arch>& src,
 // Returns false on error or if not all the bytes were consumed.
 // See SerializeGRegs for other details.
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool DeserializeGRegs(const std::string& src,
-                                                  GRegSet<Arch>* dst) {
+[[nodiscard]] inline bool DeserializeGRegs(const std::string& src,
+                                           GRegSet<Arch>* dst) {
   return serialize_internal::DeserializeGRegs(src.data(), src.size(), dst) ==
          src.size();
 }
 
 // A wrapper converting a string input into a pointer / size pair.
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool MayBeSerializedGRegs(const std::string& src) {
+[[nodiscard]] inline bool MayBeSerializedGRegs(const std::string& src) {
   return serialize_internal::MayBeSerializedGRegs<Arch>(src.data(), src.size());
 }
 
 // See SerializeGRegs
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(const FPRegSet<Arch>& src,
-                                                 std::string* dst) {
+[[nodiscard]] inline bool SerializeFPRegs(const FPRegSet<Arch>& src,
+                                          std::string* dst) {
   CHECK(dst->empty());
   Serialized<FPRegSet<Arch>> tmp;
   if (!SerializeFPRegs(src, &tmp)) {
@@ -169,15 +169,15 @@ inline ABSL_MUST_USE_RESULT bool SerializeFPRegs(const FPRegSet<Arch>& src,
 
 // See DeserializeGRegs
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool DeserializeFPRegs(const std::string& src,
-                                                   FPRegSet<Arch>* dst) {
+[[nodiscard]] inline bool DeserializeFPRegs(const std::string& src,
+                                            FPRegSet<Arch>* dst) {
   return serialize_internal::DeserializeFPRegs(src.data(), src.size(), dst) ==
          src.size();
 }
 
 // See MayBeSerializedGRegs
 template <typename Arch>
-inline ABSL_MUST_USE_RESULT bool MayBeSerializedFPRegs(const std::string& src) {
+[[nodiscard]] inline bool MayBeSerializedFPRegs(const std::string& src) {
   return serialize_internal::MayBeSerializedFPRegs<Arch>(src.data(),
                                                          src.size());
 }
