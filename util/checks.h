@@ -558,17 +558,16 @@ inline void LogInfo(const char* file, unsigned int line, const char* error,
 }
 
 // LogFatal() overloads implement LOG_FATAL(...) macro.
-inline ABSL_ATTRIBUTE_NORETURN void LogFatal(
-    const char* file, unsigned int line, const char* err1,
-    const char* err2 = "", const char* err3 = "", const char* err4 = "",
-    const char* err5 = "") {
+[[noreturn]] inline void LogFatal(const char* file, unsigned int line,
+                                  const char* err1, const char* err2 = "",
+                                  const char* err3 = "", const char* err4 = "",
+                                  const char* err5 = "") {
   LogImpl(kFatal, file, line, err1, kNotChopped, err2, err3, err4, err5);
   __builtin_unreachable();
 }
 template <typename... Ts>
-inline ABSL_ATTRIBUTE_NORETURN void LogFatal(const char* file,
-                                             unsigned int line,
-                                             const char* error, Ts&&... args) {
+[[noreturn]] inline void LogFatal(const char* file, unsigned int line,
+                                  const char* error, Ts&&... args) {
 #if !defined(SILIFUZZ_BUILD_FOR_NOLIBC)
   LogImpl(kFatal, file, line,
           absl::StrCat(error, std::forward<Ts>(args)...).c_str());
@@ -580,9 +579,9 @@ inline ABSL_ATTRIBUTE_NORETURN void LogFatal(const char* file,
 
 // Implements CHECK_AND_USE().
 template <typename T>
-inline ABSL_MUST_USE_RESULT T CheckAndReturn(const char* file, int line,
-                                             const char* condition, bool cond,
-                                             T&& value) {
+[[nodiscard]] inline T CheckAndReturn(const char* file, int line,
+                                      const char* condition, bool cond,
+                                      T&& value) {
   if (ABSL_PREDICT_FALSE(!cond)) {
     LogFatal(Basename(file, strlen(file)), line,
              "Check condition failed: ", condition);
@@ -607,10 +606,11 @@ inline void ASS_LogError(const char* file, unsigned int line, const char* err1,
 }
 
 // Implements ASS_LOG_FATAL(...) macro.
-inline ABSL_ATTRIBUTE_NORETURN void ASS_LogFatal(
-    const char* file, unsigned int line, const char* err1,
-    const char* err2 = "", const char* err3 = "", const char* err4 = "",
-    const char* err5 = "") {
+[[noreturn]] inline void ASS_LogFatal(const char* file, unsigned int line,
+                                      const char* err1, const char* err2 = "",
+                                      const char* err3 = "",
+                                      const char* err4 = "",
+                                      const char* err5 = "") {
   LogImpl(kFatal, file, line, err1, kNotChopped, err2, err3, err4, err5);
   __builtin_unreachable();
 }
