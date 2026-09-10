@@ -290,7 +290,7 @@ unsigned int ChipMaskRegisterWidth(xed_chip_enum_t chip) {
   return 0;
 }
 
-bool InstructionBuilder::Encode(uint8_t* buf, size_t& len) {
+bool InstructionBuilder::Encode(uint8_t* buf, size_t& len) const {
   xed_state_t dstate;
   xed_state_init2(&dstate, XED_MACHINE_MODE_LONG_64, XED_ADDRESS_WIDTH_64b);
 

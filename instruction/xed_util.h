@@ -102,7 +102,7 @@ class InstructionBuilder {
     AddOperands(std::forward<Args>(args)...);
   }
 
-  [[nodiscard]] bool Encode(uint8_t* buf, size_t& len);
+  [[nodiscard]] bool Encode(uint8_t* buf, size_t& len) const;
 
   xed_iclass_enum_t iclass() const { return iclass_; }
 
@@ -116,6 +116,17 @@ class InstructionBuilder {
   xed_uint_t num_operands_ = 0;
   xed_encoder_operand_t operands_[XED_ENCODER_OPERANDS_MAX];
 };
+
+// Helper function to create an InstructionBuilder with known arguments in a
+// single line.
+template <typename... Args>
+InstructionBuilder BuildInstruction(xed_iclass_enum_t iclass,
+                                    unsigned int effective_op_width,
+                                    Args&&... args) {
+  InstructionBuilder builder(iclass, effective_op_width);
+  builder.AddOperands(std::forward<Args>(args)...);
+  return builder;
+}
 
 }  // namespace silifuzz
 
