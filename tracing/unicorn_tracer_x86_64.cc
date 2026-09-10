@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -216,6 +217,11 @@ uint64_t UnicornTracer<X86_64>::GetStackPointer() {
 template <>
 void UnicornTracer<X86_64>::InitUnicorn(
     const TracerConfig<X86_64>& tracer_config) {
+  // Unicorn engine initialization and the initial register access initialize
+  // global QEMU state (e.g. timers via machine_initialize()) without internal
+  // synchronization. Protect the entire InitUnicorn() with a mutex to avoid
+  // TSAN data races during concurrent initialization.
+  absl::MutexLock lock(&UnicornInitMutex());
   UNICORN_CHECK(uc_open(UC_ARCH_X86, UC_MODE_64, &uc_));
 
   // TODO(ncbray): make this configurable.
@@ -270,7 +276,7 @@ void UnicornTracer<X86_64>::GetRegisters(UContext<X86_64>& ucontext,
                                          RegisterGroupIOBuffer<X86_64>* eregs) {
   if (eregs != nullptr) {
     memset(eregs, 0, sizeof(*eregs));
-    LOG_ERROR("extension registers are not supported on Unicorn");
+    LOG_FIRST_N(ERROR, 1) << "extension registers are not supported on Unicorn";
   }
   // Not all registers will be read. Unicorn also does not set the upper bits of
   // st registers. memset so the result is consistent.

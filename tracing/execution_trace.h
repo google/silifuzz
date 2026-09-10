@@ -109,11 +109,19 @@ class ExecutionTrace {
 
   // The architectural state immediately before the trace begins.
   ExtUContext<Arch>& FirstContext() { return first_; }
+  const ExtUContext<Arch>& FirstContext() const { return first_; }
 
   // The architectural state immediately after the end of the trace.
   ExtUContext<Arch>& LastContext() { return PrevContext(num_instructions_); }
+  const ExtUContext<Arch>& LastContext() const {
+    return PrevContext(num_instructions_);
+  }
 
   InstructionInfo<Arch>& Info(size_t i) {
+    CHECK_LT(i, num_instructions_);
+    return info_[i];
+  }
+  const InstructionInfo<Arch>& Info(size_t i) const {
     CHECK_LT(i, num_instructions_);
     return info_[i];
   }
@@ -144,12 +152,28 @@ class ExecutionTrace {
     }
   }
 
+  template <typename F>
+  void ForEach(F&& f) const {
+    for (size_t i = 0; i < num_instructions_; ++i) {
+      f(i, PrevContext(i), info_[i]);
+    }
+  }
+
  private:
   std::vector<InstructionInfo<Arch>> info_;
   size_t num_instructions_;
   ExtUContext<Arch> first_;
 
   ExtUContext<Arch>& PrevContext(size_t i) {
+    CHECK_LE(i, num_instructions_);
+    if (i == 0) {
+      return first_;
+    } else {
+      return info_[i - 1].ucontext;
+    }
+  }
+
+  const ExtUContext<Arch>& PrevContext(size_t i) const {
     CHECK_LE(i, num_instructions_);
     if (i == 0) {
       return first_;

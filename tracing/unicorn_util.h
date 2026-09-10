@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "absl/synchronization/mutex.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
@@ -41,6 +42,11 @@ uint32_t MemoryPermsToUnicorn(const MemoryPerms& perms);
 
 // Determine where the Snapshot will stop executing.
 uint64_t GetExitPoint(const Snapshot& snapshot);
+
+// Returns a mutex to serialize Unicorn engine initialization (uc_open).
+// Unicorn/QEMU initializes global state (e.g. timers) in machine_initialize()
+// which is not thread-safe.
+absl::Mutex& UnicornInitMutex();
 
 }  // namespace silifuzz
 

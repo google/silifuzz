@@ -18,6 +18,8 @@
 
 #include <vector>
 
+#include "absl/base/no_destructor.h"
+#include "absl/synchronization/mutex.h"
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
@@ -50,6 +52,11 @@ uint64_t GetExitPoint(const Snapshot& snapshot) {
     CHECK_EQ(end_state.endpoint().instruction_address(), exit_point);
   }
   return exit_point;
+}
+
+absl::Mutex& UnicornInitMutex() {
+  static absl::NoDestructor<absl::Mutex> mu;
+  return *mu;
 }
 
 }  // namespace silifuzz

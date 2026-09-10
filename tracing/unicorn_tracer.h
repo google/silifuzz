@@ -21,10 +21,12 @@
 #include <functional>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/crc/crc32c.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
+#include "absl/synchronization/mutex.h"
 #include "./common/memory_mapping.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"

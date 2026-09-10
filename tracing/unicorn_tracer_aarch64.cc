@@ -19,6 +19,7 @@
 #include <string>
 
 #include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -273,6 +274,11 @@ uint64_t UnicornTracer<AArch64>::GetStackPointer() {
 template <>
 void UnicornTracer<AArch64>::InitUnicorn(
     const TracerConfig<AArch64>& tracer_config) {
+  // Unicorn engine initialization and the initial register access initialize
+  // global QEMU state (e.g. timers via machine_initialize()) without internal
+  // synchronization. Protect the entire InitUnicorn() with a mutex to avoid
+  // TSAN data races during concurrent initialization.
+  absl::MutexLock lock(&UnicornInitMutex());
   UNICORN_CHECK(uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc_));
   UNICORN_CHECK(uc_ctl_set_cpu_model(uc_, tracer_config.unicorn_force_a72
                                               ? UC_CPU_ARM64_A72
@@ -318,7 +324,7 @@ void UnicornTracer<AArch64>::GetRegisters(
     UContext<AArch64>& ucontext, RegisterGroupIOBuffer<AArch64>* eregs) {
   if (eregs != nullptr) {
     memset(eregs, 0, sizeof(*eregs));
-    LOG_ERROR("extension registers are not supported on Unicorn");
+    LOG_FIRST_N(ERROR, 1) << "extension registers are not supported on Unicorn";
   }
   // Not all registers will be read. memset so the result is consistent.
   memset(&ucontext, 0, sizeof(ucontext));
