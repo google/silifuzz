@@ -43,6 +43,12 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
 // For example, non-deterministic and privileged instructions are not allowed.
 bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
 
+// Checks if a decoded instruction is allowed to run in the runner.
+// In addition to InstructionIsAllowedInRunner(const xed_inst_t*), this checks
+// instruction prefixes, memory operands, and platform errata/workarounds.
+bool DecodedInstructionIsAllowedInRunner(
+    const xed_decoded_inst_t* decoded_insn);
+
 // Does this instruction produce the same result every time when it is run
 // inside the runner? An obvious type of instruction that is non-deterministic
 // are instructions that produce random numbers. A less obvious type of

@@ -73,6 +73,11 @@ class XedDisassembler : public Disassembler {
   // A human-readable name for the instruction ID.
   [[nodiscard]] std::string InstructionIDName(uint32_t id) const override;
 
+  // Returns pointer to the decoded XED instruction, or nullptr if invalid.
+  [[nodiscard]] const xed_decoded_inst_t* decoded_insn() const {
+    return valid_ ? &xedd_ : nullptr;
+  }
+
  private:
   xed_decoded_inst_t xedd_;
   uint64_t address_;

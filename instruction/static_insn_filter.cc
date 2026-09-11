@@ -16,6 +16,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 
 #include "absl/strings/string_view.h"
 #include "./util/arch.h"
@@ -699,13 +700,12 @@ constexpr bool InstructionIsOK(uint32_t insn,
 template <>
 bool StaticInstructionFilter<AArch64>(
     absl::string_view code, const InstructionFilterConfig<AArch64>& config) {
-  if (code.size() % 4 != 0) return false;
+  if (code.size() % sizeof(uint32_t) != 0) return false;
 
-  const uint32_t* begin = reinterpret_cast<const uint32_t*>(code.data());
-  const uint32_t* end = begin + code.size() / sizeof(uint32_t);
-
-  for (const uint32_t* insn = begin; insn < end; ++insn) {
-    if (!InstructionIsOK(*insn, config)) return false;
+  for (size_t i = 0; i < code.size(); i += sizeof(uint32_t)) {
+    uint32_t insn;
+    std::memcpy(&insn, code.data() + i, sizeof(insn));
+    if (!InstructionIsOK(insn, config)) return false;
   }
 
   return true;

@@ -238,6 +238,34 @@ TEST_F(XedUtilTest, InstructionBuilder) {
   EXPECT_STREQ(text, "dec r8");
 }
 
+TEST_F(XedUtilTest, DecodedInstructionIsAllowedInRunner) {
+  auto decode_and_check = [](const std::vector<uint8_t>& bytes) -> bool {
+    xed_decoded_inst_t xedd;
+    xed_decoded_inst_zero(&xedd);
+    xed_decoded_inst_set_mode(&xedd, XED_MACHINE_MODE_LONG_64,
+                              XED_ADDRESS_WIDTH_64b);
+    if (xed_decode(&xedd, bytes.data(), bytes.size()) != XED_ERROR_NONE) {
+      return false;
+    }
+    return DecodedInstructionIsAllowedInRunner(&xedd);
+  };
+
+  // NOP is allowed
+  EXPECT_TRUE(decode_and_check({0x90}));
+
+  // RDTSC is banned
+  EXPECT_FALSE(decode_and_check({0x0F, 0x31}));
+
+  // CPUID is banned
+  EXPECT_FALSE(decode_and_check({0x0F, 0xA2}));
+
+  // RDRAND is banned
+  EXPECT_FALSE(decode_and_check({0x0F, 0xC7, 0xF0}));
+
+  // Nullptr returns false
+  EXPECT_FALSE(DecodedInstructionIsAllowedInRunner(nullptr));
+}
+
 }  // namespace
 
 }  // namespace silifuzz
