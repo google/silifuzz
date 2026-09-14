@@ -1390,6 +1390,7 @@ cc_test(
         ":reg_checksum",
         ":reg_checksum_util",
         "@silifuzz//util/testing:status_matchers",
+        "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status",
         "@googletest//:gtest_main",
     ],

@@ -14,6 +14,8 @@
 
 #include "./util/reg_group_set.h"
 
+#include <cstdint>
+
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"

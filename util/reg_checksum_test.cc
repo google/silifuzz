@@ -14,6 +14,10 @@
 
 #include "./util/reg_checksum.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+
 #include "./util/arch.h"
 #include "./util/checks.h"
 #include "./util/nolibc_gunit.h"

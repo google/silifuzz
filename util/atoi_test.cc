@@ -14,7 +14,7 @@
 
 #include "./util/atoi.h"
 
-#include <limits>
+#include <cstdint>
 
 #include "./util/atoi_internal.h"
 #include "./util/checks.h"
