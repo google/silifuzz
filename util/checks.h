@@ -491,9 +491,9 @@ void LogImpl(LogSeverity severity, const char* file, unsigned int line,
 
 // Implements CHECK_AND_USE().
 template <typename T>
-inline ABSL_MUST_USE_RESULT T CheckAndReturn(const char* file, int line,
-                                             const char* condition, bool cond,
-                                             T&& value) {
+[[nodiscard]] inline T CheckAndReturn(const char* file, int line,
+                                      const char* condition, bool cond,
+                                      T&& value) {
   if (ABSL_PREDICT_FALSE(!cond)) {
     // We could make the failure message not include current __FILE__:__LINE__
     // if we depended on some internals of absl/log/log.h.

@@ -66,9 +66,8 @@ struct Subcommand {
 // Returns the exit code for the subcommand that was invoked. The caller is
 // responsible for making this the exit code of the tool. See SUBCOMMAND_MAIN
 // for an example of how to use this function.
-int SubcommandMain(int argc, char** argv, const char* tool_name,
-                   absl::Span<const Subcommand> subcommands)
-    ABSL_MUST_USE_RESULT;
+[[nodiscard]] int SubcommandMain(int argc, char** argv, const char* tool_name,
+                                 absl::Span<const Subcommand> subcommands);
 
 }  // namespace silifuzz
 
