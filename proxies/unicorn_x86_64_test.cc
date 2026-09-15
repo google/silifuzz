@@ -39,7 +39,10 @@ static int run_bytes(std::vector<uint8_t>&& data) {
 
 TEST(UnicornX86_64, Nop) { EXPECT_BYTES_ACCEPTED({0x90}); }
 
-TEST(UnicornX86_64, Hlt) { EXPECT_BYTES_ACCEPTED({0xF4}); }
+TEST(UnicornX86_64, Hlt) {
+  // HLT requires CPL 0 and is banned in user-space runner.
+  EXPECT_BYTES_REJECTED({0xF4});
+}
 
 TEST(UnicornX86_64, ReadMappedMem) {
   // movabs eax,ds:0x1000010000
@@ -98,6 +101,36 @@ TEST(UnicornX86_64, ReadManyPages) {
                          0xBE, 0x00, 0x00, 0x01, 0x00, 0x10, 0x00, 0x00,
                          0x00, 0x48, 0x8B, 0x06, 0x48, 0x81, 0xC6, 0x00,
                          0x10, 0x00, 0x00, 0xE2, 0xF4});
+}
+
+TEST(UnicornX86_64, BannedRdtsc) {
+  // rdtsc
+  EXPECT_BYTES_REJECTED({0x0F, 0x31});
+}
+
+TEST(UnicornX86_64, BannedRdtscp) {
+  // rdtscp
+  EXPECT_BYTES_REJECTED({0x0F, 0x01, 0xF9});
+}
+
+TEST(UnicornX86_64, BannedRdrand) {
+  // rdrand eax
+  EXPECT_BYTES_REJECTED({0x0F, 0xC7, 0xF0});
+}
+
+TEST(UnicornX86_64, BannedRdseed) {
+  // rdseed eax
+  EXPECT_BYTES_REJECTED({0x0F, 0xC7, 0xF8});
+}
+
+TEST(UnicornX86_64, BannedCpuid) {
+  // cpuid
+  EXPECT_BYTES_REJECTED({0x0F, 0xA2});
+}
+
+TEST(UnicornX86_64, BannedSyscall) {
+  // syscall
+  EXPECT_BYTES_REJECTED({0x0F, 0x05});
 }
 
 }  // namespace

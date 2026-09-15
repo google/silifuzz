@@ -21,6 +21,7 @@
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
 #include "./instruction/default_disassembler.h"
+#include "./instruction/static_insn_filter.h"
 #include "./proxies/arch_feature_generator.h"
 #include "./proxies/user_features.h"
 #include "./tracing/extension_registers.h"
@@ -104,6 +105,8 @@ absl::Status RunAArch64Instructions(
     }
   };
 
+  bool instructions_are_allowed = true;
+
   tracer.SetBeforeExecutionCallback([&](TracerControl<AArch64>& control) {
     control.GetRegisters(registers);
     feature_gen.BeforeExecution(registers);
@@ -117,12 +120,24 @@ absl::Status RunAArch64Instructions(
         uint8_t insn[4];
         control.ReadMemory(address, insn, sizeof(insn));
 
+        if (!StaticInstructionFilter<AArch64>(
+                absl::string_view(reinterpret_cast<const char*>(insn),
+                                  sizeof(insn)),
+                fuzzing_config.instruction_filter)) {
+          instructions_are_allowed = false;
+          control.Stop();
+          return;
+        }
+
         // Disassemble the next instruction.
         if (disasm.Disassemble(address, insn, sizeof(insn))) {
           instruction_id = disasm.InstructionID();
           CHECK_LT(instruction_id, disasm.NumInstructionIDs());
         } else {
           instruction_id = kInvalidInstructionId;
+          instructions_are_allowed = false;
+          control.Stop();
+          return;
         }
 
         instruction_pending = true;
@@ -157,7 +172,11 @@ absl::Status RunAArch64Instructions(
   });
 
   // Stop at an arbitrary instruction count to avoid infinite loops.
-  return tracer.Run(max_inst_executed);
+  absl::Status status = tracer.Run(max_inst_executed);
+  if (!instructions_are_allowed) {
+    return absl::InvalidArgumentError("Disallowed instruction executed.");
+  }
+  return status;
 }
 
 }  // namespace

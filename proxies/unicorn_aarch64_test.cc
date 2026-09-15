@@ -178,4 +178,11 @@ TEST(UnicornAarch64, FloatingPoint) {
   EXPECT_INSTRUCTIONS_ACCEPTED({0x6e6edf5a});
 }
 
+TEST(UnicornAarch64, BannedInstructions) {
+  // pacia x0, x1
+  EXPECT_INSTRUCTIONS_REJECTED({0xdac10020});
+  // Disallowed system register access
+  EXPECT_INSTRUCTIONS_REJECTED({0xd5bbd040});
+}
+
 }  // namespace

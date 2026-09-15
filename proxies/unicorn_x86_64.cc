@@ -19,6 +19,7 @@
 #include "absl/strings/string_view.h"
 #include "./common/proxy_config.h"
 #include "./instruction/default_disassembler.h"
+#include "./instruction/xed_util.h"
 #include "./proxies/arch_feature_generator.h"
 #include "./proxies/user_features.h"
 #include "./tracing/extension_registers.h"
@@ -95,6 +96,7 @@ absl::Status RunInstructions(absl::string_view instructions,
   };
 
   bool instructions_are_in_range = true;
+  bool instructions_are_allowed = true;
 
   tracer.SetBeforeExecutionCallback([&](TracerControl<X86_64>& control) {
     control.GetRegisters(registers);
@@ -124,8 +126,16 @@ absl::Status RunInstructions(absl::string_view instructions,
           // case because it can make the snippet hard to disassemble.
           instructions_are_in_range &=
               control.InstructionIsInRange(address, disasm.InstructionSize());
+          if (!DecodedInstructionIsAllowedInRunner(disasm.decoded_insn())) {
+            instructions_are_allowed = false;
+            control.Stop();
+            return;
+          }
         } else {
           instruction_id = kInvalidInstructionId;
+          instructions_are_allowed = false;
+          control.Stop();
+          return;
         }
 
         instruction_pending = true;
@@ -159,6 +169,9 @@ absl::Status RunInstructions(absl::string_view instructions,
   if (!instructions_are_in_range) {
     return absl::OutOfRangeError(
         "Instructions are not entirely contained in code.");
+  }
+  if (!instructions_are_allowed) {
+    return absl::InvalidArgumentError("Disallowed instruction executed.");
   }
   return status;
 }
