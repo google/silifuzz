@@ -35,6 +35,7 @@ def _nosan_transition_impl(settings, attr):
         "//command_line_option:stripopt": ["--strip-all"],
         "//command_line_option:copt": settings["//command_line_option:copt"] + ["-fno-sanitize=all"],
         "//command_line_option:linkopt": settings["//command_line_option:linkopt"] + ["-fno-sanitize=all"],
+        "//tools/cpp:sanitizer_build_for_toolchain_resolution_flag": False,
     }
 
 # A transition that defines inputs and output to
@@ -54,6 +55,7 @@ _nosan_transition = transition(
         "//command_line_option:stripopt",
         "//command_line_option:copt",
         "//command_line_option:linkopt",
+        "//tools/cpp:sanitizer_build_for_toolchain_resolution_flag",
     ],
 )
 
