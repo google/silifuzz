@@ -221,7 +221,7 @@ void UnicornTracer<X86_64>::InitUnicorn(
   // global QEMU state (e.g. timers via machine_initialize()) without internal
   // synchronization. Protect the entire InitUnicorn() with a mutex to avoid
   // TSAN data races during concurrent initialization.
-  absl::MutexLock lock(&UnicornInitMutex());
+  absl::MutexLock lock(UnicornInitMutex());
   UNICORN_CHECK(uc_open(UC_ARCH_X86, UC_MODE_64, &uc_));
 
   // TODO(ncbray): make this configurable.
