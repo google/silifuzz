@@ -44,6 +44,7 @@ cc_library(
 cc_library(
     name = "unicorn_aarch64_lib",
     srcs = ["unicorn_aarch64.cc"],
+    hdrs = ["unicorn_aarch64.h"],
     deps = [
         ":arch_feature_generator",
         ":user_features",
@@ -67,6 +68,8 @@ cc_test(
     srcs = ["unicorn_aarch64_test.cc"],
     deps = [
         ":unicorn_aarch64_lib",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@googletest//:gtest_main",
     ],
 )

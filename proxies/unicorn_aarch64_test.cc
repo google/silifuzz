@@ -12,44 +12,45 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "./proxies/unicorn_aarch64.h"
+
 #include <endian.h>
 
+#include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 
-extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
+namespace silifuzz {
 
 namespace {
 
-static int run_bytes(std::vector<uint8_t>&& data) {
-  // HACK to make sure initialize function is called once.
-  static int initialize = LLVMFuzzerInitialize(nullptr, nullptr);
-  (void)initialize;  // Yes, it's unused.
-
-  return LLVMFuzzerTestOneInput(data.data(), data.size());
+absl::Status RunBytes(std::vector<uint8_t>&& data) {
+  return RunAArch64Instructions(absl::string_view(
+      reinterpret_cast<const char*>(data.data()), data.size()));
 }
 
-static int run_instructions(std::vector<uint32_t>&& data) {
+absl::Status RunInstructions(std::vector<uint32_t>&& data) {
   // Instructions should be little endian.
   for (size_t i = 0; i < data.size(); ++i) {
     data[i] = htole32(data[i]);
   }
-  return LLVMFuzzerTestOneInput(reinterpret_cast<const uint8_t*>(data.data()),
-                                data.size() * sizeof(uint32_t));
+  return RunAArch64Instructions(
+      absl::string_view(reinterpret_cast<const char*>(data.data()),
+                        data.size() * sizeof(uint32_t)));
 }
 
 // The preprocessor does not understand initializer lists, so hack around this
 // with variadic macros.
-#define EXPECT_BYTES_ACCEPTED(...) EXPECT_EQ(0, run_bytes(__VA_ARGS__));
-#define EXPECT_BYTES_REJECTED(...) EXPECT_EQ(-1, run_bytes(__VA_ARGS__));
+#define EXPECT_BYTES_ACCEPTED(...) EXPECT_TRUE(RunBytes(__VA_ARGS__).ok());
+#define EXPECT_BYTES_REJECTED(...) EXPECT_FALSE(RunBytes(__VA_ARGS__).ok());
 #define EXPECT_INSTRUCTIONS_ACCEPTED(...) \
-  EXPECT_EQ(0, run_instructions(__VA_ARGS__));
+  EXPECT_TRUE(RunInstructions(__VA_ARGS__).ok());
 #define EXPECT_INSTRUCTIONS_REJECTED(...) \
-  EXPECT_EQ(-1, run_instructions(__VA_ARGS__));
+  EXPECT_FALSE(RunInstructions(__VA_ARGS__).ok());
 
 TEST(UnicornAarch64, Empty) {
   // Zero-length input should be rejected.
@@ -186,3 +187,5 @@ TEST(UnicornAarch64, BannedInstructions) {
 }
 
 }  // namespace
+
+}  // namespace silifuzz

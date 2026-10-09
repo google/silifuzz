@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "./proxies/unicorn_aarch64.h"
+
 #include <sys/types.h>
 
 #include <cstddef>
@@ -38,6 +40,8 @@ namespace {
 // In practice, over 25k user features have been observed.
 USER_FEATURE_ARRAY static user_feature_t features[100000];
 
+constexpr size_t kMaxInstExecuted = 0x1000;
+
 // This proxy will be run on a batch of inputs to amortize the cost of creating
 // the process. The number of inputs in a batch is controlled by the caller. We
 // want to execute some operations on a per-batch basis rather than a per-input
@@ -60,8 +64,9 @@ class BatchState {
 BatchState* batch;
 
 void BeforeBatch() {
-  CHECK_EQ(batch, nullptr);
-  batch = new BatchState();
+  if (batch == nullptr) {
+    batch = new BatchState();
+  }
 }
 
 absl::Status RunAArch64Instructions(
@@ -181,6 +186,12 @@ absl::Status RunAArch64Instructions(
 
 }  // namespace
 
+absl::Status RunAArch64Instructions(absl::string_view instructions) {
+  BeforeBatch();
+  return RunAArch64Instructions(instructions, DEFAULT_FUZZING_CONFIG<AArch64>,
+                                kMaxInstExecuted);
+}
+
 }  // namespace silifuzz
 
 extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
@@ -189,10 +200,8 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  const size_t max_inst_executed = 0x1000;
   absl::Status status = silifuzz::RunAArch64Instructions(
-      absl::string_view(reinterpret_cast<const char*>(data), size),
-      silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::AArch64>, max_inst_executed);
+      absl::string_view(reinterpret_cast<const char*>(data), size));
   if (!status.ok()) {
     LOG_ERROR(status.message());
     return -1;
