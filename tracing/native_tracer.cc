@@ -15,6 +15,7 @@
 #include "./tracing/native_tracer.h"
 
 #include <asm/ptrace.h>
+#include <linux/elf.h>
 #include <sys/ptrace.h>
 #include <sys/stat.h>
 #include <sys/uio.h>

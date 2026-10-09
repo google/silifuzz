@@ -34,6 +34,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "centipede/feature.h"
@@ -64,9 +65,9 @@ namespace silifuzz {
 
 namespace {
 
-// These are global so that LLVMFuzzerTestOneInput() can see them.
-std::vector<std::string> *pmu_events;
-PerfEventFuzzer *perf_event_fuzzer;
+// These are global so that RunInstructions() can see them.
+std::vector<std::string>* pmu_events;
+PerfEventFuzzer* perf_event_fuzzer;
 DefaultDisassembler<Host>* disasm;
 ArchFeatureGenerator<Host>* feature_gen;
 
@@ -237,25 +238,22 @@ absl::Status TraceAndGenerateExecutionFeatures(
   return status;
 }
 
-// Executes a payload at 'data' of 'size' bytes.  Returns 0 if we should keep
-// the payload for fuzzing or -1 if we should discard it.
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+// Executes a payload in `instructions`. Returns OkStatus() if we should keep
+// the payload for fuzzing or an error status if we should discard it.
+absl::Status RunInstructions(absl::string_view instructions) {
   // First run the payload with the tracer to generate execution features.
-  absl::Status trace_status = silifuzz::TraceAndGenerateExecutionFeatures(
-      absl::string_view(reinterpret_cast<const char*>(data), size),
-      silifuzz::DEFAULT_FUZZING_CONFIG<Host>, 4000);
-  if (!trace_status.ok()) {
-    return -1;
-  }
+  RETURN_IF_NOT_OK(TraceAndGenerateExecutionFeatures(
+      instructions, DEFAULT_FUZZING_CONFIG<Host>, 4000));
 
   // Then run the payload with the perf event fuzzer to generate PMU event
   // features.
   absl::StatusOr<PerfEventFuzzer::PerfEventMeasurementList> event_measurements =
-      perf_event_fuzzer->FuzzOneInput(data, size,
-                                      absl::GetFlag(FLAGS_num_iterations));
+      perf_event_fuzzer->FuzzOneInput(
+          reinterpret_cast<const uint8_t*>(instructions.data()),
+          instructions.size(), absl::GetFlag(FLAGS_num_iterations));
   if (!event_measurements.ok()) {
     LOG(ERROR) << "Failed to test one input: " << event_measurements.status();
-    return -1;
+    return event_measurements.status();
   }
 
   // We generate two kinds of coverage from PMU event counts.
@@ -274,9 +272,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   constexpr int kPMUCounterDomain = 1;
   constexpr size_t kMaxCount = 255;
-  CHECK_EQ(event_measurements->size(), pmu_events->size());
+  CHECK_EQ(event_measurements.value().size(), pmu_events->size());
   for (size_t i = 0; i < pmu_events->size(); ++i) {
-    PerfEventMeasurements &measurements = event_measurements.value()[i];
+    PerfEventMeasurements& measurements = event_measurements.value()[i];
     CHECK_EQ(measurements.event(), (*pmu_events)[i]);
     const double count =
         measurements.mean().has_value() ? measurements.mean().value() : 0;
@@ -299,11 +297,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     }
   }
 
-  return 0;
+  return absl::OkStatus();
 }
 
-absl::Status PMUEventProxyInitialize(int *argc, char ***argv) {
-  absl::ParseCommandLine(*argc, *argv);
+absl::Status PMUEventProxyInitialize() {
+  if (pmu_events != nullptr) {
+    return absl::OkStatus();
+  }
 
   pfm_err_t init_err = pfm_initialize();
   if (init_err != PFM_SUCCESS) {
@@ -335,10 +335,20 @@ absl::Status PMUEventProxyInitialize(int *argc, char ***argv) {
 
 }  // namespace silifuzz
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv) {
-  absl::Status status = silifuzz::PMUEventProxyInitialize(argc, argv);
+extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
+  absl::ParseCommandLine(*argc, *argv);
+  absl::Status status = silifuzz::PMUEventProxyInitialize();
   if (!status.ok()) {
     LOG(ERROR) << "Failed to initialize PMU Event proxy: " << status;
+    return -1;
+  }
+  return 0;
+}
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
+  absl::Status status = silifuzz::RunInstructions(
+      absl::string_view(reinterpret_cast<const char*>(data), size));
+  if (!status.ok()) {
     return -1;
   }
   return 0;

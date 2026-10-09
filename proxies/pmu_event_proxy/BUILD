@@ -14,6 +14,9 @@
 
 # Proxy using PMU events.
 
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
@@ -245,7 +248,9 @@ cc_binary(
         "@abseil-cpp//absl/log",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
         "@abseil-cpp//absl/strings",
+        "@abseil-cpp//absl/strings:string_view",
         "@fuzztest//centipede:centipede_runner",
         "@fuzztest//centipede:feature",
         "@libpfm//:pfm",

@@ -15,7 +15,6 @@
 #ifndef THIRD_PARTY_SILIFUZZ_TRACING_NATIVE_TRACER_H_
 #define THIRD_PARTY_SILIFUZZ_TRACING_NATIVE_TRACER_H_
 
-#include <linux/elf.h>
 #include <sys/types.h>
 #include <sys/user.h>
 
