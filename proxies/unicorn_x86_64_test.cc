@@ -12,30 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stddef.h>
+#include "./proxies/unicorn_x86_64.h"
 
 #include <cstdint>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 
-extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
+namespace silifuzz {
 
 namespace {
 
-static int run_bytes(std::vector<uint8_t>&& data) {
-  // HACK to make sure initialize function is called once.
-  static int initialize = LLVMFuzzerInitialize(nullptr, nullptr);
-  (void)initialize;  // Yes, it's unused.
-
-  return LLVMFuzzerTestOneInput(data.data(), data.size());
+absl::Status RunBytes(std::vector<uint8_t>&& data) {
+  return RunInstructions(absl::string_view(
+      reinterpret_cast<const char*>(data.data()), data.size()));
 }
 
 // The preprocessor does not understand initializer lists, so hack around this
 // with variadic macros.
-#define EXPECT_BYTES_ACCEPTED(...) EXPECT_EQ(0, run_bytes(__VA_ARGS__));
-#define EXPECT_BYTES_REJECTED(...) EXPECT_EQ(-1, run_bytes(__VA_ARGS__));
+#define EXPECT_BYTES_ACCEPTED(...) EXPECT_TRUE(RunBytes(__VA_ARGS__).ok());
+#define EXPECT_BYTES_REJECTED(...) EXPECT_FALSE(RunBytes(__VA_ARGS__).ok());
 
 TEST(UnicornX86_64, Nop) { EXPECT_BYTES_ACCEPTED({0x90}); }
 
@@ -134,3 +132,5 @@ TEST(UnicornX86_64, BannedSyscall) {
 }
 
 }  // namespace
+
+}  // namespace silifuzz

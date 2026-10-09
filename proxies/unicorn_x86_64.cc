@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "./proxies/unicorn_x86_64.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -36,6 +38,7 @@ namespace {
 USER_FEATURE_ARRAY static user_feature_t features[100000];
 
 constexpr int kMaxX86InsnLength = 15;
+constexpr size_t kMaxInstExecuted = 1000;
 
 // This proxy will be run on a batch of inputs to amortize the cost of creating
 // the process. The number of inputs in a batch is controlled by the caller. We
@@ -59,8 +62,9 @@ class BatchState {
 BatchState* batch;
 
 void BeforeBatch() {
-  CHECK_EQ(batch, nullptr);
-  batch = new BatchState();
+  if (batch == nullptr) {
+    batch = new BatchState();
+  }
 }
 
 absl::Status RunInstructions(absl::string_view instructions,
@@ -178,6 +182,12 @@ absl::Status RunInstructions(absl::string_view instructions,
 
 }  // namespace
 
+absl::Status RunInstructions(absl::string_view instructions) {
+  BeforeBatch();
+  return RunInstructions(instructions, DEFAULT_FUZZING_CONFIG<X86_64>,
+                         kMaxInstExecuted);
+}
+
 }  // namespace silifuzz
 
 extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
@@ -186,10 +196,8 @@ extern "C" int LLVMFuzzerInitialize(int* argc, char*** argv) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  const size_t max_inst_executed = 1000;
   absl::Status status = silifuzz::RunInstructions(
-      absl::string_view(reinterpret_cast<const char*>(data), size),
-      silifuzz::DEFAULT_FUZZING_CONFIG<silifuzz::X86_64>, max_inst_executed);
+      absl::string_view(reinterpret_cast<const char*>(data), size));
   if (!status.ok()) {
     LOG_ERROR(status.message());
     return -1;
