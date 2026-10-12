@@ -37,15 +37,6 @@ namespace silifuzz {
 
 namespace {
 
-std::string FromBytes(std::vector<uint8_t>&& data) {
-  return std::string(data.begin(), data.end());
-}
-
-std::string FromInts(std::vector<uint32_t>&& data) {
-  return std::string(reinterpret_cast<char*>(&*data.begin()),
-                     reinterpret_cast<char*>(&*data.end()));
-}
-
 #define EXPECT_FILTER_ACCEPT(insn) EXPECT_TRUE(FilterToolMain(insn).ok())
 
 #define EXPECT_FILTER_REJECT(insn) EXPECT_FALSE(FilterToolMain(insn).ok())
@@ -67,6 +58,10 @@ TEST(FuzzFilterTool, Syscall) {
 }
 
 #if defined(__x86_64__)
+
+std::string FromBytes(std::vector<uint8_t>&& data) {
+  return std::string(data.begin(), data.end());
+}
 
 // Mostly to check that FromBytes can produce something that will be accepted.
 TEST(FuzzFilterTool, NopBytes) { EXPECT_FILTER_ACCEPT(FromBytes({0x90})); }
@@ -114,6 +109,11 @@ TEST(FuzzFilterTool, INC_SPLIT_LOCK) {
 }
 
 #elif defined(__aarch64__)
+
+std::string FromInts(std::vector<uint32_t>&& data) {
+  return std::string(reinterpret_cast<char*>(&*data.begin()),
+                     reinterpret_cast<char*>(&*data.end()));
+}
 
 TEST(FuzzFilterTool, ReadTPIDR) {
   // We'll want to filter our a number of system register accesses in the
