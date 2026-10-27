@@ -24,14 +24,15 @@
 namespace silifuzz {
 namespace {
 
-void ClearBuffer(RegisterGroupIOBuffer<AArch64> &buf) {
+void ClearBuffer(RegisterGroupIOBuffer<AArch64>& buf) {
   memset(&buf, 0, sizeof buf);
 }
 
-void SeedBuffer(RegisterGroupIOBuffer<AArch64> &buf) {
-  for (int ffr_byte = 0; ffr_byte < sizeof buf.ffr; ffr_byte++) {
-    buf.ffr[ffr_byte] = ffr_byte + 0xa0;
-  }
+void SeedBuffer(RegisterGroupIOBuffer<AArch64>& buf) {
+  // FFR must be 1's followed by only 0's starting from LSB (ex. 0x0f)
+  // otherwise WRFFR is CONSTRAINED UNPREDICTABLE per the ARM SVE specification.
+  memset(buf.ffr, 0xff, sizeof buf.ffr);
+  buf.ffr[SveGetPredicateLength() - 1] = 0x0f;
   for (int p_byte = 0; p_byte < sizeof buf.p; p_byte++) {
     buf.p[p_byte] = p_byte + 0xc0;
   }
