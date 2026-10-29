@@ -90,6 +90,7 @@ cc_library(
     srcs = ["fuzz_filter_tool.cc"],
     hdrs = ["fuzz_filter_tool.h"],
     deps = [
+        "@silifuzz//common:raw_insns_util",
         "@silifuzz//runner:make_snapshot",
         "@silifuzz//runner:runner_provider",
         "@abseil-cpp//absl/status",

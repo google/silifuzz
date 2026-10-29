@@ -25,6 +25,9 @@
 
 namespace silifuzz {
 
+// Returns `input` unchanged.
+std::string UnpackFuzzTestInput(absl::string_view input);
+
 // Returns a Snapshot ID that is a function of bytes in `code`.
 std::string InstructionsToSnapshotId(absl::string_view code);
 

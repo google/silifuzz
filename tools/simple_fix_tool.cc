@@ -176,11 +176,12 @@ std::vector<std::string> ReadUniqueCentipedeBlobs(
     absl::Status status;
     fuzztest::internal::ByteSpan blob;
     while ((status = reader->Read(blob)).ok()) {
-      const std::string id = InstructionsToSnapshotId(
+      std::string unpacked = UnpackFuzzTestInput(
           {reinterpret_cast<const char*>(blob.data()), blob.size()});
+      const std::string id = InstructionsToSnapshotId(unpacked);
       auto [_, inserted] = id_seen.insert(id);
       if (inserted) {
-        blobs.push_back(std::string(blob.begin(), blob.end()));
+        blobs.push_back(unpacked);
       } else {
         counters->Increment("silifuzz-INFO-Read:duplicate-blobs");
       }

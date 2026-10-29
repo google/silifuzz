@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "./common/memory_perms.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
@@ -103,6 +104,11 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
   ASSERT_OK(snapshot_3);
   EXPECT_EQ(snapshot_2->ExtractRip(snapshot_2->registers()),
             snapshot_3->ExtractRip(snapshot_3->registers()));
+}
+
+TEST(RawInsnsUtil, UnpackFuzzTestInput_RawBytes) {
+  constexpr absl::string_view kRawBytes = "\x90\x90\x90\x90";
+  EXPECT_EQ(UnpackFuzzTestInput(kRawBytes), kRawBytes);
 }
 
 TEST(RawInsnsUtil, InstructionsToSnapshotId) {

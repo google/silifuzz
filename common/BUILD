@@ -413,6 +413,7 @@ cc_test(
         "@silifuzz//util/ucontext:ucontext_types",
         "@abseil-cpp//absl/status",
         "@abseil-cpp//absl/status:statusor",
+        "@abseil-cpp//absl/strings",
         "@googletest//:gtest_main",
     ],
 )

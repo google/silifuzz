@@ -276,6 +276,10 @@ UContext<AArch64> GenerateUContextForInstructions(
   return uctx;
 }
 
+std::string UnpackFuzzTestInput(absl::string_view input) {
+  return std::string(input);
+}
+
 std::string InstructionsToSnapshotId(absl::string_view code) {
   uint8_t sha1_digest[SHA_DIGEST_LENGTH];
   SHA1(reinterpret_cast<const uint8_t*>(code.data()), code.size(), sha1_digest);
