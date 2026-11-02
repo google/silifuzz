@@ -296,11 +296,12 @@ void CheckEntryStackBytes(const GRegSet<X86_64>& gregs, const uint8_t* stack) {
 
 void CheckExitStackBytes(const GRegSet<X86_64>& gregs, const uint8_t* stack) {
   // The stack usage of x86_64 RestoreUContext is hard to predict because it
-  // calls into C to check for the existence of AVX512 registers. Emperically,
-  // x86_64 RestoreUContext() uses ~152 bytes of stack at the time of writing.
+  // calls into C to check for the existence of AVX512 registers. Empirically,
+  // x86_64 RestoreUContext() uses ~152-176 bytes of stack depending on compiler
+  // optimizations and instrumentation (e.g. TSan fastbuild, b/580670315).
   // Because part of that is calling into C code, we can't be 100% sure this
   // won't shift, so be conservative about how much we expect will be clobbered.
-  constexpr size_t stack_bytes_used = 168;
+  constexpr size_t stack_bytes_used = 256;
   ASSERT_GE(kStackOffset, stack_bytes_used);
 
   for (size_t i = 0; i < kStackOffset - stack_bytes_used; i++) {
