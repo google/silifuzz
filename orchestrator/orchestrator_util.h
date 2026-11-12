@@ -16,41 +16,20 @@
 #define THIRD_PARTY_SILIFUZZ_ORCHESTRATOR_ORCHESTRATOR_UTIL_H_
 
 #include <stdint.h>
-#include <sys/types.h>
 
 #include <string>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 
 namespace silifuzz {
-
-// Represents the contents of /proc/$/statm file.
-struct Statm {
-  uint64_t vm_size_bytes;
-  uint64_t rss_bytes;
-};
 
 // Represents the resources with which the orchestrator will run.
 struct OrchestratorResources {
   uint64_t num_concurrent_runners;
   std::vector<std::string> shards;
 };
-
-// Returns max RSS of the immediate children of `pid` as reported by the
-// corresponding /proc/pid/statm files. The `runner_name` specifies a string
-// that the executable path of the process must contain to be considered of
-// interest.
-uint64_t MaxRunnerRssSizeBytes(
-    pid_t pid, absl::string_view runner_name = "reading_runner");
-
-// Returns the `pid`s VmSize as reported by /proc/pid/statm
-absl::StatusOr<Statm> ProcessStatm(pid_t pid);
-
-// Returns all child processes of `pid`.
-std::vector<pid_t> ListChildrenPids(pid_t pid);
 
 // Returns the "MemAvailable" from /proc/meminfo. According to man 5 proc this
 // is "An estimate of how much memory is available for starting new

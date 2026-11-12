@@ -35,7 +35,6 @@
 #include "absl/time/time.h"
 #include "./common/snapshot_enums.h"
 #include "./orchestrator/binary_log_channel.h"
-#include "./orchestrator/orchestrator_util.h"
 #include "./player/player_result_proto.h"
 #include "./proto/binary_log_entry.pb.h"
 #include "./proto/corpus_metadata.pb.h"
@@ -69,7 +68,7 @@ google::protobuf::Duration DurationToProto(absl::Duration d) {
   return proto;
 }
 
-absl::Status GetRUsage(absl::Duration *user_time, absl::Duration *sys_time) {
+absl::Status GetRUsage(absl::Duration* user_time, absl::Duration* sys_time) {
   struct rusage rusage = {};
   if (getrusage(RUSAGE_CHILDREN, &rusage) == -1) {
     return absl::ErrnoToStatus(errno, "getrusage()");
@@ -84,11 +83,11 @@ absl::Status GetRUsage(absl::Duration *user_time, absl::Duration *sys_time) {
 // Converts RunResult into a BinaryLogEntry.
 // Assumes the result was produced on the running host.
 absl::StatusOr<proto::BinaryLogEntry> RunResultToSnapshotExecutionResult(
-    const RunnerDriver::RunResult &run_result, absl::Time now,
-    const std::string &session_id) {
+    const RunnerDriver::RunResult& run_result, absl::Time now,
+    const std::string& session_id) {
   DCHECK(!run_result.success());
   proto::BinaryLogEntry entry;
-  proto::SnapshotExecutionResult *snapshot_execution_result =
+  proto::SnapshotExecutionResult* snapshot_execution_result =
       entry.mutable_snapshot_execution_result();
   snapshot_execution_result->set_snapshot_id(run_result.failed_snapshot_id());
   RETURN_IF_NOT_OK(PlayerResultProto::ToProto(
@@ -123,7 +122,7 @@ int NumCpus() {
 
 // Logs the supplied run_result in V1 format e.g.
 // "Silifuzz detected issue on CPU ..."
-void LogV1SingleSnapFailure(const RunnerDriver::RunResult &run_result) {
+void LogV1SingleSnapFailure(const RunnerDriver::RunResult& run_result) {
   DCHECK(!run_result.success());
   static bool enable_v1_compat_logging =
       absl::GetFlag(FLAGS_enable_v1_compat_logging);
@@ -135,7 +134,7 @@ void LogV1SingleSnapFailure(const RunnerDriver::RunResult &run_result) {
 
 // Logs V1-style summary e.g.
 // Silifuzz Checker Result:{issues_detected ... }
-void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
+void LogV1CompatSummary(const Summary& summary, absl::Duration elapsed,
                         uint64_t max_rss_kb) {
   static bool enable_v1_compat_logging =
       absl::GetFlag(FLAGS_enable_v1_compat_logging);
@@ -163,7 +162,7 @@ void LogV1CompatSummary(const Summary &summary, absl::Duration elapsed,
 }  // namespace
 
 ResultCollector::ResultCollector(int binary_log_channel_fd,
-                                 absl::Time start_time, const Options &options)
+                                 absl::Time start_time, const Options& options)
     : binary_log_producer_(nullptr),
       start_time_(start_time),
       options_(options) {
@@ -176,9 +175,13 @@ ResultCollector::ResultCollector(int binary_log_channel_fd,
 }
 
 // Processes a single execution result.
-bool ResultCollector::operator()(const RunnerDriver::RunResult &result) {
+bool ResultCollector::operator()(const RunnerDriver::RunResult& result) {
   ++summary_.play_count;
-  max_rss_kb_ = std::max(max_rss_kb_, MaxRunnerRssSizeBytes(getpid()) / 1024);
+  // We could overestimate the max RSS of a child process
+  // because it inherits the max RSS of the parent process at the time of
+  // fork().
+  max_rss_kb_ =
+      std::max(max_rss_kb_, static_cast<uint64_t>(result.rusage().ru_maxrss));
   bool should_stop = false;
   if (!result.success()) {
     if (!result.execution_result().ok()) {
@@ -227,7 +230,7 @@ void ResultCollector::LogSummary(bool always) {
 }
 
 absl::Status ResultCollector::LogSessionStart(
-    const proto::CorpusMetadata &corpus_metadata,
+    const proto::CorpusMetadata& corpus_metadata,
     absl::string_view orchestrator_version) {
   if (binary_log_producer_ == nullptr) {
     return absl::OkStatus();
@@ -252,7 +255,7 @@ absl::Status ResultCollector::LogSessionStart(
 }
 
 absl::Status ResultCollector::LogSessionSummary(
-    const proto::CorpusMetadata &corpus_metadata,
+    const proto::CorpusMetadata& corpus_metadata,
     absl::string_view orchestrator_version) {
   if (binary_log_producer_ == nullptr) {
     return absl::OkStatus();

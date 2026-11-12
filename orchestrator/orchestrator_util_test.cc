@@ -14,54 +14,22 @@
 
 #include "./orchestrator/orchestrator_util.h"
 
-#include <unistd.h>
-
 #include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
 #include "./util/data_dependency.h"
-#include "./util/subprocess.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 namespace {
-using ::silifuzz::testing::IsOk;
 using ::silifuzz::testing::IsOkAndHolds;
 using ::silifuzz::testing::StatusIs;
-using ::testing::ElementsAre;
 using ::testing::Gt;
-using ::testing::IsEmpty;
 using ::testing::SizeIs;
-
-TEST(OrchestratorUtil, ListChildrenPids) {
-  EXPECT_THAT(ListChildrenPids(getpid()), IsEmpty());
-  Subprocess s;
-  ASSERT_OK(s.Start({"/bin/sleep", "3600"}));
-  EXPECT_THAT(ListChildrenPids(getpid()), ElementsAre(s.pid()));
-  kill(s.pid(), SIGKILL);
-  std::string out;
-  s.Communicate(&out);
-}
-
-TEST(OrchestratorUtil, NoThrow) {
-  pid_t bogus_pid = 9999999;  // kernel.pid_max = 4194304
-  EXPECT_THAT(ListChildrenPids(bogus_pid), IsEmpty());
-  EXPECT_THAT(ProcessStatm(bogus_pid), StatusIs(absl::StatusCode::kNotFound));
-  EXPECT_EQ(MaxRunnerRssSizeBytes(bogus_pid), 0);
-}
-
-TEST(OrchestratorUtil, ProcessStatm) {
-  auto stat = ProcessStatm(getpid());
-  EXPECT_THAT(stat, IsOk());
-  EXPECT_GT(stat->rss_bytes, 0);
-  EXPECT_GT(stat->vm_size_bytes, 0);
-}
 
 TEST(OrchestratorUtil, AvailableMemoryMb) {
   EXPECT_THAT(AvailableMemoryMb(), IsOkAndHolds(Gt(0)));

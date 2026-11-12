@@ -14,6 +14,7 @@
 
 #include "./orchestrator/result_collector.h"
 
+#include <sys/resource.h>
 #include <unistd.h>
 
 #include "gtest/gtest.h"
@@ -21,6 +22,7 @@
 #include "absl/time/clock.h"
 #include "./orchestrator/binary_log_channel.h"
 #include "./proto/binary_log_entry.pb.h"
+#include "./proto/session_summary.pb.h"
 #include "./proto/snapshot_execution_result.pb.h"
 #include "./runner/driver/runner_driver.h"
 #include "./util/testing/status_macros.h"
@@ -54,14 +56,20 @@ TEST(ResultCollector, BinaryLogging) {
   ASSERT_EQ(pipe(pipefd), 0);
   {
     ResultCollector collector(pipefd[1], absl::Now(), {});
-    collector(RunnerDriver::RunResult::Successful({}));
+    struct rusage rusage = {};
+    rusage.ru_maxrss = 12345;
+    collector(RunnerDriver::RunResult::Successful(rusage));
     collector(RunResultPeer::SnapshotFailed("snap_id"));
+    ASSERT_OK(collector.LogSessionSummary({}, "v1"));
     // Let collector go out of scope which closes the write end of the pipe.
     // This way the Receive() below does not block if logging misbehaves.
   }
   BinaryLogConsumer consumer(pipefd[0]);
   ASSERT_OK_AND_ASSIGN(proto::BinaryLogEntry fd_log_entry, consumer.Receive());
   ASSERT_EQ(fd_log_entry.snapshot_execution_result().snapshot_id(), "snap_id");
+  ASSERT_OK_AND_ASSIGN(proto::BinaryLogEntry summary_entry, consumer.Receive());
+  EXPECT_EQ(summary_entry.session_summary().resource_usage().max_rss_kb(),
+            12345);
 }
 
 }  // namespace

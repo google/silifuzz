@@ -89,7 +89,6 @@ cc_library(
     hdrs = ["result_collector.h"],
     deps = [
         ":binary_log_channel",
-        ":orchestrator_util",
         "@silifuzz//common:snapshot_enums",
         "@silifuzz//player:player_result_proto",
         "@silifuzz//proto:binary_log_entry_cc_proto",
@@ -118,6 +117,7 @@ cc_test(
         ":binary_log_channel",
         ":result_collector",
         "@silifuzz//proto:binary_log_entry_cc_proto",
+        "@silifuzz//proto:session_summary_cc_proto",
         "@silifuzz//proto:snapshot_execution_result_cc_proto",
         "@silifuzz//runner/driver:runner_driver",
         "@silifuzz//util/testing:status_macros",
@@ -150,12 +150,9 @@ cc_test(
     deps = [
         ":orchestrator_util",
         "@silifuzz//util:data_dependency",
-        "@silifuzz//util:subprocess",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
-        "@abseil-cpp//absl/status:statusor",
-        "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
     ],
 )
