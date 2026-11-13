@@ -963,6 +963,7 @@ cc_test(
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/strings",
         "@abseil-cpp//absl/time",
         "@googletest//:gtest_main",
     ],

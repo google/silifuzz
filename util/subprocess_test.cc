@@ -17,6 +17,9 @@
 #include <signal.h>
 #include <sys/resource.h>
 #include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <string>
 #include <thread>  // NOLINT
@@ -24,16 +27,25 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
+
+class SubprocessPeer {
+ public:
+  static int child_stdout(const Subprocess& sp) { return sp.child_stdout_; }
+};
+
 namespace {
 using silifuzz::testing::StatusIs;
 using ::testing::HasSubstr;
 using ::testing::IsEmpty;
+using ::testing::Not;
+using ::testing::StartsWith;
 
 // The goal of this check is to make sure _some_ sort of reasonable rusage
 // information is being returned, no matter how the process behaves.
@@ -165,6 +177,44 @@ TEST(Subprocess, SetITimer) {
   ProcessInfo info = sp.Communicate(&stdout);
   ASSERT_EQ(WTERMSIG(info.status), SIGALRM);
   ProcessInfoLooksReasonable(info);
+}
+
+TEST(Subprocess, NoPipeFdLeakAcrossSubprocesses) {
+  Subprocess::Options sleep_opts = Subprocess::Options::Default();
+  sleep_opts.SetParentDeathSignal(SIGKILL);
+  Subprocess sp1(sleep_opts);
+  ASSERT_OK(sp1.Start({"/bin/sleep", "3600"}));
+
+  // Read the kernel pipe symlink target ("pipe:[<ino>]") of sp1.child_stdout_
+  // directly from the parent's /proc/self/fd table, then scan all open FDs
+  // (/proc/self/fd/*) in sp2 to confirm FD_CLOEXEC closed it on execv()
+  // without flaking on unrelated background-thread FDs.
+  char link_buf[64] = {0};
+  std::string sp1_stdout_path =
+      absl::StrCat("/proc/self/fd/", SubprocessPeer::child_stdout(sp1));
+  ssize_t link_len =
+      readlink(sp1_stdout_path.c_str(), link_buf, sizeof(link_buf) - 1);
+  EXPECT_GT(link_len, 0);
+  if (link_len > 0) {
+    std::string sp1_pipe_target(link_buf, link_len);
+    EXPECT_THAT(sp1_pipe_target, StartsWith("pipe:["));
+
+    Subprocess sp2;
+    absl::Status sp2_status = sp2.Start(
+        {"/bin/sh", "-c", "readlink /proc/self/fd/* 2>/dev/null; true"});
+    EXPECT_OK(sp2_status);
+    if (sp2_status.ok()) {
+      std::string sp2_fd_targets;
+      EXPECT_EQ(sp2.Communicate(&sp2_fd_targets).status, 0);
+      EXPECT_THAT(sp2_fd_targets, HasSubstr("pipe:["));
+      EXPECT_THAT(sp2_fd_targets, Not(HasSubstr(sp1_pipe_target)));
+    }
+  }
+
+  EXPECT_EQ(kill(sp1.pid(), SIGKILL), 0);
+  std::string sp1_stdout;
+  ProcessInfo info = sp1.Communicate(&sp1_stdout);
+  EXPECT_EQ(WTERMSIG(info.status), SIGKILL);
 }
 
 }  // namespace

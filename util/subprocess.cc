@@ -58,8 +58,9 @@ Subprocess::~Subprocess() {
 
 absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
   VLOG_INFO(1, "Running ", absl::StrJoin(argv, " "));
-  // Note that we assume that there are no other threads, thus we don't have to
-  // do crazy stuff like using socket pairs or avoiding libc locks.
+  // Using vfork() avoids fork() lock hazards in multithreaded processes, and
+  // pipe2(..., O_CLOEXEC) prevents concurrent Start() calls from leaking pipe
+  // descriptors across execv().
 
   // Check the binary exists _before_ we fork so that we can easily give a hard
   // error to the user.
@@ -72,9 +73,11 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
         absl::StrCat("Binary does not exist: ", argv[0]));
   }
 
-  // [0] is read end, [1] is write end.
+  // [0] is read end, [1] is write end. Set O_CLOEXEC atomically so neither
+  // child_stdout_ nor an in-flight write end leaks across concurrent
+  // vfork()/execv() calls; dup2() below clears FD_CLOEXEC on STDOUT/STDERR.
   int stdout_pipe[2] = {-1, -1};
-  CHECK_NE(pipe(stdout_pipe), -1);
+  CHECK_NE(pipe2(stdout_pipe, O_CLOEXEC), -1);
 
   auto argv_exec = std::make_unique<const char*[]>(argv.size() + 1);
   for (int argc = 0; argc < argv.size(); ++argc) {
@@ -83,7 +86,10 @@ absl::Status Subprocess::Start(const std::vector<std::string>& argv) {
   argv_exec[argv.size()] = nullptr;
   child_pid_ = vfork();
   if (child_pid_ == -1) {
-    return absl::InternalError(absl::StrCat("vfork: ", strerror(errno)));
+    int saved_errno = errno;
+    close(stdout_pipe[0]);
+    close(stdout_pipe[1]);
+    return absl::InternalError(absl::StrCat("vfork: ", strerror(saved_errno)));
   }
 
   if (child_pid_ == 0) {

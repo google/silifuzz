@@ -143,6 +143,8 @@ class Subprocess {
   pid_t pid() const { return child_pid_; }
 
  private:
+  friend class SubprocessPeer;
+
   static void GlobalInit();
   // PID of the child process.
   pid_t child_pid_;
