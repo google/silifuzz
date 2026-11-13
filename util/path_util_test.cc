@@ -66,7 +66,7 @@ TEST(PathUtil, CreateTempFileFail) {
     if (auto s = CreateTempFile("test"); !s.ok()) {
       LOG_INFO("File creation failed as expected");
       // Deref the failed status and cause SIGABRT
-      auto v = *s;
+      [[maybe_unused]] auto v = *s;
     } else {
       // Must not happen. Let the subprocess finish successfully and ASSERT_EXIT
       // below fail.

@@ -575,8 +575,6 @@ bool SnapToolMain(std::vector<char*>& args) {
 // ========================================================================= //
 
 int main(int argc, char** argv) {
-  std::string usage =
-      absl::StrCat(argv[0], " command snapshot-file-name [command arg(s)]");
   std::vector<char*> positional_args = absl::ParseCommandLine(argc, argv);
   silifuzz::ConsumeArg(positional_args);  // skip binary's name
   bool success = silifuzz::SnapToolMain(positional_args);
