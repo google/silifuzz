@@ -192,6 +192,7 @@ TEST_F(XedUtilTest, ChipInfo) {
       {PlatformId::kIntelBroadwell, XED_CHIP_BROADWELL, 256, 0},
       {PlatformId::kIntelSkylake, XED_CHIP_SKYLAKE_SERVER, 512, 64},
       {PlatformId::kIntelSapphireRapids, XED_CHIP_SAPPHIRE_RAPIDS, 512, 64},
+      {PlatformId::kIntelDiamondRapids, XED_CHIP_DIAMOND_RAPIDS, 512, 64},
       {PlatformId::kAmdRome, XED_CHIP_AMD_ZEN2, 256, 0},
   };
 

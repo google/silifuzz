@@ -46,7 +46,7 @@ TEST(PlatformTest, NoGaps) {
 }
 
 TEST(PlatformTest, PlatformArchitecture) {
-  for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
+  for (int i = proto::PlatformId_MIN; i <= proto::PlatformId_MAX; ++i) {
     if (proto::PlatformId_IsValid(i)) {
       const std::string& enum_name = proto::PlatformId_Name(i);
       ArchitectureId arch = PlatformArchitecture(static_cast<PlatformId>(i));
@@ -71,7 +71,7 @@ TEST(PlatformTest, PlatformNameMatchesEnum) {
   EXPECT_EQ(proto::PlatformId_MAX, static_cast<int>(kMaxPlatformId) - 2)
       << "snapshot.proto is not up to date with the latest changes in platform "
          "ids.";
-  for (int i = proto::PlatformId_MIN; i < proto::PlatformId_MAX; ++i) {
+  for (int i = proto::PlatformId_MIN; i <= proto::PlatformId_MAX; ++i) {
     if (proto::PlatformId_IsValid(i)) {
       std::string internal_name = absl::StrReplaceAll(
           absl::AsciiStrToUpper(EnumStr(static_cast<PlatformId>(i))),
@@ -118,6 +118,7 @@ const absl::flat_hash_map<PlatformId, CpuId> kIntelPlatformToCpuId = {
     {PlatformId::kIntelAlderlake, {6, 151, 0}},
     {PlatformId::kIntelGraniteRapids, {6, 173, 0}},
     {PlatformId::kIntelEmeraldRapids, {6, 207, 0}},
+    {PlatformId::kIntelDiamondRapids, {19, 1, 0}},
 };
 
 TEST(PlatformUtilsX86, AmdPlatformIdFromCpuId) {
@@ -134,6 +135,13 @@ TEST(PlatformUtilsX86, IntelPlatformIdFromCpuId) {
                                                  cpu_id.stepping),
               platform);
   }
+  // Diamond Rapids is Intel family 19, model 1 (INTEL_DIAMONDRAPIDS_X).
+  EXPECT_EQ(internal::IntelPlatformIdFromCpuId(19, 0, 0),
+            PlatformId::kUndefined);
+  EXPECT_EQ(internal::IntelPlatformIdFromCpuId(19, 1, 0),
+            PlatformId::kIntelDiamondRapids);
+  EXPECT_EQ(internal::IntelPlatformIdFromCpuId(19, 2, 0),
+            PlatformId::kUndefined);
 }
 
 TEST(PlatformUtilsX86, AllX86PlatformsAreMapped) {

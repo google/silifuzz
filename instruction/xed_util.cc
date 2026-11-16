@@ -295,6 +295,8 @@ xed_chip_enum_t PlatformIdToChip(PlatformId platform_id) {
       return XED_CHIP_EMERALD_RAPIDS;
     case PlatformId::kIntelGraniteRapids:
       return XED_CHIP_GRANITE_RAPIDS;
+    case PlatformId::kIntelDiamondRapids:
+      return XED_CHIP_DIAMOND_RAPIDS;
     default:
       return XED_CHIP_INVALID;
   }

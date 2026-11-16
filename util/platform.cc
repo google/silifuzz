@@ -51,6 +51,7 @@ ArchitectureId PlatformArchitecture(PlatformId platform) {
     case PlatformId::kAmdSiena:
     case PlatformId::kAmdTurin:
     case PlatformId::kAmdVenice:
+    case PlatformId::kIntelDiamondRapids:
       return ArchitectureId::kX86_64;
     case PlatformId::kArmNeoverseN1:
     case PlatformId::kArmNeoverseN2:
@@ -112,6 +113,10 @@ PlatformId IntelPlatformIdFromCpuId(uint32_t family, uint32_t model,
     if (model == 85) {
       return (stepping < 5) ? PlatformId::kIntelSkylake
                             : PlatformId::kIntelCascadelake;
+    }
+  } else if (family == 19) {
+    if (model == 1) {
+      return PlatformId::kIntelDiamondRapids;
     }
   }
 
