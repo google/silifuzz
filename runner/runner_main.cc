@@ -30,6 +30,8 @@
 #include "./runner/runner_main_options.h"
 #include "./util/arch.h"
 #include "./util/checks.h"
+#include "./util/cpu_id.h"
+#include "./util/itoa.h"
 #include "./util/strcat.h"
 
 namespace silifuzz {
@@ -64,6 +66,16 @@ int Main(int argc, char* argv[]) {
     LOG_ERROR(StrCat({"Unknown flag ", argv[flags_end]}));
     ShowUsage(argv[0]);
     return EXIT_FAILURE;
+  }
+
+  // Pin CPU before loading the corpus so that pages allocated during corpus
+  // loading and relocation are placed on the target CPU's local NUMA node.
+  if (FLAGS_cpu != kAnyCPUId) {
+    const int error = SetCPUAffinity(FLAGS_cpu);
+    if (error != 0) {
+      LOG_FATAL("Cannot pin cpu to core ", IntStr(FLAGS_cpu),
+                " error=", IntStr(error));
+    }
   }
 
   RunnerMainOptions options;
@@ -101,7 +113,6 @@ int Main(int argc, char* argv[]) {
     return EXIT_FAILURE;
   }
 
-  options.cpu = FLAGS_cpu;
   options.snap_id = FLAGS_snap_id;
   options.num_iterations = FLAGS_num_iterations;
   options.enable_tracer = FLAGS_enable_tracer;

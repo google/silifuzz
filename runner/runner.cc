@@ -777,16 +777,6 @@ void LogSnapRunResult(const Snap<Host>& snap, const RunnerMainOptions& options,
 }
 
 const SnapCorpus<Host>* CommonMain(const RunnerMainOptions& options) {
-  // Pin CPU if pinning is requested.
-  if (options.cpu != kAnyCPUId) {
-    const int error = SetCPUAffinity(options.cpu);
-    // Linux kernel API uses unsigned long type.
-    if (error != 0) {
-      LOG_FATAL("Cannot pin cpu to core ", IntStr(options.cpu),
-                " error=", IntStr(error));
-    }
-  }
-
   InitSnapExit(&SnapExitImpl);
 
 #ifndef SILIFUZZ_INTEGER_INSTRUCTIONS_ONLY

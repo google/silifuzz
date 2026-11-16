@@ -22,7 +22,6 @@
 
 #include "./snap/snap.h"
 #include "./util/arch.h"
-#include "./util/cpu_id.h"
 
 namespace silifuzz {
 
@@ -43,9 +42,6 @@ struct RunnerMainOptions {
 
   // Random number generator seed. If it is zero, a random seed will be picked.
   uint64_t seed = 0;
-
-  // Pin runner to this CPU unless it is kAnyCPU;
-  int cpu = kAnyCPUId;
 
   // Snapshot to run.
   const char* snap_id = nullptr;

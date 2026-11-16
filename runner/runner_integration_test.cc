@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include <fcntl.h>
+#include <sched.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <cstdint>
@@ -21,6 +24,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/time/time.h"
 #include "./common/proxy_config.h"
@@ -34,11 +38,13 @@
 #include "./snap/gen/relocatable_snap_generator.h"
 #include "./snap/testing/snap_test_snapshots.h"
 #include "./util/arch.h"
+#include "./util/cpu_id.h"
 #include "./util/data_dependency.h"
 #include "./util/file_util.h"
 #include "./util/itoa.h"
 #include "./util/mmapped_memory_ptr.h"
 #include "./util/path_util.h"
+#include "./util/subprocess.h"
 #include "./util/testing/status_macros.h"
 #include "./util/testing/status_matchers.h"
 #include "./util/ucontext/serialize.h"
@@ -201,6 +207,62 @@ TEST(RunnerTest, UnknownFlags) {
   ASSERT_FALSE(result.success());
   ASSERT_EQ(result.execution_result().code,
             RunnerDriver::ExecutionResult::Code::kInternalError);
+}
+
+// Verifies that --cpu pins playback to the requested core and reports that
+// core's cpu_id on failure.
+TEST(RunnerTest, CpuAffinity) {
+  // Pick the last available CPU to exercise a non-zero core ID when possible.
+  int pinned_cpu = kAnyCPUId;
+  ForEachAvailableCPU([&pinned_cpu](int cpu) { pinned_cpu = cpu; });
+  ASSERT_NE(pinned_cpu, kAnyCPUId);
+
+  RunnerDriver driver = RunnerDriver::ReadingRunner(
+      RunnerLocation(), GetDataDependencyFilepath("snap/testing/test_corpus"));
+  RunnerDriver::RunResult ok_result =
+      driver.PlayOne(EnumStr(TestSnapshot::kEndsAsExpected), pinned_cpu);
+  EXPECT_TRUE(ok_result.success());
+
+  RunnerDriver::RunResult mismatch_result =
+      driver.PlayOne(EnumStr(TestSnapshot::kRegsMismatch), pinned_cpu);
+  ASSERT_FALSE(mismatch_result.success());
+  ASSERT_TRUE(mismatch_result.has_failed_player_result());
+  EXPECT_EQ(mismatch_result.failed_player_result().outcome,
+            PlaybackOutcome::kRegisterStateMismatch);
+  EXPECT_EQ(mismatch_result.failed_player_result().cpu_id, pinned_cpu);
+}
+
+// Verifies that Main() sets CPU affinity before LoadCorpus() opens the corpus.
+TEST(RunnerTest, CpuAffinitySetBeforeLoadingCorpus) {
+  CpuSet saved_cpus;
+  CPU_ZERO_S(kCpuSetBytes, saved_cpus.data());
+  ASSERT_EQ(sched_getaffinity(0, kCpuSetBytes, saved_cpus.data()), 0);
+
+  // Use a CPU ID < kMaxCpus (to pass SetCPUAffinity's bounds CHECK) and probe
+  // sched_setaffinity directly to confirm it fails on this host.
+  constexpr int kUnavailableCpu = kMaxCpus - 1;
+  CpuSet probe_cpus;
+  CPU_ZERO_S(kCpuSetBytes, probe_cpus.data());
+  CPU_SET_S(kUnavailableCpu, kCpuSetBytes, probe_cpus.data());
+  if (sched_setaffinity(0, kCpuSetBytes, probe_cpus.data()) == 0) {
+    ASSERT_EQ(sched_setaffinity(0, kCpuSetBytes, saved_cpus.data()), 0);
+    GTEST_SKIP() << "CPU " << kUnavailableCpu << " is available on this host.";
+  }
+
+  // With both an invalid --cpu and a nonexistent corpus file, the runner must
+  // fail in SetCPUAffinity() before LoadCorpus() attempts to open the file.
+  Subprocess::Options options = Subprocess::Options::Default();
+  options.MapStderr(Subprocess::kMapToStdout).SetParentDeathSignal(SIGKILL);
+  Subprocess runner_proc(options);
+  ASSERT_OK(runner_proc.Start({RunnerLocation(),
+                               absl::StrCat("--cpu=", kUnavailableCpu),
+                               "/proc/self/nonexistent_corpus"}));
+  std::string output;
+  ProcessInfo info = runner_proc.Communicate(&output);
+  ASSERT_TRUE(WIFEXITED(info.status));
+  EXPECT_NE(WEXITSTATUS(info.status), 0);
+  EXPECT_THAT(output, HasSubstr("Cannot pin cpu to core"));
+  EXPECT_THAT(output, Not(HasSubstr("Failed to open corpus file")));
 }
 
 }  // namespace

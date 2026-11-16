@@ -136,7 +136,6 @@ cc_library_plus_nolibc(
     deps = [
         "@silifuzz//snap",
         "@silifuzz//util:arch",
-        "@silifuzz//util:cpu_id",
     ],
 )
 
@@ -286,11 +285,13 @@ cc_test(
         "@silifuzz//snap/gen:relocatable_snap_generator",
         "@silifuzz//snap/testing:snap_test_snapshots",
         "@silifuzz//util:arch",
+        "@silifuzz//util:cpu_id",
         "@silifuzz//util:data_dependency",
         "@silifuzz//util:file_util",
         "@silifuzz//util:itoa",
         "@silifuzz//util:mmapped_memory_ptr",
         "@silifuzz//util:path_util",
+        "@silifuzz//util:subprocess",
         "@silifuzz//util/testing:status_macros",
         "@silifuzz//util/testing:status_matchers",
         "@silifuzz//util/ucontext:serialize",
@@ -485,6 +486,8 @@ cc_library_nolibc(
         "@silifuzz//snap",
         "@silifuzz//util:arch",
         "@silifuzz//util:checks",
+        "@silifuzz//util:cpu_id",
+        "@silifuzz//util:itoa",
         "@silifuzz//util:strcat",
     ],
 )
