@@ -1868,6 +1868,159 @@ TEST(StaticInsnFilter, IndirectBranchesBanned) {
   }
 }
 
+TEST(StaticInsnFilter, LoadStoreWritebackOverlap) {
+  // Rejected GPR pair writeback overlaps (Unpredictable_WBOVERLAPST /
+  // Unpredictable_WBOVERLAPLD):
+  // stp x7, x0, [x7], #-384
+  EXPECT_AARCH64_FILTER_REJECT({0xa8a800e7});
+  // stp x0, x7, [x7, #16]!
+  EXPECT_AARCH64_FILTER_REJECT({0xa9811ce0});
+  // ldp x3, x5, [x5], #16
+  EXPECT_AARCH64_FILTER_REJECT({0xa8c114a3});
+  // ldpsw x3, x5, [x5], #16
+  EXPECT_AARCH64_FILTER_REJECT({0x68c214a3});
+  // stgp x7, x0, [x7], #16
+  EXPECT_AARCH64_FILTER_REJECT({0x688080e7});
+
+  // Rejected GPR single-register writeback overlaps:
+  // str x4, [x4], #8
+  EXPECT_AARCH64_FILTER_REJECT({0xf8008484});
+  // ldr w2, [x2, #-4]!
+  EXPECT_AARCH64_FILTER_REJECT({0xb85fcc42});
+  // ldrsw x6, [x6], #4
+  EXPECT_AARCH64_FILTER_REJECT({0xb88044c6});
+  // ldrsb w8, [x8, #1]!
+  EXPECT_AARCH64_FILTER_REJECT({0x38c01d08});
+
+  // Rejected FEAT_LRCPC3 writeback overlaps:
+  // stlr x1, [x1, #-8]!
+  EXPECT_AARCH64_FILTER_REJECT({0xd9800821});
+  // ldapr x1, [x1], #8
+  EXPECT_AARCH64_FILTER_REJECT({0xd9c00821});
+  // stilp x2, x0, [x2, #-16]!
+  EXPECT_AARCH64_FILTER_REJECT({0xd9000842});
+  // stilp x0, x2, [x2, #-16]!
+  EXPECT_AARCH64_FILTER_REJECT({0xd9020840});
+  // ldiapp x0, x2, [x2], #16
+  EXPECT_AARCH64_FILTER_REJECT({0xd9420840});
+
+  // Accepted non-writeback base/transfer matches:
+  // stp x7, x0, [x7, #-384]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa92800e7});
+  // stnp x7, x0, [x7]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa80000e7});
+  // str x7, [x7]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf90000e7});
+  // stur x7, [x7, #-8]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf81f80e7});
+  // sttr x7, [x7]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf80008e7});
+  // stlur x2, [x2, #-8]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd91f8042});
+  // ldapur x2, [x2, #-8]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd95f8042});
+  // ldapursb x2, [x2]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x19800042});
+  // ldiapp x2, x1, [x2]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9411842});
+
+  // Accepted non-overlapping GPR/FEAT_LRCPC3 writebacks and MTE tag stores:
+  // stp x0, x1, [x2], #16
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa8810440});
+  // ldp x0, x1, [x2, #-16]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa9ff0440});
+  // str x0, [x1], #8
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf8008420});
+  // ldr w0, [x1, #-4]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xb85fcc20});
+  // stlr x0, [x1, #-8]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9800820});
+  // ldapr x0, [x1], #8
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9c00820});
+  // stilp x0, x1, [x2, #-16]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9010840});
+  // stg x1, [x1], #16
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9201421});
+
+  // Accepted register 31 boundary cases (Rn=sp with Rt/Rt2=xzr/wzr) and
+  // FP/SIMD writeback (vector register Vd does not overlap GPR base Xn):
+  // stp xzr, x0, [sp], #16
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa88103ff});
+  // stp x0, xzr, [sp, #-16]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa9bf7fe0});
+  // ldr xzr, [sp], #16
+  EXPECT_AARCH64_FILTER_ACCEPT({0xf84107ff});
+  // stlr xzr, [sp, #-8]!
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9800bff});
+  // ldapr xzr, [sp], #8
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9c00bff});
+  // stp d7, d0, [x7], #16
+  EXPECT_AARCH64_FILTER_ACCEPT({0x6c8100e7});
+  // ldr d4, [x4], #8
+  EXPECT_AARCH64_FILTER_ACCEPT({0xfc408484});
+}
+
+TEST(StaticInsnFilter, LoadPairDestinationOverlap) {
+  // Rejected GPR load-pair destination overlaps (Unpredictable_LDPOVERLAP):
+  // ldp x3, x3, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xa9400cc3});
+  // ldnp w1, w1, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0x284004c1});
+  // ldpsw x9, x9, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0x694024c9});
+
+  // Rejected FP/SIMD load-pair destination overlaps (including v31, which is a
+  // real vector register rather than a zero register):
+  // ldp d31, d31, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0x6d407cdf});
+  // ldp s0, s0, [x6], #8
+  EXPECT_AARCH64_FILTER_REJECT({0x2cc100c0});
+  // ldnp q15, q15, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xac403ccf});
+
+  // Rejected exclusive and ordered load-pair destination overlaps:
+  // ldxp x2, x2, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xc87f08c2});
+  // ldaxp w5, w5, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0x887f94c5});
+  // ldiapp x2, x2, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xd94218c2});
+
+  // Unpredictable_LDPOVERLAP applies unconditionally when Rt == Rt2, including
+  // GPR register 31 (xzr/wzr):
+  // ldp xzr, xzr, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xa9407cdf});
+  // ldnp wzr, wzr, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0x28407cdf});
+  // ldxp xzr, xzr, [x6]
+  EXPECT_AARCH64_FILTER_REJECT({0xc87f7cdf});
+  // ldiapp xzr, xzr, [x4]
+  EXPECT_AARCH64_FILTER_REJECT({0xd95f189f});
+
+  // Accepted non-overlapping load pairs (including single-xzr destinations) and
+  // store pairs with identical source registers:
+  // ldp x0, x1, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa94004c0});
+  // ldp xzr, x0, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa94000df});
+  // ldp x0, xzr, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa9407cc0});
+  // ldp d0, d1, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x6d4004c0});
+  // ldxp x0, x1, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xc87f04c0});
+  // ldiapp x0, x1, [x2]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9411840});
+  // stp x7, x7, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa9001cc7});
+  // stp xzr, xzr, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xa9007cdf});
+  // stp d7, d7, [x6]
+  EXPECT_AARCH64_FILTER_ACCEPT({0x6d001cc7});
+  // stilp x2, x2, [x4]
+  EXPECT_AARCH64_FILTER_ACCEPT({0xd9021882});
+}
+
 }  // namespace
 
 }  // namespace silifuzz

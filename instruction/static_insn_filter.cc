@@ -653,6 +653,124 @@ constexpr uint32_t kAllowedSysregs[] = {
     // sysreg(0b11, 0b011, 0b1101, 0b0000, 0b111),
 };
 
+// Register 31 encodes SP when used as an address base register (Rn).
+constexpr uint32_t kSpReg = 31;
+
+constexpr uint32_t ExtractRt(uint32_t insn) { return insn & 0x1f; }
+constexpr uint32_t ExtractRn(uint32_t insn) { return (insn >> 5) & 0x1f; }
+constexpr uint32_t ExtractRt2(uint32_t insn) { return (insn >> 10) & 0x1f; }
+constexpr uint32_t ExtractLrcpc3Rt2(uint32_t insn) {
+  return (insn >> 16) & 0x1f;
+}
+
+// Section: Loads and Stores (ARM ARM C4.1 / C6.2 / K1.2.6)
+// CONSTRAINED UNPREDICTABLE load/store register-overlap encodings:
+// Unpredictable_WBOVERLAPST, Unpredictable_WBOVERLAPLD, and
+// Unpredictable_LDPOVERLAP. Hardware implementations may treat these encodings
+// as UNDEFINED (raising SIGILL), suppress writeback, or transfer UNKNOWN data,
+// whereas software proxies such as Unicorn may execute both the transfer and
+// writeback without faulting.
+
+// GPR Load/Store Pair with writeback (post-index [24:23]=01 and pre-index
+// [24:23]=11, V=0): [29:25] == 0b10100 && bit[23] == 1.
+// Covers STP, LDP, LDPSW, STGP, STTP, and LDTP with writeback.
+constexpr BitMatcher<uint32_t> kGprLoadStorePairWriteback = {
+    .mask = 0b0011'1110'1000'0000'0000'0000'0000'0000,
+    .bits = 0b0010'1000'1000'0000'0000'0000'0000'0000,
+};
+
+// GPR Load/Store Register with writeback (immediate post-index [11:10]=01 and
+// pre-index [11:10]=11, V=0): [29:24] == 0b111000 && bit[21] == 0 &&
+// bit[10] == 1. Covers STR*, LDR*, LDRSW, LDRSH, and LDRSB with writeback.
+constexpr BitMatcher<uint32_t> kGprLoadStoreRegWriteback = {
+    .mask = 0b0011'1111'0010'0000'0000'0100'0000'0000,
+    .bits = 0b0011'1000'0000'0000'0000'0100'0000'0000,
+};
+
+// FEAT_LRCPC3 single-register writeback: STLR pre-index (opc=10) and LDAPR
+// post-index (opc=11), 32-bit (size=10) and 64-bit (size=11):
+// bit[31] == 1 && [29:24] == 0b011001 && bit[23] == 1 && bit[21] == 0 &&
+// [20:10] == 0b00000'0000'10. Non-writeback STLUR*/LDAPUR* encodings in 011001
+// have [11:10] == 0b00 and are excluded.
+constexpr BitMatcher<uint32_t> kLrcpc3RegWriteback = {
+    .mask = 0b1011'1111'1011'1111'1111'1100'0000'0000,
+    .bits = 0b1001'1001'1000'0000'0000'1000'0000'0000,
+};
+
+// FEAT_LRCPC3 pair writeback: STILP pre-index (opc=00) and LDIAPP post-index
+// (opc=01), 32-bit (size=10) and 64-bit (size=11):
+// bit[31] == 1 && [29:24] == 0b011001 && bit[23] == 0 && bit[21] == 0 &&
+// [15:10] == 0b0000'10 (op2=0000). Rt2 is encoded in bits [20:16].
+constexpr BitMatcher<uint32_t> kLrcpc3PairWriteback = {
+    .mask = 0b1011'1111'1010'0000'1111'1100'0000'0000,
+    .bits = 0b1001'1001'0000'0000'0000'1000'0000'0000,
+};
+
+// GPR and FP/SIMD Load Pair (V=x, L=1): [29:27] == 0b101 && bit[25] == 0 &&
+// bit[22] == 1. Covers GPR (LDNP, LDP, LDPSW, LDTNP, LDTP) and S/D/Q FP/SIMD
+// (LDNP, LDP, LDTNP, LDTP) load pairs across all addressing modes.
+constexpr BitMatcher<uint32_t> kLoadPair = {
+    .mask = 0b0011'1010'0100'0000'0000'0000'0000'0000,
+    .bits = 0b0010'1000'0100'0000'0000'0000'0000'0000,
+};
+
+// Load-Exclusive Pair (LDXP and LDAXP, 32-bit and 64-bit):
+// bit[31] == 1 && [29:21] == 0b001000011.
+constexpr BitMatcher<uint32_t> kLoadExclusivePair = {
+    .mask = 0b1011'1111'1110'0000'0000'0000'0000'0000,
+    .bits = 0b1000'1000'0110'0000'0000'0000'0000'0000,
+};
+
+// FEAT_LRCPC3 Load-Acquire RCpc Ordered Pair (LDIAPP, offset and post-index,
+// 32-bit and 64-bit):
+// bit[31] == 1 && [29:24] == 0b011001 && [23:21] == 0b010 &&
+// [15:13] == 0b000 && [11:10] == 0b10. Rt2 is encoded in bits [20:16].
+constexpr BitMatcher<uint32_t> kLrcpc3LoadPair = {
+    .mask = 0b1011'1111'1110'0000'1110'1100'0000'0000,
+    .bits = 0b1001'1001'0100'0000'0000'1000'0000'0000,
+};
+
+// Returns true if `insn` has CONSTRAINED UNPREDICTABLE writeback base/transfer
+// register overlap (Unpredictable_WBOVERLAPST / Unpredictable_WBOVERLAPLD).
+constexpr bool HasLoadStoreWritebackOverlap(uint32_t insn) {
+  const uint32_t rn = ExtractRn(insn);
+  if (rn == kSpReg) {
+    return false;
+  }
+  const uint32_t rt = ExtractRt(insn);
+  if (kGprLoadStorePairWriteback.matches(insn)) {
+    return rn == rt || rn == ExtractRt2(insn);
+  }
+  if (kGprLoadStoreRegWriteback.matches(insn) ||
+      kLrcpc3RegWriteback.matches(insn)) {
+    return rn == rt;
+  }
+  if (kLrcpc3PairWriteback.matches(insn)) {
+    return rn == rt || rn == ExtractLrcpc3Rt2(insn);
+  }
+  return false;
+}
+
+// Returns true if `insn` has CONSTRAINED UNPREDICTABLE load-pair destination
+// register overlap (Unpredictable_LDPOVERLAP).
+constexpr bool HasLoadPairRegisterOverlap(uint32_t insn) {
+  const uint32_t rt = ExtractRt(insn);
+  if (kLoadPair.matches(insn) || kLoadExclusivePair.matches(insn)) {
+    return rt == ExtractRt2(insn);
+  }
+  if (kLrcpc3LoadPair.matches(insn)) {
+    return rt == ExtractLrcpc3Rt2(insn);
+  }
+  return false;
+}
+
+constexpr bool HasUnpredictableLoadStoreOverlap(uint32_t insn) {
+  if (!kLoadStoreInstruction.matches(insn)) {
+    return false;
+  }
+  return HasLoadStoreWritebackOverlap(insn) || HasLoadPairRegisterOverlap(insn);
+}
+
 constexpr bool InstructionIsOK(uint32_t insn,
                                const InstructionFilterConfig<AArch64>& config) {
   for (const BitMatcher<uint32_t>& bits : kBannedInstructions) {
@@ -661,6 +779,9 @@ constexpr bool InstructionIsOK(uint32_t insn,
     }
   }
   if (!config.load_store_instructions_allowed && is_load_store_insn(insn)) {
+    return false;
+  }
+  if (HasUnpredictableLoadStoreOverlap(insn)) {
     return false;
   }
   if (!config.sve_instructions_allowed && kSVEInstruction.matches(insn)) {
