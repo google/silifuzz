@@ -180,6 +180,7 @@ TEST(SignalTest, ConvertGRegs) {
 
 // Reads memory at the address `arg`.
 extern "C" void UnmappedRead(uint64_t arg);
+extern "C" const char UnmappedReadAddr[];
 
 TEST(SignalTest, UnmappedRead) {
   const uint64_t kBadAddr = 16;
@@ -207,11 +208,12 @@ TEST(SignalTest, UnmappedRead) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(UnmappedRead));
+            reinterpret_cast<uint64_t>(UnmappedReadAddr));
 }
 
 // Writes memory at the address `arg`.
 extern "C" void UnmappedWrite(uint64_t arg);
+extern "C" const char UnmappedWriteAddr[];
 
 TEST(SignalTest, UnmappedWrite) {
   const uint64_t kBadAddr = 24;
@@ -239,11 +241,12 @@ TEST(SignalTest, UnmappedWrite) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(UnmappedWrite));
+            reinterpret_cast<uint64_t>(UnmappedWriteAddr));
 }
 
 // Executes an illegal instruction.
 extern "C" void IllegalInstruction(uint64_t arg);
+extern "C" const char IllegalInstructionAddr[];
 
 TEST(SignalTest, IllegalInstruction) {
   siginfo_t siginfo;
@@ -257,7 +260,7 @@ TEST(SignalTest, IllegalInstruction) {
 
   EXPECT_EQ(siginfo.si_signo, SIGILL);
   EXPECT_EQ(siginfo.si_code, ILL_ILLOPN);
-  EXPECT_EQ(siginfo.si_addr, (void*)IllegalInstruction);
+  EXPECT_EQ(siginfo.si_addr, (void*)IllegalInstructionAddr);
 
   SignalRegSet sigregs;
   ConvertSignalRegsFromLibC(uc, &sigregs);
@@ -269,11 +272,12 @@ TEST(SignalTest, IllegalInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(IllegalInstruction));
+            reinterpret_cast<uint64_t>(IllegalInstructionAddr));
 }
 
 // Executes a privileged instruction.
 extern "C" void PrivilegedInstruction(uint64_t arg);
+extern "C" const char PrivilegedInstructionAddr[];
 
 TEST(SignalTest, PrivilegedInstruction) {
   siginfo_t siginfo;
@@ -300,11 +304,12 @@ TEST(SignalTest, PrivilegedInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // One instruction's worth of setup before the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(PrivilegedInstruction) + 5);
+            reinterpret_cast<uint64_t>(PrivilegedInstructionAddr) + 5);
 }
 
 // Executes a debug breakpoint instruction.
 extern "C" void DebugInstruction(uint64_t arg);
+extern "C" const char DebugInstructionAddr[];
 
 TEST(SignalTest, DebugInstruction) {
   siginfo_t siginfo;
@@ -331,7 +336,7 @@ TEST(SignalTest, DebugInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // RIP points _after_ the trap instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(DebugInstruction) + 1);
+            reinterpret_cast<uint64_t>(DebugInstructionAddr) + 1);
 }
 
 }  // namespace

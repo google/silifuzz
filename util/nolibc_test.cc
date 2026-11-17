@@ -29,7 +29,7 @@
 // ========================================================================= //
 
 extern "C" {
-void _start();  // Refereneced by getauxval() test.
+extern const char _start[];  // Refereneced by getauxval() test.
 char* getenv(char const*);
 };
 

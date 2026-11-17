@@ -18,6 +18,8 @@
   .globl  UnmappedRead
   .type   UnmappedRead, @function
 UnmappedRead:
+  .globl  UnmappedReadAddr
+UnmappedReadAddr:
   movq (%rdi), %rdi
   ret
   .size   UnmappedRead, .-UnmappedRead
@@ -26,6 +28,8 @@ UnmappedRead:
   .globl  UnmappedWrite
   .type   UnmappedWrite, @function
 UnmappedWrite:
+  .globl  UnmappedWriteAddr
+UnmappedWriteAddr:
   movq %rdi, (%rdi)
   ret
   .size   UnmappedWrite, .-UnmappedWrite
@@ -34,6 +38,8 @@ UnmappedWrite:
   .globl  IllegalInstruction
   .type   IllegalInstruction, @function
 IllegalInstruction:
+  .globl  IllegalInstructionAddr
+IllegalInstructionAddr:
   ud2
   ret
   .size   IllegalInstruction, .-IllegalInstruction
@@ -42,6 +48,8 @@ IllegalInstruction:
   .globl  PrivilegedInstruction
   .type   PrivilegedInstruction, @function
 PrivilegedInstruction:
+  .globl  PrivilegedInstructionAddr
+PrivilegedInstructionAddr:
   mov $0xC0000080, %ecx
   rdmsr
   ret
@@ -51,6 +59,8 @@ PrivilegedInstruction:
   .globl  DebugInstruction
   .type   DebugInstruction, @function
 DebugInstruction:
+  .globl  DebugInstructionAddr
+DebugInstructionAddr:
   int3
   ret
   .size   DebugInstruction, .-DebugInstruction

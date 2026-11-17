@@ -19,6 +19,7 @@
 #include <cstdint>
 
 #include "gtest/gtest.h"
+#include "absl/base/attributes.h"
 #include "./util/ucontext/signal.h"
 #include "./util/ucontext/ucontext.h"
 
@@ -53,6 +54,7 @@ FatalSignalHandler::~FatalSignalHandler() {
   EXPECT_EQ(sigaltstack(&old_stack_, nullptr), 0);
 }
 
+ABSL_ATTRIBUTE_NO_SANITIZE_CFI
 bool FatalSignalHandler::CaptureSignal(void (*f)(uint64_t), uint64_t arg,
                                        siginfo_t* siginfo, ucontext_t* uc,
                                        ExtraSignalRegs* extra) {

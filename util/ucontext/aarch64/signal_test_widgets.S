@@ -18,6 +18,8 @@
   .globl  UnmappedRead
   .type   UnmappedRead, @function
 UnmappedRead:
+  .globl  UnmappedReadAddr
+UnmappedReadAddr:
   ldr x0, [x0]
   ret
   .size   UnmappedRead, .-UnmappedRead
@@ -26,6 +28,8 @@ UnmappedRead:
   .globl  UnmappedWrite
   .type   UnmappedWrite, @function
 UnmappedWrite:
+  .globl  UnmappedWriteAddr
+UnmappedWriteAddr:
   str x0, [x0]
   ret
   .size   UnmappedWrite, .-UnmappedWrite
@@ -34,6 +38,8 @@ UnmappedWrite:
   .globl  IllegalInstruction
   .type   IllegalInstruction, @function
 IllegalInstruction:
+  .globl  IllegalInstructionAddr
+IllegalInstructionAddr:
   udf 0
   ret
   .size   IllegalInstruction, .-IllegalInstruction
@@ -42,6 +48,8 @@ IllegalInstruction:
   .globl  PrivilegedInstruction
   .type   PrivilegedInstruction, @function
 PrivilegedInstruction:
+  .globl  PrivilegedInstructionAddr
+PrivilegedInstructionAddr:
   mrs x0, esr_el1
   ret
   .size   PrivilegedInstruction, .-PrivilegedInstruction
@@ -50,6 +58,8 @@ PrivilegedInstruction:
   .globl  DebugInstruction
   .type   DebugInstruction, @function
 DebugInstruction:
+  .globl  DebugInstructionAddr
+DebugInstructionAddr:
   brk #7
   ret
   .size   DebugInstruction, .-DebugInstruction
@@ -58,6 +68,8 @@ DebugInstruction:
   .globl  UnalignedStack
   .type   UnalignedStack, @function
 UnalignedStack:
+  .globl  UnalignedStackAddr
+UnalignedStackAddr:
   str x0, [sp, #-8]!
   ldr x0, [sp], #8
   ret

@@ -156,6 +156,7 @@ TEST(SignalTest, HandlerWorksAsExpected) {
 
 // Reads memory at the address `arg`.
 extern "C" void UnmappedRead(uint64_t arg);
+extern "C" const char UnmappedReadAddr[];
 
 TEST(SignalTest, UnmappedRead) {
   const uint64_t kBadAddr = 16;
@@ -194,7 +195,7 @@ TEST(SignalTest, UnmappedRead) {
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(UnmappedRead));
+            reinterpret_cast<uint64_t>(UnmappedReadAddr));
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
@@ -202,6 +203,7 @@ TEST(SignalTest, UnmappedRead) {
 
 // Writes memory at the address `arg`.
 extern "C" void UnmappedWrite(uint64_t arg);
+extern "C" const char UnmappedWriteAddr[];
 
 TEST(SignalTest, UnmappedWrite) {
   const uint64_t kBadAddr = 24;
@@ -240,7 +242,7 @@ TEST(SignalTest, UnmappedWrite) {
   GRegSet<AArch64> gregs;
   ConvertGRegsFromLibC(uc, extra, &gregs);
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(UnmappedWrite));
+            reinterpret_cast<uint64_t>(UnmappedWriteAddr));
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
@@ -375,6 +377,7 @@ TEST(SignalTest, Unexecutable) {
 
 // Intentionally misaligns the stack.
 extern "C" void UnalignedStack(uint64_t arg);
+extern "C" const char UnalignedStackAddr[];
 
 TEST(SignalTest, UnalignedStack) {
   siginfo_t siginfo;
@@ -407,7 +410,7 @@ TEST(SignalTest, UnalignedStack) {
   // One instruction of setup before the fault.
   // Stack alignment issues are detected on use.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(UnalignedStack) + 4);
+            reinterpret_cast<uint64_t>(UnalignedStackAddr) + 4);
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
@@ -415,6 +418,7 @@ TEST(SignalTest, UnalignedStack) {
 
 // Executes an illegal instruction.
 extern "C" void IllegalInstruction(uint64_t arg);
+extern "C" const char IllegalInstructionAddr[];
 
 TEST(SignalTest, IllegalInstruction) {
   siginfo_t siginfo;
@@ -428,7 +432,7 @@ TEST(SignalTest, IllegalInstruction) {
 
   EXPECT_EQ(siginfo.si_signo, SIGILL);
   EXPECT_EQ(siginfo.si_code, ILL_ILLOPC);
-  EXPECT_EQ(siginfo.si_addr, (void*)IllegalInstruction);
+  EXPECT_EQ(siginfo.si_addr, (void*)IllegalInstructionAddr);
   EXPECT_EQ(uc.uc_mcontext.fault_address, 0);
 
   SignalRegSet sigregs;
@@ -443,7 +447,7 @@ TEST(SignalTest, IllegalInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(IllegalInstruction));
+            reinterpret_cast<uint64_t>(IllegalInstructionAddr));
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
@@ -451,6 +455,7 @@ TEST(SignalTest, IllegalInstruction) {
 
 // Executes a privileged instruction.
 extern "C" void PrivilegedInstruction(uint64_t arg);
+extern "C" const char PrivilegedInstructionAddr[];
 
 TEST(SignalTest, PrivilegedInstruction) {
   siginfo_t siginfo;
@@ -464,7 +469,7 @@ TEST(SignalTest, PrivilegedInstruction) {
 
   EXPECT_EQ(siginfo.si_signo, SIGILL);
   EXPECT_EQ(siginfo.si_code, ILL_ILLOPC);  // Not ILL_PRVOPC, for some reason?
-  EXPECT_EQ(siginfo.si_addr, (void*)PrivilegedInstruction);
+  EXPECT_EQ(siginfo.si_addr, (void*)PrivilegedInstructionAddr);
   EXPECT_EQ(uc.uc_mcontext.fault_address, 0);
 
   SignalRegSet sigregs;
@@ -479,7 +484,7 @@ TEST(SignalTest, PrivilegedInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points at the bad instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(PrivilegedInstruction));
+            reinterpret_cast<uint64_t>(PrivilegedInstructionAddr));
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
@@ -487,6 +492,7 @@ TEST(SignalTest, PrivilegedInstruction) {
 
 // Executes a debug breakpoint instruction.
 extern "C" void DebugInstruction(uint64_t arg);
+extern "C" const char DebugInstructionAddr[];
 
 TEST(SignalTest, DebugInstruction) {
   siginfo_t siginfo;
@@ -500,7 +506,7 @@ TEST(SignalTest, DebugInstruction) {
 
   EXPECT_EQ(siginfo.si_signo, SIGTRAP);
   EXPECT_EQ(siginfo.si_code, TRAP_BRKPT);
-  EXPECT_EQ(siginfo.si_addr, (void*)DebugInstruction);
+  EXPECT_EQ(siginfo.si_addr, (void*)DebugInstructionAddr);
   EXPECT_EQ(uc.uc_mcontext.fault_address, 0);
 
   SignalRegSet sigregs;
@@ -515,7 +521,7 @@ TEST(SignalTest, DebugInstruction) {
   ConvertGRegsFromLibC(uc, extra, &gregs);
   // PC points _at_ the debug instruction.
   EXPECT_EQ(gregs.GetInstructionPointer(),
-            reinterpret_cast<uint64_t>(DebugInstruction));
+            reinterpret_cast<uint64_t>(DebugInstructionAddr));
 
   // Check no stray bits are set.
   EXPECT_EQ(gregs.pstate & ~kPStateMask, 0);
