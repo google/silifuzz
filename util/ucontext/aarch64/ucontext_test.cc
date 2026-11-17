@@ -272,6 +272,7 @@ TEST(UContextTest, Underflow) {
 
 extern "C" void SaveThenRestore(UContext<AArch64>* save,
                                 const UContextView<AArch64>& restore_view);
+extern "C" const char SaveThenRestoreAddr[];
 
 TEST(UContextTest, SetJmpLongJmp) {
   // Use SaveUContext/RestoreUContext similar to setjmp/longjmp.
@@ -403,7 +404,7 @@ TEST(UContextTest, SaveThenRestore) {
     }
 
     // Set the location we're jumping to.
-    uintptr_t entry_point = reinterpret_cast<uintptr_t>(&SaveThenRestore);
+    uintptr_t entry_point = reinterpret_cast<uintptr_t>(SaveThenRestoreAddr);
     expected.gregs.x[30] = entry_point;
     expected.gregs.pc = entry_point;
 

@@ -213,7 +213,9 @@ NCZVSaveUContext:
   .p2align 2
   .globl  SaveThenRestore
   .type   SaveThenRestore, @function
+  .globl  SaveThenRestoreAddr
 SaveThenRestore:
+SaveThenRestoreAddr:
   // Save the arguments because SaveUContext may clobber them.
   stp x0, x1, [sp, #-16]!
 
