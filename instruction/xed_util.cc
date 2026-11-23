@@ -54,52 +54,13 @@ bool FormatInstruction(const xed_decoded_inst_t& instruction, uint64_t address,
   return xed_format_generic(&pi);
 }
 
-bool InstructionIsAllowedInRunner(const xed_inst_t* instruction) {
-  return InstructionClassIsAllowedInRunner(instruction) &&
-         InstructionExtensionIsAllowedInRunner(instruction) &&
-         InstructionCanRunInUserSpace(instruction) &&
-         !InstructionRequiresIOPrivileges(instruction);
-}
+namespace {
 
-bool DecodedInstructionIsAllowedInRunner(
-    const xed_decoded_inst_t* decoded_insn) {
-  if (decoded_insn == nullptr) return false;
-  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(decoded_insn);
-  // Ban clzero with a prefix as it may crash some platforms (e.g. Turin) with
-  // `SIGILL`.
-  if (iclass == XED_ICLASS_CLZERO &&
-      xed_decoded_inst_get_nprefixes(decoded_insn) > 0) {
-    return false;
-  }
-  // Ban `movbe` for internal reasons.
-  if (iclass == XED_ICLASS_MOVBE) {
-    return false;
-  }
-  // If (V)PALIGNR instructions cause a general protection fault, this can
-  // trigger a bug in the linux kernel where it misidentifies them as STR
-  // instructions that need to be emulated. A (V)PALIGNR instruction with a
-  // memory operand can cause a GP by accessing a non-canonical address (top
-  // byte not all zeros or all ones). When this occurs, a 5.10 kernel will
-  // "emulate" the STR instruction and mask the GP, whereas a 4.15 kernel will
-  // cause a SEGV @ address 0. As long as Silifuzz is running on kernels with
-  // this bug, we need to filter out tests that can trigger it of there will be
-  // false positives, particularly if the tests are made on one kernel version
-  // and run on another. Trapping into the kernel also slows down execution. The
-  // narrowest way to fix this is to filter out all (V)PALIGNR instructions that
-  // try to access a non-canonical address.  This sort of filtering has a
-  // non-trivial implementation, however, so instead we're banning all
-  // (V)PALIGNR instructions with a memory operand and accepting a slight loss
-  // of coverage.
-  if (iclass == XED_ICLASS_PALIGNR || iclass == XED_ICLASS_VPALIGNR) {
-    // It was not verified that plain-old PALIGNR can trigger the bug, but it is
-    // filtered here out of an abundance of caution.
-    if (xed_decoded_inst_number_of_memory_operands(decoded_insn) > 0) {
-      return false;
-    }
-  }
-  return InstructionIsAllowedInRunner(xed_decoded_inst_inst(decoded_insn));
-}
-
+// Does this instruction produce the same result every time when it is run
+// inside the runner? An obvious type of instruction that is non-deterministic
+// are instructions that produce random numbers. A less obvious type of
+// instruction are instructions that depend on state the runner does not /
+// cannot control.
 bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
   switch (xed_inst_iclass(instruction)) {
     case XED_ICLASS_RDPID:
@@ -185,9 +146,6 @@ bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
       // Non-deterministic but also controlled by CR4.UMIP disables these on
       // newer platforms.
       return false;
-    case XED_ICLASS_XBEGIN:
-    case XED_ICLASS_XEND:
-    case XED_ICLASS_XABORT:
     case XED_ICLASS_MWAIT:
     case XED_ICLASS_MWAITX:
     case XED_ICLASS_MONITOR:
@@ -204,23 +162,82 @@ bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction) {
   }
 }
 
+// Is this instruction part of an extension that is supported by Silifuzz?  Not
+// all instruction set extensions are supported.
 bool InstructionExtensionIsAllowedInRunner(const xed_inst_t* instruction) {
   switch (xed_inst_extension(instruction)) {
     case XED_EXTENSION_AMX_TILE:
       // These are AMX instructions that we do not plan to support (b/432543671)
+      return false;
+    case XED_EXTENSION_RTM:
+    case XED_EXTENSION_TSX_LDTRK:
+      // Intel TSX instructions are not deterministic across
+      // hosts/configurations depending on whether TSX is supported and enabled.
       return false;
     default:
       return true;
   }
 }
 
+// Is this an unprivileged instruction? Useful for filtering instructions before
+// the run on hardware. Once they run on hardware, the answer should be obvious.
 bool InstructionCanRunInUserSpace(const xed_inst_t* instruction) {
   return xed_inst_cpl(instruction) >= 3;
 }
 
+// Is this an IO instruction? IO instructions can run in user space, but the
+// runner does not have the privilege to do so.
 bool InstructionRequiresIOPrivileges(const xed_inst_t* instruction) {
   xed_category_enum_t category = xed_inst_category(instruction);
   return category == XED_CATEGORY_IO || category == XED_CATEGORY_IOSTRINGOP;
+}
+
+}  // namespace
+
+bool InstructionIsAllowedInRunner(const xed_inst_t* instruction) {
+  return InstructionClassIsAllowedInRunner(instruction) &&
+         InstructionExtensionIsAllowedInRunner(instruction) &&
+         InstructionCanRunInUserSpace(instruction) &&
+         !InstructionRequiresIOPrivileges(instruction);
+}
+
+bool DecodedInstructionIsAllowedInRunner(
+    const xed_decoded_inst_t* decoded_insn) {
+  if (decoded_insn == nullptr) return false;
+  xed_iclass_enum_t iclass = xed_decoded_inst_get_iclass(decoded_insn);
+  // Ban clzero with a prefix as it may crash some platforms (e.g. Turin) with
+  // `SIGILL`.
+  if (iclass == XED_ICLASS_CLZERO &&
+      xed_decoded_inst_get_nprefixes(decoded_insn) > 0) {
+    return false;
+  }
+  // Ban `movbe` for internal reasons.
+  if (iclass == XED_ICLASS_MOVBE) {
+    return false;
+  }
+  // If (V)PALIGNR instructions cause a general protection fault, this can
+  // trigger a bug in the linux kernel where it misidentifies them as STR
+  // instructions that need to be emulated. A (V)PALIGNR instruction with a
+  // memory operand can cause a GP by accessing a non-canonical address (top
+  // byte not all zeros or all ones). When this occurs, a 5.10 kernel will
+  // "emulate" the STR instruction and mask the GP, whereas a 4.15 kernel will
+  // cause a SEGV @ address 0. As long as Silifuzz is running on kernels with
+  // this bug, we need to filter out tests that can trigger it of there will be
+  // false positives, particularly if the tests are made on one kernel version
+  // and run on another. Trapping into the kernel also slows down execution. The
+  // narrowest way to fix this is to filter out all (V)PALIGNR instructions that
+  // try to access a non-canonical address.  This sort of filtering has a
+  // non-trivial implementation, however, so instead we're banning all
+  // (V)PALIGNR instructions with a memory operand and accepting a slight loss
+  // of coverage.
+  if (iclass == XED_ICLASS_PALIGNR || iclass == XED_ICLASS_VPALIGNR) {
+    // It was not verified that plain-old PALIGNR can trigger the bug, but it is
+    // filtered here out of an abundance of caution.
+    if (xed_decoded_inst_number_of_memory_operands(decoded_insn) > 0) {
+      return false;
+    }
+  }
+  return InstructionIsAllowedInRunner(xed_decoded_inst_inst(decoded_insn));
 }
 
 bool InstructionIsBranch(const xed_inst_t* instruction) {

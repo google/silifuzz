@@ -49,25 +49,6 @@ bool InstructionIsAllowedInRunner(const xed_inst_t* instruction);
 bool DecodedInstructionIsAllowedInRunner(
     const xed_decoded_inst_t* decoded_insn);
 
-// Does this instruction produce the same result every time when it is run
-// inside the runner? An obvious type of instruction that is non-deterministic
-// are instructions that produce random numbers. A less obvious type of
-// instruction are instructions that depend on state the runner does not /
-// cannot control.
-bool InstructionClassIsAllowedInRunner(const xed_inst_t* instruction);
-
-// Is this instruction part of an extension that is supported by Silifuzz?  Not
-// all instruction set extensions are supported.
-bool InstructionExtensionIsAllowedInRunner(const xed_inst_t* instruction);
-
-// Is this an unprivileged instruction? Useful for filtering instructions before
-// the run on hardware. Once they run on hardware, the answer should be obvious.
-bool InstructionCanRunInUserSpace(const xed_inst_t* instruction);
-
-// Is this an IO instruction? IO instructions can run in user space, but the
-// runner does not have the privilege to do so.
-bool InstructionRequiresIOPrivileges(const xed_inst_t* instruction);
-
 // Can this instruction alter the instruction pointer?
 bool InstructionIsBranch(const xed_inst_t* instruction);
 

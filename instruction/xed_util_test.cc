@@ -51,6 +51,7 @@ struct XedTest {
   bool is_x87;
   bool is_avx512_evex;
   bool is_amx;
+  bool is_tsx;
 };
 
 std::vector<XedTest> MakeXedTests() {
@@ -136,6 +137,57 @@ std::vector<XedTest> MakeXedTests() {
           .bytes = {0xc4, 0xe2, 0x63, 0x5c, 0xca},
           .is_amx = true,
       },
+      {
+          .text = "xbegin 0x10006",
+          .bytes = {0xc7, 0xf8, 0x00, 0x00, 0x00, 0x00},
+          .is_branch = true,
+          .is_tsx = true,
+      },
+      {
+          .text = "xend",
+          .bytes = {0x0f, 0x01, 0xd5},
+          .is_branch = true,
+          .is_tsx = true,
+      },
+      {
+          .text = "xabort 0x0",
+          .bytes = {0xc6, 0xf8, 0x00},
+          .is_branch = true,
+          .is_tsx = true,
+      },
+      {
+          .text = "xtest ",
+          .bytes = {0x0f, 0x01, 0xd6},
+          .is_tsx = true,
+      },
+      // xtest with multiple/redundant REX prefixes.
+      {
+          .text = "xtest ",
+          .bytes = {0x48, 0x49, 0x40, 0x0f, 0x01, 0xd6},
+          .is_tsx = true,
+      },
+      // xtest with address-size override prefix (0x67).
+      {
+          .text = "addr32 xtest ",
+          .bytes = {0x67, 0x0f, 0x01, 0xd6},
+          .is_tsx = true,
+      },
+      {
+          .text = "xsusldtrk",
+          .bytes = {0xf2, 0x0f, 0x01, 0xe8},
+          .is_tsx = true,
+      },
+      // xsusldtrk with operand-size override prefix (0x66).
+      {
+          .text = "data16 xsusldtrk",
+          .bytes = {0xf2, 0x66, 0x0f, 0x01, 0xe8},
+          .is_tsx = true,
+      },
+      {
+          .text = "xresldtrk",
+          .bytes = {0xf2, 0x0f, 0x01, 0xe9},
+          .is_tsx = true,
+      },
   };
 }
 
@@ -161,16 +213,9 @@ TEST_F(XedUtilTest, InstructionPredicates) {
         EXPECT_STREQ(text, test.text.c_str()) << test.text;
       }
       const xed_inst_t* instruction = xed_decoded_inst_inst(&xedd);
-      EXPECT_EQ(test.not_deterministic,
-                !InstructionClassIsAllowedInRunner(instruction))
-          << test.text;
-      EXPECT_EQ(test.not_userspace, !InstructionCanRunInUserSpace(instruction))
-          << test.text;
       EXPECT_EQ(test.is_branch, InstructionIsBranch(instruction)) << test.text;
-      EXPECT_EQ(test.is_io, InstructionRequiresIOPrivileges(instruction))
-          << test.text;
       EXPECT_EQ(!test.not_deterministic && !test.is_io && !test.not_userspace &&
-                    !test.is_amx,
+                    !test.is_amx && !test.is_tsx,
                 InstructionIsAllowedInRunner(instruction))
           << test.text;
       EXPECT_EQ(test.is_sse, InstructionIsSSE(instruction)) << test.text;
@@ -245,9 +290,12 @@ TEST_F(XedUtilTest, DecodedInstructionIsAllowedInRunner) {
     xed_decoded_inst_zero(&xedd);
     xed_decoded_inst_set_mode(&xedd, XED_MACHINE_MODE_LONG_64,
                               XED_ADDRESS_WIDTH_64b);
-    if (xed_decode(&xedd, bytes.data(), bytes.size()) != XED_ERROR_NONE) {
+    xed_error_enum_t err = xed_decode(&xedd, bytes.data(), bytes.size());
+    EXPECT_EQ(err, XED_ERROR_NONE);
+    if (err != XED_ERROR_NONE) {
       return false;
     }
+    EXPECT_EQ(xed_decoded_inst_get_length(&xedd), bytes.size());
     return DecodedInstructionIsAllowedInRunner(&xedd);
   };
 
@@ -262,6 +310,20 @@ TEST_F(XedUtilTest, DecodedInstructionIsAllowedInRunner) {
 
   // RDRAND is banned
   EXPECT_FALSE(decode_and_check({0x0F, 0xC7, 0xF0}));
+
+  // TSX (RTM / TSX_LDTRK) instructions are banned
+  EXPECT_FALSE(
+      decode_and_check({0xC7, 0xF8, 0x00, 0x00, 0x00, 0x00}));  // xbegin
+  EXPECT_FALSE(decode_and_check({0x0F, 0x01, 0xD5}));           // xend
+  EXPECT_FALSE(decode_and_check({0xC6, 0xF8, 0x00}));           // xabort
+  EXPECT_FALSE(decode_and_check({0x0F, 0x01, 0xD6}));           // xtest
+  // xtest with multiple/redundant REX prefixes
+  EXPECT_FALSE(decode_and_check({0x48, 0x49, 0x40, 0x0F, 0x01, 0xD6}));
+  EXPECT_FALSE(decode_and_check({0x67, 0x0F, 0x01, 0xD6}));  // addr32 xtest
+  EXPECT_FALSE(decode_and_check({0xF2, 0x0F, 0x01, 0xE8}));  // xsusldtrk
+  // data16 xsusldtrk
+  EXPECT_FALSE(decode_and_check({0xF2, 0x66, 0x0F, 0x01, 0xE8}));
+  EXPECT_FALSE(decode_and_check({0xF2, 0x0F, 0x01, 0xE9}));  // xresldtrk
 
   // Nullptr returns false
   EXPECT_FALSE(DecodedInstructionIsAllowedInRunner(nullptr));
