@@ -353,6 +353,11 @@ message SnapshotSummary {
   // Snapshot memory mappings.
   repeated MemoryMapping memory_mappings = 2;
 
-  // Opaque sort key.
+  // Legacy 32-bit opaque sort key. Superseded by `sort_key64`. Kept for
+  // backward compatibility when reading previously persisted messages; new
+  // messages only populate `sort_key64`.
   optional int32 sort_key = 3;
+
+  // Opaque 64-bit sort key. Supersedes `sort_key`.
+  optional int64 sort_key64 = 4;
 }

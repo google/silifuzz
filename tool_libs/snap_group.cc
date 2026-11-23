@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <thread>  // NOLINT(build/c++11)
 #include <vector>
 
@@ -28,6 +29,7 @@
 #include "./common/memory_perms.h"
 #include "./common/snapshot.h"
 #include "./util/checks.h"
+#include "./util/platform.h"
 #include "./util/thread_pool.h"
 
 namespace silifuzz {
@@ -164,11 +166,17 @@ SnapshotGroup::SnapshotSummary::SnapshotSummary(const Snapshot& snapshot)
     // Bucket by platforms. Empirically, this helps group snapshots that have
     // the same exact expected end state for all platforms into the same
     // shard(s).
+    static_assert(
+        static_cast<int>(kMaxPlatformId) < std::numeric_limits<int64_t>::digits,
+        "PlatformId does not fit in the non-sign bits of int64_t sort_key");
     uint64_t bits = 0;
-    for (const auto& p : snapshot.expected_end_states()[0].platforms()) {
-      bits |= 1ULL << static_cast<int>(p);
+    for (const PlatformId p : snapshot.expected_end_states()[0].platforms()) {
+      const int platform_bit = static_cast<int>(p);
+      DCHECK_GE(platform_bit, 0);
+      DCHECK_LT(platform_bit, std::numeric_limits<int64_t>::digits);
+      bits |= 1ULL << platform_bit;
     }
-    sort_key_ = -static_cast<int>(bits);
+    sort_key_ = -static_cast<int64_t>(bits);
   }
 }
 

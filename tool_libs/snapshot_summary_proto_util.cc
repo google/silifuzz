@@ -14,6 +14,8 @@
 
 #include "./tool_libs/snapshot_summary_proto_util.h"
 
+#include <cstdint>
+
 #include "absl/status/statusor.h"
 #include "./common/memory_mapping.h"
 #include "./common/snapshot_proto.h"
@@ -30,15 +32,17 @@ absl::StatusOr<SnapshotGroup::SnapshotSummary> SnapshotSummaryProto::FromProto(
     ASSIGN_OR_RETURN_IF_NOT_OK(auto m, SnapshotProto::FromProto(mp));
     memory_mappings.emplace_back(m);
   }
-  return SnapshotGroup::SnapshotSummary(proto.id(), memory_mappings,
-                                        proto.sort_key());
+  const int64_t sort_key =
+      proto.has_sort_key64() ? proto.sort_key64() : proto.sort_key();
+  return SnapshotGroup::SnapshotSummary(proto.id(), memory_mappings, sort_key);
 }
 
 void SnapshotSummaryProto::ToProto(
     const SnapshotGroup::SnapshotSummary& summary,
     proto::SnapshotSummary* summary_proto) {
+  summary_proto->Clear();
   summary_proto->set_id(summary.id());
-  summary_proto->set_sort_key(summary.sort_key());
+  summary_proto->set_sort_key64(summary.sort_key());
   for (const MemoryMapping& m : summary.memory_mappings()) {
     SnapshotProto::ToProto(m, summary_proto->add_memory_mappings());
   }

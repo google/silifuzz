@@ -15,6 +15,7 @@
 #include "./tool_libs/snap_group.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -246,6 +247,75 @@ TEST(SnapshotGroup, LessThan) {
   // over the ID when sorting according to SnapshotSummary::operator<().
   EXPECT_LT(snapshot_summary_1.id(), snapshot_summary_2.id());
   EXPECT_LT(snapshot_summary_2, snapshot_summary_1);
+}
+
+TEST(SnapshotSummary, HighPlatformIdSortKeys) {
+  auto make_summary = [](const std::string& id,
+                         const std::vector<PlatformId>& platforms) {
+    Snapshot snapshot(Snapshot::Architecture::kX86_64, id);
+    snapshot.add_memory_mapping(
+        MemoryMapping::MakeSized(0x1234000ULL, 0x4000, MemoryPerms::XR()));
+    Snapshot::EndState es(Snapshot::Endpoint(0x1234000ULL));
+    for (PlatformId p : platforms) {
+      es.add_platform(p);
+    }
+    CHECK_STATUS(snapshot.can_add_expected_end_state(es));
+    snapshot.add_expected_end_state(es);
+    return SnapshotGroup::SnapshotSummary(snapshot);
+  };
+
+  constexpr int64_t kSprBit =
+      int64_t{1} << static_cast<int>(PlatformId::kIntelSapphireRapids);
+  constexpr int64_t kGnrBit =
+      int64_t{1} << static_cast<int>(PlatformId::kIntelGraniteRapids);
+  constexpr int64_t kDmrBit =
+      int64_t{1} << static_cast<int>(PlatformId::kIntelDiamondRapids);
+
+  // Give broader platform sets lexicographically larger IDs so operator< must
+  // rely on sort_key rather than falling back to id_.
+  const auto spr = make_summary("snap_a", {PlatformId::kIntelSapphireRapids});
+  const auto gnr = make_summary("snap_b", {PlatformId::kIntelGraniteRapids});
+  const auto spr_gnr = make_summary(
+      "snap_c",
+      {PlatformId::kIntelSapphireRapids, PlatformId::kIntelGraniteRapids});
+  const auto dmr = make_summary("snap_d", {PlatformId::kIntelDiamondRapids});
+  const auto spr_dmr = make_summary(
+      "snap_e",
+      {PlatformId::kIntelSapphireRapids, PlatformId::kIntelDiamondRapids});
+  const auto spr_gnr_dmr =
+      make_summary("snap_f", {PlatformId::kIntelSapphireRapids,
+                              PlatformId::kIntelGraniteRapids,
+                              PlatformId::kIntelDiamondRapids});
+
+  // Multi-end-state snapshot gets sort_key == 0.
+  Snapshot multi_snapshot(Snapshot::Architecture::kX86_64, "snap_0");
+  multi_snapshot.add_memory_mapping(
+      MemoryMapping::MakeSized(0x1234000ULL, 0x4000, MemoryPerms::XR()));
+  Snapshot::EndState es_a(Snapshot::Endpoint(0x1234000ULL));
+  es_a.add_platform(PlatformId::kIntelGraniteRapids);
+  CHECK_STATUS(multi_snapshot.can_add_expected_end_state(es_a));
+  multi_snapshot.add_expected_end_state(es_a);
+  Snapshot::EndState es_b(Snapshot::Endpoint(0x1234004ULL));
+  es_b.add_platform(PlatformId::kIntelDiamondRapids);
+  CHECK_STATUS(multi_snapshot.can_add_expected_end_state(es_b));
+  multi_snapshot.add_expected_end_state(es_b);
+  const SnapshotGroup::SnapshotSummary multi(multi_snapshot);
+
+  EXPECT_EQ(spr.sort_key(), -kSprBit);
+  EXPECT_EQ(gnr.sort_key(), -kGnrBit);
+  EXPECT_EQ(spr_gnr.sort_key(), -(kSprBit | kGnrBit));
+  EXPECT_EQ(dmr.sort_key(), -kDmrBit);
+  EXPECT_EQ(spr_dmr.sort_key(), -(kSprBit | kDmrBit));
+  EXPECT_EQ(spr_gnr_dmr.sort_key(), -(kSprBit | kGnrBit | kDmrBit));
+  EXPECT_EQ(multi.sort_key(), 0);
+
+  // Platforms >= 32 must not truncate and collide with 0 or lower-bit masks.
+  EXPECT_LT(spr_gnr_dmr, spr_dmr);
+  EXPECT_LT(spr_dmr, dmr);
+  EXPECT_LT(dmr, spr_gnr);
+  EXPECT_LT(spr_gnr, gnr);
+  EXPECT_LT(gnr, spr);
+  EXPECT_LT(spr, multi);
 }
 
 }  // namespace

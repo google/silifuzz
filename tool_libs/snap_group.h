@@ -16,6 +16,7 @@
 #define THIRD_PARTY_SILIFUZZ_TOOL_LIBS_SNAP_GROUP_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -83,7 +84,7 @@ class SnapshotGroup {
 
     // Constructs Summary instance from bits.
     SnapshotSummary(const Id& id, const MemoryMappingList& memory_mappings,
-                    int sort_key)
+                    int64_t sort_key)
         : id_(id), memory_mappings_(memory_mappings), sort_key_(sort_key) {}
     ~SnapshotSummary() = default;
 
@@ -93,7 +94,7 @@ class SnapshotGroup {
     const MemoryMappingList& memory_mappings() const {
       return memory_mappings_;
     }
-    int sort_key() const { return sort_key_; }
+    int64_t sort_key() const { return sort_key_; }
 
     // Comparison friend operators.
     friend bool operator<(const SnapshotSummary& lhs,
@@ -116,7 +117,7 @@ class SnapshotGroup {
     MemoryMappingList memory_mappings_;
 
     // Sort key used to stably order snapshots.
-    int sort_key_ = 0;
+    int64_t sort_key_ = 0;
   };
 
   using SnapshotSummaryList = std::vector<SnapshotSummary>;

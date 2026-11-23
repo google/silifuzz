@@ -107,6 +107,7 @@ cc_library(
         "@silifuzz//common:memory_perms",
         "@silifuzz//common:snapshot",
         "@silifuzz//util:checks",
+        "@silifuzz//util:platform",
         "@silifuzz//util:thread_pool",
         "@abseil-cpp//absl/container:flat_hash_set",
         "@abseil-cpp//absl/status",
@@ -146,5 +147,21 @@ cc_library(
         "@silifuzz//proto:snapshot_cc_proto",
         "@silifuzz//util:checks",
         "@abseil-cpp//absl/status:statusor",
+    ],
+)
+
+cc_test(
+    name = "snapshot_summary_proto_util_test",
+    srcs = ["snapshot_summary_proto_util_test.cc"],
+    deps = [
+        ":snap_group",
+        ":snapshot_summary_proto_util",
+        "@silifuzz//common:memory_mapping",
+        "@silifuzz//common:memory_perms",
+        "@silifuzz//common:snapshot",
+        "@silifuzz//proto:snapshot_cc_proto",
+        "@silifuzz//util:platform",
+        "@silifuzz//util/testing:status_macros",
+        "@googletest//:gtest_main",
     ],
 )
