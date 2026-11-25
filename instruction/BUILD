@@ -48,8 +48,10 @@ cc_test(
     srcs = ["static_insn_filter_test.cc"],
     deps = [
         ":static_insn_filter",
+        ":xed_util",
         "@silifuzz//util:arch",
         "@googletest//:gtest_main",
+        "@libxed//:xed",
     ],
 )
 

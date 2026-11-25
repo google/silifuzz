@@ -164,6 +164,9 @@ absl::Status NativeTracer::InitSnippet(
     const FuzzingConfig<Host>& fuzzing_config) {
   MakingConfig making_config = MakingConfig::Quick(RunnerLocation());
   making_config.enforce_fuzzing_config = tracer_config.enforce_fuzzing_config;
+#if defined(__x86_64__)
+  making_config.x86_instruction_filter = fuzzing_config.instruction_filter;
+#endif
   ASSIGN_OR_RETURN_IF_NOT_OK(
       Snapshot snapshot,
       MakeRawInstructions(instructions, making_config, fuzzing_config));

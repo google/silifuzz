@@ -22,8 +22,10 @@
 #include "absl/time/time.h"
 #include "./common/snapshot.h"
 #include "./common/snapshot_enums.h"
+#include "./instruction/static_insn_filter.h"
 #include "./player/play_options.h"
 #include "./player/trace_options.h"
+#include "./util/arch.h"
 #include "./util/cpu_id.h"
 
 namespace silifuzz {
@@ -72,6 +74,10 @@ class SnapMaker {
     // If true, enforce proxy fuzzing config. Snapshots with nonconforming
     // mappings are rejected.
     bool enforce_fuzzing_config = true;
+
+    // Static instruction filter configuration applied to executable bytes on
+    // x86_64 before native execution in Make().
+    InstructionFilterConfig<X86_64> x86_instruction_filter = {};
 
     absl::Status Validate() const {
       if (runner_path.empty()) {

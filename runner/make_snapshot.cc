@@ -54,6 +54,7 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot,
   opts.cpu = making_config.cpu;
   opts.cpu_time_budget = making_config.cpu_time_budget;
   opts.enforce_fuzzing_config = making_config.enforce_fuzzing_config;
+  opts.x86_instruction_filter = making_config.x86_instruction_filter;
   SnapMaker maker(opts);
 
   ASSIGN_OR_RETURN_IF_NOT_OK_PLUS(Snapshot made_snapshot, maker.Make(snapshot),
@@ -76,14 +77,25 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot,
 absl::StatusOr<Snapshot> MakeRawInstructions(
     absl::string_view instructions, const MakingConfig& making_config,
     const FuzzingConfig<Host>& fuzzing_config) {
+  FuzzingConfig<Host> effective_fuzzing_config = fuzzing_config;
+  MakingConfig effective_making_config = making_config;
+#if defined(__x86_64__)
+  // Restrictively merge both x86-64 static filter configs so neither parameter
+  // can silently relax the other.
+  effective_fuzzing_config.instruction_filter.umip_instructions_allowed =
+      making_config.x86_instruction_filter.umip_instructions_allowed &&
+      fuzzing_config.instruction_filter.umip_instructions_allowed;
+  effective_making_config.x86_instruction_filter =
+      effective_fuzzing_config.instruction_filter;
+#endif
   // Create the initial snapshot.
   ASSIGN_OR_RETURN_IF_NOT_OK(
       Snapshot snapshot,
-      InstructionsToSnapshot<Host>(instructions, fuzzing_config));
+      InstructionsToSnapshot<Host>(instructions, effective_fuzzing_config));
   snapshot.set_id(InstructionsToSnapshotId(instructions));
 
   // Make to add the exit sequence, etc.
-  return MakeSnapshot(snapshot, making_config);
+  return MakeSnapshot(snapshot, effective_making_config);
 }
 
 }  // namespace silifuzz

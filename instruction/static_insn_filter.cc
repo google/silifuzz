@@ -15,6 +15,7 @@
 #include "./instruction/static_insn_filter.h"
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 
@@ -24,11 +25,68 @@
 
 namespace silifuzz {
 
+// x86_64 filter
+namespace {
+
+// Returns true if [0x0F, op2, modrm] matches the opcode and ModRM encoding of
+// an x86-64 UMIP (User-Mode Instruction Prevention) instruction: SGDT, SIDT,
+// SMSW, SLDT, or STR.
+//
+// All legacy prefixes (including segment override prefixes such as 0x2E CS)
+// and REX prefixes precede the 0x0F escape byte, so [0x0F, op2, ModRM] is
+// always contiguous. REX.R does not affect ModRM.reg opcode-extension
+// decoding.
+constexpr bool IsX86UmipOpcodeAndModRM(uint8_t op2, uint8_t modrm) {
+  const uint8_t mod = (modrm >> 6) & 0x03;
+  const uint8_t reg = (modrm >> 3) & 0x07;
+  if (op2 == 0x01) {
+    // 0F 01 /0 (mod != 0x03): SGDT m
+    // 0F 01 /1 (mod != 0x03): SIDT m
+    // 0F 01 /4 (any mod):     SMSW r/m
+    return reg == 0x04 || (mod != 0x03 && (reg == 0x00 || reg == 0x01));
+  }
+  if (op2 == 0x00) {
+    // 0F 00 /0 (any mod): SLDT r/m
+    // 0F 00 /1 (any mod): STR r/m
+    return reg == 0x00 || reg == 0x01;
+  }
+  return false;
+}
+
+// Returns true if `code` contains any x86-64 UMIP instruction encoding
+// (SGDT, SIDT, SMSW, SLDT, STR) at any byte offset. These instructions are
+// always disallowed in the runner and trap into the kernel when CR4.UMIP is
+// enabled, where software emulation bugs can hang or misbehave before the
+// tracer runs.
+bool HasX86UmipInstructions(absl::string_view code) {
+  if (code.size() < 3) {
+    return false;
+  }
+  const absl::string_view escape_0f_scan = code.substr(0, code.size() - 2);
+  for (size_t pos = escape_0f_scan.find('\x0f'); pos != absl::string_view::npos;
+       pos = escape_0f_scan.find('\x0f', pos + 1)) {
+    if (IsX86UmipOpcodeAndModRM(static_cast<uint8_t>(code[pos + 1]),
+                                static_cast<uint8_t>(code[pos + 2]))) {
+      return true;
+    }
+  }
+  // TODO: b/445746264 - Check Intel APX REX2 Map 1 encodings
+  // (0xD5 <payload with M0=1> <0x00|0x01> <ModRM>) once APX is supported.
+  return false;
+}
+
+}  // namespace
+
+// For x86_64, instructions are variable-length and branches can target
+// arbitrary byte offsets within `code`, so we conservatively scan every byte
+// offset for banned instruction encodings that are unsafe to execute natively
+// before single-step tracing.
 template <>
 bool StaticInstructionFilter<X86_64>(
     absl::string_view code, const InstructionFilterConfig<X86_64>& config) {
-  // It's difficult to reliably disassemble x86_64 instructions, so for now we
-  // don't try.
+  if (!config.umip_instructions_allowed && HasX86UmipInstructions(code)) {
+    return false;
+  }
   return true;
 }
 

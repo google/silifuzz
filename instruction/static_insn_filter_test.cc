@@ -14,14 +14,19 @@
 
 #include "./instruction/static_insn_filter.h"
 
-#include <stdint.h>
-
+#include <cstddef>
+#include <cstdint>
 #include <ios>
 #include <string>
 #include <vector>
 
 #include "gtest/gtest.h"
+#include "./instruction/xed_util.h"
 #include "./util/arch.h"
+
+extern "C" {
+#include "third_party/libxed/xed-interface.h"
+}
 
 namespace silifuzz {
 
@@ -31,6 +36,16 @@ std::string FromInts(std::vector<uint32_t>&& data) {
   return std::string(reinterpret_cast<char*>(&*data.begin()),
                      reinterpret_cast<char*>(&*data.end()));
 }
+
+std::string FromBytes(std::vector<uint8_t>&& data) {
+  return std::string(data.begin(), data.end());
+}
+
+#define EXPECT_X86_64_FILTER_ACCEPT_CONFIG(config, ...) \
+  EXPECT_TRUE(StaticInstructionFilter<X86_64>(FromBytes(__VA_ARGS__), config))
+
+#define EXPECT_X86_64_FILTER_REJECT_CONFIG(config, ...) \
+  EXPECT_FALSE(StaticInstructionFilter<X86_64>(FromBytes(__VA_ARGS__), config))
 
 #define EXPECT_AARCH64_FILTER_ACCEPT(insn) \
   EXPECT_TRUE(StaticInstructionFilter<AArch64>(FromInts(insn)))
@@ -2019,6 +2034,264 @@ TEST(StaticInsnFilter, LoadPairDestinationOverlap) {
   EXPECT_AARCH64_FILTER_ACCEPT({0x6d001cc7});
   // stilp x2, x2, [x4]
   EXPECT_AARCH64_FILTER_ACCEPT({0xd9021882});
+}
+
+TEST(StaticInsnFilter, X86UmipInstructions) {
+  const InstructionFilterConfig<X86_64> banned = {
+      .umip_instructions_allowed = false,
+  };
+  const InstructionFilterConfig<X86_64> allowed = {
+      .umip_instructions_allowed = true,
+  };
+
+  // SGDT m (0F 01 /0, mod != 3):
+  // sgdt [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x01, 0x00});
+  // cs sgdt [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x2e, 0x0f, 0x01, 0x00});
+  // cs sgdt [rsp+0x8]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned,
+                                     {0x2e, 0x0f, 0x01, 0x44, 0x24, 0x08});
+  // rex.W sgdt [rax+0x0] (disp32)
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(
+      banned, {0x48, 0x0f, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00});
+
+  // SIDT m (0F 01 /1, mod != 3):
+  // sidt [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x01, 0x08});
+  // cs sidt [rip+0x0]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(
+      banned, {0x2e, 0x0f, 0x01, 0x0d, 0x00, 0x00, 0x00, 0x00});
+
+  // SMSW r/m (0F 01 /4, any mod):
+  // smsw word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x01, 0x20});
+  // cs smsw word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x2e, 0x0f, 0x01, 0x20});
+  // smsw eax
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x01, 0xe0});
+  // smsw rdi
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x48, 0x0f, 0x01, 0xe7});
+
+  // SLDT r/m (0F 00 /0, any mod):
+  // sldt word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x00, 0x00});
+  // cs sldt word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x2e, 0x0f, 0x00, 0x00});
+  // sldt eax
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x00, 0xc0});
+
+  // STR r/m (0F 00 /1, any mod):
+  // str word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x00, 0x08});
+  // cs str word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x2e, 0x0f, 0x00, 0x08});
+  // str eax
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x0f, 0x00, 0xc8});
+
+  // Encodings at non-zero offsets and after earlier 0x0F bytes:
+  // nop; 0x0f; sgdt [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0x90, 0x0f, 0x0f, 0x01, 0x00});
+  // encls; sgdt [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned,
+                                     {0x0f, 0x01, 0xcf, 0x0f, 0x01, 0x00});
+  // nop; rdtsc; cs str word ptr [rax]
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(
+      banned, {0x90, 0x0f, 0x31, 0x2e, 0x0f, 0x00, 0x08});
+
+  // Allowed when `umip_instructions_allowed` is true:
+  // cs sgdt [rax]
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(allowed, {0x2e, 0x0f, 0x01, 0x00});
+  // jmp +15 (`rel32` = 0x0000000f contains unaligned `0f 00 00` = sldt [rax])
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(allowed, {0xe9, 0x0f, 0x00, 0x00, 0x00});
+  // jmp +15 (`rel32` = 0x0000000f contains unaligned `0f 00 00` = sldt [rax])
+  EXPECT_X86_64_FILTER_REJECT_CONFIG(banned, {0xe9, 0x0f, 0x00, 0x00, 0x00});
+}
+
+std::string EncodeXedOrEmpty(const InstructionBuilder& builder) {
+  uint8_t buf[16];
+  size_t len = sizeof(buf);
+  if (!builder.Encode(buf, len)) {
+    ADD_FAILURE() << "Failed to encode "
+                  << xed_iclass_enum_t2str(builder.iclass());
+    return {};
+  }
+  return std::string(reinterpret_cast<const char*>(buf), len);
+}
+
+TEST(StaticInsnFilter, X86UmipXedEncoded) {
+  InitXedIfNeeded();
+  const InstructionFilterConfig<X86_64> banned = {
+      .umip_instructions_allowed = false,
+  };
+  const InstructionFilterConfig<X86_64> allowed = {
+      .umip_instructions_allowed = true,
+  };
+
+  auto expect_rejected = [&](const InstructionBuilder& builder) {
+    const std::string encoded = EncodeXedOrEmpty(builder);
+    EXPECT_FALSE(encoded.empty());
+    EXPECT_FALSE(StaticInstructionFilter<X86_64>(encoded, banned))
+        << xed_iclass_enum_t2str(builder.iclass());
+    EXPECT_TRUE(StaticInstructionFilter<X86_64>(encoded, allowed))
+        << xed_iclass_enum_t2str(builder.iclass());
+  };
+  auto expect_accepted = [&](const InstructionBuilder& builder) {
+    const std::string encoded = EncodeXedOrEmpty(builder);
+    EXPECT_FALSE(encoded.empty());
+    EXPECT_TRUE(StaticInstructionFilter<X86_64>(encoded, banned))
+        << xed_iclass_enum_t2str(builder.iclass());
+  };
+
+  // UMIP instructions encoded directly via XED.
+  {
+    InstructionBuilder b(XED_ICLASS_SGDT, 64);
+    b.AddOperands(xed_mem_b(XED_REG_RAX, 80));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_SGDT, 64);
+    b.AddOperands(xed_mem_gb(XED_REG_CS, XED_REG_RAX, 80));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_SIDT, 64);
+    b.AddOperands(xed_mem_b(XED_REG_RAX, 80));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_SIDT, 64);
+    b.AddOperands(xed_mem_gb(XED_REG_CS, XED_REG_R12, 80));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_SMSW, 16);
+    b.AddOperands(xed_mem_b(XED_REG_RAX, 16));
+    expect_rejected(b);
+  }
+  for (xed_reg_enum_t reg :
+       {XED_REG_AX, XED_REG_EAX, XED_REG_RAX, XED_REG_R15}) {
+    const unsigned int width =
+        reg == XED_REG_AX ? 16 : (reg == XED_REG_EAX ? 32 : 64);
+    InstructionBuilder b(XED_ICLASS_SMSW, width);
+    b.AddOperands(xed_reg(reg));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_SLDT, 16);
+    b.AddOperands(xed_mem_b(XED_REG_RAX, 16));
+    expect_rejected(b);
+  }
+  for (xed_reg_enum_t reg : {XED_REG_AX, XED_REG_EAX, XED_REG_RAX}) {
+    const unsigned int width =
+        reg == XED_REG_AX ? 16 : (reg == XED_REG_EAX ? 32 : 64);
+    InstructionBuilder b(XED_ICLASS_SLDT, width);
+    b.AddOperands(xed_reg(reg));
+    expect_rejected(b);
+  }
+  {
+    InstructionBuilder b(XED_ICLASS_STR, 16);
+    b.AddOperands(xed_mem_b(XED_REG_RAX, 16));
+    expect_rejected(b);
+  }
+  for (xed_reg_enum_t reg : {XED_REG_AX, XED_REG_EAX, XED_REG_RAX}) {
+    const unsigned int width =
+        reg == XED_REG_AX ? 16 : (reg == XED_REG_EAX ? 32 : 64);
+    InstructionBuilder b(XED_ICLASS_STR, width);
+    b.AddOperands(xed_reg(reg));
+    expect_rejected(b);
+  }
+  // Forced 32-bit `jmp +15` (`e9 0f 00 00 00`) contains unaligned `0f 00 00`.
+  {
+    InstructionBuilder b(XED_ICLASS_JMP, 64);
+    b.AddOperands(xed_relbr(15, 32));
+    expect_rejected(b);
+  }
+
+  // Representative non-UMIP instructions (including 0F-escaped encodings).
+  for (xed_iclass_enum_t iclass : {XED_ICLASS_NOP, XED_ICLASS_SERIALIZE,
+                                   XED_ICLASS_CLZERO, XED_ICLASS_MFENCE}) {
+    expect_accepted(InstructionBuilder(iclass, 64));
+  }
+}
+
+TEST(StaticInsnFilter, X86AllowedInstructions) {
+  const InstructionFilterConfig<X86_64> banned = {
+      .umip_instructions_allowed = false,
+  };
+
+  // Short / boundary inputs:
+  // Empty byte sequence
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {});
+  // nop
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x90});
+  // Truncated 0F escape byte
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x0f});
+  // Truncated 0F 00 (missing ModRM)
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x0f, 0x00});
+  // Truncated 0F 01 (missing ModRM)
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x0f, 0x01});
+
+  // Representative normal and non-UMIP 0F-prefixed encodings (all 256
+  // Group 6/7 ModRM bytes are covered by X86ExhaustiveGroup6AndGroup7ModRM):
+  // xor rax, rax; nop
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x48, 0x31, 0xc0, 0x90});
+  // cmove rax, rbx
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x48, 0x0f, 0x44, 0xc3});
+  // serialize (0F 01 /5, mod = 3)
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x0f, 0x01, 0xe8});
+  // clzero (0F 01 /7, mod = 3)
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0x0f, 0x01, 0xfc});
+
+  // Trap padding and x86 exit sequence bytes:
+  // int3; int3; int3; int3
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(banned, {0xcc, 0xcc, 0xcc, 0xcc});
+  // call qword ptr [rip+0] followed by 8-byte target address (exit thunk)
+  EXPECT_X86_64_FILTER_ACCEPT_CONFIG(
+      banned, {0xff, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xcd, 0xab, 0x00,
+               0x00, 0x00, 0x00});
+}
+
+TEST(StaticInsnFilter, X86ExhaustiveGroup6AndGroup7ModRM) {
+  const InstructionFilterConfig<X86_64> banned = {
+      .umip_instructions_allowed = false,
+  };
+  for (int modrm = 0; modrm < 256; ++modrm) {
+    const uint8_t b = static_cast<uint8_t>(modrm);
+    const bool is_reg_operand = (b & 0xc0) == 0xc0;
+    const uint8_t reg = (b >> 3) & 0x07;
+
+    bool expected_0f_01_umip = false;
+    switch (reg) {
+      case 0x00:  // SGDT (memory only)
+      case 0x01:  // SIDT (memory only)
+        expected_0f_01_umip = !is_reg_operand;
+        break;
+      case 0x04:  // SMSW (memory or register)
+        expected_0f_01_umip = true;
+        break;
+      default:
+        expected_0f_01_umip = false;
+        break;
+    }
+    EXPECT_EQ(
+        StaticInstructionFilter<X86_64>(FromBytes({0x0f, 0x01, b}), banned),
+        !expected_0f_01_umip)
+        << "0F 01 " << std::hex << modrm;
+
+    const bool expected_0f_00_umip = (reg == 0x00 || reg == 0x01);
+    EXPECT_EQ(
+        StaticInstructionFilter<X86_64>(FromBytes({0x0f, 0x00, b}), banned),
+        !expected_0f_00_umip)
+        << "0F 00 " << std::hex << modrm;
+  }
+}
+
+TEST(StaticInsnFilter, X86UmipDefaultConfig) {
+  // Default currently leaves UMIP instructions allowed until callers are
+  // prepared to enable filtering by default:
+  // sgdt [rax]
+  EXPECT_TRUE(StaticInstructionFilter<X86_64>(FromBytes({0x0f, 0x01, 0x00})));
 }
 
 }  // namespace

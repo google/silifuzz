@@ -23,6 +23,7 @@
 #include "absl/time/time.h"
 #include "./common/proxy_config.h"
 #include "./common/snapshot.h"
+#include "./instruction/static_insn_filter.h"
 #include "./player/play_options.h"
 #include "./player/trace_options.h"
 #include "./util/arch.h"
@@ -58,6 +59,11 @@ struct MakingConfig {
   // mappings are rejected.
   bool enforce_fuzzing_config = true;
 
+  // Static instruction filter configuration applied to executable bytes on
+  // x86_64 before native execution in MakeSnapshot(). In MakeRawInstructions(),
+  // this is merged restrictively with `fuzzing_config.instruction_filter`.
+  InstructionFilterConfig<X86_64> x86_instruction_filter = {};
+
   TraceOptions trace;
 
   // Config for when we are making a real Snapshot that we want to persist.
@@ -73,6 +79,9 @@ absl::StatusOr<Snapshot> MakeSnapshot(const Snapshot& snapshot,
                                       const MakingConfig& making_config);
 
 // A high-level interface for making a Snapshot from raw instructions.
+// On x86_64, `making_config.x86_instruction_filter` and
+// `fuzzing_config.instruction_filter` are merged restrictively (an instruction
+// class is allowed only if permitted by both configs).
 absl::StatusOr<Snapshot> MakeRawInstructions(
     absl::string_view instructions, const MakingConfig& making_config,
     const FuzzingConfig<Host>& fuzzing_config = DEFAULT_FUZZING_CONFIG<Host>);
