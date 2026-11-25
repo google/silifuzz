@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <type_traits>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -165,6 +166,17 @@ absl::StatusOr<Snapshot> InstructionsToSnapshot(
   // ASAP in case if we happen to "fixup" an invalid instruction to a valid one
   // by adding an endpoint trap.
   PadToSizeWithTraps<Arch>(code_with_traps, kPageSize);
+  if constexpr (std::is_same_v<Arch, X86_64>) {
+    // On x86_64, trap padding (0xCC) can combine with trailing bytes of `code`
+    // (for example, trailing 0x0F 0x00 + 0xCC forms `str %esp`) to produce a
+    // banned encoding. Re-check after padding so trap-padded snapshots cannot
+    // execute a banned instruction at the padding boundary.
+    if (!StaticInstructionFilter<X86_64>(code_with_traps,
+                                         config.instruction_filter)) {
+      return absl::InvalidArgumentError(
+          "code snippet contains problematic instructions.");
+    }
+  }
   snapshot.add_memory_bytes(
       Snapshot::MemoryBytes(code_start_addr, code_with_traps));
 

@@ -106,6 +106,39 @@ TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Stable) {
             snapshot_3->ExtractRip(snapshot_3->registers()));
 }
 
+TEST(RawInsnsUtil, InstructionsToSnapshot_X86_64_Filter) {
+  // cs sgdt [rax]
+  const std::string cs_sgdt({0x2e, 0x0f, 0x01, 0x00});
+  // sidt [rax]
+  const std::string sidt({0x0f, 0x01, 0x08});
+  // smsw [rax]
+  const std::string smsw({0x0f, 0x01, 0x20});
+  // sldt [rax]
+  const std::string sldt({0x0f, 0x00, 0x00});
+  // str [rax]
+  const std::string str({0x0f, 0x00, 0x08});
+  // Trailing 0x0F 0x00 combined with 0xCC trap padding forms `str %esp`.
+  const std::string trailing_0f_00({0x0f, 0x00});
+
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(cs_sgdt),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(sidt),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(smsw),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(sldt),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(str),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_THAT(InstructionsToSnapshot<X86_64>(trailing_0f_00),
+              StatusIs(absl::StatusCode::kInvalidArgument));
+
+  FuzzingConfig<X86_64> allow_umip = DEFAULT_FUZZING_CONFIG<X86_64>;
+  allow_umip.instruction_filter.umip_instructions_allowed = true;
+  EXPECT_OK(InstructionsToSnapshot<X86_64>(cs_sgdt, allow_umip));
+  EXPECT_OK(InstructionsToSnapshot<X86_64>(trailing_0f_00, allow_umip));
+}
+
 TEST(RawInsnsUtil, UnpackFuzzTestInput_RawBytes) {
   constexpr absl::string_view kRawBytes = "\x90\x90\x90\x90";
   EXPECT_EQ(UnpackFuzzTestInput(kRawBytes), kRawBytes);

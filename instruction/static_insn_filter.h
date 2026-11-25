@@ -29,7 +29,7 @@ struct InstructionFilterConfig<X86_64> {
   // (SGDT, SIDT, SMSW, SLDT, STR) are allowed. Filtering scans every byte
   // offset conservatively and can reject unaligned byte sequences inside valid
   // structured code (e.g. `0F 00 00` inside `jmp +15`).
-  bool umip_instructions_allowed = true;
+  bool umip_instructions_allowed = false;
 };
 
 template <>

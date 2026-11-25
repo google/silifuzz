@@ -28,14 +28,20 @@
 #include <string>
 #include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "./common/snapshot_test_config.h"
 #include "./common/snapshot_test_enum.h"
 #include "./util/arch.h"
+#include "./util/testing/status_matchers.h"
 
 namespace silifuzz {
 
 namespace {
+
+using silifuzz::testing::StatusIs;
+using ::testing::HasSubstr;
 
 #define EXPECT_FILTER_ACCEPT(insn) EXPECT_TRUE(FilterToolMain(insn).ok())
 
@@ -100,7 +106,37 @@ TEST(FuzzFilterTool, RDTSC) { EXPECT_FILTER_REJECT(FromBytes({0x0f, 0x31})); }
 TEST(FuzzFilterTool, CPUID) { EXPECT_FILTER_REJECT(FromBytes({0x0f, 0xa2})); }
 
 TEST(FuzzFilterTool, SLDT) {
-  EXPECT_FILTER_REJECT(FromBytes({0x0f, 0x00, 0xc0}));
+  EXPECT_THAT(FilterToolMain(FromBytes({0x0f, 0x00, 0xc0})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
+}
+
+TEST(FuzzFilterTool, SGDT) {
+  // sgdt [rax] and cs sgdt [rax] must be rejected statically before execution.
+  EXPECT_THAT(FilterToolMain(FromBytes({0x0f, 0x01, 0x00})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
+  EXPECT_THAT(FilterToolMain(FromBytes({0x2e, 0x0f, 0x01, 0x00})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
+}
+
+TEST(FuzzFilterTool, SIDT) {
+  EXPECT_THAT(FilterToolMain(FromBytes({0x2e, 0x0f, 0x01, 0x08})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
+}
+
+TEST(FuzzFilterTool, SMSW) {
+  EXPECT_THAT(FilterToolMain(FromBytes({0x2e, 0x0f, 0x01, 0x20})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
+}
+
+TEST(FuzzFilterTool, STR) {
+  EXPECT_THAT(FilterToolMain(FromBytes({0x2e, 0x0f, 0x00, 0x08})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("problematic instructions")));
 }
 
 TEST(FuzzFilterTool, INC_SPLIT_LOCK) {

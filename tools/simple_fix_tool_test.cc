@@ -123,6 +123,23 @@ TEST(SimpleFixTool, MakeSnapshotsFromBlobs) {
   EXPECT_THAT(made_snapshots, SizeIs(kNumBlobs));
 }
 
+#if defined(__x86_64__)
+TEST(SimpleFixTool, MakeSnapshotsFromBlobsRejectsUmip) {
+  const std::string nop = GetNOP();
+  // cs sgdt (%rax)
+  const std::string cs_sgdt({0x2e, 0x0f, 0x01, 0x00});
+  std::vector<std::string> blobs = {nop, cs_sgdt};
+
+  SimpleFixToolCounters counters;
+  std::vector<Snapshot> made_snapshots =
+      MakeSnapshotsFromBlobs({}, blobs, &counters);
+  EXPECT_THAT(made_snapshots, SizeIs(1));
+  EXPECT_EQ(counters.GetValue(
+                "silifuzz-ERROR-FixToolWorker:instructions-to-snapshot-failed"),
+            1);
+}
+#endif
+
 }  // namespace
 }  // namespace fix_tool_internal
 

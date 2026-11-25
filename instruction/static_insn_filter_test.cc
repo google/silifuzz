@@ -2288,10 +2288,11 @@ TEST(StaticInsnFilter, X86ExhaustiveGroup6AndGroup7ModRM) {
 }
 
 TEST(StaticInsnFilter, X86UmipDefaultConfig) {
-  // Default currently leaves UMIP instructions allowed until callers are
-  // prepared to enable filtering by default:
   // sgdt [rax]
-  EXPECT_TRUE(StaticInstructionFilter<X86_64>(FromBytes({0x0f, 0x01, 0x00})));
+  EXPECT_FALSE(StaticInstructionFilter<X86_64>(FromBytes({0x0f, 0x01, 0x00})));
+  // jmp +15 (`rel32` = 0x0000000f contains unaligned `0f 00 00` = sldt [rax])
+  EXPECT_FALSE(StaticInstructionFilter<X86_64>(
+      FromBytes({0xe9, 0x0f, 0x00, 0x00, 0x00})));
 }
 
 }  // namespace

@@ -378,11 +378,11 @@ cc_library(
         "-lzstd",
     ],
     deps = [
+        ":memory_mapping",
         ":memory_perms",
         ":proxy_config",
         ":snapshot",
         ":snapshot_util",
-        "@silifuzz//common:memory_mapping",
         "@silifuzz//instruction:static_insn_filter",
         "@silifuzz//util:arch",
         "@silifuzz//util:arch_mem",

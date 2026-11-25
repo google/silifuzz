@@ -123,6 +123,8 @@ cc_test(
         "@silifuzz//common:snapshot_test_enum",
         "@silifuzz//common:snapshot_test_util",
         "@silifuzz//util:arch",
+        "@silifuzz//util/testing:status_matchers",
+        "@abseil-cpp//absl/status",
         "@googletest//:gtest_main",
     ],
 )
