@@ -16,6 +16,8 @@
 
 #include <signal.h>
 
+#include <type_traits>
+
 #include "absl/base/macros.h"
 #include "./util/checks.h"
 #include "./util/ucontext/ucontext.h"
@@ -33,7 +35,8 @@ void ConvertGRegsFromLibC(const ucontext_t& libc_ucontext,
                           GRegSet<AArch64>* gregs) {
   const mcontext_t& mcontext = libc_ucontext.uc_mcontext;
 
-  static_assert(ABSL_ARRAYSIZE(gregs->x) == ABSL_ARRAYSIZE(mcontext.regs),
+  static_assert(std::extent_v<decltype(gregs->x)> ==
+                    std::extent_v<decltype(mcontext.regs)>,
                 "Register array sizes do not match.");
 
   for (int i = 0; i < ABSL_ARRAYSIZE(gregs->x); ++i) {
@@ -106,8 +109,9 @@ void ConvertFPRegsFromLibC(const ucontext_t& libc_ucontext,
     ASS_LOG_FATAL("FPSIMD record is wrong size.");
   }
 
-  static_assert(ABSL_ARRAYSIZE(fpregs->v) == ABSL_ARRAYSIZE(fpc->vregs),
-                "Register array sizes do not match.");
+  static_assert(
+      std::extent_v<decltype(fpregs->v)> == std::extent_v<decltype(fpc->vregs)>,
+      "Register array sizes do not match.");
 
   // Copy the data over.
   for (int i = 0; i < ABSL_ARRAYSIZE(fpregs->v); ++i) {
